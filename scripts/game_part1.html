@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="description" content="سه طبقه تا بقا — بازی دفاع از برج سه‌طبقه در برابر موج‌های زامبی (نسخه پایه ۱.۰)">
+<title>سه طبقه تا بقا</title>
+<style>
+/* ==================================================================
+   سه طبقه تا بقا — استایل‌های صفحه
+   صفحه راست‌به‌چپ (فارسی) است؛ همه متن‌های رابط کاربری فارسی‌اند.
+   بخش‌ها: ۱) ریست و قاب کلی  ۲) HUD بالای صفحه  ۳) اعلان مرکزی
+            ۴) اورلی‌ها و پنل‌ها  ۵) منوی ساخت‌وساز
+   ================================================================== */
+
+/* ---------- ۱) ریست و قاب کلی ---------- */
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e8ecf5;
+  font-family:Tahoma,'Segoe UI','Noto Naskh Arabic','Noto Sans Arabic',Arial,sans-serif}
+body{display:flex;align-items:center;justify-content:center}
+
+/* قاب بازی: نسبت تصویر ۹۶۰×۵۶۰ حفظ می‌شود و در هر صفحه‌ای جای می‌گیرد */
+#wrap{position:relative;width:min(97vw,calc(97vh*960/560));aspect-ratio:960/560;
+  border-radius:12px;overflow:hidden;
+  box-shadow:0 12px 70px rgba(0,0,0,.75),0 0 0 1px #1e2a4a}
+#game{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+
+/* ---------- ۲) HUD بالای صفحه ---------- */
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+  align-items:flex-start;padding:10px 14px;gap:10px;pointer-events:none;z-index:5}
+.hud-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hud-item{display:flex;align-items:center;gap:7px;background:rgba(8,14,32,.74);
+  border:1px solid #26355c;border-radius:10px;padding:6px 12px;font-size:13.5px;font-weight:bold;
+  backdrop-filter:blur(4px);white-space:nowrap}
+#healthBar{width:128px;height:13px;background:#160c0c;border:1px solid #3a1f24;border-radius:7px;overflow:hidden}
+#healthFill{height:100%;width:100%;border-radius:7px;transition:width .18s ease;
+  background:linear-gradient(90deg,#37d067,#7be38a)}
+#healthFill.mid{background:linear-gradient(90deg,#e7b53a,#f3d264)}
+#healthFill.low{background:linear-gradient(90deg,#e04b3a,#f37a6a)}
+#coinItem{color:#ffd873}
+/* پالس وقتی سکه‌ای جمع می‌شود */
+@keyframes coinPulse{0%{transform:scale(1)}40%{transform:scale(1.28)}100%{transform:scale(1)}}
+#coinItem.pulse{animation:coinPulse .28s ease}
+.hud-btn{pointer-events:auto;cursor:pointer;background:rgba(20,30,60,.88);color:#e8ecf5;
+  border:1px solid #33477c;border-radius:10px;padding:7px 13px;font-family:inherit;font-size:12.5px;
+  font-weight:bold;transition:background .15s,transform .15s,color .15s,border-color .15s}
+.hud-btn:hover{background:#2a3f74;transform:translateY(-1px)}
+/* جلب توجه دکمه ساخت‌وساز در وقفه بین موج‌ها */
+@keyframes attentionPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,216,115,.55)}50%{box-shadow:0 0 0 9px rgba(255,216,115,0)}}
+.hud-btn.attention{animation:attentionPulse 1.2s infinite;border-color:#ffd873;color:#ffd873}
+
+/* ---------- ۳) اعلان مرکزی (موج بعدی / شروع موج) ---------- */
+#announce{position:absolute;top:29%;left:0;right:0;text-align:center;pointer-events:none;z-index:4;
+  opacity:0;transition:opacity .25s ease}
+#announce .big{font-size:36px;font-weight:bold;color:#ffd873;
+  text-shadow:0 3px 14px rgba(0,0,0,.85),0 0 34px rgba(255,190,60,.3)}
+#announce .sub{font-size:15px;color:#cdd8f2;margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+
+/* ---------- ۴) اورلی‌ها و پنل‌ها ---------- */
+.overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+  background:rgba(4,7,18,.72);backdrop-filter:blur(5px)}
+.hidden{display:none!important}
+.panel{background:linear-gradient(180deg,#141d38,#0c1329);border:1px solid #2c3f70;border-radius:16px;
+  padding:26px 32px;text-align:center;max-width:540px;width:88%;max-height:92%;overflow-y:auto;
+  box-shadow:0 18px 60px rgba(0,0,0,.6)}
+.panel h1{font-size:28px;margin-bottom:8px;color:#ffd873;text-shadow:0 2px 12px rgba(255,190,60,.25)}
+.panel h2{font-size:20px;margin-bottom:4px;color:#ffd873}
+.subtitle{color:#aab8dc;font-size:14px;margin-bottom:4px}
+.howto{display:flex;flex-direction:column;gap:8px;background:rgba(255,255,255,.04);
+  border:1px solid #26355c;border-radius:10px;padding:13px 16px;margin:16px 0;font-size:13px;
+  color:#c3cdea;text-align:right;line-height:1.7}
+.btn-main{cursor:pointer;font-family:inherit;font-size:16.5px;font-weight:bold;color:#141a2e;
+  background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:11px;padding:12px 36px;
+  transition:transform .15s,filter .15s;box-shadow:0 4px 20px rgba(240,180,60,.35)}
+.btn-main:hover{transform:translateY(-2px);filter:brightness(1.07)}
+.btn-sec{cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:bold;color:#c3cdea;
+  background:#1a2546;border:1px solid #33477c;border-radius:10px;padding:10px 22px;transition:.15s;margin-right:8px}
+.btn-sec:hover{background:#26365e;color:#fff}
+.btn-row{display:flex;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap}
+.hint{color:#6d7ea6;font-size:11.5px;margin-top:14px}
+.stat-line{color:#9fb0d8;font-size:13px;margin-top:4px}
+.stat-line b{color:#e8ecf5}
+
+/* ---------- ۵) منوی ساخت‌وساز ---------- */
+.shop-coins{color:#ffd873;font-weight:bold;font-size:15px;margin:6px 0 2px}
+.shop-cards{display:flex;flex-direction:column;gap:10px;margin:14px 0 4px;text-align:right}
+.card{display:flex;align-items:center;gap:12px;background:#101a36;border:1px solid #2c3f70;
+  border-radius:12px;padding:11px 13px}
+.card-icon{font-size:24px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;
+  background:#182448;border-radius:11px;flex-shrink:0}
+.card-body{flex:1;min-width:0}
+.card-body h3{font-size:14.5px;color:#fff}
+.card-body p{font-size:11.5px;color:#9fb0d8;margin-top:3px;line-height:1.6}
+.card-body .lvl{color:#6d7ea6;font-size:11px;margin-top:2px}
+.buy-btn{cursor:pointer;font-family:inherit;font-weight:bold;font-size:12.5px;color:#141a2e;
+  background:linear-gradient(180deg,#ffd873,#eeb43e);border:none;border-radius:9px;padding:9px 13px;
+  min-width:112px;transition:transform .15s,filter .15s;white-space:nowrap;flex-shrink:0}
+.buy-btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+.buy-btn:disabled{cursor:not-allowed;background:#26304d;color:#7a8aa8}
+/* لرزش دکمه وقتی سکه کافی نیست */
+@keyframes denyShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.buy-btn.deny{animation:denyShake .3s;border:1px solid #e04b3a}
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <!-- بوم اصلی؛ همه‌چیز داخل بازی با Canvas API رسم می‌شود (بدون تصویر خارجی) -->
+  <canvas id="game" width="960" height="560"></canvas>
+
+  <!-- ============ HUD بالای صفحه: جون برج، سکه، موج، دکمه‌ها ============ -->
+  <div id="hud">
+    <div class="hud-group">
+      <div class="hud-item" title="جون برج">❤️
+        <div id="healthBar"><div id="healthFill"></div></div>
+        <span id="healthText">۱۰۰/۱۰۰</span>
+      </div>
+      <div class="hud-item" id="coinItem" title="سکه‌ها">💰 <span id="coinText">۰</span></div>
+      <div class="hud-item" title="موج فعلی">💀 <span id="waveText">موج ۱/۱۰</span></div>
+    </div>
+    <div class="hud-group">
+      <button class="hud-btn" id="btnShop">🛠 ساخت‌وساز</button>
+      <button class="hud-btn" id="btnPause">⏸ توقف</button>
+    </div>
+  </div>
+
+  <!-- ============ اعلان مرکزی (موج بعدی / آغاز موج) ============ -->
+  <div id="announce">
+    <div class="big" id="announceBig"></div>
+    <div class="sub" id="announceSub"></div>
+  </div>
+
+  <!-- ============ صفحه شروع ============ -->
+  <div class="overlay" id="startScreen">
+    <div class="panel">
+      <h1>🏰 سه طبقه تا بقا 🧟</h1>
+      <p class="subtitle">از برج سه‌طبقه‌ات در برابر ۱۰ موج زامبی دفاع کن!</p>
+      <div class="howto">
+        <div>🖱 با کلیک (یا نگه‌داشتن) ماوس روی زامبی‌ها شلیک کن</div>
+        <div>🧟 نذار زامبی‌ها به برج برسن و جونش تموم شه</div>
+        <div>💰 سکه‌های زامبی‌های کشته‌شده رو جمع کن</div>
+        <div>🛠 بین موج‌ها اسلحه، جون برج یا تله پایه برج بخری</div>
+      </div>
+      <button class="btn-main" id="btnStart">🎮 شروع بازی</button>
+      <p class="hint">کلیدها: P یا Esc = توقف / ادامه</p>
+    </div>
+  </div>
+
+  <!-- ============ منوی ساخت‌وساز (فروشگاه ارتقا) ============ -->
+  <div class="overlay hidden" id="shopScreen">
+    <div class="panel">
+      <h2>🛠 منوی ساخت‌وساز</h2>
+      <p class="subtitle">با سکه‌هات برج رو قوی‌تر کن</p>
+      <div class="shop-coins">💰 سکه‌های تو: <span id="shopCoins">۰</span></div>
+      <div class="shop-cards">
+        <div class="card">
+          <div class="card-icon">🎯</div>
+          <div class="card-body">
+            <h3>ارتقای اسلحه</h3>
+            <p id="weaponDesc">قدرت گلوله: ۱</p>
+            <p class="lvl" id="weaponLvl">سطح ۰ از ۵</p>
+          </div>
+          <button class="buy-btn" id="buyWeapon">خرید — ۲۵ 💰</button>
+        </div>
+        <div class="card">
+          <div class="card-icon">🧱</div>
+          <div class="card-body">
+            <h3>افزایش جون برج</h3>
+            <p id="healthDesc">حداکثر جون: ۱۰۰</p>
+            <p class="lvl" id="healthLvl">سطح ۰ از ۶</p>
+          </div>
+          <button class="buy-btn" id="buyHealth">خرید — ۲۰ 💰</button>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <div class="card-body">
+            <h3>نصب تله در پایه برج</h3>
+            <p id="trapDesc">آسیب خودکار به زامبی‌های نزدیک برج</p>
+            <p class="lvl" id="trapLvl">سطح ۰ از ۵</p>
+          </div>
+          <button class="buy-btn" id="buyTrap">خرید — ۳۵ 💰</button>
+        </div>
+      </div>
+      <div class="btn-row"><button class="btn-sec" id="closeShop">بستن ✖</button></div>
+    </div>
+  </div>
+
+  <!-- ============ صفحه توقف ============ -->
+  <div class="overlay hidden" id="pauseScreen">
+    <div class="panel">
+      <h2>⏸ توقف</h2>
+      <p class="subtitle">نفسی تازه کن... زامبی‌ها منتظرت می‌مونن!</p>
+      <div class="btn-row">
+        <button class="btn-main" id="btnResume">▶ ادامه بازی</button>
+        <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ صفحه باخت ============ -->
+  <div class="overlay hidden" id="gameoverScreen">
+    <div class="panel">
+      <h1>💀 بازی تمام شد!</h1>
+      <p class="subtitle" id="goSubtitle">برج سقوط کرد...</p>
+      <p class="stat-line" id="goStats"></p>
+      <div class="btn-row"><button class="btn-main" id="btnRestart1">🔄 شروع مجدد</button></div>
+    </div>
+  </div>
+
+  <!-- ============ صفحه برد ============ -->
+  <div class="overlay hidden" id="victoryScreen">
+    <div class="panel">
+      <h1>🏆 پیروزی!</h1>
+      <p class="subtitle">همه‌ی ۱۰ موج رو پاک‌سازی کردی؛ برج هنوز سرپاست!</p>
+      <p class="stat-line" id="vStats"></p>
+      <div class="btn-row"><button class="btn-main" id="btnRestart2">🔄 بازی دوباره</button></div>
+    </div>
+  </div>
+
+</div>
+<script>
