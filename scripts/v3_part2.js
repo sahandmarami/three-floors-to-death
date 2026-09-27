@@ -417,6 +417,8 @@ const state = {
   lightning: { t: rand(9, 20), a: 0 },     // رعدوبرق گاه‌به‌گاه (۳٫۰)
   upgrades: { weapon: 0, health: 0, trap: 0, turretUp: 0 },
   weapon: 'pistol',                        // سلاح انتخاب‌شده
+  towerVariant: 0,                         // پوسته‌ی برج: ۰=برج اول، ۱=برج دومِ شهر سوخته (۷٫۰)
+  cutsceneDone: false,                     // آیا رویداد داستانی فروریختن انجام شده؟ (۷٫۰)
   stats: { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 },
 };
 
@@ -520,6 +522,9 @@ function startGame() {
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0 };
   state.weapon = 'pistol';
+  state.towerVariant = 0;                  // برج اول (۷٫۰)
+  state.cutsceneDone = false;
+  cutsceneHardReset();                     // اگر کات‌سینی در جریان بود کنسل شود (۷٫۰)
   WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
   state.zombies = []; state.bullets = []; state.coinsArr = [];
   state.turrets = []; state.placing = null; state.tipTurret = false;
@@ -585,6 +590,16 @@ function waveComplete() {
   pulseCoins();
   /* صحنه پاک شود و صبح طلوع کند */
   state.zombies = []; state.bullets = [];
+  /* (۷٫۰) رویداد داستانی: پایان موج ۵ = فروریختن برج و مهاجرت به برج بعدی؛
+     جون/سکه/سلاح/ارتقاها همه حفظ می‌شوند و موج ۶ روی برج جدید ادامه می‌یابد */
+  if (state.wave === CUTSCENE_AFTER_WAVE && state.towerVariant === 0 && !state.cutsceneDone) {
+    playTowerCollapseCutscene({
+      afterWave: CUTSCENE_AFTER_WAVE,
+      variant: 1,                             // پوسته‌ی برج دوم + شهر سوخته
+      gift: { coins: 80, weapon: 'shotgun' }, // هدیه‌ی راننده‌ی ماشین
+    });
+    return;
+  }
   state.mode = 'day';
   state.dayTarget = 1;                     // گذار نرم به روز
   state.goingNight = false;

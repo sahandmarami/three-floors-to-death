@@ -3,24 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۶٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ رویداد داستانی فروریختن برج و مهاجرت به برج دوم، چرخه‌ی روز و شب، پنل ساخت‌وساز مکعبی و برجک‌های دفاعی خودکار (نسخه‌ی ۷٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
-            ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰)
-            ۵٫۵) پنل روز: دکمه‌ی «شب شود» (۵٫۰)
-            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال (۵٫۰)  ۸) راهنما
-   تازه‌های ۶٫۰:
-     - پنل ساخت‌وساز در شب (موج) خودکار جمع می‌شود تا نقشه و
-       زامبی‌های سمت راست کاملاً دیده شوند و شلیک آزاد باشد؛
-       در روز خودکار باز می‌شود (خرید/نصب) — کلید B یا کلیک سربرگ
-     - دکمه‌ی «شب شود» به بالای صفحه (زیر HUD) رفت تا کف نقشة
-       برای دیدن و نصب برجک کاملاً آزاد بماند
-     - ارتقای کلی گرافیک صحنه (آسمان/ماه/شهر/زمین/برج/زامبی‌ها)
+            ۵) پنل ساخت‌وساز مکعبی کنار نقشه (۷٫۰)
+            ۵٫۵) پنل روز: دکمه‌ی «شب شود»
+            ۵٫۶) کات‌سین داستانی: دکمه‌ی «رد کردن» + حالت سینمایی (۷٫۰)
+            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال   ۸) راهنما
+   تازه‌های ۷٫۰:
+     - آیکون‌های پنل ساخت‌وساز همه «مکعب‌های ایزومتریک» شدند
+     - رویداد داستانی بعد از موج ۵: فروریختن برج، نجات با ماشین،
+       هدیه‌ی راننده و مهاجرت به برج دوم در شهر سوخته
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -125,13 +123,13 @@ body{display:flex;align-items:center;justify-content:center}
 .bp-grp{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:4px 2px 1px;
   font-size:8.5px;font-weight:bold;color:#6d7ea6;letter-spacing:.4px}
 .bp-grp::before,.bp-grp::after{content:'';flex:1;height:1px;background:#24325a}
-/* کاشی آیتم: آیکون + قیمت + کلید + پین‌های سطح */
+/* کاشی آیتم: مکعب + قیمت + کلید + پین‌های سطح */
 .bp-tile{position:relative;height:66px;background:rgba(12,20,44,.66);border:1.5px solid #24325a;
   border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;cursor:pointer;pointer-events:auto;
   transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
 .bp-tile:hover{border-color:#3d548c;background:rgba(20,32,66,.92);transform:translateY(-2px);z-index:2}
-.bp-tile .bp-ic{width:34px;height:34px;display:block}
+.bp-tile .bp-ic{width:38px;height:38px;display:block}
 .bp-tile .bp-price{font-size:10px;font-weight:bold;color:#ffd873;line-height:1;min-height:10px}
 .bp-key{position:absolute;top:2px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
   border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
@@ -169,6 +167,19 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes nightGlow{0%,100%{box-shadow:0 4px 18px rgba(240,180,60,.32)}50%{box-shadow:0 4px 30px rgba(240,180,60,.62)}}
 #dpHint{font-size:10.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.72);
   border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92}
+
+/* ---------- ۵٫۶) کات‌سین داستانی (۷٫۰) ----------
+   حین کات‌سینِ «فروریختن برج»، نوار سلاح/پنل روز/پنل ساخت‌وساز
+   مخفی می‌شوند تا صحنه سینمایی تمیز بماند؛ HUD بالا می‌ماند تا
+   بازیکن ببیند جون و سکه‌اش دقیقاً حفظ شده است. */
+#wrap.cs-mode #weaponBar, #wrap.cs-mode #buildPanel,
+#wrap.cs-mode #dayPanel {display:none!important}
+/* دکمه‌ی «رد کردن» گوشه‌ی صفحه (روی نوار سیاه سینمایی می‌نشیند) */
+#skipCs{position:absolute;bottom:9px;left:16px;z-index:9;pointer-events:auto;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:bold;color:#c3cdea;
+  background:rgba(8,14,30,.78);border:1px solid #33477c;border-radius:999px;padding:7px 18px;
+  backdrop-filter:blur(4px);transition:color .15s,border-color .15s,transform .15s,background .15s}
+#skipCs:hover{color:#ffd873;border-color:#ffd873;background:rgba(20,30,60,.92);transform:translateY(-1px)}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -296,6 +307,9 @@ body{display:flex;align-items:center;justify-content:center}
     <span id="dpHint">زامبی نمی‌آید — ارتقا بخر و برجک بگذار</span>
   </div>
 
+  <!-- ============ دکمه‌ی «رد کردن» کات‌سین داستانی (۷٫۰) ============ -->
+  <button id="skipCs" class="hidden">⏭ رد کردن</button>
+
   <!-- ============ منوی اصلی: مینیمال روی صحنه‌ی زنده ============ -->
   <div class="overlay" id="startScreen">
     <div id="menuHero">
@@ -306,7 +320,7 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۶٫۰ — گرافیک ارتقایافته، چرخه‌ی روز و شب و برجک‌های خودکار</p>
+      <p class="ver">نسخه‌ی ۷٫۰ — رویداد داستانی «برج دوم» + ساخت‌وساز مکعبی</p>
     </div>
   </div>
 
@@ -326,6 +340,7 @@ body{display:flex;align-items:center;justify-content:center}
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>
         <div>⚡ از زامبی‌ها جعبه‌ی قدرت می‌افتد: ❤️ درمان &nbsp;•&nbsp; ⚡ شلیک سریع &nbsp;•&nbsp; ❄️ انجماد &nbsp;•&nbsp; 💰 بار سکه</div>
         <div>🧟 زامبی‌ها برج را از هر دو طرف <b>محاصره</b> می‌کنند و پایه‌اش را گاز می‌گیرند؛ جون که تمام شود باختی!</div>
+        <div>🎬 <b>بعد از موج ۵</b> یک رویداد داستانی می‌افتد: برج فروریخته و دوستت با ماشین نجاتت می‌دهد — جون، سکه، سلاح‌ها و ارتقاها همه حفظ می‌شوند و بازی روی <b>برج جدید</b> در شهر سوخته ادامه پیدا می‌کند (کات‌سین با دکمه‌ی «رد کردن» قابل عبور است)</div>
       </div>
       <h3 class="sec-t">🧟 دشمن‌ها</h3>
       <div class="foes">

@@ -3,24 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۶٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ رویداد داستانی فروریختن برج و مهاجرت به برج دوم، چرخه‌ی روز و شب، پنل ساخت‌وساز مکعبی و برجک‌های دفاعی خودکار (نسخه‌ی ۷٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
-            ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰)
-            ۵٫۵) پنل روز: دکمه‌ی «شب شود» (۵٫۰)
-            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال (۵٫۰)  ۸) راهنما
-   تازه‌های ۶٫۰:
-     - پنل ساخت‌وساز در شب (موج) خودکار جمع می‌شود تا نقشه و
-       زامبی‌های سمت راست کاملاً دیده شوند و شلیک آزاد باشد؛
-       در روز خودکار باز می‌شود (خرید/نصب) — کلید B یا کلیک سربرگ
-     - دکمه‌ی «شب شود» به بالای صفحه (زیر HUD) رفت تا کف نقشة
-       برای دیدن و نصب برجک کاملاً آزاد بماند
-     - ارتقای کلی گرافیک صحنه (آسمان/ماه/شهر/زمین/برج/زامبی‌ها)
+            ۵) پنل ساخت‌وساز مکعبی کنار نقشه (۷٫۰)
+            ۵٫۵) پنل روز: دکمه‌ی «شب شود»
+            ۵٫۶) کات‌سین داستانی: دکمه‌ی «رد کردن» + حالت سینمایی (۷٫۰)
+            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال   ۸) راهنما
+   تازه‌های ۷٫۰:
+     - آیکون‌های پنل ساخت‌وساز همه «مکعب‌های ایزومتریک» شدند
+     - رویداد داستانی بعد از موج ۵: فروریختن برج، نجات با ماشین،
+       هدیه‌ی راننده و مهاجرت به برج دوم در شهر سوخته
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -125,13 +123,13 @@ body{display:flex;align-items:center;justify-content:center}
 .bp-grp{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:4px 2px 1px;
   font-size:8.5px;font-weight:bold;color:#6d7ea6;letter-spacing:.4px}
 .bp-grp::before,.bp-grp::after{content:'';flex:1;height:1px;background:#24325a}
-/* کاشی آیتم: آیکون + قیمت + کلید + پین‌های سطح */
+/* کاشی آیتم: مکعب + قیمت + کلید + پین‌های سطح */
 .bp-tile{position:relative;height:66px;background:rgba(12,20,44,.66);border:1.5px solid #24325a;
   border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;cursor:pointer;pointer-events:auto;
   transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
 .bp-tile:hover{border-color:#3d548c;background:rgba(20,32,66,.92);transform:translateY(-2px);z-index:2}
-.bp-tile .bp-ic{width:34px;height:34px;display:block}
+.bp-tile .bp-ic{width:38px;height:38px;display:block}
 .bp-tile .bp-price{font-size:10px;font-weight:bold;color:#ffd873;line-height:1;min-height:10px}
 .bp-key{position:absolute;top:2px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
   border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
@@ -169,6 +167,19 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes nightGlow{0%,100%{box-shadow:0 4px 18px rgba(240,180,60,.32)}50%{box-shadow:0 4px 30px rgba(240,180,60,.62)}}
 #dpHint{font-size:10.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.72);
   border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92}
+
+/* ---------- ۵٫۶) کات‌سین داستانی (۷٫۰) ----------
+   حین کات‌سینِ «فروریختن برج»، نوار سلاح/پنل روز/پنل ساخت‌وساز
+   مخفی می‌شوند تا صحنه سینمایی تمیز بماند؛ HUD بالا می‌ماند تا
+   بازیکن ببیند جون و سکه‌اش دقیقاً حفظ شده است. */
+#wrap.cs-mode #weaponBar, #wrap.cs-mode #buildPanel,
+#wrap.cs-mode #dayPanel {display:none!important}
+/* دکمه‌ی «رد کردن» گوشه‌ی صفحه (روی نوار سیاه سینمایی می‌نشیند) */
+#skipCs{position:absolute;bottom:9px;left:16px;z-index:9;pointer-events:auto;cursor:pointer;
+  font-family:inherit;font-size:12.5px;font-weight:bold;color:#c3cdea;
+  background:rgba(8,14,30,.78);border:1px solid #33477c;border-radius:999px;padding:7px 18px;
+  backdrop-filter:blur(4px);transition:color .15s,border-color .15s,transform .15s,background .15s}
+#skipCs:hover{color:#ffd873;border-color:#ffd873;background:rgba(20,30,60,.92);transform:translateY(-1px)}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -296,6 +307,9 @@ body{display:flex;align-items:center;justify-content:center}
     <span id="dpHint">زامبی نمی‌آید — ارتقا بخر و برجک بگذار</span>
   </div>
 
+  <!-- ============ دکمه‌ی «رد کردن» کات‌سین داستانی (۷٫۰) ============ -->
+  <button id="skipCs" class="hidden">⏭ رد کردن</button>
+
   <!-- ============ منوی اصلی: مینیمال روی صحنه‌ی زنده ============ -->
   <div class="overlay" id="startScreen">
     <div id="menuHero">
@@ -306,7 +320,7 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۶٫۰ — گرافیک ارتقایافته، چرخه‌ی روز و شب و برجک‌های خودکار</p>
+      <p class="ver">نسخه‌ی ۷٫۰ — رویداد داستانی «برج دوم» + ساخت‌وساز مکعبی</p>
     </div>
   </div>
 
@@ -326,6 +340,7 @@ body{display:flex;align-items:center;justify-content:center}
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>
         <div>⚡ از زامبی‌ها جعبه‌ی قدرت می‌افتد: ❤️ درمان &nbsp;•&nbsp; ⚡ شلیک سریع &nbsp;•&nbsp; ❄️ انجماد &nbsp;•&nbsp; 💰 بار سکه</div>
         <div>🧟 زامبی‌ها برج را از هر دو طرف <b>محاصره</b> می‌کنند و پایه‌اش را گاز می‌گیرند؛ جون که تمام شود باختی!</div>
+        <div>🎬 <b>بعد از موج ۵</b> یک رویداد داستانی می‌افتد: برج فروریخته و دوستت با ماشین نجاتت می‌دهد — جون، سکه، سلاح‌ها و ارتقاها همه حفظ می‌شوند و بازی روی <b>برج جدید</b> در شهر سوخته ادامه پیدا می‌کند (کات‌سین با دکمه‌ی «رد کردن» قابل عبور است)</div>
       </div>
       <h3 class="sec-t">🧟 دشمن‌ها</h3>
       <div class="foes">
@@ -792,6 +807,8 @@ const state = {
   lightning: { t: rand(9, 20), a: 0 },     // رعدوبرق گاه‌به‌گاه (۳٫۰)
   upgrades: { weapon: 0, health: 0, trap: 0, turretUp: 0 },
   weapon: 'pistol',                        // سلاح انتخاب‌شده
+  towerVariant: 0,                         // پوسته‌ی برج: ۰=برج اول، ۱=برج دومِ شهر سوخته (۷٫۰)
+  cutsceneDone: false,                     // آیا رویداد داستانی فروریختن انجام شده؟ (۷٫۰)
   stats: { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 },
 };
 
@@ -895,6 +912,9 @@ function startGame() {
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0 };
   state.weapon = 'pistol';
+  state.towerVariant = 0;                  // برج اول (۷٫۰)
+  state.cutsceneDone = false;
+  cutsceneHardReset();                     // اگر کات‌سینی در جریان بود کنسل شود (۷٫۰)
   WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
   state.zombies = []; state.bullets = []; state.coinsArr = [];
   state.turrets = []; state.placing = null; state.tipTurret = false;
@@ -960,6 +980,16 @@ function waveComplete() {
   pulseCoins();
   /* صحنه پاک شود و صبح طلوع کند */
   state.zombies = []; state.bullets = [];
+  /* (۷٫۰) رویداد داستانی: پایان موج ۵ = فروریختن برج و مهاجرت به برج بعدی؛
+     جون/سکه/سلاح/ارتقاها همه حفظ می‌شوند و موج ۶ روی برج جدید ادامه می‌یابد */
+  if (state.wave === CUTSCENE_AFTER_WAVE && state.towerVariant === 0 && !state.cutsceneDone) {
+    playTowerCollapseCutscene({
+      afterWave: CUTSCENE_AFTER_WAVE,
+      variant: 1,                             // پوسته‌ی برج دوم + شهر سوخته
+      gift: { coins: 80, weapon: 'shotgun' }, // هدیه‌ی راننده‌ی ماشین
+    });
+    return;
+  }
   state.mode = 'day';
   state.dayTarget = 1;                     // گذار نرم به روز
   state.goingNight = false;
@@ -1702,7 +1732,7 @@ function attemptBuy(kind) {
 /* آسیب فعلی تله (برای نمایش در پنل) */
 function trapDps(lvl) { return lvl <= 0 ? 0 : UPGRADES.trap.dps + UPGRADES.trap.dpsPerLvl * (lvl - 1); }
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۲: افکت‌ها، به‌روزرسانی و رسم)
+   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — منطق بازی (بخش ۲: افکت‌ها، به‌روزرسانی و رسم + هوک‌های کات‌سین)
      ۱۱) افکت‌ها (ذرات، متن شناور، برق تله، ترک خون، شهاب)
      ۱۲) حلقه به‌روزرسانی + صحنه‌ی زنده‌ی منو
      ۱۳) پایان بازی (برد/باخت)
@@ -2083,6 +2113,15 @@ function drawSky() {
   ctx.fillStyle = g;
   ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
 
+  /* (۷٫۰) برج دوم: افق دودیِ شهر سوخته — همیشه کمی نارنجی/خاکستری */
+  if (state.towerVariant === 1) {
+    const sm = ctx.createLinearGradient(0, GROUND_Y - 170, 0, GROUND_Y);
+    sm.addColorStop(0, 'rgba(150,85,55,0)');
+    sm.addColorStop(1, 'rgba(150,85,55,' + (0.13 + 0.13 * (1 - d)).toFixed(2) + ')');
+    ctx.fillStyle = sm;
+    ctx.fillRect(-20, GROUND_Y - 170, W + 40, 170);
+  }
+
   /* ستاره‌های ریز فقط شب (با طلوع محو می‌شوند) */
   if (d < 0.98) {
     const sf = 1 - d;
@@ -2183,6 +2222,7 @@ function cloudBlob(x, y, s, col) {
    (۶٫۰: سوسوی مستقل پنجره‌ها + دکل آنتن با چراغ قرمز + مهِ پایه‌ی ساختمان‌ها) */
 function drawSkyline() {
   const d = state.dayness;
+  if (state.towerVariant === 1) { drawRuinedSkyline(d); return; }   // شهر سوخته (۷٫۰)
   ctx.fillStyle = mixHex('#0b1226', '#6a7d96', d);
   for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
   /* لبه‌ی روشن‌ترِ پشت‌بام‌ها برای جدا شدن از آسمان */
@@ -2231,22 +2271,23 @@ function drawSkyline() {
    (۶٫۰: نور تاجِ تپه‌ها + خاک گرادیانی + لبه‌ی چمن + مسیر فرسوده‌ی زامبی‌ها + گل‌ها) */
 function drawHills() {
   const d = state.dayness;
-  ctx.fillStyle = mixHex('#16244a', '#8fae6e', d); drawHillRow(HILLS1);
-  strokeCrest(HILLS1, mixHex('#2c4272', '#b7d193', d));
-  ctx.fillStyle = mixHex('#101d3d', '#7a9a5e', d); drawHillRow(HILLS2);
-  strokeCrest(HILLS2, mixHex('#263a63', '#a5c180', d));
+  const v1 = state.towerVariant === 1;        // شهر سوخته: تپه‌ها و زمینِ خاکستر (۷٫۰)
+  ctx.fillStyle = v1 ? mixHex('#242028', '#8d7f6c', d) : mixHex('#16244a', '#8fae6e', d); drawHillRow(HILLS1);
+  strokeCrest(HILLS1, v1 ? mixHex('#3a3440', '#a8977f', d) : mixHex('#2c4272', '#b7d193', d));
+  ctx.fillStyle = v1 ? mixHex('#1c1820', '#7c6e5c', d) : mixHex('#101d3d', '#7a9a5e', d); drawHillRow(HILLS2);
+  strokeCrest(HILLS2, v1 ? mixHex('#302a34', '#97866f', d) : mixHex('#263a63', '#a5c180', d));
 
-  /* زمین: خاک با گرادیان عمقی (۶٫۰) */
+  /* زمین: خاک با گرادیان عمقی (برج دوم: خاکسترِ سوخته — ۷٫۰) */
   const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-  gg.addColorStop(0, mixHex('#1e2815', '#587a3d', d));
-  gg.addColorStop(1, mixHex('#0c110a', '#2c3f21', d));
+  gg.addColorStop(0, v1 ? mixHex('#2a2118', '#6b5a44', d) : mixHex('#1e2815', '#587a3d', d));
+  gg.addColorStop(1, v1 ? mixHex('#120e0a', '#3a3227', d) : mixHex('#0c110a', '#2c3f21', d));
   ctx.fillStyle = gg;
   ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
 
-  /* نوار چمنِ بالای زمین + لبه‌ی ناهموارِ تیغه‌ها (۶٫۰) */
-  ctx.fillStyle = mixHex('#273418', '#6f964b', d);
+  /* نوار چمنِ بالای زمین + لبه‌ی ناهموارِ تیغه‌ها (برج دوم: خاکستر — ۷٫۰) */
+  ctx.fillStyle = v1 ? mixHex('#3a3125', '#7d6d54', d) : mixHex('#273418', '#6f964b', d);
   ctx.fillRect(-20, GROUND_Y - 2, W + 40, 9);
-  ctx.strokeStyle = mixHex('#33451f', '#82b25c', d);
+  ctx.strokeStyle = v1 ? mixHex('#4a4030', '#948266', d) : mixHex('#33451f', '#82b25c', d);
   ctx.lineWidth = 1.4; ctx.lineCap = 'round';
   ctx.beginPath();
   for (const e of GRASS_EDGE) {
@@ -2277,7 +2318,15 @@ function drawHills() {
   ctx.fillStyle = 'rgba(120,105,80,0.35)';
   for (const p of PEBBLES) circle(p.x, GROUND_Y + p.dy, p.r);
 
-  /* گل‌های کوچک: روز باز و رنگی، شب بسته و کم‌رنگ (۶٫۰) */
+  /* گل‌های کوچک فقط کنار برج اول؛ برج دوم: رد سوختگی (۷٫۰) */
+  if (v1) {
+    for (const f of FLOWERS) {
+      const x = f.x, y = GROUND_Y + f.dy;
+      ctx.fillStyle = 'rgba(18,12,9,0.55)';
+      ctx.beginPath(); ctx.ellipse(x, y, 4.5 * f.s, 1.6 * f.s, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    return;
+  }
   for (const f of FLOWERS) {
     const x = f.x, y = GROUND_Y + f.dy;
     ctx.strokeStyle = mixHex('#2c3d1c', '#4c7a34', d);
@@ -2332,7 +2381,8 @@ function drawPuddles() {
 
 /* دسته‌های چمن تاب‌خورده (۳٫۰) */
 function drawGrass() {
-  ctx.strokeStyle = 'rgba(62,88,46,0.9)'; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  ctx.strokeStyle = state.towerVariant === 1 ? 'rgba(96,86,70,0.9)' : 'rgba(62,88,46,0.9)';   // (۷٫۰) کاه خاکستر
+  ctx.lineWidth = 1.4; ctx.lineCap = 'round';
   ctx.beginPath();
   for (const g of GRASS) {
     const sway = Math.sin(animTime * 1.5 + g.ph) * 2.2;
@@ -2399,6 +2449,7 @@ function drawTree(x, s) {
 const LAMPS = [236, 724];
 function drawLamps() {
   const dim = 1 - state.dayness * 0.9;      // چراغ‌ها در روز تقریباً خاموش‌اند
+  const warm = state.towerVariant === 1 ? '255,110,70' : '255,214,120';   // (۷٫۰) نور اضطراری در شهر سوخته
   for (const lx of LAMPS) {
     /* سوسوی ملایم + چشمکِ گاه‌به‌گاه */
     let fl = 0.8 + 0.2 * Math.sin(animTime * 9 + lx) * Math.sin(animTime * 3.7 + lx * 2);
@@ -2409,19 +2460,19 @@ function drawLamps() {
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(lx, GROUND_Y - 58); ctx.lineTo(lx + 10, GROUND_Y - 58); ctx.stroke();
     ctx.fillStyle = '#1c2742'; rr(lx + 5, GROUND_Y - 62, 12, 7, 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,214,120,' + (0.75 * fl).toFixed(2) + ')';
+    ctx.fillStyle = 'rgba(' + warm + ',' + (0.75 * fl).toFixed(2) + ')';
     circle(lx + 11, GROUND_Y - 56, 3);
     /* مخروط نور به سمت زمین */
     const g = ctx.createLinearGradient(lx + 11, GROUND_Y - 54, lx + 11, GROUND_Y + 6);
-    g.addColorStop(0, 'rgba(255,205,110,' + (0.15 * fl).toFixed(2) + ')');
-    g.addColorStop(1, 'rgba(255,205,110,0)');
+    g.addColorStop(0, 'rgba(' + warm + ',' + (0.15 * fl).toFixed(2) + ')');
+    g.addColorStop(1, 'rgba(' + warm + ',0)');
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(lx + 5, GROUND_Y - 54); ctx.lineTo(lx + 17, GROUND_Y - 54);
     ctx.lineTo(lx + 34, GROUND_Y + 6); ctx.lineTo(lx - 12, GROUND_Y + 6);
     ctx.closePath(); ctx.fill();
     /* برکه‌ی نور روی زمین */
-    ctx.fillStyle = 'rgba(255,205,110,' + (0.06 * fl).toFixed(2) + ')';
+    ctx.fillStyle = 'rgba(' + warm + ',' + (0.06 * fl).toFixed(2) + ')';
     ctx.beginPath(); ctx.ellipse(lx + 11, GROUND_Y + 6, 26, 6, 0, 0, Math.PI * 2); ctx.fill();
   }
 }
@@ -2442,13 +2493,15 @@ function drawMuzzleGlow() {
 function drawFireflies() {
   const nf = 1 - state.dayness;             // با طلوع محو می‌شوند
   if (nf < 0.1) return;
+  const ember = state.towerVariant === 1;   // (۷٫۰) برج دوم: اخگرهای بالاخره به‌جای کرم شب‌تاب
   for (const f of FIREFLIES) {
     const x = f.cx + Math.sin(animTime * f.sp + f.ph) * f.rx;
-    const y = f.cy + Math.sin(animTime * f.sp * 1.7 + f.ph * 2) * f.ry;
+    let y = f.cy + Math.sin(animTime * f.sp * 1.7 + f.ph * 2) * f.ry;
+    if (ember) y = f.cy - ((animTime * 9 + f.ph * 20) % 60);   // بالا خزیدن اخگر
     const a = (0.18 + 0.5 * (0.5 + 0.5 * Math.sin(animTime * 2.2 + f.ph * 3))) * nf;
-    ctx.fillStyle = 'rgba(205,245,150,' + (a * 0.25).toFixed(2) + ')';
+    ctx.fillStyle = ember ? 'rgba(255,120,50,' + (a * 0.22).toFixed(2) + ')' : 'rgba(205,245,150,' + (a * 0.25).toFixed(2) + ')';
     circle(x, y, 3.4);
-    ctx.fillStyle = 'rgba(230,255,190,' + a.toFixed(2) + ')';
+    ctx.fillStyle = ember ? 'rgba(255,190,120,' + a.toFixed(2) + ')' : 'rgba(230,255,190,' + a.toFixed(2) + ')';
     circle(x, y, 1.3);
   }
 }
@@ -2658,17 +2711,20 @@ function drawPlacing() {
 /* برج سه‌طبقه (۶٫۰ بازطراحی کامل گرافیکی — اندازه‌ی منطقی تغییری نکرده):
    سکوی سنگی، بافت بلوک/آجر، لبه‌های برآمده‌ی کنگره‌دار بین طبقه‌ها،
    درِ چوبی قوس‌دار با نور گرم، پنجره‌های قوس‌دار نورانی با قاب،
-   بنرِ دیواری قرمز و پرچم دوبخشیِ موج‌دار. نور از سمت چپ (ماه). */
+   بنرِ دیواری و پرچم دوبخشیِ موج‌دار. نور از سمت چپ (ماه).
+   (۷٫۰) پوسته‌ی برج با TOWER_SKINS قابل تعویض است (برج دوم پس از
+   کات‌سین) و حین کات‌سین، CS.draw.floors[i] تعیین می‌کند هر طبقه
+   چقدر «زنده» است: a=آلفا (فروریختن)، dy=افت، rot=چرخش حین سقوط. */
 function drawTower() {
   const d = state.dayness;
   const ratio = state.tower.hp / state.tower.maxHp;
   const cx = TOWER.x;
   const widths = [136, 124, 112];
-  const floors = [
-    { light: '#82705a', base: '#6e5a44', dark: '#4d3f2f', edge: '#453a2c' },  // طبقه اول: سنگی
-    { light: '#b25a47', base: '#a04b3a', dark: '#7c3527', edge: '#6e2f24' },  // طبقه دوم: آجری
-    { light: '#4f83b5', base: '#41729f', dark: '#2f557c', edge: '#2a4b6b' },  // طبقه سوم: آبی
-  ];
+  /* پوسته‌ی برج فعلی (۷٫۰: برج دوم، رنگ‌بندی متفاوت) */
+  const SK = TOWER_SKINS[state.towerVariant] || TOWER_SKINS[0];
+  const floors = SK.floors;
+  /* وضعیت طبقه‌ها حین کات‌سین فروریختن (خارج از کات‌سین: کامل) */
+  const fv = i => (CS && CS.draw ? CS.draw.floors[i] : { a: 1, dy: 0, rot: 0 });
 
   /* --- سکوی سنگی پایه (پلینث) --- */
   ctx.fillStyle = mixHex('#3f362b', '#8c7f6a', d);
@@ -2678,8 +2734,17 @@ function drawTower() {
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
   ctx.fillRect(cx - 82, GROUND_Y + 6, 164, 4);
 
-  /* --- طبقه‌ها از پایین به بالا: گرادیان (مهتاب از چپ) + بافت + لبه --- */
+  /* --- طبقه‌ها از پایین به بالا: گرادیان (مهتاب از چپ) + بافت + لبه ---
+     (۷٫۰: طبقه‌ی فروریخته رسم نمی‌شود؛ طبقه‌ی در حال سقوط با افت/چرخش) */
   for (let i = 0; i < 3; i++) {
+    const f = fv(i);
+    if (f.a <= 0.02) continue;                    // این طبقه فرو ریخته است
+    ctx.save();
+    ctx.globalAlpha = f.a;
+    if (f.rot) {                                  // چرخش حول مرکز طبقه (سقوط بام)
+      const cyc = GROUND_Y - (i + 0.5) * TOWER.floorH + f.dy;
+      ctx.translate(cx, cyc); ctx.rotate(f.rot); ctx.translate(-cx, -cyc);
+    } else if (f.dy) ctx.translate(0, f.dy);
     const hw = widths[i] / 2;
     const yT = GROUND_Y - (i + 1) * TOWER.floorH, yB = GROUND_Y - i * TOWER.floorH;
     const F = floors[i];
@@ -2718,26 +2783,40 @@ function drawTower() {
       ctx.fillStyle = 'rgba(255,255,255,0.13)';
       ctx.fillRect(cx - hw - 4, yT - 5, hw * 2 + 8, 1.6);
     }
+    ctx.restore();                                // پایان تبدیل این طبقه (۷٫۰)
   }
 
-  /* --- کنگره‌های بام با سایه‌ی داخل دندانه‌ها (۶٫۰) --- */
+  /* --- کنگره‌های بام + پرچم (۷٫۰: همراه طبقه‌ی سوم می‌افتند) --- */
+  const f2 = fv(2);
   const topW = widths[2] / 2;
+  if (f2.a > 0.02) {
+  ctx.save();
+  ctx.globalAlpha = f2.a;
+  if (f2.rot) {
+    ctx.translate(cx, TOWER_TOP_Y + TOWER.floorH / 2 + f2.dy);
+    ctx.rotate(f2.rot);
+    ctx.translate(-cx, -(TOWER_TOP_Y + TOWER.floorH / 2));
+  } else if (f2.dy) ctx.translate(0, f2.dy);
   ctx.fillStyle = floors[2].edge;
   ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 6);
   ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 1.5);
-  ctx.fillStyle = mixHex('#33557e', '#5c8ac0', d);
+  ctx.fillStyle = mixHex(SK.batt[0], SK.batt[1], d);
   for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19, TOWER_TOP_Y - 9, 12, 9);
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19 + 10, TOWER_TOP_Y - 9, 2, 9);
 
-  /* --- درِ قوس‌دار چوبی + قاب سنگی + نور گرمِ درزِ در (۶٫۰) --- */
+  /* --- درِ قوس‌دار چوبی + قاب سنگی + نور گرمِ درزِ در ---
+     (۷٫۰: با طبقه‌ی اول می‌افتد/محو می‌شود) */
+  const f0 = fv(0);
+  if (f0.a > 0.02) {
+  ctx.save(); ctx.globalAlpha = f0.a; ctx.translate(0, f0.dy);
   ctx.beginPath();                                     // قاب سنگی در
   ctx.moveTo(cx - 17, GROUND_Y - 2);
   ctx.lineTo(cx - 17, GROUND_Y - 24);
   ctx.arc(cx, GROUND_Y - 24, 17, Math.PI, 0);
   ctx.lineTo(cx + 17, GROUND_Y - 2);
-  ctx.strokeStyle = mixHex('#8a7a5e', '#bfae8e', d); ctx.lineWidth = 3.5; ctx.stroke();
+  ctx.strokeStyle = mixHex(SK.doorFrame[0], SK.doorFrame[1], d); ctx.lineWidth = 3.5; ctx.stroke();
   ctx.fillStyle = '#241a12';                           // درِ چوبی تیره
   ctx.beginPath();
   ctx.moveTo(cx - 13, GROUND_Y - 3);
@@ -2760,23 +2839,30 @@ function drawTower() {
     sp.addColorStop(1, 'rgba(255,190,90,0)');
     ctx.fillStyle = sp; circle(cx, GROUND_Y - 6, 52);
   }
+  ctx.restore();                                      // پایان تبدیل در (۷٫۰)
+  }
 
-  /* --- پنجره‌های قوس‌دار نورانی با قاب و شیشه‌ی گرادیانی (۶٫۰) --- */
+  /* --- پنجره‌های قوس‌دار نورانی (۷٫۰: با طبقه‌ی خودشان می‌افتند/محو می‌شوند) --- */
   const wins = [
-    { x: -36, y: GROUND_Y - 46 }, { x: 36, y: GROUND_Y - 46 },
-    { x: -38, y: GROUND_Y - 108 }, { x: 38, y: GROUND_Y - 108 },
-    { x: -28, y: GROUND_Y - 176 }, { x: 28, y: GROUND_Y - 176 },
+    { x: -36, y: GROUND_Y - 46, f: 0 }, { x: 36, y: GROUND_Y - 46, f: 0 },
+    { x: -38, y: GROUND_Y - 108, f: 1 }, { x: 38, y: GROUND_Y - 108, f: 1 },
+    { x: -28, y: GROUND_Y - 176, f: 2 }, { x: 28, y: GROUND_Y - 176, f: 2 },
   ];
   wins.forEach((w2, i) => {
+    const fw = fv(w2.f);
+    if (fw.a < 0.35) return;
+    ctx.save(); ctx.globalAlpha = fw.a; ctx.translate(0, fw.dy);
     let a = 0.66 + 0.25 * Math.sin(animTime * 2.1 + i * 1.9);
     if (ratio < 0.5 && Math.random() < 0.05) a *= 0.2;   // چشمکِ برق‌گرفتگی
     archWin(cx + w2.x, w2.y, 13, 19, a);
+    ctx.restore();
   });
 
-  /* --- بنرِ دیواری طبقه‌ی دوم با نشان طلایی (۶٫۰) --- */
-  {
+  /* --- بنرِ دیواری طبقه‌ی دوم با نشان طلایی (۷٫۰: رنگ پوسته + همراه طبقه) --- */
+  if (fv(1).a > 0.35) {
+    ctx.save(); ctx.globalAlpha = fv(1).a; ctx.translate(0, fv(1).dy);
     const by = GROUND_Y - 122, tip = Math.sin(animTime * 2) * 1.2;
-    ctx.fillStyle = mixHex('#a12a20', '#c23a2c', 0.35 + 0.3 * d);
+    ctx.fillStyle = mixHex(SK.banner[0], SK.banner[1], 0.35 + 0.3 * d);
     ctx.beginPath();
     ctx.moveTo(cx - 11, by);
     ctx.lineTo(cx + 11, by);
@@ -2786,17 +2872,18 @@ function drawTower() {
     ctx.closePath(); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
     ctx.fillStyle = '#f7c948'; circle(cx, by + 12, 4.2);
-    ctx.fillStyle = '#7a1f18'; circle(cx, by + 12, 1.8);
-    ctx.fillStyle = mixHex('#4a3b2a', '#7a6244', d);
+    ctx.fillStyle = SK.bannerMark; circle(cx, by + 12, 1.8);
+    ctx.fillStyle = mixHex(SK.pole[0], SK.pole[1], d);
     ctx.fillRect(cx - 12, by - 2, 24, 2.5);            // میله‌ی بنر
+    ctx.restore();                                      // پایان تبدیل بنر (۷٫۰)
   }
 
-  /* --- میله‌ی پرچم با گوی + پرچم دوبخشی موج‌دار (۶٫۰) --- */
-  ctx.fillStyle = mixHex('#4a3b2a', '#7a6244', d);
+  /* --- میله‌ی پرچم با گوی + پرچم دوبخشی موج‌دار (رنگ پوسته) --- */
+  ctx.fillStyle = mixHex(SK.pole[0], SK.pole[1], d);
   ctx.fillRect(cx - 1.5, TOWER_TOP_Y - 38, 3, 38);
   ctx.fillStyle = '#f7c948'; circle(cx, TOWER_TOP_Y - 39, 2.2);       // گویِ نوک میله
   const wv = Math.sin(animTime * 4), wv2 = Math.sin(animTime * 4 - 1.3);
-  ctx.fillStyle = '#d8453a';
+  ctx.fillStyle = SK.flag;
   ctx.beginPath();
   ctx.moveTo(cx + 2, TOWER_TOP_Y - 36);
   ctx.bezierCurveTo(cx + 13 + wv * 2, TOWER_TOP_Y - 34.5,
@@ -2807,7 +2894,9 @@ function drawTower() {
                     cx + 10, TOWER_TOP_Y - 23.5,
                     cx + 2, TOWER_TOP_Y - 21);
   ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#f7c948'; circle(cx + 15 + wv * 2, TOWER_TOP_Y - 26, 2);  // نشان روی پرچم
+  ctx.fillStyle = SK.flagMark; circle(cx + 15 + wv * 2, TOWER_TOP_Y - 26, 2);  // نشان روی پرچم
+  ctx.restore();                                      // پایان تبدیل بام/پرچم (۷٫۰)
+  }
 
   /* --- ترک‌ها وقتی برج آسیب دیده است --- */
   ctx.strokeStyle = 'rgba(20,14,8,0.8)'; ctx.lineWidth = 2;
@@ -2827,6 +2916,9 @@ function drawTower() {
     ctx.fillRect(cx - 74, GROUND_Y - 8, 10, 6); ctx.fillRect(cx - 68, GROUND_Y - 4, 7, 4);
     ctx.fillRect(cx + 62, GROUND_Y - 7, 11, 6); ctx.fillRect(cx + 70, GROUND_Y - 3, 6, 4);
   }
+
+  /* --- ترک‌های داستانی حین کات‌سین فروریختن (۷٫۰) --- */
+  if (CS && CS.draw && CS.draw.cracks > 0.03) drawTowerCracks(CS.draw.cracks);
 }
 
 /* پنجره‌ی قوس‌دار نورانی با قاب و تقسیم‌کندها (۶٫۰) */
@@ -2864,9 +2956,11 @@ function drawZombie(z) {
   const shirt = flash ? '#9db4cc' : T.shirt;
   const pants = flash ? '#5d6a80' : T.pants;
 
-  /* سایه روی زمین */
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, 13 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
+  /* سایه روی زمین (زامبی‌های پرتاب‌شده‌ی کات‌سین سایه‌ی جداگانه دارند — ۷٫۰) */
+  if (!z.noShadow) {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, 13 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
+  }
 
   ctx.save();
   /* لونج: موقع حمله به سمت دیوار برج شیرجه می‌رود */
@@ -3012,13 +3106,18 @@ function drawZombie(z) {
   }
 }
 
-/* بازیکن: نگهبان کوچک روی بام برج با اسلحه‌ی چرخانِ رو به ماوس */
+/* بازیکن: نگهبان کوچک روی بام برج با اسلحه‌ی چرخانِ رو به ماوس
+   (۷٫۰: حین کات‌سین، جای/چرخش/زاویه‌ی اسلحه را خود کات‌سین تعیین می‌کند —
+   سقوط از بام یا ایستادن روی ماشینِ نجات) */
 function drawPlayer() {
-  const px = TOWER.x, py = TOWER_TOP_Y;
+  const P = (CS && CS.draw && CS.draw.player) || null;
+  const px = P ? P.x : TOWER.x;
+  const py = P ? P.y : TOWER_TOP_Y;
   const bob = Math.sin(animTime * 2.4) * 1.1;
   const w = WEAPONS[state.weapon];
   ctx.save();
   ctx.translate(px, py + bob * 0.4);
+  if (P && P.rot) ctx.rotate(P.rot);          // چرخش حین سقوط/سوار شدن
 
   /* حلقه‌ی زردِ چرخان وقتی «شلیک سریع» فعال است (۳٫۰) */
   if (state.powerTimers.rapid > 0) {
@@ -3027,9 +3126,11 @@ function drawPlayer() {
     ctx.beginPath(); ctx.ellipse(0, 1, 14, 5, 0, 0, Math.PI * 2); ctx.stroke();
   }
 
-  /* سایه روی بام */
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath(); ctx.ellipse(0, 1, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
+  /* سایه روی بام (در سقوط/سوار شدن، سایه‌ی جداگانه رسم می‌شود) */
+  if (!P) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 1, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
+  }
 
   /* پاها و بدن */
   ctx.fillStyle = '#2c3550';
@@ -3047,10 +3148,11 @@ function drawPlayer() {
   ctx.fillStyle = '#1d2433';
   circle(look * 2.5 - 1.8, -31, 1.1); circle(look * 2.5 + 1.8, -31, 1.1);
 
-  /* اسلحه: می‌چرخد رو به ماوس + عقب‌راندگی لحظه شلیک */
+  /* اسلحه: می‌چرخد رو به ماوس + عقب‌راندگی لحظه شلیک
+     (۷٫۰: حین کات‌سین زاویه‌ی نمایشی ثابت) */
   ctx.save();
   ctx.translate(0, -17);
-  ctx.rotate(state.aimAngle);
+  ctx.rotate(P && P.aim !== undefined ? P.aim : state.aimAngle);
   ctx.translate(-state.recoil * 3, 0);
   if (state.weapon === 'pistol') {
     ctx.fillStyle = '#2b2f38'; ctx.fillRect(-4, -2.5, 9, 5);     // بدنه
@@ -3434,6 +3536,7 @@ function render() {
   drawFireflies();
   drawTrap();
   drawTower();
+  if (CS) drawRubble(CS.draw.rubble);        // توده‌ی آوار زیر برج حین کات‌سین (۷٫۰)
   /* زامبی‌ها و برجک‌ها بر اساس عمق (y) با هم مرتب می‌شوند تا ردیف‌های عقب
      پشت سر جلو دیده شوند و برجک‌ها هم در جای درستِ خودشان بایستند (۴٫۰) */
   if (state.mode === 'start') {
@@ -3442,8 +3545,17 @@ function render() {
     const ents = [];
     for (const z of state.zombies) ents.push({ y: z.y, z });
     for (const t of state.turrets) ents.push({ y: t.y + 0.1, t });
+    if (CS) {                                  // موجودیت‌های کات‌سین (۷٫۰)
+      for (const z of CS.zombies) ents.push({ y: z.y, csZ: z });
+      if (CS.car) ents.push({ y: CS.car.y - 1, car: CS.car });
+    }
     ents.sort((a, b) => a.y - b.y);
-    for (const e of ents) { if (e.z) drawZombie(e.z); else drawTurret(e.t); }
+    for (const e of ents) {
+      if (e.car) drawCar(e.car);               // ماشین نجات (۷٫۰)
+      else if (e.csZ) drawCsZombie(e.csZ);     // زامبی‌های پرتاب‌شده (۷٫۰)
+      else if (e.z) drawZombie(e.z);
+      else drawTurret(e.t);
+    }
   }
   drawPlayer();
   drawPlacing();                              // شبحِ نصب برجک روی همه‌چیز (۴٫۰)
@@ -3466,14 +3578,759 @@ function render() {
   drawVignette();
   drawFreezeOverlay();
   drawCinematic();
+  drawCutscene();                              // لایه‌ی کات‌سین: سینما/زیرنویس/سیاهی (۷٫۰)
 }
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۳)
-     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل آیکونی + تولتیپ)
+   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — بخش ۴: رویداد داستانی «فروریختن برج»
+   ==================================================================
+   بعد از پاک‌سازی موج ۵ و پیش از موج ۶، یک کات‌سین کوتاه پخش می‌شود:
+     ۱) لرزش شدید صحنه + ترک خوردن برج (غرش + ترک‌های پیش‌رونده)
+     ۲) فروریختن طبقه‌ی اول و دوم با انفجار آجر/چوب و توده‌ی آوار
+     ۳) سقوط بازیکن از بام با فیزیک ساده (افتادن + چرخش تدریجی)
+     ۴) ورود ماشینِ دوستِ راننده از چپ صحنه؛ بازیکن روی ماشین می‌نشیند
+     ۵) ماشین از میان زامبی‌های مانع‌شده رد می‌شود (کنارشان می‌پراند)
+        و صحنه را ترک می‌کند + «هدیه‌ی راننده» (سکه + آنلاک زودهنگام سلاح)
+     ۶) محو به سیاهی + «به موقعیت جدید رسیدید...» / «برج بعدی»
+     ۷) بازگشت صحنه با برج دوم (رنگ‌بندی متفاوت) و پس‌زمینه‌ی شهر سوخته
+   قواعد گیم‌پلی:
+     - جون، سکه، سلاح‌ها، ارتقاها و برجک‌ها دقیقاً حفظ می‌شوند
+     - موج‌های ۶ تا ۱۰ روی برج جدید با همان منطق سختی ادامه می‌یابند
+     - کات‌سین با دکمه‌ی «رد کردن» گوشه‌ی صفحه قابل عبور است
+   جزئیات فنی:
+     - همه‌چیز فقط با Canvas و شکل‌های ساده رسم می‌شود (بدون تصویر خارجی)
+     - playTowerCollapseCutscene پارامتری است تا برای فصل‌های بعدی
+       (برج سوم/چهارم...) هم قابل استفاده باشد
+   ================================================================== */
+
+/* ---------------------- ۱۷) رویداد داستانی ---------------------- */
+
+/* موجی که بعد از پایانش کات‌سین پخش می‌شود */
+const CUTSCENE_AFTER_WAVE = 5;
+
+/* زمان‌بندی مراحل کات‌سین (ثانیه) — همه‌ی حرکت‌ها از t محاسبه می‌شوند
+   تا پرش/تست زمانی (csGoto) دقیق و قطعی باشد */
+const CS_T = {
+  shakeEnd: 1.8,      // پایان لرزش/ترک‌خوردن
+  colEnd: 3.2,        // پایان فروریختن طبقه‌ی ۱ و ۲
+  chunkDrop: 3.25,    // شروع سقوط تخته‌بام (طبقه‌ی ۳)
+  chunkDur: 0.7,      // مدت سقوط تخته‌بام
+  playerDrop: 3.5,    // جدایی بازیکن از بامِ در حال سقوط
+  fallDur: 1.15,      // مدت سقوط سینمایی بازیکن
+  carEnter: 3.25,     // ورود ماشین از لبه‌ی چپ
+  carSpd: 450,        // سرعت ماشین (px/s)
+  catchDX: 14,        // جای بازیکن روی ماشین (نسبت به مرکز ماشین)
+  giftT: 5.2,         // لحظه‌ی دادن هدیه‌ی راننده
+  fadeOut: 6.3,       // شروع محو به سیاهی
+  fadeDur: 0.9,       // مدت محو
+  black: 7.2,         // سیاهی کامل
+  switchT: 8.1,       // تعویض صحنه در دلِ سیاهی (برج دوم + شهر سوخته)
+  fadeIn: 8.5,        // شروع بازگشت صحنه‌ی جدید
+  fadeInDur: 1.0,     // مدت بازگشت
+  end: 9.7,           // پایان کات‌سین → روزِ برج جدید
+};
+
+/* زیرنویس‌های کات‌سین: [شروع، پایان، متن] */
+const CS_CAPS = [
+  [0.30, 1.70, 'زمین می‌لرزد... برج دارد ترک می‌خورد!'],
+  [1.95, 3.05, 'طبقه‌ها فرو می‌ریزند!'],
+  [4.72, 5.15, 'رسیدی! سوار شو'],
+];
+
+/* --- پوسته‌های برج (۷٫۰): برج اول و برج دومِ شهر سوخته ---
+   drawTower این رنگ‌ها را می‌خواند؛ اندازه‌ی برج در هر دو یکی است. */
+const TOWER_SKINS = [
+  { /* برج اول — سنگی/آجری/آبی (ظاهر اصلی بازی) */
+    floors: [
+      { light: '#82705a', base: '#6e5a44', dark: '#4d3f2f', edge: '#453a2c' },
+      { light: '#b25a47', base: '#a04b3a', dark: '#7c3527', edge: '#6e2f24' },
+      { light: '#4f83b5', base: '#41729f', dark: '#2f557c', edge: '#2a4b6b' },
+    ],
+    plinth: ['#3f362b', '#8c7f6a'], batt: ['#33557e', '#5c8ac0'],
+    flag: '#d8453a', flagMark: '#f7c948',
+    banner: ['#a12a20', '#c23a2c'], bannerMark: '#7a1f18',
+    doorFrame: ['#8a7a5e', '#bfae8e'], pole: ['#4a3b2a', '#7a6244'],
+  },
+  { /* برج دوم — سنگ‌خزه/فیروزه/زرشکی (پس از کات‌سین، در شهر سوخته) */
+    floors: [
+      { light: '#6b7a5e', base: '#57644b', dark: '#3e4835', edge: '#39422e' },
+      { light: '#3f8d86', base: '#357871', dark: '#265a55', edge: '#22504b' },
+      { light: '#9c4252', base: '#873644', dark: '#692934', edge: '#5f2530' },
+    ],
+    plinth: ['#2e2a24', '#6e675c'], batt: ['#274f4a', '#4d8a82'],
+    flag: '#3f8d86', flagMark: '#ffd873',
+    banner: ['#274f4a', '#3f8d86'], bannerMark: '#173b37',
+    doorFrame: ['#5a5446', '#8f8871'], pole: ['#3a3529', '#615a48'],
+  },
+];
+
+/* --- شهر سوخته‌ی برج دوم: آسمان‌خراش‌های با لبه‌ی شکسته + کانون‌های آتش ---
+   با همان تولیدکننده‌ی seed دارِ صحنه ساخته می‌شود تا همیشه یکسان باشد */
+const RUIN_SKYLINE = [];
+const RUIN_FIRES = [];
+const RUIN_WINS = [];                       // پنجره‌های شکسته/سوخته‌ی ساختمان‌ها
+{
+  let x = -14;
+  while (x < W + 14) {
+    const bw = 40 + srand() * 58, bh = 30 + srand() * 100;
+    const notch = [];                      // دندانه‌های لبه‌ی فروریخته‌ی بام
+    const nn = 1 + Math.floor(srand() * 3);
+    for (let i = 0; i < nn; i++) {
+      notch.push({ dx: 5 + srand() * (bw - 22), w: 8 + srand() * 14, d: 13 + srand() * 30 });
+    }
+    RUIN_SKYLINE.push({ x, w: bw, h: bh, notch });
+    /* پنجره‌های شکسته: تیره + چند نورافکن نارنجیِ آتش */
+    const wn = 2 + Math.floor(srand() * 4);
+    for (let i = 0; i < wn; i++) {
+      RUIN_WINS.push({
+        x: x + 5 + srand() * (bw - 12), y: GROUND_Y - bh + 8 + srand() * (bh - 20),
+        lit: srand() > 0.72, ph: srand() * 6.28,
+      });
+    }
+    /* چند کانون آتشِ دودکن روی ساختمان‌های بلندتر (۷٫۰: پررنگ و خوانا) */
+    if (bh > 45 && srand() > 0.35 && RUIN_FIRES.length < 6) {
+      RUIN_FIRES.push({ x: x + 9 + srand() * (bw - 18), y: GROUND_Y - bh + 6 + srand() * 22, ph: srand() * 6.28 });
+    }
+    x += bw + 9;
+  }
+}
+
+/* توده‌ی آوار برج (قطعات پیش‌محاسبه‌شده برای رسم سریع) */
+const RUBBLE_PTS = [];
+for (let i = 0; i < 30; i++) RUBBLE_PTS.push({
+  dx: (srand() * 2 - 1) * 74,
+  dy: srand() * 30,
+  w: 5 + srand() * 14, h: 4 + srand() * 9,
+  rot: (srand() * 2 - 1) * 0.7,
+  col: ['#6e5a44', '#8a6f52', '#4d3f2f', '#b25a47', '#9c8a6d'][Math.floor(srand() * 5)],
+});
+
+/* ترک‌های پیش‌فرض برج حین کات‌سین: نقاط نسبی به (TOWER.x, GROUND_Y) */
+const TOWER_CRACKS = [
+  { pts: [[-44, -16], [-33, -30], [-40, -46], [-27, -60], [-31, -74]] },
+  { pts: [[46, -20], [37, -36], [45, -50]] },
+  { pts: [[-38, -84], [-28, -96], [-36, -112], [-24, -126]] },
+  { pts: [[40, -80], [30, -94], [38, -108], [26, -122]] },
+  { pts: [[2, -88], [-4, -102], [3, -116]] },
+];
+
+/* --- صداهای کات‌سین (با همان موتور Web Audio بازی) --- */
+Object.assign(SFX, {
+  csRumble() { if (!sfxGate('csRumble', 420)) return;
+    Snd.noise({ dur: 0.5, vol: 0.16, freq: 95, q: 0.5 });
+    Snd.tone({ type: 'sine', f0: 46, f1: 30, dur: 0.5, vol: 0.2 }); },
+  csCrack()  { Snd.noise({ dur: 0.1, vol: 0.2, ftype: 'highpass', freq: 1900 });
+    Snd.tone({ type: 'square', f0: 850, f1: 190, dur: 0.09, vol: 0.09 }); },
+  csBoom()   { Snd.noise({ dur: 1.1, vol: 0.38, freq: 170, q: 0.4 });
+    Snd.tone({ type: 'sine', f0: 72, f1: 26, dur: 1.0, vol: 0.38 }); },
+  csLand()   { Snd.noise({ dur: 0.35, vol: 0.3, freq: 150, q: 0.5 });
+    Snd.tone({ type: 'sine', f0: 62, f1: 28, dur: 0.4, vol: 0.3 }); },
+  csWhistle(){ Snd.tone({ type: 'sine', f0: 1450, f1: 300, dur: 1.0, vol: 0.06 }); },
+  csEngine() { if (!sfxGate('csEngine', 300)) return;
+    Snd.tone({ type: 'sawtooth', f0: 92, f1: 118, dur: 0.2, vol: 0.08 });
+    Snd.noise({ dur: 0.18, vol: 0.04, freq: 420 }); },
+  csThud()   { Snd.noise({ dur: 0.15, vol: 0.22, freq: 230 });
+    Snd.tone({ type: 'sine', f0: 95, f1: 40, dur: 0.16, vol: 0.18 }); },
+  csGift()   { [660, 880, 1320].forEach((f, i) =>
+    Snd.tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.12, delay: i * 0.08 })); },
+});
+
+/* --- وضعیت اجرای کات‌سین (null = کات‌سینی در جریان نیست) ---
+   draw: داده‌های رندر لحظه‌ای که drawTower/drawPlayer می‌خوانند */
+let CS = null;
+
+/* شروع کات‌سین «فروریختن برج» — تابع پارامتری برای استفاده در فصل‌های بعدی:
+   opts.afterWave  موجِ مقدمه‌ی رویداد
+   opts.variant    شماره‌ی پوسته‌ی برج بعدی (پیش‌فرض ۱)
+   opts.gift       { coins, weapon } هدیه‌ی راننده‌ی ماشین */
+function playTowerCollapseCutscene(opts = {}) {
+  if (CS) return;                            // کات‌سین دیگری در جریان است
+  CS = {
+    t: 0, paused: false,
+    afterWave: opts.afterWave || CUTSCENE_AFTER_WAVE,
+    variant: opts.variant !== undefined ? opts.variant : 1,
+    gift: opts.gift || { coins: 80, weapon: 'shotgun' },
+    giftApplied: false, giftText: '', giftTextShown: false,
+    boomed: false, chunkHit: false, caught: false, whistled: false,
+    switched: false, bursts: 0,
+    zombies: [], car: null, fade: 0,
+    draw: {
+      floors: [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }],
+      cracks: 0, rubble: 0, player: null,
+    },
+  };
+  state.mode = 'cutscene';
+  state.mouse.down = false;
+  state.placing = null;
+  state.slowmo = 0;
+  state.powerTimers = { rapid: 0, freeze: 0 };
+  /* سکه‌ها/جعبه‌های معلق صحنه بلافاصله جمع شوند (پاداش موج نمی‌باید گم شود) */
+  for (const c of state.coinsArr) collectCoin(c);
+  state.coinsArr = [];
+  state.powerups = [];
+  hideDayPanel();
+  hideAnnounce();
+  setBuildPanel(true, true);                 // پنل جمع: حالت سینمایی
+  $('wrap').classList.add('cs-mode');        // نوار سلاح/پنل‌ها مخفی (CSS)
+  $('skipCs').classList.remove('hidden');    // دکمه‌ی «رد کردن»
+  /* زامبی‌های ول‌گردِ صحنه — همان‌ها که بعداً جلوی ماشین را می‌گیرند */
+  const spawns = [
+    { type: 'normal', x: 70 }, { type: 'fast', x: 215 }, { type: 'normal', x: 335 },
+    { type: 'normal', x: 645 }, { type: 'fast', x: 760 }, { type: 'tank', x: 845 },
+    { type: 'normal', x: 940 },
+  ];
+  for (const s of spawns) {
+    const T = ZTYPES[s.type];
+    CS.zombies.push({
+      type: s.type, x: s.x, y: GROUND_Y + 14, dir: s.x < TOWER.x ? 1 : -1,
+      radius: T.r, speed: T.spdBase * 0.55, hp: 10, maxHp: 10,
+      walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0,
+      attackSide: 0, lane: 0, depth: 1.06, yJit: rand(-2, 2), stagger: 0,
+      chill: 0, hitFlash: 0, dead: false, deathT: 0,
+      /* فیلدهای مخصوص کات‌سین: */
+      hit: false, vx: 0, vy: 0, vr: 0, rot: 0, landed: false,
+      groundY: GROUND_Y + 14,
+    });
+  }
+  SFX.csRumble();
+  updateHUD();
+}
+
+/* برخورد ماشین با زامبی مانع: پرتاب به جلو و بالا + خون + لرزش */
+function csKnockZombie(z) {
+  z.hit = true;
+  z.vx = CS_T.carSpd * 0.72 + rand(0, 90);
+  z.vy = -rand(300, 430);
+  z.vr = rand(6, 11) * (Math.random() < 0.5 ? -1 : 1);
+  if (CS && CS.car) CS.car.kick = 1;
+  state.shake = Math.max(state.shake, 3.5);
+  SFX.csThud();
+  spawnParticles(z.x, z.y - 16, 10, '#7a2f2f', { speed: 160, life: 0.5, size: 2.6, grav: 500 });
+  spawnParticles(z.x, z.y - 16, 6, '#5f8f3e', { speed: 130, life: 0.45, size: 2.2, grav: 500 });
+}
+
+/* موج انفجار آجر/چوب حین فروریختن طبقه‌ها (۷٫۰: درشت + جرقه‌های درخشان + غبار) */
+function csBrickBurst(i) {
+  const fy = i < 2 ? GROUND_Y - rand(10, 60) : GROUND_Y - rand(72, 130);
+  const cols = ['#a58a68', '#7d6a4f', '#c46a54', '#5d4c39', '#d9c49b'];
+  spawnParticles(TOWER.x + rand(-58, 58), fy, 26, cols[Math.floor(rand(0, 5))],
+    { speed: rand(180, 320), life: rand(0.8, 1.2), size: rand(4, 6.5), grav: 600 });
+  /* جرقه‌های درخشان (روشن و قابل‌دید در تاریکی) */
+  for (let k = 0; k < 7; k++) {
+    const a = rand(0, Math.PI * 2), sp = rand(140, 330);
+    state.particles.push({
+      x: TOWER.x + rand(-56, 56), y: fy,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
+      age: 0, life: rand(0.5, 0.9), size: rand(1.6, 2.6),
+      color: Math.random() < 0.5 ? '#ffca6e' : '#ff9a4d', grav: 560, glow: true,
+    });
+  }
+  /* ابر غبار نرمِ همره (دایره‌های بزرگِ نیمه‌شفاف) */
+  for (let k = 0; k < 5; k++) {
+    state.particles.push({
+      x: TOWER.x + rand(-64, 64), y: fy - rand(4, 34),
+      vx: rand(-46, 46), vy: rand(-75, -22),
+      age: 0, life: rand(0.9, 1.5), size: rand(9, 17),
+      color: 'rgba(172,152,122,0.30)', grav: -10,
+    });
+  }
+  SFX.csCrack();
+}
+
+/* هدیه‌ی راننده: سکه‌ی اضافه + آنلاک زودهنگام سلاح (idempotent) */
+function cutsceneApplyGift() {
+  if (!CS || CS.giftApplied) return;
+  CS.giftApplied = true;
+  const g = CS.gift;
+  state.coins += g.coins;
+  state.stats.earned += g.coins;
+  let extra = '';
+  if (g.weapon && !WEAPONS[g.weapon].owned) {
+    WEAPONS[g.weapon].owned = true;
+    extra = ' + ' + WEAPONS[g.weapon].name;
+  } else if (!WEAPONS.shotgun.owned) {
+    WEAPONS.shotgun.owned = true;
+    extra = ' + ' + WEAPONS.shotgun.name;
+  } else if (!WEAPONS.mg.owned) {
+    WEAPONS.mg.owned = true;
+    extra = ' + ' + WEAPONS.mg.name;
+  }
+  CS.giftText = 'هدیه‌ی راننده: +' + faNum(g.coins) + ' سکه' + extra;
+  SFX.csGift();
+  pulseCoins();
+  refreshWeaponBar();
+  refreshBuildPanel();
+  updateHUD();
+}
+
+/* پایان کات‌سین: ورود به «روزِ برج جدید» — همه‌ی پیشرفت‌ها حفظ شده‌اند */
+function cutsceneFinish() {
+  if (!CS) return;
+  cutsceneApplyGift();                       // اطمینان: هدیه حتماً داده شود
+  const giftSub = CS.giftText;
+  const variant = CS.variant;
+  CS = null;
+  state.mode = 'day';
+  state.towerVariant = variant;              // برج دوم + شهر سوخته
+  state.cutsceneDone = true;
+  state.dayTarget = 1;
+  state.dayness = Math.max(state.dayness, 0.85);
+  $('wrap').classList.remove('cs-mode');
+  $('skipCs').classList.add('hidden');
+  hideAnnounce();
+  showDayPanel();                            // «شب شود — موج ۶»
+  setBuildPanel(false, true);
+  $('bpHead').classList.add('attention');
+  setAnnounce('🌅 برج بعدی!',
+    giftSub + ' — موج ' + faNum(state.wave + 1) + ' در راه است', 3.4);
+  SFX.morning();
+  updateHUD();
+}
+
+/* رد کردن کات‌سین — دکمه‌ی گوشه‌ی صفحه (برای بازی‌های دوباره) */
+function skipCutscene() {
+  if (!CS) return;
+  SFX.click();
+  cutsceneFinish();
+}
+
+/* ریست کامل حالت کات‌سین (مثلاً هنگام شروع مجدد بازی) */
+function cutsceneHardReset() {
+  CS = null;
+  $('skipCs').classList.add('hidden');
+  $('wrap').classList.remove('cs-mode');
+}
+
+/* ------------------ به‌روزرسانی کات‌سین (هر فریم) ------------------ */
+function updateCutscene(dt) {
+  if (!CS || CS.paused) return;
+  const cs = CS;
+  const t = (cs.t += dt);
+  const D = cs.draw;
+
+  /* زوال جلوه‌های عمومی */
+  state.shake = Math.max(0, state.shake - dt * 22);
+  state.flash = Math.max(0, state.flash - dt * 2.2);
+
+  /* ---- مرحله ۱: لرزش شدید + ترک‌خوردن پیش‌رونده ---- */
+  if (t < CS_T.shakeEnd) {
+    D.cracks = t / CS_T.shakeEnd;
+    state.shake = 7 + 6 * Math.abs(Math.sin(t * 18));
+    if (Math.random() < dt * 20) {           // گردوغاک چکه‌کن از ترک‌ها
+      spawnParticles(TOWER.x + rand(-52, 52), GROUND_Y - rand(20, 120), 1, '#9c8a6d',
+        { speed: 40, life: 0.7, size: 1.8, grav: 300 });
+    }
+    SFX.csRumble();
+    if (Math.random() < dt * 1.5) SFX.csCrack();
+  }
+
+  /* ---- مرحله ۲: فروریختن طبقه‌ی اول و دوم (آجر/چوب) ---- */
+  else if (t < CS_T.colEnd) {
+    const p = clamp((t - CS_T.shakeEnd) / (CS_T.colEnd - CS_T.shakeEnd), 0, 1);
+    if (!cs.boomed) { cs.boomed = true; SFX.csBoom(); state.shake = 14; }
+    D.cracks = 1;
+    D.floors[0].a = clamp(1 - p * 1.5, 0, 1);      // طبقه‌ی اول: فرورفتن و محو
+    D.floors[0].dy = p * p * 46;
+    D.floors[0].rot = p * 0.05;
+    const p2 = clamp((p - 0.12) / 0.88, 0, 1);     // طبقه‌ی دوم: کمی دیرتر
+    D.floors[1].a = clamp(1 - p2 * 1.5, 0, 1);
+    D.floors[1].dy = p2 * p2 * 56;
+    D.floors[1].rot = -p2 * 0.06;
+    D.rubble = clamp(p * 0.55, 0, 0.55);           // توده‌ی آوار رشد می‌کند
+    state.shake = Math.max(state.shake, 5 + 7 * (1 - p));
+    /* موج‌های انفجار آجر در چهار آستانه‌ی پیشرفت */
+    const bn = [0.04, 0.3, 0.6, 0.9].filter(b => p >= b).length;
+    while (cs.bursts < bn) { csBrickBurst(cs.bursts); cs.bursts++; }
+  }
+
+  /* ---- مرحله ۳: سقوط تخته‌بام (طبقه‌ی سوم) و خرد شدن روی زمین ---- */
+  const cf = clamp((t - CS_T.chunkDrop) / CS_T.chunkDur, 0, 1);
+  if (cf > 0 && t < CS_T.fadeOut) {
+    if (cf < 1) {
+      D.floors[2].a = 1;
+      D.floors[2].dy = cf * cf * (GROUND_Y - TOWER_TOP_Y - 22);   // سقوط شتاب‌دار
+      D.floors[2].rot = -cf * 0.16;                               // کمی کج می‌شود
+    } else if (!cs.chunkHit) {
+      cs.chunkHit = true;
+      D.floors[2].a = 0;                 // تخته‌بام خورد و در آوار رفت
+      D.rubble = 1;
+      state.shake = 12;
+      SFX.csLand();
+      spawnParticles(TOWER.x, GROUND_Y - 10, 26, '#8a6f52', { speed: 240, life: 0.8, size: 3.4, grav: 560, up: true });
+      spawnParticles(TOWER.x, GROUND_Y - 4, 18, '#6e5a44', { speed: 170, life: 1.2, size: 4.2, grav: 260, up: true });
+    }
+  }
+
+  /* ---- ماشین نجات: ورود سریع از چپ، عبور از میان زامبی‌ها ---- */
+  if (t >= CS_T.carEnter && t < CS_T.fadeOut + 0.6) {
+    if (!cs.car) {
+      cs.car = { x: -160, y: GROUND_Y + 14, spin: 0, kick: 0, hand: 1.4 };
+      SFX.csEngine();
+    }
+    /* حرکت قطعی از زمان (قابل تست و پرش زمانی) */
+    cs.car.x = -160 + CS_T.carSpd * (t - CS_T.carEnter);
+    cs.car.spin += (CS_T.carSpd / 13) * dt;
+    cs.car.kick = Math.max(0, cs.car.kick - dt * 4);
+    cs.car.hand = Math.max(0, cs.car.hand - dt);   // اول کار دست می‌دهد
+    SFX.csEngine();
+    if (Math.random() < dt * 26) {                 // دم اگزوز + غبار چرخ‌ها
+      spawnParticles(cs.car.x - 80, cs.car.y - 8, 1, 'rgba(190,180,168,0.5)',
+        { speed: 34, life: 0.55, size: 2.6, grav: -26, dir: Math.PI, spread: 0.7 });
+    }
+    /* تصادف ساده: هر زامبیِ جلوی مسیر کنار پرتاب می‌شود */
+    for (const z of cs.zombies) {
+      if (!z.hit && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z);
+    }
+  } else if (t >= CS_T.fadeOut + 0.6 && cs.car) {
+    cs.car = null;                                 // ماشین صحنه را ترک کرد
+  }
+
+  /* ---- سقوط سینمایی بازیکن و نشستن روی ماشین ---- */
+  const pf = clamp((t - CS_T.playerDrop) / CS_T.fallDur, 0, 1);
+  if (pf > 0 && !cs.caught) {
+    const y0 = TOWER_TOP_Y + 30;                   // لبه‌ی بامِ در حال سقوط
+    const y1 = GROUND_Y + 14 - 54;                 // سقف ماشین
+    D.player = {
+      x: TOWER.x + 8 + pf * (CS_T.catchDX - 8),    // کمی به سمت ماشین می‌لغزد
+      y: y0 + (y1 - y0) * pf * pf,                 // شتاب‌دار (جاذبه)
+      rot: pf * 0.62,                              // چرخش تدریجی حین سقوط
+      aim: -2.35,                                  // اسلحه بالا (چنگ زدن به هوا)
+    };
+    if (!cs.whistled) { cs.whistled = true; SFX.csWhistle(); }
+    if (pf >= 1) {                                 // رسید به ماشین — سوار شد
+      cs.caught = true;
+      state.shake = 4;
+      SFX.csThud();
+      spawnParticles(D.player.x, D.player.y, 9, '#ffd873',
+        { speed: 120, life: 0.5, size: 2.4, grav: 320, up: true });
+    }
+  }
+  if (cs.caught && cs.car) {
+    /* سوار شدن: بازیکن روی سقف ماشین، کمی به عقب خم (باد سرعت) */
+    D.player = { x: cs.car.x + CS_T.catchDX, y: cs.car.y - 54, rot: -0.07, aim: -0.5 };
+  }
+
+  /* ---- هدیه‌ی راننده وسط راه ---- */
+  if (t >= CS_T.giftT) {
+    cutsceneApplyGift();
+    if (CS && CS.car && CS.giftApplied && !cs.giftTextShown) {
+      cs.giftTextShown = true;
+      addText(cs.car.x, cs.car.y - 92, '🎁 +' + faNum(cs.gift.coins), '#ffd873', 17);
+    }
+  }
+
+  /* ---- زامبی‌های صحنه: خزش به سمت برج یا فیزیک پرتاب ---- */
+  for (const z of cs.zombies) {
+    if (z.hit) {
+      z.vy += 900 * dt;
+      z.x += z.vx * dt; z.y += z.vy * dt; z.rot += z.vr * dt;
+      if (z.y > z.groundY) {                       // فرود روی زمین
+        z.y = z.groundY;
+        if (!z.landed) {
+          z.landed = true;
+          addDecal(z.x, true);
+          spawnParticles(z.x, z.y, 6, '#7a2f2f', { speed: 110, life: 0.4, size: 2.2, grav: 400 });
+        }
+        z.vx *= 0.8; z.vr = 0;
+        z.rot += (Math.sign(z.rot || 1) * 1.45 - z.rot) * Math.min(1, dt * 9);   // خوابیدن صاف
+      }
+    } else {
+      const dir = Math.sign(TOWER.x - z.x) || 1;
+      if (Math.abs(TOWER.x - z.x) > 155) { z.x += dir * z.speed * dt; z.walkPhase += dt * 5; }
+      else z.walkPhase += dt * 2.2;                // دور آوار جمع می‌شوند
+    }
+  }
+
+  /* ---- محو به سیاهی / سیاهی / بازگشت صحنه ---- */
+  cs.fade = t < CS_T.fadeOut ? 0
+    : t < CS_T.black ? clamp((t - CS_T.fadeOut) / CS_T.fadeDur, 0, 1)
+    : t < CS_T.fadeIn ? 1
+    : clamp(1 - (t - CS_T.fadeIn) / CS_T.fadeInDur, 0, 1);
+
+  /* تعویض صحنه در دلِ سیاهی: برج دوم + شهر سوخته + صحنه‌ی تمیز */
+  if (t >= CS_T.switchT && !cs.switched) {
+    cs.switched = true;
+    state.towerVariant = cs.variant;
+    state.cutsceneDone = true;
+    state.dayness = 0.3;
+    state.dayTarget = 1;                    // صبحِ شهر سوخته
+    cs.zombies = [];
+    state.particles = []; state.texts = []; state.zaps = []; state.decals = [];
+    cs.car = null;
+    D.floors = [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }];
+    D.cracks = 0; D.rubble = 0; D.player = null;   // بازیکن روی برج جدید
+  }
+
+  /* ---- پایان کات‌سین → روزِ برج جدید ---- */
+  if (t >= CS_T.end) { cutsceneFinish(); return; }
+
+  /* ذرات/متن‌های کات‌سین همیشه جریان دارند */
+  updateParticles(dt); updateTexts(dt); updateZaps(dt);
+}
+
+/* ------------------ رسم: ماشین نجات دوست راننده ------------------
+   ماشین عضلانی نارنجی-قرمز با نوار مشکی، شیشه‌ی آبی، راننده‌ی کلاه‌دار،
+   چراغ جلو با مخروط نور (شب)، چرخ‌های در حال چرخش و دنباله‌ی غبار. */
+function drawCar(car) {
+  ctx.save();
+  ctx.translate(car.x, car.y);
+  const b = Math.sin(animTime * 16) * 1.1 - car.kick * 3;   // نرمی تعلیق + ضربه‌ی تصادم
+  /* سایه روی زمین */
+  ctx.fillStyle = 'rgba(0,0,0,0.42)';
+  ctx.beginPath(); ctx.ellipse(0, 4, 78, 10, 0, 0, Math.PI * 2); ctx.fill();
+  /* چرخ‌ها (زیر بدنه) */
+  for (const wx of [-48, 48]) {
+    ctx.fillStyle = '#15181f'; circle(wx, -12, 13);
+    ctx.fillStyle = '#3c4250'; circle(wx, -12, 7.5);
+    ctx.strokeStyle = '#9aa3b5'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k < 4; k++) {                // پره‌های در حال چرخش
+      const a = car.spin + k * Math.PI / 2;
+      ctx.moveTo(wx - Math.cos(a) * 3, -12 - Math.sin(a) * 3);
+      ctx.lineTo(wx + Math.cos(a) * 6.5, -12 + Math.sin(a) * 6.5);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#cfd6e4'; circle(wx, -12, 2.2);
+  }
+  ctx.translate(0, b);
+  /* بدنه‌ی پایین — قرمز آتشین + نوار مسابقه‌ای مشکی */
+  const bg = ctx.createLinearGradient(0, -30, 0, 0);
+  bg.addColorStop(0, '#ff7a4d'); bg.addColorStop(0.5, '#e8563f'); bg.addColorStop(1, '#b23a30');
+  ctx.fillStyle = bg; rr(-77, -26, 154, 24, 9); ctx.fill();
+  ctx.fillStyle = 'rgba(20,16,20,0.9)'; rr(-77, -15, 154, 7, 3); ctx.fill();
+  /* کابین + شیشه‌ها */
+  ctx.fillStyle = '#c23a2c';
+  ctx.beginPath();
+  ctx.moveTo(-46, -26); ctx.lineTo(-34, -54); ctx.lineTo(26, -54); ctx.lineTo(44, -26);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(160,215,255,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(-38, -28); ctx.lineTo(-29, -50); ctx.lineTo(20, -50); ctx.lineTo(34, -28);
+  ctx.closePath(); ctx.fill();
+  /* راننده (دوست ما): سر + کلاه + دست تکان‌دادن اول ورود */
+  ctx.fillStyle = '#f0c49a'; circle(-8, -40, 5.5);
+  ctx.fillStyle = '#2c3550';
+  ctx.beginPath(); ctx.arc(-8, -41, 5.8, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillRect(-14, -41, 12, 2.4);               // لبه‌ی کلاه
+  if (car.hand > 0) {
+    ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-2, -36);
+    ctx.lineTo(-8 + Math.sin(animTime * 9) * 3, -50 - car.hand * 8);
+    ctx.stroke();
+  }
+  /* اسپویلر عقب */
+  ctx.fillStyle = '#8a2f26'; rr(-74, -61, 36, 5, 2); ctx.fill();
+  ctx.fillStyle = '#3c4250';
+  ctx.fillRect(-48, -57, 4, 8); ctx.fillRect(-70, -57, 4, 8);
+  /* سپرهای کرومی + چراغ‌ها */
+  ctx.fillStyle = '#cfd6e4'; rr(72, -15, 8, 8, 3); ctx.fill(); rr(-80, -15, 8, 8, 3); ctx.fill();
+  ctx.fillStyle = '#ff5d4d'; rr(-79, -22, 5, 8, 2); ctx.fill();  // عقب
+  ctx.fillStyle = '#fff3c4'; circle(74, -20, 4.5);               // جلو
+  /* مخروط نور چراغ جلو (کات‌سین در شب است) */
+  const hg = ctx.createLinearGradient(74, -20, 158, -14);
+  hg.addColorStop(0, 'rgba(255,235,160,0.30)'); hg.addColorStop(1, 'rgba(255,235,160,0)');
+  ctx.fillStyle = hg;
+  ctx.beginPath();
+  ctx.moveTo(74, -24); ctx.lineTo(158, -30); ctx.lineTo(158, -4); ctx.lineTo(74, -16);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* زامبی‌های کات‌سین: معمولی = همان رسم بازی؛ پرتاب‌شده = چرخشی + بدون سایه‌ی زمین */
+function drawCsZombie(z) {
+  if (!z.hit) { drawZombie(z); return; }
+  ctx.save();
+  ctx.translate(z.x, z.y - (z.landed ? 10 : 0));
+  if (z.rot) ctx.rotate(z.rot);
+  drawZombie(Object.assign({}, z, { x: 0, y: 0, noShadow: true, attacking: false }));
+  ctx.restore();
+}
+
+/* توده‌ی آوار پایه‌ی برج (k = ۰..۱ اندازه‌ی توده) + غبار روی آن */
+function drawRubble(k) {
+  if (k <= 0.02) return;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, k * 1.2);
+  ctx.translate(TOWER.x, GROUND_Y + 2);
+  /* هسته‌ی توده + غبار فراگیر روی آن */
+  ctx.fillStyle = 'rgba(58,48,36,0.92)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 74 * k, 16 * k + 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(160,140,110,' + (0.16 * k).toFixed(2) + ')';
+  ctx.beginPath(); ctx.ellipse(0, -9 * k, 62 * k + 12, 30 * k + 6, 0, 0, Math.PI * 2); ctx.fill();
+  /* قطعات آجر/سنگ پراکنده */
+  for (const p of RUBBLE_PTS) {
+    ctx.save();
+    ctx.translate(p.dx * k, -p.dy * k - 2);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.col;
+    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.restore();
+  }
+  /* تیرهای چوبِ کج‌مانده */
+  if (k > 0.7) {
+    ctx.strokeStyle = '#4a3b2a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-30, -6); ctx.lineTo(-2, -40);
+    ctx.moveTo(26, -4); ctx.lineTo(44, -30);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ترک‌های داستانی برج (k = ۰..۱ طول هر ترک):
+   شکاف تیره‌ی پهن + لبه‌ی روشنِ تراشه تا در تاریکی شب هم خوانا باشد */
+function drawTowerCracks(k) {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const c of TOWER_CRACKS) {
+    const n = Math.max(2, Math.ceil(c.pts.length * k));
+    const seg = (off, col, lw) => {
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.moveTo(TOWER.x + c.pts[0][0] + off, GROUND_Y + c.pts[0][1]);
+      for (let i = 1; i < n; i++) ctx.lineTo(TOWER.x + c.pts[i][0] + off, GROUND_Y + c.pts[i][1]);
+      ctx.stroke();
+    };
+    seg(1.5, 'rgba(232,210,175,0.5)', 1.7);   // لبه‌ی روشنِ تراشه
+    seg(0, 'rgba(13,8,4,0.92)', 3.6);          // شکاف تیره
+  }
+  ctx.fillStyle = 'rgba(160,140,110,' + (0.1 * k).toFixed(2) + ')';
+  ctx.beginPath(); ctx.ellipse(TOWER.x, GROUND_Y - 80, 84, 118, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ------------------ افق شهر سوخته (برج دوم) ------------------
+   ساختمان‌های سوگته با بام‌های شکسته + پنجره‌های تیره/نارنجی +
+   کانون‌های آتشِ چشمک‌زن با دنباله‌ی دود + مهِ دودیِ پایه‌ها.
+   آتش و دود در روز هم (کم‌رنگ‌تر) دیده می‌شوند — شهر هنوز می‌سوزد. */
+function drawRuinedSkyline(d) {
+  ctx.fillStyle = mixHex('#141018', '#6e5546', d);
+  ctx.beginPath();
+  for (const b of RUIN_SKYLINE) {
+    const top = GROUND_Y - b.h;
+    ctx.moveTo(b.x, GROUND_Y);
+    ctx.lineTo(b.x, top);
+    for (const n of b.notch) {                 // لبه‌ی فروریخته‌ی بام
+      ctx.lineTo(b.x + n.dx, top);
+      ctx.lineTo(b.x + n.dx + n.w * 0.5, top + n.d);
+      ctx.lineTo(b.x + n.dx + n.w, top);
+    }
+    ctx.lineTo(b.x + b.w, top);
+    ctx.lineTo(b.x + b.w, GROUND_Y);
+    ctx.closePath();
+  }
+  ctx.fill();
+  /* پنجره‌های شکسته: روز و شب — تیره‌ها سیاه، نارنجی‌ها سوسوزن */
+  for (const w2 of RUIN_WINS) {
+    if (w2.lit) {
+      const fl = 0.55 + 0.45 * Math.sin(animTime * 4 + w2.ph);
+      ctx.fillStyle = 'rgba(255,140,60,' + (fl * (0.6 + 0.4 * (1 - d))).toFixed(2) + ')';
+    } else {
+      ctx.fillStyle = 'rgba(5,3,6,0.5)';
+    }
+    ctx.fillRect(w2.x, w2.y, 3.4, 5);
+  }
+  /* کانون‌های آتش + دودِ بالا رونده — حتی روز هم به‌روشنی دیده می‌شوند
+     (شهر هنوز می‌سوزد؛ آتشِ روز کمی کمرنگ‌تر از شب است) */
+  const fireA = 0.78 + 0.22 * (1 - d);
+  for (const f of RUIN_FIRES) {
+    const fl = 0.55 + 0.45 * Math.sin(animTime * 5 + f.ph);
+    const g2 = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 17);
+    g2.addColorStop(0, 'rgba(255,150,66,' + (0.8 * fireA * fl).toFixed(2) + ')');
+    g2.addColorStop(0.5, 'rgba(255,110,40,' + (0.4 * fireA * fl).toFixed(2) + ')');
+    g2.addColorStop(1, 'rgba(255,110,40,0)');
+    ctx.fillStyle = g2; circle(f.x, f.y, 17);
+    ctx.fillStyle = 'rgba(255,200,120,' + (0.85 * fireA * fl).toFixed(2) + ')';
+    circle(f.x, f.y, 2.4);                        // هسته‌ی روشن شعله
+    const sy = f.y - 13 - (animTime * 7 + f.ph * 10) % 26;
+    ctx.fillStyle = 'rgba(64,50,52,' + (0.45 * fireA * fl).toFixed(2) + ')';
+    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime + f.ph) * 4, sy, 7.5, 13, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime * 0.7 + f.ph) * 7, sy - 17, 11, 16, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  /* مهِ پایه‌ی ساختمان‌ها: خاکستریِ دودی */
+  const fog = ctx.createLinearGradient(0, GROUND_Y - 46, 0, GROUND_Y);
+  fog.addColorStop(0, 'rgba(120,95,80,0)');
+  fog.addColorStop(1, d > 0.5 ? 'rgba(160,130,110,' + (0.24 * d).toFixed(2) + ')'
+                              : 'rgba(80,60,55,' + (0.2 * (1 - d)).toFixed(2) + ')');
+  ctx.fillStyle = fog;
+  ctx.fillRect(-20, GROUND_Y - 46, W + 40, 46);
+}
+
+/* ------------------ لایه‌ی رویی کات‌سین ------------------
+   نوارهای سینمایی، زیرنویس مراحل، تپش قرمزِ لرزش، محو/سیاهی
+   و متن‌های صفحه‌ی سیاه — بعد از همه‌ی لایه‌ها رسم می‌شود */
+function drawCutscene() {
+  if (!CS) return;
+  const t = CS.t;
+  /* نوارهای سینمایی (ورود/خروج نرم) */
+  const lIn = clamp(t / 0.45, 0, 1);
+  const lOut = clamp((CS_T.end - t) / 0.55, 0, 1);
+  const L = 46 * Math.min(lIn, lOut);
+  if (L > 0.5) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, L);
+    ctx.fillRect(0, H - L, W, L);
+  }
+  /* زیرنویس مراحل (کپسول پایین صحنه) */
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 15px Tahoma, sans-serif';
+  const caps = CS_CAPS.slice();
+  if (CS.giftApplied && CS.giftText) caps.push([CS_T.giftT, CS_T.giftT + 1.35, '🎁 ' + CS.giftText]);
+  for (const c of caps) {
+    if (t < c[0] || t > c[1]) continue;
+    const a = Math.min(1, (t - c[0]) / 0.25, (c[1] - t) / 0.25);
+    ctx.globalAlpha = a;
+    const tw = ctx.measureText(c[2]).width + 26;
+    ctx.fillStyle = 'rgba(0,0,0,0.66)';
+    rr(W / 2 - tw / 2, H - L - 42, tw, 26, 13); ctx.fill();
+    ctx.fillStyle = '#f3e9cf';
+    ctx.fillText(c[2], W / 2, H - L - 29);
+    ctx.globalAlpha = 1;
+  }
+  /* تپش قرمز لبه‌ها حین لرزش زمین */
+  if (t < CS_T.shakeEnd) {
+    const a = 0.1 + 0.08 * Math.sin(t * 26);
+    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+    g.addColorStop(0, 'rgba(180,20,20,0)');
+    g.addColorStop(1, 'rgba(180,20,20,' + a.toFixed(2) + ')');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+  /* محو به سیاهی */
+  if (CS.fade > 0.003) {
+    ctx.fillStyle = 'rgba(0,0,0,' + CS.fade.toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  /* متن‌های صفحه‌ی سیاه: «به موقعیت جدید رسیدید...» / «برج بعدی» */
+  if (CS.fade > 0.965) {
+    const aM = clamp((t - CS_T.black - 0.2) / 0.5, 0, 1);
+    const aS = clamp((t - CS_T.black - 0.8) / 0.5, 0, 1);
+    if (aM > 0) {
+      ctx.globalAlpha = aM;
+      ctx.font = 'bold 30px Tahoma, sans-serif';
+      ctx.fillStyle = '#e8ecf5';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 12;
+      ctx.fillText('به موقعیت جدید رسیدید...', W / 2, H / 2 - 16);
+      ctx.shadowBlur = 0;
+    }
+    if (aS > 0) {
+      ctx.globalAlpha = aS;
+      ctx.font = 'bold 19px Tahoma, sans-serif';
+      ctx.fillStyle = '#ffd873';
+      ctx.fillText('🏗 برج بعدی', W / 2, H / 2 + 26);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* اتصال دکمه‌ی «رد کردن» (عنصر در HTML موجود است) */
+$('skipCs').addEventListener('click', skipCutscene);
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — منطق بازی (بخش ۳)
+     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل مکعبی + تولتیپ)
      ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
-   تازه‌های ۶٫۰ در این بخش:
-     - setBuildPanel: پنل ساخت‌وساز در شروع موج خودکار جمع می‌شود
-       (شلیک آزاد به زامبی‌های سمت راست) و در روز باز می‌شود
+   تازه‌های ۷٫۰ در این بخش:
+     - آیکون‌های پنل ساخت‌وساز همه «مکعب‌های ایزومتریک» شدند
+       (وجه بالا روشن + دو وجه جانبی تیره‌تر + نشانِ آیتم روی وجه بالا)
+     - حلقه‌ی اصلی حالت cutscene را هم به‌روزرسانی می‌کند
    ================================================================== */
 
 /* ---------------------- ۱۵) رابط کاربری ---------------------- */
@@ -3530,148 +4387,166 @@ const BUILD_DEFS = [
 const KEY2KIND = {};
 BUILD_DEFS.forEach(d => { if (d.codes) d.codes.forEach(c => KEY2KIND[c] = d.kind); });
 
-/* ---------- آیکون‌های پنل ساخت‌وساز (۵٫۰) ----------
-   هر آیکون یک تصویر ۳۴×۳۴ است که همین‌جا با Canvas رسم می‌شود؛
-   به‌جای متن‌های طولانی، هر خرید با یک نگاه قابل تشخیص است. */
+/* ---------- آیکون‌های مکعبی پنل ساخت‌وساز (۷٫۰) ----------
+   هر آیتم یک «مکعب ایزومتریک» است: وجه بالا (روشن) + وجه چپ (تیره)
+   + وجه راست (میانه) + سایه‌ی زمین + نشانِ آیتم روی وجه بالا.
+   نشان‌ها با فشرده‌سازی عمودی رسم می‌شوند تا روی سطحِ مکعب بنشینند. */
+
+/* مستطیل گرد‌شده روی بوم آیکون (ابزار مشترک نشان‌ها) */
 function rrFill(c, x, y, w, h, r) {
   c.beginPath();
   if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
   c.fill();
 }
-const ICON_PAINTERS = {
-  /* ارتقای اسلحه: نشان هدف + دو گلوله */
-  weapon(c) {
-    c.strokeStyle = '#ffd873'; c.lineWidth = 2.4;
-    c.beginPath(); c.arc(16, 15, 10, 0, 7); c.stroke();
-    c.beginPath(); c.arc(16, 15, 5.2, 0, 7); c.stroke();
-    c.fillStyle = '#ffd873'; c.beginPath(); c.arc(16, 15, 2, 0, 7); c.fill();
+
+/* رسم یک مکعب ایزومتریک + نشان اختیاری — s = نیم‌عرض مکعب */
+function cubeIcon(c, cx, cy, s, cols, symbol) {
+  const h = s * 0.6;                        // ارتفاع دیواره‌های جانبی
+  const T = [cx, cy - s * 0.5], R = [cx + s, cy], B = [cx, cy + s * 0.5], L = [cx - s, cy];
+  const L2 = [cx - s, cy + h], B2 = [cx, cy + s * 0.5 + h], R2 = [cx + s, cy + h];
+  const poly = (pts, fill) => {
+    c.fillStyle = fill;
     c.beginPath();
-    c.moveTo(16, 1.5); c.lineTo(16, 5.6); c.moveTo(16, 24.4); c.lineTo(16, 28.5);
-    c.moveTo(2.5, 15); c.lineTo(6.6, 15); c.moveTo(25.4, 15); c.lineTo(29.5, 15);
-    c.stroke();
-    c.fillStyle = '#c9a35a';
-    rrFill(c, 24, 24.5, 2.8, 6.4, 1.3); rrFill(c, 28.2, 26, 2.4, 5, 1.1);
+    c.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+    c.closePath();
+    c.fill();
+  };
+  /* سایه‌ی زمین */
+  c.fillStyle = 'rgba(0,0,0,.38)';
+  c.beginPath(); c.ellipse(cx, cy + h + s * 0.5, s * 0.92, s * 0.26, 0, 0, 7); c.fill();
+  /* سه وجه مکعب */
+  poly([L, B, B2, L2], cols.left);
+  poly([B, R, R2, B2], cols.right);
+  poly([T, R, B, L], cols.top);
+  /* برق سطح بالا (ربع روشن‌تر سمت چپ) */
+  poly([T, [cx - s * 0.45, cy - s * 0.06], [cx, cy + s * 0.5], L], 'rgba(255,255,255,.22)');
+  /* درزها و خط دور */
+  c.strokeStyle = cols.edge; c.lineWidth = 1.1; c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(T[0], T[1]); c.lineTo(R[0], R[1]); c.lineTo(R2[0], R2[1]);
+  c.lineTo(B2[0], B2[1]); c.lineTo(L2[0], L2[1]); c.lineTo(L[0], L[1]);
+  c.closePath();
+  c.moveTo(L[0], L[1]); c.lineTo(B[0], B[1]); c.lineTo(R[0], R[1]);
+  c.moveTo(B[0], B[1]); c.lineTo(B2[0], B2[1]);
+  c.stroke();
+  /* نشانِ آیتم روی وجه بالا (فشرده‌ی عمودی برای حس پرسپکتیو) */
+  if (symbol) {
+    c.save();
+    c.translate(cx, cy + s * 0.06);
+    c.scale(1, 0.68);
+    symbol(c, s * 0.72);
+    c.restore();
+  }
+}
+
+/* نشان‌های روی وجه بالای مکعب‌ها (r = شعاع در دسترس) */
+const CUBE_SYMS = {
+  /* ارتقای اسلحه: نشان هدف */
+  weapon(c, r) {
+    c.strokeStyle = '#5d4312'; c.lineWidth = r * 0.16;
+    c.beginPath(); c.arc(0, 0, r * 0.75, 0, 7); c.stroke();
+    c.beginPath(); c.arc(0, 0, r * 0.38, 0, 7); c.stroke();
+    c.fillStyle = '#5d4312'; c.beginPath(); c.arc(0, 0, r * 0.16, 0, 7); c.fill();
   },
-  /* جون برج: قلب سرخ با برق سفید */
-  health(c) {
-    c.fillStyle = '#e04b3a'; c.strokeStyle = '#7a1f18'; c.lineWidth = 1.8;
-    c.beginPath();
-    c.moveTo(17, 27.5);
-    c.bezierCurveTo(3.5, 18, 7.5, 5.5, 17, 12);
-    c.bezierCurveTo(26.5, 5.5, 30.5, 18, 17, 27.5);
-    c.closePath(); c.fill(); c.stroke();
-    c.fillStyle = 'rgba(255,255,255,.4)';
-    c.beginPath(); c.arc(12, 13.5, 2.4, 0, 7); c.fill();
+  /* جون برج: صلیب سفید */
+  health(c, r) {
+    c.fillStyle = '#fff';
+    const w = r * 0.34;
+    rrFill(c, -w / 2, -r * 0.8, w, r * 1.6, w * 0.4);
+    rrFill(c, -r * 0.8, -w / 2, r * 1.6, w, w * 0.4);
   },
   /* تعمیر: آچار */
-  repair(c) {
-    c.save(); c.translate(17, 17); c.rotate(Math.PI / 4);
-    c.strokeStyle = '#39466b'; c.lineWidth = 1.4;
-    c.fillStyle = '#aebbd2';
-    rrFill(c, -2.4, -6, 4.8, 17, 2.4); c.stroke();
-    c.lineWidth = 4.6; c.strokeStyle = '#aebbd2';
-    c.beginPath(); c.arc(0, -8.5, 5.4, 0.5, Math.PI - 0.5); c.stroke();
-    c.lineWidth = 1.4; c.strokeStyle = '#39466b';
-    c.beginPath(); c.arc(0, -8.5, 7.8, 0.55, Math.PI - 0.55); c.stroke();
-    c.beginPath(); c.arc(0, -8.5, 3, 0.55, Math.PI - 0.55); c.stroke();
+  repair(c, r) {
+    c.save(); c.rotate(-0.7);
+    c.strokeStyle = '#eef3fa'; c.lineWidth = r * 0.26; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(0, r * 0.55); c.lineTo(0, -r * 0.35); c.stroke();
+    c.lineWidth = r * 0.42;
+    c.beginPath(); c.arc(0, -r * 0.45, r * 0.34, 0.4, Math.PI - 0.4); c.stroke();
     c.restore();
   },
-  /* تله: خارهای فلزی روی پایه + جرقه */
-  trap(c) {
-    c.fillStyle = '#c9a35a'; c.strokeStyle = '#6b4a2c'; c.lineWidth = 1.2;
-    for (const x of [7, 13, 19, 25]) {
+  /* تله: سه خار */
+  trap(c, r) {
+    c.fillStyle = '#3a2c14';
+    for (const dx of [-r * 0.5, 0, r * 0.5]) {
       c.beginPath();
-      c.moveTo(x - 3.4, 25); c.lineTo(x + 3.4, 25); c.lineTo(x, 13.5);
-      c.closePath(); c.fill(); c.stroke();
+      c.moveTo(dx - r * 0.18, r * 0.5); c.lineTo(dx + r * 0.18, r * 0.5); c.lineTo(dx, -r * 0.62);
+      c.closePath(); c.fill();
     }
-    c.fillStyle = '#3c4250'; rrFill(c, 3, 25, 28, 5, 2);
-    c.fillStyle = '#565e70'; c.fillRect(3, 25, 28, 1.6);
-    c.fillStyle = '#ffd873';
-    c.beginPath(); c.arc(13, 10.5, 1.6, 0, 7); c.fill();
-    c.beginPath(); c.arc(19, 10.5, 1.6, 0, 7); c.fill();
   },
-  /* شاتگان: قنداق + لوله‌ی دوقلو */
-  shotgun(c) {
-    c.fillStyle = '#6b4a2c'; rrFill(c, 2, 14.5, 9, 7.5, 2);
-    c.fillStyle = '#2b2f38'; rrFill(c, 10, 13.5, 7, 9, 1.5);
-    c.fillStyle = '#454b57';
-    rrFill(c, 16.5, 14.8, 15, 3, 1.2); rrFill(c, 16.5, 19.4, 15, 3, 1.2);
-    c.fillStyle = '#20262b'; c.fillRect(29.5, 14.8, 2, 3); c.fillRect(29.5, 19.4, 2, 3);
-    c.fillStyle = '#8a6f3a'; rrFill(c, 19, 23.5, 7, 3.4, 1.4);
+  /* شاتگان: دو لوله موازی + سر گلوله */
+  shotgun(c, r) {
+    c.fillStyle = '#23262e';
+    rrFill(c, -r * 0.75, -r * 0.36, r * 1.5, r * 0.27, r * 0.1);
+    rrFill(c, -r * 0.75, r * 0.09, r * 1.5, r * 0.27, r * 0.1);
+    c.fillStyle = '#f0b53c'; c.beginPath(); c.arc(r * 0.72, 0, r * 0.12, 0, 7); c.fill();
   },
-  /* مسلسل: بدنه + خشاب گرد + سه تیر */
-  mg(c) {
-    c.fillStyle = '#6b4a2c'; rrFill(c, 1.5, 14.5, 5, 6, 1.5);
-    c.fillStyle = '#2b2f38'; rrFill(c, 6, 12.5, 17, 7.5, 2);
-    c.fillStyle = '#454b57'; rrFill(c, 23, 14.6, 9.5, 3.2, 1.2);
-    c.fillStyle = '#31363f'; c.beginPath(); c.arc(14, 24, 4.2, 0, 7); c.fill();
-    c.fillStyle = '#20262b'; c.beginPath(); c.arc(14, 24, 2, 0, 7); c.fill();
-    c.fillStyle = '#ffd873';
-    rrFill(c, 9, 3.5, 2.6, 6, 1.2); rrFill(c, 14, 2.5, 2.6, 6.5, 1.2); rrFill(c, 19, 3.5, 2.6, 6, 1.2);
+  /* مسلسل: سه فشنگ سرخ */
+  mg(c, r) {
+    for (const dx of [-r * 0.45, 0, r * 0.45]) {
+      c.fillStyle = '#f0b53c';
+      rrFill(c, dx - r * 0.12, -r * 0.55, r * 0.24, r * 1.1, r * 0.12);
+      c.fillStyle = '#b8860b';
+      c.fillRect(dx - r * 0.12, r * 0.3, r * 0.24, r * 0.25);
+    }
   },
-  /* برجک مسلسل: کیسه‌شن + سر چرخان سه‌لوله */
-  gatling(c) {
-    c.fillStyle = '#6e6146'; rrFill(c, 1.5, 24, 11, 6, 2.5); rrFill(c, 22, 24, 11, 6, 2.5);
-    c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1;
-    c.strokeRect(1.5, 24, 11, 6); c.strokeRect(22, 24, 11, 6);
-    c.fillStyle = '#3a4150'; rrFill(c, 11, 16, 12, 9, 2.5);
-    c.fillStyle = '#8a6f3a'; rrFill(c, 23, 18, 6, 5, 1.5);
-    c.strokeStyle = '#c9a35a'; c.lineWidth = 1.4; c.setLineDash([2, 2]);
-    c.beginPath(); c.moveTo(23, 20); c.quadraticCurveTo(19, 18, 16, 17); c.stroke(); c.setLineDash([]);
-    c.fillStyle = '#2b2f38'; c.beginPath(); c.arc(17, 13.5, 5, 0, 7); c.fill();
-    c.strokeStyle = '#5d6575'; c.lineWidth = 2.6;
+  /* برجک مسلسل: بادبزن سه‌لوله + توپی */
+  gatling(c, r) {
+    c.strokeStyle = '#22262e'; c.lineWidth = r * 0.2; c.lineCap = 'round';
     c.beginPath();
-    c.moveTo(20, 11.5); c.lineTo(31.5, 11.5);
-    c.moveTo(20, 13.5); c.lineTo(32.5, 13.5);
-    c.moveTo(20, 15.5); c.lineTo(31.5, 15.5);
+    for (const a of [-0.55, 0, 0.55]) {
+      c.moveTo(0, r * 0.1);
+      c.lineTo(Math.sin(a) * r * 0.8, r * 0.1 - Math.cos(a) * r * 0.8);
+    }
     c.stroke();
+    c.fillStyle = '#f0b53c'; c.beginPath(); c.arc(0, r * 0.1, r * 0.2, 0, 7); c.fill();
   },
-  /* تک‌تیرانداز: سه‌پایه + لوله‌ی بلند + دوربین */
-  sniper(c) {
-    c.strokeStyle = '#4a3b28'; c.lineWidth = 2.6; c.lineCap = 'round';
+  /* تک‌تیرانداز: دوربین نشانه‌گذاری */
+  sniper(c, r) {
+    c.strokeStyle = '#ffe9a8'; c.lineWidth = r * 0.14;
+    c.beginPath(); c.arc(0, 0, r * 0.62, 0, 7); c.stroke();
     c.beginPath();
-    c.moveTo(14, 19); c.lineTo(7, 29); c.moveTo(20, 19); c.lineTo(27, 29); c.moveTo(17, 20); c.lineTo(17, 29);
+    c.moveTo(-r * 0.85, 0); c.lineTo(-r * 0.35, 0);
+    c.moveTo(r * 0.35, 0); c.lineTo(r * 0.85, 0);
+    c.moveTo(0, -r * 0.85); c.lineTo(0, -r * 0.35);
+    c.moveTo(0, r * 0.35); c.lineTo(0, r * 0.85);
     c.stroke();
-    c.fillStyle = '#334632'; rrFill(c, 5, 14.5, 19, 5.5, 2);
-    c.fillStyle = '#20262b'; rrFill(c, 24, 16, 8, 2.8, 1);
-    c.fillStyle = '#454b57'; rrFill(c, 29.5, 15.4, 3.5, 4, 1);
-    c.fillStyle = '#141a20'; rrFill(c, 10, 9, 8, 4.5, 2);
-    c.fillStyle = 'rgba(140,220,255,.9)'; c.beginPath(); c.arc(14, 11.2, 1.5, 0, 7); c.fill();
-    c.strokeStyle = '#ffd873'; c.lineWidth = 1.2;
-    c.beginPath(); c.arc(17, 25.5, 3.2, 0, 7); c.stroke();
+    c.fillStyle = '#ff5d4d'; c.beginPath(); c.arc(0, 0, r * 0.14, 0, 7); c.fill();
   },
   /* برجک یخ‌زن: دانه‌ی برف */
-  frost(c) {
-    c.strokeStyle = '#a8e2ff'; c.lineWidth = 2.3; c.lineCap = 'round';
+  frost(c, r) {
+    c.strokeStyle = '#2e6f9e'; c.lineWidth = r * 0.16; c.lineCap = 'round';
     c.beginPath();
     for (let k = 0; k < 3; k++) {
       const a = k * Math.PI / 3;
-      c.moveTo(17 - Math.cos(a) * 12, 17 - Math.sin(a) * 12);
-      c.lineTo(17 + Math.cos(a) * 12, 17 + Math.sin(a) * 12);
+      c.moveTo(-Math.cos(a) * r * 0.85, -Math.sin(a) * r * 0.85);
+      c.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
     }
     c.stroke();
-    c.lineWidth = 1.7;
-    c.beginPath();
-    for (let k = 0; k < 6; k++) {
-      const a = k * Math.PI / 3;
-      const bx = 17 + Math.cos(a) * 8, by = 17 + Math.sin(a) * 8;
-      c.moveTo(bx, by); c.lineTo(bx + Math.cos(a + 0.6) * 3.4, by + Math.sin(a + 0.6) * 3.4);
-      c.moveTo(bx, by); c.lineTo(bx + Math.cos(a - 0.6) * 3.4, by + Math.sin(a - 0.6) * 3.4);
-    }
-    c.stroke();
-    c.fillStyle = '#e8f7ff'; c.beginPath(); c.arc(17, 17, 2.6, 0, 7); c.fill();
   },
-  /* ارتقای برجک‌ها: دو شورون بالا + سه نقطه‌ی سطح */
-  turretUp(c) {
-    c.fillStyle = '#ffd873'; c.strokeStyle = '#8a5a12'; c.lineWidth = 1.4;
-    for (const y0 of [3, 12]) {
+  /* ارتقای برجک‌ها: دو شورون بالارونده */
+  turretUp(c, r) {
+    c.fillStyle = '#ffd873';
+    for (const y0 of [-r * 0.42, r * 0.18]) {
       c.beginPath();
-      c.moveTo(17, y0); c.lineTo(27, y0 + 9); c.lineTo(7, y0 + 9);
-      c.closePath(); c.fill(); c.stroke();
+      c.moveTo(0, y0 - r * 0.3); c.lineTo(r * 0.62, y0 + r * 0.3); c.lineTo(-r * 0.62, y0 + r * 0.3);
+      c.closePath(); c.fill();
     }
-    c.fillStyle = '#8fd6ff';
-    for (let i = -1; i <= 1; i++) { c.beginPath(); c.arc(17 + i * 6, 26.5, 2, 0, 7); c.fill(); }
   },
+};
+
+/* مکعب هر آیتم: رنگ‌بندی مخصوص + نشان روی وجه بالا (۷٫۰) */
+const ICON_PAINTERS = {
+  weapon(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#ffd873', left: '#c9921f', right: '#ab7a17', edge: '#6b4a12' }, CUBE_SYMS.weapon); },
+  health(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#ff6f61', left: '#d84a3e', right: '#b23a30', edge: '#7a1f18' }, CUBE_SYMS.health); },
+  repair(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#9fb6d8', left: '#7490bd', right: '#5d7aa6', edge: '#2c3f70' }, CUBE_SYMS.repair); },
+  trap(c)    { cubeIcon(c, 17, 13, 10.5, { top: '#d8b26a', left: '#b08d47', right: '#93743a', edge: '#4a3a1e' }, CUBE_SYMS.trap); },
+  shotgun(c) { cubeIcon(c, 17, 13, 10.5, { top: '#c49a6c', left: '#9a744c', right: '#7d5f3d', edge: '#3a2c18' }, CUBE_SYMS.shotgun); },
+  mg(c)      { cubeIcon(c, 17, 13, 10.5, { top: '#8d99ae', left: '#6b7689', right: '#55606f', edge: '#23262e' }, CUBE_SYMS.mg); },
+  gatling(c) { cubeIcon(c, 17, 13, 10.5, { top: '#97b568', left: '#75904c', right: '#5f763c', edge: '#2c3a1c' }, CUBE_SYMS.gatling); },
+  sniper(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#7291c9', left: '#58719f', right: '#465b82', edge: '#1f2c4a' }, CUBE_SYMS.sniper); },
+  frost(c)   { cubeIcon(c, 17, 13, 10.5, { top: '#cfeaff', left: '#a5d3f0', right: '#7fb8dd', edge: '#3f7fb0' }, CUBE_SYMS.frost); },
+  turretUp(c){ cubeIcon(c, 17, 13, 10.5, { top: '#b58fd8', left: '#9370b5', right: '#7a5a99', edge: '#3a2a55' }, CUBE_SYMS.turretUp); },
 };
 
 /* رسم آیکون آیتم روی بوم کوچک (مقیاس ۲ برابر برای شفافیت) */
@@ -3901,6 +4776,7 @@ function frame(now) {
   }
 
   if (state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day') update(dtG);
+  else if (state.mode === 'cutscene') updateCutscene(dtG);   // رویداد داستانی (۷٫۰)
   else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
   else if (state.mode === 'start') updateMenuScene(dtG);
   /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */
@@ -3949,6 +4825,24 @@ window.GAME = {
   endWave: waveComplete,             /* شبیه‌سازی پایان موج → صبح (۵٫۰) */
   startNight,                        /* شبیه‌سازی کلیک «شب شود» (۵٫۰) */
   setBuildPanel,                     /* جمع/باز کردن پنل ساخت‌وساز (۶٫۰) */
+  /* --- رویداد داستانی (۷٫۰) --- */
+  playCutscene: playTowerCollapseCutscene,   /* اجرای دستی کات‌سین */
+  skipCutscene,                              /* رد کردن کات‌سین */
+  getCutscene() { return CS; },              /* وضعیت لحظه‌ای کات‌سین */
+  csGoto(t) {                                /* پرش زمانی برای تست فریم‌ها */
+    if (!CS) return;
+    /* شبیه‌سازی گام‌به‌گام تا لحظه‌ی هدف تا همه‌ی رویدادهای میانی
+       (سقوط، عبور ماشین، تصادم‌ها، هدیه...) دقیقاً رخ بدهند */
+    CS.paused = false;
+    let guard = 0;
+    while (CS && CS.t < t - (1 / 30) && guard++ < 420) updateCutscene(1 / 30);
+    if (CS) {
+      const rest = t - CS.t;
+      if (rest > 0) updateCutscene(Math.min(rest, 0.05));
+      CS.paused = true;                      // فریز روی همین فریم
+    }
+  },
+  csResume() { if (CS) CS.paused = false; }, /* ادامه‌ی عادی جریان */
   giveCoins(n) { state.coins += n; updateHUD(); },
   spawnType(type) { spawnZombie(type); },
   hurt(n) { damageTower(n, TOWER.x + 10); },
@@ -3970,6 +4864,7 @@ window.GAME = {
   /* پرش سریع به موج n (برای تست) */
   skipToWave(n) {
     n = clamp(n, 1, TOTAL_WAVES);
+    if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
     state.zombies = []; state.bullets = []; state.coinsArr = [];
     state.wave = n - 1;
     state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
@@ -3980,6 +4875,7 @@ window.GAME = {
   },
   /* شبیه‌سازی برد (برای تست) — از هر حالتی کار می‌کند */
   win() {
+    if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
     state.wave = TOTAL_WAVES;
     state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
     state.zombies = []; state.bullets = [];

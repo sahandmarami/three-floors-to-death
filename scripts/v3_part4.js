@@ -1,10 +1,11 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۳)
-     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل آیکونی + تولتیپ)
+   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — منطق بازی (بخش ۳)
+     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل مکعبی + تولتیپ)
      ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
-   تازه‌های ۶٫۰ در این بخش:
-     - setBuildPanel: پنل ساخت‌وساز در شروع موج خودکار جمع می‌شود
-       (شلیک آزاد به زامبی‌های سمت راست) و در روز باز می‌شود
+   تازه‌های ۷٫۰ در این بخش:
+     - آیکون‌های پنل ساخت‌وساز همه «مکعب‌های ایزومتریک» شدند
+       (وجه بالا روشن + دو وجه جانبی تیره‌تر + نشانِ آیتم روی وجه بالا)
+     - حلقه‌ی اصلی حالت cutscene را هم به‌روزرسانی می‌کند
    ================================================================== */
 
 /* ---------------------- ۱۵) رابط کاربری ---------------------- */
@@ -61,148 +62,166 @@ const BUILD_DEFS = [
 const KEY2KIND = {};
 BUILD_DEFS.forEach(d => { if (d.codes) d.codes.forEach(c => KEY2KIND[c] = d.kind); });
 
-/* ---------- آیکون‌های پنل ساخت‌وساز (۵٫۰) ----------
-   هر آیکون یک تصویر ۳۴×۳۴ است که همین‌جا با Canvas رسم می‌شود؛
-   به‌جای متن‌های طولانی، هر خرید با یک نگاه قابل تشخیص است. */
+/* ---------- آیکون‌های مکعبی پنل ساخت‌وساز (۷٫۰) ----------
+   هر آیتم یک «مکعب ایزومتریک» است: وجه بالا (روشن) + وجه چپ (تیره)
+   + وجه راست (میانه) + سایه‌ی زمین + نشانِ آیتم روی وجه بالا.
+   نشان‌ها با فشرده‌سازی عمودی رسم می‌شوند تا روی سطحِ مکعب بنشینند. */
+
+/* مستطیل گرد‌شده روی بوم آیکون (ابزار مشترک نشان‌ها) */
 function rrFill(c, x, y, w, h, r) {
   c.beginPath();
   if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
   c.fill();
 }
-const ICON_PAINTERS = {
-  /* ارتقای اسلحه: نشان هدف + دو گلوله */
-  weapon(c) {
-    c.strokeStyle = '#ffd873'; c.lineWidth = 2.4;
-    c.beginPath(); c.arc(16, 15, 10, 0, 7); c.stroke();
-    c.beginPath(); c.arc(16, 15, 5.2, 0, 7); c.stroke();
-    c.fillStyle = '#ffd873'; c.beginPath(); c.arc(16, 15, 2, 0, 7); c.fill();
+
+/* رسم یک مکعب ایزومتریک + نشان اختیاری — s = نیم‌عرض مکعب */
+function cubeIcon(c, cx, cy, s, cols, symbol) {
+  const h = s * 0.6;                        // ارتفاع دیواره‌های جانبی
+  const T = [cx, cy - s * 0.5], R = [cx + s, cy], B = [cx, cy + s * 0.5], L = [cx - s, cy];
+  const L2 = [cx - s, cy + h], B2 = [cx, cy + s * 0.5 + h], R2 = [cx + s, cy + h];
+  const poly = (pts, fill) => {
+    c.fillStyle = fill;
     c.beginPath();
-    c.moveTo(16, 1.5); c.lineTo(16, 5.6); c.moveTo(16, 24.4); c.lineTo(16, 28.5);
-    c.moveTo(2.5, 15); c.lineTo(6.6, 15); c.moveTo(25.4, 15); c.lineTo(29.5, 15);
-    c.stroke();
-    c.fillStyle = '#c9a35a';
-    rrFill(c, 24, 24.5, 2.8, 6.4, 1.3); rrFill(c, 28.2, 26, 2.4, 5, 1.1);
+    c.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+    c.closePath();
+    c.fill();
+  };
+  /* سایه‌ی زمین */
+  c.fillStyle = 'rgba(0,0,0,.38)';
+  c.beginPath(); c.ellipse(cx, cy + h + s * 0.5, s * 0.92, s * 0.26, 0, 0, 7); c.fill();
+  /* سه وجه مکعب */
+  poly([L, B, B2, L2], cols.left);
+  poly([B, R, R2, B2], cols.right);
+  poly([T, R, B, L], cols.top);
+  /* برق سطح بالا (ربع روشن‌تر سمت چپ) */
+  poly([T, [cx - s * 0.45, cy - s * 0.06], [cx, cy + s * 0.5], L], 'rgba(255,255,255,.22)');
+  /* درزها و خط دور */
+  c.strokeStyle = cols.edge; c.lineWidth = 1.1; c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(T[0], T[1]); c.lineTo(R[0], R[1]); c.lineTo(R2[0], R2[1]);
+  c.lineTo(B2[0], B2[1]); c.lineTo(L2[0], L2[1]); c.lineTo(L[0], L[1]);
+  c.closePath();
+  c.moveTo(L[0], L[1]); c.lineTo(B[0], B[1]); c.lineTo(R[0], R[1]);
+  c.moveTo(B[0], B[1]); c.lineTo(B2[0], B2[1]);
+  c.stroke();
+  /* نشانِ آیتم روی وجه بالا (فشرده‌ی عمودی برای حس پرسپکتیو) */
+  if (symbol) {
+    c.save();
+    c.translate(cx, cy + s * 0.06);
+    c.scale(1, 0.68);
+    symbol(c, s * 0.72);
+    c.restore();
+  }
+}
+
+/* نشان‌های روی وجه بالای مکعب‌ها (r = شعاع در دسترس) */
+const CUBE_SYMS = {
+  /* ارتقای اسلحه: نشان هدف */
+  weapon(c, r) {
+    c.strokeStyle = '#5d4312'; c.lineWidth = r * 0.16;
+    c.beginPath(); c.arc(0, 0, r * 0.75, 0, 7); c.stroke();
+    c.beginPath(); c.arc(0, 0, r * 0.38, 0, 7); c.stroke();
+    c.fillStyle = '#5d4312'; c.beginPath(); c.arc(0, 0, r * 0.16, 0, 7); c.fill();
   },
-  /* جون برج: قلب سرخ با برق سفید */
-  health(c) {
-    c.fillStyle = '#e04b3a'; c.strokeStyle = '#7a1f18'; c.lineWidth = 1.8;
-    c.beginPath();
-    c.moveTo(17, 27.5);
-    c.bezierCurveTo(3.5, 18, 7.5, 5.5, 17, 12);
-    c.bezierCurveTo(26.5, 5.5, 30.5, 18, 17, 27.5);
-    c.closePath(); c.fill(); c.stroke();
-    c.fillStyle = 'rgba(255,255,255,.4)';
-    c.beginPath(); c.arc(12, 13.5, 2.4, 0, 7); c.fill();
+  /* جون برج: صلیب سفید */
+  health(c, r) {
+    c.fillStyle = '#fff';
+    const w = r * 0.34;
+    rrFill(c, -w / 2, -r * 0.8, w, r * 1.6, w * 0.4);
+    rrFill(c, -r * 0.8, -w / 2, r * 1.6, w, w * 0.4);
   },
   /* تعمیر: آچار */
-  repair(c) {
-    c.save(); c.translate(17, 17); c.rotate(Math.PI / 4);
-    c.strokeStyle = '#39466b'; c.lineWidth = 1.4;
-    c.fillStyle = '#aebbd2';
-    rrFill(c, -2.4, -6, 4.8, 17, 2.4); c.stroke();
-    c.lineWidth = 4.6; c.strokeStyle = '#aebbd2';
-    c.beginPath(); c.arc(0, -8.5, 5.4, 0.5, Math.PI - 0.5); c.stroke();
-    c.lineWidth = 1.4; c.strokeStyle = '#39466b';
-    c.beginPath(); c.arc(0, -8.5, 7.8, 0.55, Math.PI - 0.55); c.stroke();
-    c.beginPath(); c.arc(0, -8.5, 3, 0.55, Math.PI - 0.55); c.stroke();
+  repair(c, r) {
+    c.save(); c.rotate(-0.7);
+    c.strokeStyle = '#eef3fa'; c.lineWidth = r * 0.26; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(0, r * 0.55); c.lineTo(0, -r * 0.35); c.stroke();
+    c.lineWidth = r * 0.42;
+    c.beginPath(); c.arc(0, -r * 0.45, r * 0.34, 0.4, Math.PI - 0.4); c.stroke();
     c.restore();
   },
-  /* تله: خارهای فلزی روی پایه + جرقه */
-  trap(c) {
-    c.fillStyle = '#c9a35a'; c.strokeStyle = '#6b4a2c'; c.lineWidth = 1.2;
-    for (const x of [7, 13, 19, 25]) {
+  /* تله: سه خار */
+  trap(c, r) {
+    c.fillStyle = '#3a2c14';
+    for (const dx of [-r * 0.5, 0, r * 0.5]) {
       c.beginPath();
-      c.moveTo(x - 3.4, 25); c.lineTo(x + 3.4, 25); c.lineTo(x, 13.5);
-      c.closePath(); c.fill(); c.stroke();
+      c.moveTo(dx - r * 0.18, r * 0.5); c.lineTo(dx + r * 0.18, r * 0.5); c.lineTo(dx, -r * 0.62);
+      c.closePath(); c.fill();
     }
-    c.fillStyle = '#3c4250'; rrFill(c, 3, 25, 28, 5, 2);
-    c.fillStyle = '#565e70'; c.fillRect(3, 25, 28, 1.6);
-    c.fillStyle = '#ffd873';
-    c.beginPath(); c.arc(13, 10.5, 1.6, 0, 7); c.fill();
-    c.beginPath(); c.arc(19, 10.5, 1.6, 0, 7); c.fill();
   },
-  /* شاتگان: قنداق + لوله‌ی دوقلو */
-  shotgun(c) {
-    c.fillStyle = '#6b4a2c'; rrFill(c, 2, 14.5, 9, 7.5, 2);
-    c.fillStyle = '#2b2f38'; rrFill(c, 10, 13.5, 7, 9, 1.5);
-    c.fillStyle = '#454b57';
-    rrFill(c, 16.5, 14.8, 15, 3, 1.2); rrFill(c, 16.5, 19.4, 15, 3, 1.2);
-    c.fillStyle = '#20262b'; c.fillRect(29.5, 14.8, 2, 3); c.fillRect(29.5, 19.4, 2, 3);
-    c.fillStyle = '#8a6f3a'; rrFill(c, 19, 23.5, 7, 3.4, 1.4);
+  /* شاتگان: دو لوله موازی + سر گلوله */
+  shotgun(c, r) {
+    c.fillStyle = '#23262e';
+    rrFill(c, -r * 0.75, -r * 0.36, r * 1.5, r * 0.27, r * 0.1);
+    rrFill(c, -r * 0.75, r * 0.09, r * 1.5, r * 0.27, r * 0.1);
+    c.fillStyle = '#f0b53c'; c.beginPath(); c.arc(r * 0.72, 0, r * 0.12, 0, 7); c.fill();
   },
-  /* مسلسل: بدنه + خشاب گرد + سه تیر */
-  mg(c) {
-    c.fillStyle = '#6b4a2c'; rrFill(c, 1.5, 14.5, 5, 6, 1.5);
-    c.fillStyle = '#2b2f38'; rrFill(c, 6, 12.5, 17, 7.5, 2);
-    c.fillStyle = '#454b57'; rrFill(c, 23, 14.6, 9.5, 3.2, 1.2);
-    c.fillStyle = '#31363f'; c.beginPath(); c.arc(14, 24, 4.2, 0, 7); c.fill();
-    c.fillStyle = '#20262b'; c.beginPath(); c.arc(14, 24, 2, 0, 7); c.fill();
-    c.fillStyle = '#ffd873';
-    rrFill(c, 9, 3.5, 2.6, 6, 1.2); rrFill(c, 14, 2.5, 2.6, 6.5, 1.2); rrFill(c, 19, 3.5, 2.6, 6, 1.2);
+  /* مسلسل: سه فشنگ سرخ */
+  mg(c, r) {
+    for (const dx of [-r * 0.45, 0, r * 0.45]) {
+      c.fillStyle = '#f0b53c';
+      rrFill(c, dx - r * 0.12, -r * 0.55, r * 0.24, r * 1.1, r * 0.12);
+      c.fillStyle = '#b8860b';
+      c.fillRect(dx - r * 0.12, r * 0.3, r * 0.24, r * 0.25);
+    }
   },
-  /* برجک مسلسل: کیسه‌شن + سر چرخان سه‌لوله */
-  gatling(c) {
-    c.fillStyle = '#6e6146'; rrFill(c, 1.5, 24, 11, 6, 2.5); rrFill(c, 22, 24, 11, 6, 2.5);
-    c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1;
-    c.strokeRect(1.5, 24, 11, 6); c.strokeRect(22, 24, 11, 6);
-    c.fillStyle = '#3a4150'; rrFill(c, 11, 16, 12, 9, 2.5);
-    c.fillStyle = '#8a6f3a'; rrFill(c, 23, 18, 6, 5, 1.5);
-    c.strokeStyle = '#c9a35a'; c.lineWidth = 1.4; c.setLineDash([2, 2]);
-    c.beginPath(); c.moveTo(23, 20); c.quadraticCurveTo(19, 18, 16, 17); c.stroke(); c.setLineDash([]);
-    c.fillStyle = '#2b2f38'; c.beginPath(); c.arc(17, 13.5, 5, 0, 7); c.fill();
-    c.strokeStyle = '#5d6575'; c.lineWidth = 2.6;
+  /* برجک مسلسل: بادبزن سه‌لوله + توپی */
+  gatling(c, r) {
+    c.strokeStyle = '#22262e'; c.lineWidth = r * 0.2; c.lineCap = 'round';
     c.beginPath();
-    c.moveTo(20, 11.5); c.lineTo(31.5, 11.5);
-    c.moveTo(20, 13.5); c.lineTo(32.5, 13.5);
-    c.moveTo(20, 15.5); c.lineTo(31.5, 15.5);
+    for (const a of [-0.55, 0, 0.55]) {
+      c.moveTo(0, r * 0.1);
+      c.lineTo(Math.sin(a) * r * 0.8, r * 0.1 - Math.cos(a) * r * 0.8);
+    }
     c.stroke();
+    c.fillStyle = '#f0b53c'; c.beginPath(); c.arc(0, r * 0.1, r * 0.2, 0, 7); c.fill();
   },
-  /* تک‌تیرانداز: سه‌پایه + لوله‌ی بلند + دوربین */
-  sniper(c) {
-    c.strokeStyle = '#4a3b28'; c.lineWidth = 2.6; c.lineCap = 'round';
+  /* تک‌تیرانداز: دوربین نشانه‌گذاری */
+  sniper(c, r) {
+    c.strokeStyle = '#ffe9a8'; c.lineWidth = r * 0.14;
+    c.beginPath(); c.arc(0, 0, r * 0.62, 0, 7); c.stroke();
     c.beginPath();
-    c.moveTo(14, 19); c.lineTo(7, 29); c.moveTo(20, 19); c.lineTo(27, 29); c.moveTo(17, 20); c.lineTo(17, 29);
+    c.moveTo(-r * 0.85, 0); c.lineTo(-r * 0.35, 0);
+    c.moveTo(r * 0.35, 0); c.lineTo(r * 0.85, 0);
+    c.moveTo(0, -r * 0.85); c.lineTo(0, -r * 0.35);
+    c.moveTo(0, r * 0.35); c.lineTo(0, r * 0.85);
     c.stroke();
-    c.fillStyle = '#334632'; rrFill(c, 5, 14.5, 19, 5.5, 2);
-    c.fillStyle = '#20262b'; rrFill(c, 24, 16, 8, 2.8, 1);
-    c.fillStyle = '#454b57'; rrFill(c, 29.5, 15.4, 3.5, 4, 1);
-    c.fillStyle = '#141a20'; rrFill(c, 10, 9, 8, 4.5, 2);
-    c.fillStyle = 'rgba(140,220,255,.9)'; c.beginPath(); c.arc(14, 11.2, 1.5, 0, 7); c.fill();
-    c.strokeStyle = '#ffd873'; c.lineWidth = 1.2;
-    c.beginPath(); c.arc(17, 25.5, 3.2, 0, 7); c.stroke();
+    c.fillStyle = '#ff5d4d'; c.beginPath(); c.arc(0, 0, r * 0.14, 0, 7); c.fill();
   },
   /* برجک یخ‌زن: دانه‌ی برف */
-  frost(c) {
-    c.strokeStyle = '#a8e2ff'; c.lineWidth = 2.3; c.lineCap = 'round';
+  frost(c, r) {
+    c.strokeStyle = '#2e6f9e'; c.lineWidth = r * 0.16; c.lineCap = 'round';
     c.beginPath();
     for (let k = 0; k < 3; k++) {
       const a = k * Math.PI / 3;
-      c.moveTo(17 - Math.cos(a) * 12, 17 - Math.sin(a) * 12);
-      c.lineTo(17 + Math.cos(a) * 12, 17 + Math.sin(a) * 12);
+      c.moveTo(-Math.cos(a) * r * 0.85, -Math.sin(a) * r * 0.85);
+      c.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
     }
     c.stroke();
-    c.lineWidth = 1.7;
-    c.beginPath();
-    for (let k = 0; k < 6; k++) {
-      const a = k * Math.PI / 3;
-      const bx = 17 + Math.cos(a) * 8, by = 17 + Math.sin(a) * 8;
-      c.moveTo(bx, by); c.lineTo(bx + Math.cos(a + 0.6) * 3.4, by + Math.sin(a + 0.6) * 3.4);
-      c.moveTo(bx, by); c.lineTo(bx + Math.cos(a - 0.6) * 3.4, by + Math.sin(a - 0.6) * 3.4);
-    }
-    c.stroke();
-    c.fillStyle = '#e8f7ff'; c.beginPath(); c.arc(17, 17, 2.6, 0, 7); c.fill();
   },
-  /* ارتقای برجک‌ها: دو شورون بالا + سه نقطه‌ی سطح */
-  turretUp(c) {
-    c.fillStyle = '#ffd873'; c.strokeStyle = '#8a5a12'; c.lineWidth = 1.4;
-    for (const y0 of [3, 12]) {
+  /* ارتقای برجک‌ها: دو شورون بالارونده */
+  turretUp(c, r) {
+    c.fillStyle = '#ffd873';
+    for (const y0 of [-r * 0.42, r * 0.18]) {
       c.beginPath();
-      c.moveTo(17, y0); c.lineTo(27, y0 + 9); c.lineTo(7, y0 + 9);
-      c.closePath(); c.fill(); c.stroke();
+      c.moveTo(0, y0 - r * 0.3); c.lineTo(r * 0.62, y0 + r * 0.3); c.lineTo(-r * 0.62, y0 + r * 0.3);
+      c.closePath(); c.fill();
     }
-    c.fillStyle = '#8fd6ff';
-    for (let i = -1; i <= 1; i++) { c.beginPath(); c.arc(17 + i * 6, 26.5, 2, 0, 7); c.fill(); }
   },
+};
+
+/* مکعب هر آیتم: رنگ‌بندی مخصوص + نشان روی وجه بالا (۷٫۰) */
+const ICON_PAINTERS = {
+  weapon(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#ffd873', left: '#c9921f', right: '#ab7a17', edge: '#6b4a12' }, CUBE_SYMS.weapon); },
+  health(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#ff6f61', left: '#d84a3e', right: '#b23a30', edge: '#7a1f18' }, CUBE_SYMS.health); },
+  repair(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#9fb6d8', left: '#7490bd', right: '#5d7aa6', edge: '#2c3f70' }, CUBE_SYMS.repair); },
+  trap(c)    { cubeIcon(c, 17, 13, 10.5, { top: '#d8b26a', left: '#b08d47', right: '#93743a', edge: '#4a3a1e' }, CUBE_SYMS.trap); },
+  shotgun(c) { cubeIcon(c, 17, 13, 10.5, { top: '#c49a6c', left: '#9a744c', right: '#7d5f3d', edge: '#3a2c18' }, CUBE_SYMS.shotgun); },
+  mg(c)      { cubeIcon(c, 17, 13, 10.5, { top: '#8d99ae', left: '#6b7689', right: '#55606f', edge: '#23262e' }, CUBE_SYMS.mg); },
+  gatling(c) { cubeIcon(c, 17, 13, 10.5, { top: '#97b568', left: '#75904c', right: '#5f763c', edge: '#2c3a1c' }, CUBE_SYMS.gatling); },
+  sniper(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#7291c9', left: '#58719f', right: '#465b82', edge: '#1f2c4a' }, CUBE_SYMS.sniper); },
+  frost(c)   { cubeIcon(c, 17, 13, 10.5, { top: '#cfeaff', left: '#a5d3f0', right: '#7fb8dd', edge: '#3f7fb0' }, CUBE_SYMS.frost); },
+  turretUp(c){ cubeIcon(c, 17, 13, 10.5, { top: '#b58fd8', left: '#9370b5', right: '#7a5a99', edge: '#3a2a55' }, CUBE_SYMS.turretUp); },
 };
 
 /* رسم آیکون آیتم روی بوم کوچک (مقیاس ۲ برابر برای شفافیت) */
@@ -432,6 +451,7 @@ function frame(now) {
   }
 
   if (state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day') update(dtG);
+  else if (state.mode === 'cutscene') updateCutscene(dtG);   // رویداد داستانی (۷٫۰)
   else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
   else if (state.mode === 'start') updateMenuScene(dtG);
   /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */
@@ -480,6 +500,24 @@ window.GAME = {
   endWave: waveComplete,             /* شبیه‌سازی پایان موج → صبح (۵٫۰) */
   startNight,                        /* شبیه‌سازی کلیک «شب شود» (۵٫۰) */
   setBuildPanel,                     /* جمع/باز کردن پنل ساخت‌وساز (۶٫۰) */
+  /* --- رویداد داستانی (۷٫۰) --- */
+  playCutscene: playTowerCollapseCutscene,   /* اجرای دستی کات‌سین */
+  skipCutscene,                              /* رد کردن کات‌سین */
+  getCutscene() { return CS; },              /* وضعیت لحظه‌ای کات‌سین */
+  csGoto(t) {                                /* پرش زمانی برای تست فریم‌ها */
+    if (!CS) return;
+    /* شبیه‌سازی گام‌به‌گام تا لحظه‌ی هدف تا همه‌ی رویدادهای میانی
+       (سقوط، عبور ماشین، تصادم‌ها، هدیه...) دقیقاً رخ بدهند */
+    CS.paused = false;
+    let guard = 0;
+    while (CS && CS.t < t - (1 / 30) && guard++ < 420) updateCutscene(1 / 30);
+    if (CS) {
+      const rest = t - CS.t;
+      if (rest > 0) updateCutscene(Math.min(rest, 0.05));
+      CS.paused = true;                      // فریز روی همین فریم
+    }
+  },
+  csResume() { if (CS) CS.paused = false; }, /* ادامه‌ی عادی جریان */
   giveCoins(n) { state.coins += n; updateHUD(); },
   spawnType(type) { spawnZombie(type); },
   hurt(n) { damageTower(n, TOWER.x + 10); },
@@ -501,6 +539,7 @@ window.GAME = {
   /* پرش سریع به موج n (برای تست) */
   skipToWave(n) {
     n = clamp(n, 1, TOTAL_WAVES);
+    if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
     state.zombies = []; state.bullets = []; state.coinsArr = [];
     state.wave = n - 1;
     state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
@@ -511,6 +550,7 @@ window.GAME = {
   },
   /* شبیه‌سازی برد (برای تست) — از هر حالتی کار می‌کند */
   win() {
+    if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
     state.wave = TOTAL_WAVES;
     state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
     state.zombies = []; state.bullets = [];
