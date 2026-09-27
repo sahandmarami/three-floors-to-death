@@ -1,10 +1,10 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — منطق بازی (بخش ۳)
+   سه طبقه تا بقا — نسخه‌ی ۸٫۰ — منطق بازی (بخش ۳)
      ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل مکعبی + تولتیپ)
      ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
-   تازه‌های ۷٫۰ در این بخش:
-     - آیکون‌های پنل ساخت‌وساز همه «مکعب‌های ایزومتریک» شدند
-       (وجه بالا روشن + دو وجه جانبی تیره‌تر + نشانِ آیتم روی وجه بالا)
+   تازه‌های ۸٫۰ در این بخش:
+     - آیکون‌های پنل ساخت‌وساز = اسپرایت‌های «مکعب پیکسل‌آرت» از پیش
+       تولیدشده (CUBE_SPRITES — جاسازی‌شده به‌صورت data-URI در فایل تک‌فایل)
      - حلقه‌ی اصلی حالت cutscene را هم به‌روزرسانی می‌کند
    ================================================================== */
 
@@ -62,178 +62,40 @@ const BUILD_DEFS = [
 const KEY2KIND = {};
 BUILD_DEFS.forEach(d => { if (d.codes) d.codes.forEach(c => KEY2KIND[c] = d.kind); });
 
-/* ---------- آیکون‌های مکعبی پنل ساخت‌وساز (۷٫۰) ----------
-   هر آیتم یک «مکعب ایزومتریک» است: وجه بالا (روشن) + وجه چپ (تیره)
-   + وجه راست (میانه) + سایه‌ی زمین + نشانِ آیتم روی وجه بالا.
-   نشان‌ها با فشرده‌سازی عمودی رسم می‌شوند تا روی سطحِ مکعب بنشینند. */
+/* ---------- آیکون‌های مکعبی پنل ساخت‌وساز (۸٫۰) ----------
+   هر آیتم یک اسپرایت «مکعب پیکسل‌آرت» است (تولیدشده در make_cubes.py):
+   وجه بالا با بافت و نشانِ آیتم + دو دیواره با درز بلوک‌چینی + لبه‌ی
+   تیره — مثل مکعب‌های بازی‌های ساختمان‌سازی. اسپرایت‌ها به‌صورت
+   data-URI (CUBE_SPRITES) در همان فایل جاسازی شده‌اند و با
+   imageSmoothingEnabled=false (بدون هموارسازی) رسم می‌شوند تا
+   پیکسل‌ها تیز بمانند. */
 
-/* مستطیل گرد‌شده روی بوم آیکون (ابزار مشترک نشان‌ها) */
-function rrFill(c, x, y, w, h, r) {
-  c.beginPath();
-  if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
-  c.fill();
-}
-
-/* رسم یک مکعب ایزومتریک + نشان اختیاری — s = نیم‌عرض مکعب */
-function cubeIcon(c, cx, cy, s, cols, symbol) {
-  const h = s * 0.6;                        // ارتفاع دیواره‌های جانبی
-  const T = [cx, cy - s * 0.5], R = [cx + s, cy], B = [cx, cy + s * 0.5], L = [cx - s, cy];
-  const L2 = [cx - s, cy + h], B2 = [cx, cy + s * 0.5 + h], R2 = [cx + s, cy + h];
-  const poly = (pts, fill) => {
-    c.fillStyle = fill;
-    c.beginPath();
-    c.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
-    c.closePath();
-    c.fill();
-  };
-  /* سایه‌ی زمین */
-  c.fillStyle = 'rgba(0,0,0,.38)';
-  c.beginPath(); c.ellipse(cx, cy + h + s * 0.5, s * 0.92, s * 0.26, 0, 0, 7); c.fill();
-  /* سه وجه مکعب */
-  poly([L, B, B2, L2], cols.left);
-  poly([B, R, R2, B2], cols.right);
-  poly([T, R, B, L], cols.top);
-  /* برق سطح بالا (ربع روشن‌تر سمت چپ) */
-  poly([T, [cx - s * 0.45, cy - s * 0.06], [cx, cy + s * 0.5], L], 'rgba(255,255,255,.22)');
-  /* درزها و خط دور */
-  c.strokeStyle = cols.edge; c.lineWidth = 1.1; c.lineJoin = 'round';
-  c.beginPath();
-  c.moveTo(T[0], T[1]); c.lineTo(R[0], R[1]); c.lineTo(R2[0], R2[1]);
-  c.lineTo(B2[0], B2[1]); c.lineTo(L2[0], L2[1]); c.lineTo(L[0], L[1]);
-  c.closePath();
-  c.moveTo(L[0], L[1]); c.lineTo(B[0], B[1]); c.lineTo(R[0], R[1]);
-  c.moveTo(B[0], B[1]); c.lineTo(B2[0], B2[1]);
-  c.stroke();
-  /* نشانِ آیتم روی وجه بالا (فشرده‌ی عمودی برای حس پرسپکتیو) */
-  if (symbol) {
-    c.save();
-    c.translate(cx, cy + s * 0.06);
-    c.scale(1, 0.68);
-    symbol(c, s * 0.72);
-    c.restore();
+/* رسم آیکون آیتم روی بوم کوچک: سایه‌ی نرم + اسپرایت مکعب */
+function paintIcon(kind, cv) {
+  cv.width = 76; cv.height = 76;                 // ۲ برابرِ نمایش ۳۸px برای تیزی
+  const c = cv.getContext('2d');
+  const im = CUBE_IMGS[kind];
+  if (im && im.complete && im.naturalWidth) {
+    c.imageSmoothingEnabled = false;             // پیکسل‌آرت تیز
+    /* سایه‌ی زمین زیر مکعب */
+    c.fillStyle = 'rgba(0,0,0,.38)';
+    c.beginPath(); c.ellipse(38, 64, 27, 7.5, 0, 0, Math.PI * 2); c.fill();
+    c.drawImage(im, 0, 0);
+  } else {
+    /* جای‌نگهدار تا بارگذاری تصویر: مربع زمینه‌دار */
+    c.fillStyle = 'rgba(42,58,94,.85)';
+    c.fillRect(18, 18, 40, 40);
+    c.strokeStyle = 'rgba(255,216,115,.4)'; c.lineWidth = 2;
+    c.strokeRect(18, 18, 40, 40);
   }
 }
 
-/* نشان‌های روی وجه بالای مکعب‌ها (r = شعاع در دسترس) */
-const CUBE_SYMS = {
-  /* ارتقای اسلحه: نشان هدف */
-  weapon(c, r) {
-    c.strokeStyle = '#5d4312'; c.lineWidth = r * 0.16;
-    c.beginPath(); c.arc(0, 0, r * 0.75, 0, 7); c.stroke();
-    c.beginPath(); c.arc(0, 0, r * 0.38, 0, 7); c.stroke();
-    c.fillStyle = '#5d4312'; c.beginPath(); c.arc(0, 0, r * 0.16, 0, 7); c.fill();
-  },
-  /* جون برج: صلیب سفید */
-  health(c, r) {
-    c.fillStyle = '#fff';
-    const w = r * 0.34;
-    rrFill(c, -w / 2, -r * 0.8, w, r * 1.6, w * 0.4);
-    rrFill(c, -r * 0.8, -w / 2, r * 1.6, w, w * 0.4);
-  },
-  /* تعمیر: آچار */
-  repair(c, r) {
-    c.save(); c.rotate(-0.7);
-    c.strokeStyle = '#eef3fa'; c.lineWidth = r * 0.26; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(0, r * 0.55); c.lineTo(0, -r * 0.35); c.stroke();
-    c.lineWidth = r * 0.42;
-    c.beginPath(); c.arc(0, -r * 0.45, r * 0.34, 0.4, Math.PI - 0.4); c.stroke();
-    c.restore();
-  },
-  /* تله: سه خار */
-  trap(c, r) {
-    c.fillStyle = '#3a2c14';
-    for (const dx of [-r * 0.5, 0, r * 0.5]) {
-      c.beginPath();
-      c.moveTo(dx - r * 0.18, r * 0.5); c.lineTo(dx + r * 0.18, r * 0.5); c.lineTo(dx, -r * 0.62);
-      c.closePath(); c.fill();
-    }
-  },
-  /* شاتگان: دو لوله موازی + سر گلوله */
-  shotgun(c, r) {
-    c.fillStyle = '#23262e';
-    rrFill(c, -r * 0.75, -r * 0.36, r * 1.5, r * 0.27, r * 0.1);
-    rrFill(c, -r * 0.75, r * 0.09, r * 1.5, r * 0.27, r * 0.1);
-    c.fillStyle = '#f0b53c'; c.beginPath(); c.arc(r * 0.72, 0, r * 0.12, 0, 7); c.fill();
-  },
-  /* مسلسل: سه فشنگ سرخ */
-  mg(c, r) {
-    for (const dx of [-r * 0.45, 0, r * 0.45]) {
-      c.fillStyle = '#f0b53c';
-      rrFill(c, dx - r * 0.12, -r * 0.55, r * 0.24, r * 1.1, r * 0.12);
-      c.fillStyle = '#b8860b';
-      c.fillRect(dx - r * 0.12, r * 0.3, r * 0.24, r * 0.25);
-    }
-  },
-  /* برجک مسلسل: بادبزن سه‌لوله + توپی */
-  gatling(c, r) {
-    c.strokeStyle = '#22262e'; c.lineWidth = r * 0.2; c.lineCap = 'round';
-    c.beginPath();
-    for (const a of [-0.55, 0, 0.55]) {
-      c.moveTo(0, r * 0.1);
-      c.lineTo(Math.sin(a) * r * 0.8, r * 0.1 - Math.cos(a) * r * 0.8);
-    }
-    c.stroke();
-    c.fillStyle = '#f0b53c'; c.beginPath(); c.arc(0, r * 0.1, r * 0.2, 0, 7); c.fill();
-  },
-  /* تک‌تیرانداز: دوربین نشانه‌گذاری */
-  sniper(c, r) {
-    c.strokeStyle = '#ffe9a8'; c.lineWidth = r * 0.14;
-    c.beginPath(); c.arc(0, 0, r * 0.62, 0, 7); c.stroke();
-    c.beginPath();
-    c.moveTo(-r * 0.85, 0); c.lineTo(-r * 0.35, 0);
-    c.moveTo(r * 0.35, 0); c.lineTo(r * 0.85, 0);
-    c.moveTo(0, -r * 0.85); c.lineTo(0, -r * 0.35);
-    c.moveTo(0, r * 0.35); c.lineTo(0, r * 0.85);
-    c.stroke();
-    c.fillStyle = '#ff5d4d'; c.beginPath(); c.arc(0, 0, r * 0.14, 0, 7); c.fill();
-  },
-  /* برجک یخ‌زن: دانه‌ی برف */
-  frost(c, r) {
-    c.strokeStyle = '#2e6f9e'; c.lineWidth = r * 0.16; c.lineCap = 'round';
-    c.beginPath();
-    for (let k = 0; k < 3; k++) {
-      const a = k * Math.PI / 3;
-      c.moveTo(-Math.cos(a) * r * 0.85, -Math.sin(a) * r * 0.85);
-      c.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
-    }
-    c.stroke();
-  },
-  /* ارتقای برجک‌ها: دو شورون بالارونده */
-  turretUp(c, r) {
-    c.fillStyle = '#ffd873';
-    for (const y0 of [-r * 0.42, r * 0.18]) {
-      c.beginPath();
-      c.moveTo(0, y0 - r * 0.3); c.lineTo(r * 0.62, y0 + r * 0.3); c.lineTo(-r * 0.62, y0 + r * 0.3);
-      c.closePath(); c.fill();
-    }
-  },
-};
-
-/* مکعب هر آیتم: رنگ‌بندی مخصوص + نشان روی وجه بالا (۷٫۰) */
-const ICON_PAINTERS = {
-  weapon(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#ffd873', left: '#c9921f', right: '#ab7a17', edge: '#6b4a12' }, CUBE_SYMS.weapon); },
-  health(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#ff6f61', left: '#d84a3e', right: '#b23a30', edge: '#7a1f18' }, CUBE_SYMS.health); },
-  repair(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#9fb6d8', left: '#7490bd', right: '#5d7aa6', edge: '#2c3f70' }, CUBE_SYMS.repair); },
-  trap(c)    { cubeIcon(c, 17, 13, 10.5, { top: '#d8b26a', left: '#b08d47', right: '#93743a', edge: '#4a3a1e' }, CUBE_SYMS.trap); },
-  shotgun(c) { cubeIcon(c, 17, 13, 10.5, { top: '#c49a6c', left: '#9a744c', right: '#7d5f3d', edge: '#3a2c18' }, CUBE_SYMS.shotgun); },
-  mg(c)      { cubeIcon(c, 17, 13, 10.5, { top: '#8d99ae', left: '#6b7689', right: '#55606f', edge: '#23262e' }, CUBE_SYMS.mg); },
-  gatling(c) { cubeIcon(c, 17, 13, 10.5, { top: '#97b568', left: '#75904c', right: '#5f763c', edge: '#2c3a1c' }, CUBE_SYMS.gatling); },
-  sniper(c)  { cubeIcon(c, 17, 13, 10.5, { top: '#7291c9', left: '#58719f', right: '#465b82', edge: '#1f2c4a' }, CUBE_SYMS.sniper); },
-  frost(c)   { cubeIcon(c, 17, 13, 10.5, { top: '#cfeaff', left: '#a5d3f0', right: '#7fb8dd', edge: '#3f7fb0' }, CUBE_SYMS.frost); },
-  turretUp(c){ cubeIcon(c, 17, 13, 10.5, { top: '#b58fd8', left: '#9370b5', right: '#7a5a99', edge: '#3a2a55' }, CUBE_SYMS.turretUp); },
-};
-
-/* رسم آیکون آیتم روی بوم کوچک (مقیاس ۲ برابر برای شفافیت) */
-function paintIcon(kind, cv) {
-  const c = cv.getContext('2d');
-  const s = cv.width / 34;
-  c.save();
-  c.scale(s, s);
-  c.lineJoin = 'round'; c.lineCap = 'round';
-  const fn = ICON_PAINTERS[kind];
-  if (fn) fn(c);
-  c.restore();
+/* بازرسم کاشی بعد از بارگذاری تصویرش (data-URI ها async دیکود می‌شوند) */
+function repaintCubeIcons(kind) {
+  const el = $('bp-' + kind);
+  if (!el) return;
+  const cv = el.querySelector('.bp-ic');
+  if (cv) paintIcon(kind, cv);
 }
 
 /* وضعیت لحظه‌ای آیتم برای تولتیپ (قیمت/سطح/مالکیت...) */
@@ -288,10 +150,9 @@ function buildPanelInit() {
     const el = document.createElement('div');
     el.className = 'bp-tile';
     el.id = 'bp-' + d.kind;
-    /* آیکون Canvas */
+    /* آیکون Canvas با اسپرایت مکعب پیکسل‌آرت (۸٫۰) */
     const cv = document.createElement('canvas');
     cv.className = 'bp-ic';
-    cv.width = 68; cv.height = 68;            // ۲ برابر برای شفافیت رتینا
     paintIcon(d.kind, cv);
     el.appendChild(cv);
     /* کلید میان‌بر */
@@ -504,13 +365,15 @@ window.GAME = {
   playCutscene: playTowerCollapseCutscene,   /* اجرای دستی کات‌سین */
   skipCutscene,                              /* رد کردن کات‌سین */
   getCutscene() { return CS; },              /* وضعیت لحظه‌ای کات‌سین */
+  getDrive() { return CS && CS.drive; },     /* وضعیت بخش رانندگی (۸٫۰) */
   csGoto(t) {                                /* پرش زمانی برای تست فریم‌ها */
     if (!CS) return;
     /* شبیه‌سازی گام‌به‌گام تا لحظه‌ی هدف تا همه‌ی رویدادهای میانی
-       (سقوط، عبور ماشین، تصادم‌ها، هدیه...) دقیقاً رخ بدهند */
+       (سقوط، عبور ماشین، تصادم‌ها، رانندگی...) دقیقاً رخ بدهند.
+       ۸٫۰: کات‌سین طولانی‌تر شد (بخش رانندگی) → سقف گام‌ها بیشتر */
     CS.paused = false;
     let guard = 0;
-    while (CS && CS.t < t - (1 / 30) && guard++ < 420) updateCutscene(1 / 30);
+    while (CS && CS.t < t - (1 / 30) && guard++ < 1600) updateCutscene(1 / 30);
     if (CS) {
       const rest = t - CS.t;
       if (rest > 0) updateCutscene(Math.min(rest, 0.05));

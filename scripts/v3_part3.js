@@ -372,19 +372,28 @@ function mixHex(a, b, t) {
    (۶٫۰: گرادیان چهارلایه + ستاره‌های درشتِ چهارپر + ماه/خورشید پرجزئیات) */
 function drawSky() {
   const d = state.dayness;                  // ۰ = شب کامل، ۱ = روز کامل
+  const v1 = state.towerVariant === 1;      // (۸٫۰) شهر سوخته: آسمانِ متمایز — سرخ‌وشب/دودی
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
-  g.addColorStop(0,    mixHex('#05091a', '#5aa9e0', d));
-  g.addColorStop(0.42, mixHex('#0d1734', '#93cdf0', d));
-  g.addColorStop(0.78, mixHex('#182550', '#c9e6f6', d));
-  g.addColorStop(1,    mixHex('#233865', '#e9f3fa', d));
+  if (v1) {
+    /* برج دوم: شبِ بنفش-سرخ + روزِ دودیِ سپیا — فضای کاملاً متفاوت */
+    g.addColorStop(0,    mixHex('#170b1c', '#7a6a58', d));
+    g.addColorStop(0.42, mixHex('#241028', '#96816a', d));
+    g.addColorStop(0.78, mixHex('#3a1626', '#b39a7d', d));
+    g.addColorStop(1,    mixHex('#4a1c28', '#cdb08c', d));
+  } else {
+    g.addColorStop(0,    mixHex('#05091a', '#5aa9e0', d));
+    g.addColorStop(0.42, mixHex('#0d1734', '#93cdf0', d));
+    g.addColorStop(0.78, mixHex('#182550', '#c9e6f6', d));
+    g.addColorStop(1,    mixHex('#233865', '#e9f3fa', d));
+  }
   ctx.fillStyle = g;
   ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
 
-  /* (۷٫۰) برج دوم: افق دودیِ شهر سوخته — همیشه کمی نارنجی/خاکستری */
-  if (state.towerVariant === 1) {
+  /* برج دوم: افق دودیِ شهر سوخته — همیشه کمی نارنجی/خاکستری */
+  if (v1) {
     const sm = ctx.createLinearGradient(0, GROUND_Y - 170, 0, GROUND_Y);
     sm.addColorStop(0, 'rgba(150,85,55,0)');
-    sm.addColorStop(1, 'rgba(150,85,55,' + (0.13 + 0.13 * (1 - d)).toFixed(2) + ')');
+    sm.addColorStop(1, 'rgba(150,85,55,' + (0.15 + 0.15 * (1 - d)).toFixed(2) + ')');
     ctx.fillStyle = sm;
     ctx.fillRect(-20, GROUND_Y - 170, W + 40, 170);
   }
@@ -415,22 +424,32 @@ function drawSky() {
     }
   }
 
-  /* ماه شب (۶٫۰: بزرگ‌تر، سایه‌روشن، دهانه‌های بیشتر، لبه‌ی مهتابی) */
+  /* ماه شب (۸٫۰: برج دوم = ماهِ خونیِ بزرگ در سمت راست — حال‌وهوای متفاوت) */
   if (d < 0.98) {
-    const mx = 176, my = 88, mr = 37;
+    const blood = v1;
+    const mx = blood ? 806 : 176, my = blood ? 96 : 88, mr = blood ? 44 : 37;
     ctx.globalAlpha = 1 - d;
-    const glow = ctx.createRadialGradient(mx, my, mr * 0.45, mx, my, mr * 3);
-    glow.addColorStop(0, 'rgba(244,238,210,0.34)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
-    ctx.fillStyle = glow; circle(mx, my, mr * 3);
+    const gcol = blood ? '224,84,64' : '244,238,210';
+    const glow = ctx.createRadialGradient(mx, my, mr * 0.45, mx, my, mr * (blood ? 3.6 : 3));
+    glow.addColorStop(0, 'rgba(' + gcol + ',' + (blood ? 0.4 : 0.34) + ')');
+    glow.addColorStop(1, 'rgba(' + gcol + ',0)');
+    ctx.fillStyle = glow; circle(mx, my, mr * (blood ? 3.6 : 3));
+    if (blood) {                             // هاله‌ی سرخِ گسترده‌ی ماه خونی
+      const g2 = ctx.createRadialGradient(mx, my, mr, mx, my, mr * 5.4);
+      g2.addColorStop(0, 'rgba(190,50,40,0.16)'); g2.addColorStop(1, 'rgba(190,50,40,0)');
+      ctx.fillStyle = g2; circle(mx, my, mr * 5.4);
+    }
     const body = ctx.createRadialGradient(mx - mr * 0.45, my - mr * 0.5, mr * 0.2, mx, my, mr);
-    body.addColorStop(0, '#f9f3dd');
-    body.addColorStop(0.55, '#efe6c4');
-    body.addColorStop(1, '#cfc39c');
+    if (blood) {
+      body.addColorStop(0, '#ffb09a'); body.addColorStop(0.55, '#e2604c'); body.addColorStop(1, '#9c2c24');
+    } else {
+      body.addColorStop(0, '#f9f3dd'); body.addColorStop(0.55, '#efe6c4'); body.addColorStop(1, '#cfc39c');
+    }
     ctx.fillStyle = body; circle(mx, my, mr);
-    ctx.fillStyle = 'rgba(120,110,80,0.16)';
+    ctx.fillStyle = blood ? 'rgba(90,22,20,0.28)' : 'rgba(120,110,80,0.16)';
     circle(mx - 12, my - 8, 7); circle(mx + 9, my + 10, 5); circle(mx + 15, my - 12, 3.4);
     circle(mx - 2, my + 16, 3); circle(mx - 20, my + 8, 2.6);
-    ctx.strokeStyle = 'rgba(255,252,235,0.5)'; ctx.lineWidth = 1.6;
+    ctx.strokeStyle = blood ? 'rgba(255,190,170,0.5)' : 'rgba(255,252,235,0.5)'; ctx.lineWidth = 1.6;
     ctx.beginPath(); ctx.arc(mx, my, mr - 1, Math.PI * 0.95, Math.PI * 1.55); ctx.stroke();
     ctx.globalAlpha = 1;
   }
@@ -686,29 +705,52 @@ function drawLightning() {
 }
 
 /* درخت خشک سیاه‌شکلی (۳٫۰) */
-function drawTree(x, s) {
+/* درخت صحنه — dead=true: نسخه‌ی سوخته/شکسته با شاخه‌های کج و اخگرِ پای تنه (۸٫۰) */
+function drawTree(x, s, dead) {
   ctx.save();
   ctx.translate(x, GROUND_Y + 2);
   ctx.scale(s, s);
-  ctx.strokeStyle = '#0a0f1e'; ctx.lineCap = 'round';
+  ctx.strokeStyle = dead ? '#171210' : '#0a0f1e'; ctx.lineCap = 'round';
   ctx.lineWidth = 7;
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(2, -44); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dead ? -4 : 2, -44); ctx.stroke();
   ctx.lineWidth = 3.5;
   ctx.beginPath();
-  ctx.moveTo(2, -40); ctx.lineTo(-14, -58);
-  ctx.moveTo(2, -36); ctx.lineTo(16, -54);
-  ctx.moveTo(2, -44); ctx.lineTo(-8, -70);
-  ctx.moveTo(2, -42); ctx.lineTo(10, -72);
-  ctx.moveTo(2, -44); ctx.lineTo(1, -80);
+  if (dead) {
+    /* شاخه‌های سوخته‌ی کوتاه‌تر و شکسته */
+    ctx.moveTo(-4, -34); ctx.lineTo(-16, -46);
+    ctx.moveTo(-4, -30); ctx.lineTo(10, -44);
+    ctx.moveTo(-4, -38); ctx.lineTo(2, -56);
+    ctx.moveTo(-4, -36); ctx.lineTo(-12, -50);
+  } else {
+    ctx.moveTo(2, -40); ctx.lineTo(-14, -58);
+    ctx.moveTo(2, -36); ctx.lineTo(16, -54);
+    ctx.moveTo(2, -44); ctx.lineTo(-8, -70);
+    ctx.moveTo(2, -42); ctx.lineTo(10, -72);
+    ctx.moveTo(2, -44); ctx.lineTo(1, -80);
+  }
   ctx.stroke();
   ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.moveTo(-14, -58); ctx.lineTo(-22, -64);
-  ctx.moveTo(-8, -70); ctx.lineTo(-13, -78);
-  ctx.moveTo(16, -54); ctx.lineTo(24, -60);
-  ctx.moveTo(10, -72); ctx.lineTo(15, -80);
-  ctx.moveTo(1, -80); ctx.lineTo(-4, -88);
+  if (dead) {
+    ctx.moveTo(-16, -46); ctx.lineTo(-21, -52);
+    ctx.moveTo(10, -44); ctx.lineTo(15, -50);
+    ctx.moveTo(-12, -50); ctx.lineTo(-16, -57);
+  } else {
+    ctx.moveTo(-14, -58); ctx.lineTo(-22, -64);
+    ctx.moveTo(-8, -70); ctx.lineTo(-13, -78);
+    ctx.moveTo(16, -54); ctx.lineTo(24, -60);
+    ctx.moveTo(10, -72); ctx.lineTo(15, -80);
+    ctx.moveTo(1, -80); ctx.lineTo(-4, -88);
+  }
   ctx.stroke();
+  if (dead) {
+    /* رد سوختگی پای تنه + اخگر چشمک‌زن */
+    ctx.fillStyle = 'rgba(10,7,6,0.6)';
+    ctx.beginPath(); ctx.ellipse(0, 0, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+    const ea = 0.35 + 0.3 * Math.sin(animTime * 5 + x);
+    ctx.fillStyle = 'rgba(255,120,50,' + ea.toFixed(2) + ')';
+    circle(-2, -5, 1.8);
+  }
   ctx.restore();
 }
 
@@ -770,6 +812,26 @@ function drawFireflies() {
     circle(x, y, 3.4);
     ctx.fillStyle = ember ? 'rgba(255,190,120,' + a.toFixed(2) + ')' : 'rgba(230,255,190,' + a.toFixed(2) + ')';
     circle(x, y, 1.3);
+  }
+}
+
+/* بارش خاکستر (۸٫۰) — فقط شهر سوخته: دانه‌های خاکستری که آرام می‌بارند؛
+   شب پررنگ‌تر از روز. موقعیت خالصِ تابعی از animTime است (بدون state). */
+const ASH_FLAKES = Array.from({ length: 46 }, () => ({
+  x: srand() * W, y0: srand() * (GROUND_Y + 30),
+  v: 16 + srand() * 26, sw: 0.4 + srand() * 0.9,
+  ph: srand() * 6.28, r: 0.9 + srand() * 1.5,
+}));
+function drawAsh() {
+  if (state.towerVariant !== 1) return;
+  const d = state.dayness;
+  const a0 = 0.2 + 0.18 * (1 - d);
+  for (const f of ASH_FLAKES) {
+    const y = (f.y0 + animTime * f.v) % (GROUND_Y + 34) - 14;
+    const x = f.x + Math.sin(animTime * f.sw + f.ph) * 13;
+    const a = a0 * (0.55 + 0.45 * Math.sin(animTime * 1.7 + f.ph * 3));
+    ctx.fillStyle = 'rgba(186,178,170,' + a.toFixed(2) + ')';
+    ctx.fillRect(x, y, f.r, f.r);
   }
 }
 
@@ -1320,12 +1382,13 @@ function drawZombie(z) {
     ctx.lineTo(9, -42 + bob * 0.5); ctx.closePath(); ctx.fill();
   }
 
-  /* چشم‌های درخشان (قرمز؛ پادشاه بنفش) */
+  /* چشم‌های درخشان (قرمز؛ پادشاه بنفش؛ برج دوم: اخگریِ نارنجی — ۸٫۰) */
   if (!z.dead) {
+    const emberE = state.towerVariant === 1 && z.type !== 'boss';
     ctx.save();
-    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
+    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : (emberE ? '#ff8a3c' : '#ff4b3e');
     ctx.shadowBlur = 5 * s;
-    ctx.fillStyle = flash ? '#ffffff' : (z.type === 'boss' ? '#c44dff' : '#ff4b3e');
+    ctx.fillStyle = flash ? '#ffffff' : (z.type === 'boss' ? '#c44dff' : (emberE ? '#ffb03c' : '#ff4b3e'));
     circle(5.5, -37 + bob * 0.5, 1.6); circle(8.8, -37.5 + bob * 0.5, 1.6);
     ctx.restore();
   }
@@ -1756,27 +1819,33 @@ function drawCinematic() {
 }
 
 /* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم.
-   بعد از صحنه و قبل از UI رسم می‌شود (بدون لرزش). */
+   (۸٫۰) برج دوم: شب = تینت سرخِ خاکستری؛ روز = سپیای دودی — حال‌وهوای
+   متفاوتِ شهر سوخته. بعد از صحنه و قبل از UI رسم می‌شود (بدون لرزش). */
 function drawColorGrade() {
   const d = state.dayness;
-  /* وینیت نرم همیشه — شب عمیق‌تر */
+  const v1 = state.towerVariant === 1;
+  /* وینیت نرم همیشه — شب عمیق‌تر (شهر سوخته: کمی شدیدتر) */
   const vg = ctx.createRadialGradient(W / 2, H * 0.46, H * 0.36, W / 2, H * 0.55, H * 0.88);
-  const va = 0.10 + 0.16 * (1 - d);
-  vg.addColorStop(0, 'rgba(2,4,14,0)');
-  vg.addColorStop(1, 'rgba(2,4,14,' + va.toFixed(2) + ')');
+  const va = (v1 ? 0.13 : 0.10) + 0.16 * (1 - d);
+  vg.addColorStop(0, v1 ? 'rgba(20,4,4,0)' : 'rgba(2,4,14,0)');
+  vg.addColorStop(1, v1 ? 'rgba(20,4,4,' + va.toFixed(2) + ')' : 'rgba(2,4,14,' + va.toFixed(2) + ')');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, W, H);
-  /* تینت سرمای آبیِ شب (ضرب ملایم) */
+  /* تینت شب: برج اول سرمای آبی؛ برج دوم سرخیِ اخگر — ضرب ملایم */
   if (d < 0.85) {
     ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = 'rgba(178,192,236,' + (0.14 * (1 - d)).toFixed(2) + ')';
+    ctx.fillStyle = v1
+      ? 'rgba(228,164,150,' + (0.15 * (1 - d)).toFixed(2) + ')'
+      : 'rgba(178,192,236,' + (0.14 * (1 - d)).toFixed(2) + ')';
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
-  /* گرمای طلایی روز (روشن‌سازی ملایم) */
+  /* گرمای روز: برج اول طلایی؛ برج دوم سپیای دودی (روشن‌سازی ملایم) */
   if (d > 0.15) {
     ctx.globalCompositeOperation = 'screen';
-    ctx.fillStyle = 'rgba(255,196,96,' + (0.05 * d).toFixed(2) + ')';
+    ctx.fillStyle = v1
+      ? 'rgba(255,170,110,' + (0.07 * d).toFixed(2) + ')'
+      : 'rgba(255,196,96,' + (0.05 * d).toFixed(2) + ')';
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -1787,16 +1856,24 @@ function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.save();
   if (state.shake > 0.2) ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+  if (CS && CS.drive) {
+    /* ---- صحنه‌ی رانندگی کات‌سین (۸٫۰): جاده به‌جای میدان نبرد ---- */
+    drawSky();
+    drawClouds();
+    drawDriveScene();
+    drawPlayer();                              // بازیکن روی سقف ماشین (۸٫۰)
+  } else {
   drawSky();
   drawClouds();
   drawSkyline();
   drawHills();
   drawPuddles();
   drawGrass();
+  drawAsh();                                  // بارش خاکسترِ شهر سوخته (۸٫۰)
   drawDecals();
   drawLightning();
-  drawTree(88, 0.95);
-  drawTree(874, 0.7);
+  drawTree(88, 0.95, state.towerVariant === 1);   // (۸٫۰) درخت سوخته در برج دوم
+  drawTree(874, 0.7, state.towerVariant === 1);
   drawLamps();
   drawMuzzleGlow();
   drawShootingStar();
@@ -1831,6 +1908,7 @@ function render() {
   for (const c of state.coinsArr) drawCoin(c);
   drawPowerups();
   drawZaps();
+  }
   drawParticles();
   drawTexts();
   ctx.restore();

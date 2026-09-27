@@ -1,23 +1,29 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — بخش ۴: رویداد داستانی «فروریختن برج»
+   سه طبقه تا بقا — نسخه‌ی ۸٫۰ — بخش ۴: رویداد داستانی «فروریختن برج»
    ==================================================================
-   بعد از پاک‌سازی موج ۵ و پیش از موج ۶، یک کات‌سین کوتاه پخش می‌شود:
-     ۱) لرزش شدید صحنه + ترک خوردن برج (غرش + ترک‌های پیش‌رونده)
-     ۲) فروریختن طبقه‌ی اول و دوم با انفجار آجر/چوب و توده‌ی آوار
-     ۳) سقوط بازیکن از بام با فیزیک ساده (افتادن + چرخش تدریجی)
-     ۴) ورود ماشینِ دوستِ راننده از چپ صحنه؛ بازیکن روی ماشین می‌نشیند
-     ۵) ماشین از میان زامبی‌های مانع‌شده رد می‌شود (کنارشان می‌پراند)
-        و صحنه را ترک می‌کند + «هدیه‌ی راننده» (سکه + آنلاک زودهنگام سلاح)
-     ۶) محو به سیاهی + «به موقعیت جدید رسیدید...» / «برج بعدی»
-     ۷) بازگشت صحنه با برج دوم (رنگ‌بندی متفاوت) و پس‌زمینه‌ی شهر سوخته
-   قواعد گیم‌پلی:
-     - جون، سکه، سلاح‌ها، ارتقاها و برجک‌ها دقیقاً حفظ می‌شوند
+   بعد از پاک‌سازی موج ۵ و پیش از موج ۶، یک کات‌سین چند‌پرده‌ای پخش می‌شود:
+     ۱) لرزشِ پیش‌رونده‌ی زمین + ترک‌خوردن تدریجی برج (کند و منطقی)
+     ۲) فروریختن طبقه‌ی اول → نشستن طبقه‌های بالا → فروریختن طبقه‌ی دوم
+        → لغزیدن و کج‌شدن بام (برج مثل پنکیک طبقه‌طبقه می‌نشیند)
+     ۳) جهش بازیکن از بامِ در حال لغزش + سقوط قوسی + نشستن روی ماشین دوست
+     ۴) بخش «رانندگی»: خود بازیکن فرمان را دست می‌گیرد (گاز/ترمز با کلیدهای
+        جهت‌دار یا لمس چپ/راست صفحه) — زامبی‌ها و موانع را کنار می‌زند؛
+        نوار «مسیر تا برج جدید» پیش می‌رود تا مقصد
+     ۵) پایان مسیر: ماشین خودش دور می‌شود، صفحه سیاه می‌شود — «اسلحه‌هایت
+        زیر آوار ماند...» + «غرامت: +N سکه» + «به موقعیت جدید رسیدید...»
+     ۶) طلوع در برج دومِ شهر سوخته (آسمان سرخ، ماه خونی، بارش خاکستر)
+   قواعد گیم‌پلی (۸٫۰):
+     - سکه‌ها، جون برج، برجک‌ها و ارتقاهای ساختمانی همه حفظ می‌شوند
+     - سلاح‌های همراه (تپانچه‌ی ارتقایافته/شاتگان/مسلسل) زیر آوار از بین
+       می‌روند؛ به‌جایش «غرامت» (سکه‌ی اضافه بر سکه‌های خودمان) می‌رسد
      - موج‌های ۶ تا ۱۰ روی برج جدید با همان منطق سختی ادامه می‌یابند
      - کات‌سین با دکمه‌ی «رد کردن» گوشه‌ی صفحه قابل عبور است
    جزئیات فنی:
      - همه‌چیز فقط با Canvas و شکل‌های ساده رسم می‌شود (بدون تصویر خارجی)
      - playTowerCollapseCutscene پارامتری است تا برای فصل‌های بعدی
        (برج سوم/چهارم...) هم قابل استفاده باشد
+     - همه‌ی حرکت‌ها از t محاسبه می‌شوند تا پرش/تست زمانی (csGoto) قطعی باشد؛
+       رانندگی هم بدون ورودی، با گازِ خودکار پیش می‌رود (تست‌پذیر)
    ================================================================== */
 
 /* ---------------------- ۱۷) رویداد داستانی ---------------------- */
@@ -25,36 +31,46 @@
 /* موجی که بعد از پایانش کات‌سین پخش می‌شود */
 const CUTSCENE_AFTER_WAVE = 5;
 
-/* زمان‌بندی مراحل کات‌سین (ثانیه) — همه‌ی حرکت‌ها از t محاسبه می‌شوند
-   تا پرش/تست زمانی (csGoto) دقیق و قطعی باشد */
+/* زمان‌بندی مراحل کات‌سین (ثانیه) — ۸٫۰: فروریختن «کندتر و منطقی‌تر»
+   شد (طبقه‌طبقه با فاصله) و بخش رانندگی تعاملی به آن اضافه شد.
+   زمان‌های پس از رانندگی (fadeOut/black/switch/fadeIn/end) نسبت به
+   پایان رانندگی در CS.post محاسبه می‌شوند (طول رانندگی متغیر است). */
 const CS_T = {
-  shakeEnd: 1.8,      // پایان لرزش/ترک‌خوردن
-  colEnd: 3.2,        // پایان فروریختن طبقه‌ی ۱ و ۲
-  chunkDrop: 3.25,    // شروع سقوط تخته‌بام (طبقه‌ی ۳)
-  chunkDur: 0.7,      // مدت سقوط تخته‌بام
-  playerDrop: 3.5,    // جدایی بازیکن از بامِ در حال سقوط
-  fallDur: 1.15,      // مدت سقوط سینمایی بازیکن
-  carEnter: 3.25,     // ورود ماشین از لبه‌ی چپ
-  carSpd: 450,        // سرعت ماشین (px/s)
-  catchDX: 14,        // جای بازیکن روی ماشین (نسبت به مرکز ماشین)
-  giftT: 5.2,         // لحظه‌ی دادن هدیه‌ی راننده
-  fadeOut: 6.3,       // شروع محو به سیاهی
-  fadeDur: 0.9,       // مدت محو
-  black: 7.2,         // سیاهی کامل
-  switchT: 8.1,       // تعویض صحنه در دلِ سیاهی (برج دوم + شهر سوخته)
-  fadeIn: 8.5,        // شروع بازگشت صحنه‌ی جدید
-  fadeInDur: 1.0,     // مدت بازگشت
-  end: 9.7,           // پایان کات‌سین → روزِ برج جدید
+  shakeEnd: 3.4,     // پایان لرزش/ترک‌خوردن (شدت به‌مرور رشد می‌کند)
+  col1End: 5.2,      // پایان فروریختن طبقه‌ی اول
+  col2End: 7.0,      // پایان فروریختن طبقه‌ی دوم
+  chunkDrop: 7.0,    // شروع لغزش/سقوط بام (طبقه‌ی سوم)
+  chunkDur: 1.15,    // مدت سقوط بام
+  playerDrop: 7.3,   // جهش بازیکن از بامِ در حال لغزش
+  fallDur: 1.5,      // مدت سقوط قوسی بازیکن
+  carEnter: 6.9,     // ورود ماشین از لبه‌ی چپ
+  catchDX: 14,       // جای بازیکن روی ماشین (نسبت به مرکز ماشین)
+  driveStart: 9.15,  // شروع بخش رانندگی (بازیکن سوار شد)
+  /* --- رانندگی --- */
+  driveDist: 3000,   // طول مسیر تا برج جدید (پیکسل دنیای جاده)
+  vMin: 150, vMax: 560, vBase: 310, vAcc: 430, vBrk: 560,
+  driveMax: 18,      // حداکثر ثانیه‌ی رانندگی (بعدش خودکار تمام می‌شود)
+  /* --- پس از رانندگی (آفست از لحظه‌ی پایان مسیر) --- */
+  fadeDur: 0.95,
+  switchOff: 2.3,    // تعویض صحنه در دلِ سیاهی
+  fadeInOff: 3.4,    // شروع بازگشت صحنه‌ی جدید (بعد از متن‌های سیاهی)
+  endOff: 4.5,       // پایان کات‌سین → روزِ برج جدید
 };
+
+/* جای ثابت ماشین روی صفحه‌ی جاده */
+const CS_DRIVE_CAR_X = 330;
 
 /* زیرنویس‌های کات‌سین: [شروع، پایان، متن] */
 const CS_CAPS = [
-  [0.30, 1.70, 'زمین می‌لرزد... برج دارد ترک می‌خورد!'],
-  [1.95, 3.05, 'طبقه‌ها فرو می‌ریزند!'],
-  [4.72, 5.15, 'رسیدی! سوار شو'],
+  [0.35, 2.95, 'زمین می‌لرزد... برج دارد ترک می‌خورد!'],
+  [3.5, 5.05, 'طبقه‌ی اول فرو می‌ریزد!'],
+  [5.35, 6.85, 'طبقه‌ی دوم هم...!'],
+  [7.0, 7.9, 'بام می‌لغزد — بپر!'],
+  [8.6, 9.1, 'رسیدی! سوار شو'],
+  [9.5, 12.6, 'فرمان با توست! گاز بده تا برج جدید'],
 ];
 
-/* --- پوسته‌های برج (۷٫۰): برج اول و برج دومِ شهر سوخته ---
+/* --- پوسته‌های برج: برج اول و برج دومِ شهر سوخته ---
    drawTower این رنگ‌ها را می‌خواند؛ اندازه‌ی برج در هر دو یکی است. */
 const TOWER_SKINS = [
   { /* برج اول — سنگی/آجری/آبی (ظاهر اصلی بازی) */
@@ -104,11 +120,31 @@ const RUIN_WINS = [];                       // پنجره‌های شکسته/س
         lit: srand() > 0.72, ph: srand() * 6.28,
       });
     }
-    /* چند کانون آتشِ دودکن روی ساختمان‌های بلندتر (۷٫۰: پررنگ و خوانا) */
+    /* چند کانون آتشِ دودکن روی ساختمان‌های بلندتر */
     if (bh > 45 && srand() > 0.35 && RUIN_FIRES.length < 6) {
       RUIN_FIRES.push({ x: x + 9 + srand() * (bw - 18), y: GROUND_Y - bh + 6 + srand() * 22, ph: srand() * 6.28 });
     }
     x += bw + 9;
+  }
+}
+
+/* --- اجزای کنار راهِ بخش رانندگی (۸٫۰) ---
+   چراغ/درخت/بوته/سنگ + موانعِ راه‌بندیِ پرت‌خورِ هر چند صد پیکسل.
+   موانع سرعت ماشین را می‌گیرند (ولی شکست نمی‌آورند). */
+const DRIVE_PROPS = [];
+{
+  let wx = 230, i = 0;
+  while (wx < CS_T.driveDist + 700) {
+    const r = srand();
+    let kind = 'bush';
+    if (i % 4 === 3) kind = 'barrier';            // هر چهارمی: مانع
+    else if (r < 0.3) kind = 'lamp';
+    else if (r < 0.55) kind = 'tree';
+    else if (r < 0.8) kind = 'bush';
+    else kind = 'rock';
+    DRIVE_PROPS.push({ wx, kind, s: 0.75 + srand() * 0.5, ph: srand() * 6.28 });
+    wx += 150 + srand() * 170;
+    i++;
   }
 }
 
@@ -148,6 +184,10 @@ Object.assign(SFX, {
     Snd.noise({ dur: 0.18, vol: 0.04, freq: 420 }); },
   csThud()   { Snd.noise({ dur: 0.15, vol: 0.22, freq: 230 });
     Snd.tone({ type: 'sine', f0: 95, f1: 40, dur: 0.16, vol: 0.18 }); },
+  csWhoosh() { if (!sfxGate('csWhoosh', 700)) return;
+    Snd.noise({ dur: 0.25, vol: 0.06, ftype: 'highpass', freq: 900 }); },
+  csCrash()  { Snd.noise({ dur: 0.3, vol: 0.3, freq: 200, q: 0.6 });
+    Snd.tone({ type: 'sawtooth', f0: 120, f1: 60, dur: 0.25, vol: 0.14 }); },
   csGift()   { [660, 880, 1320].forEach((f, i) =>
     Snd.tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.12, delay: i * 0.08 })); },
 });
@@ -156,21 +196,27 @@ Object.assign(SFX, {
    draw: داده‌های رندر لحظه‌ای که drawTower/drawPlayer می‌خوانند */
 let CS = null;
 
+/* غرامت اسلحه‌های سوخته: ۶۰٪ پولِ خرج‌شده + کمی لطف راننده
+   (کف ۶۰ سکه، سقف ۳۲۰) — جدا از سکه‌های خودِ بازیکن */
+function computeWeaponCompensation() {
+  return clamp(Math.round((state.weaponSpent * 0.6 + 50) / 10) * 10, 60, 320);
+}
+
 /* شروع کات‌سین «فروریختن برج» — تابع پارامتری برای استفاده در فصل‌های بعدی:
    opts.afterWave  موجِ مقدمه‌ی رویداد
-   opts.variant    شماره‌ی پوسته‌ی برج بعدی (پیش‌فرض ۱)
-   opts.gift       { coins, weapon } هدیه‌ی راننده‌ی ماشین */
+   opts.variant    شماره‌ی پوسته‌ی برج بعدی (پیش‌فرض ۱) */
 function playTowerCollapseCutscene(opts = {}) {
   if (CS) return;                            // کات‌سین دیگری در جریان است
   CS = {
     t: 0, paused: false,
     afterWave: opts.afterWave || CUTSCENE_AFTER_WAVE,
     variant: opts.variant !== undefined ? opts.variant : 1,
-    gift: opts.gift || { coins: 80, weapon: 'shotgun' },
-    giftApplied: false, giftText: '', giftTextShown: false,
-    boomed: false, chunkHit: false, caught: false, whistled: false,
-    switched: false, bursts: 0,
-    zombies: [], car: null, fade: 0,
+    boomed1: false, boomed2: false, chunkHit: false,
+    caught: false, whistled: false, switched: false,
+    compApplied: false, compCoins: 0, compSpent: 0,
+    bursts1: 0, bursts2: 0,
+    zombies: [], car: null, drive: null, post: null,
+    fade: 0,
     draw: {
       floors: [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }],
       cracks: 0, rubble: 0, player: null,
@@ -214,9 +260,9 @@ function playTowerCollapseCutscene(opts = {}) {
 }
 
 /* برخورد ماشین با زامبی مانع: پرتاب به جلو و بالا + خون + لرزش */
-function csKnockZombie(z) {
+function csKnockZombie(z, v) {
   z.hit = true;
-  z.vx = CS_T.carSpd * 0.72 + rand(0, 90);
+  z.vx = (v || 430) * 0.72 + rand(0, 90);
   z.vy = -rand(300, 430);
   z.vr = rand(6, 11) * (Math.random() < 0.5 ? -1 : 1);
   if (CS && CS.car) CS.car.kick = 1;
@@ -226,9 +272,10 @@ function csKnockZombie(z) {
   spawnParticles(z.x, z.y - 16, 6, '#5f8f3e', { speed: 130, life: 0.45, size: 2.2, grav: 500 });
 }
 
-/* موج انفجار آجر/چوب حین فروریختن طبقه‌ها (۷٫۰: درشت + جرقه‌های درخشان + غبار) */
-function csBrickBurst(i) {
-  const fy = i < 2 ? GROUND_Y - rand(10, 60) : GROUND_Y - rand(72, 130);
+/* موج انفجار آجر/چوب حین فروریختن طبقه‌ها (درشت + جرقه + غبار)
+   i = شماره طبقه (۰/۱) برای انتخاب ارتفاع انفجار */
+function csBrickBurst(i, n) {
+  const fy = i === 0 ? GROUND_Y - rand(10, 55) : GROUND_Y - rand(60, 120);
   const cols = ['#a58a68', '#7d6a4f', '#c46a54', '#5d4c39', '#d9c49b'];
   spawnParticles(TOWER.x + rand(-58, 58), fy, 26, cols[Math.floor(rand(0, 5))],
     { speed: rand(180, 320), life: rand(0.8, 1.2), size: rand(4, 6.5), grav: 600 });
@@ -254,25 +301,21 @@ function csBrickBurst(i) {
   SFX.csCrack();
 }
 
-/* هدیه‌ی راننده: سکه‌ی اضافه + آنلاک زودهنگام سلاح (idempotent) */
-function cutsceneApplyGift() {
-  if (!CS || CS.giftApplied) return;
-  CS.giftApplied = true;
-  const g = CS.gift;
-  state.coins += g.coins;
-  state.stats.earned += g.coins;
-  let extra = '';
-  if (g.weapon && !WEAPONS[g.weapon].owned) {
-    WEAPONS[g.weapon].owned = true;
-    extra = ' + ' + WEAPONS[g.weapon].name;
-  } else if (!WEAPONS.shotgun.owned) {
-    WEAPONS.shotgun.owned = true;
-    extra = ' + ' + WEAPONS.shotgun.name;
-  } else if (!WEAPONS.mg.owned) {
-    WEAPONS.mg.owned = true;
-    extra = ' + ' + WEAPONS.mg.name;
-  }
-  CS.giftText = 'هدیه‌ی راننده: +' + faNum(g.coins) + ' سکه' + extra;
+/* «اسلحه‌ها زیر آوار ماندند» + پرداخت غرامت (فقط یک‌بار) */
+function cutsceneApplyCompensation() {
+  if (!CS || CS.compApplied) return;
+  CS.compApplied = true;
+  CS.compSpent = state.weaponSpent;
+  CS.compCoins = computeWeaponCompensation();
+  /* اسلحه‌های همراهِ روی برج از بین می‌روند */
+  WEAPONS.shotgun.owned = false;
+  WEAPONS.mg.owned = false;
+  state.weapon = 'pistol';
+  state.upgrades.weapon = 0;
+  state.weaponSpent = 0;
+  /* غرامت: سکه‌ی اضافه، جدا از سکه‌های خودمان */
+  state.coins += CS.compCoins;
+  state.stats.earned += CS.compCoins;
   SFX.csGift();
   pulseCoins();
   refreshWeaponBar();
@@ -280,11 +323,11 @@ function cutsceneApplyGift() {
   updateHUD();
 }
 
-/* پایان کات‌سین: ورود به «روزِ برج جدید» — همه‌ی پیشرفت‌ها حفظ شده‌اند */
+/* پایان کات‌سین: ورود به «روزِ برج جدید» — پیشرفت ساختمانی حفظ شده است */
 function cutsceneFinish() {
   if (!CS) return;
-  cutsceneApplyGift();                       // اطمینان: هدیه حتماً داده شود
-  const giftSub = CS.giftText;
+  cutsceneApplyCompensation();               // اطمینان: غرامت حتماً پرداخت شود
+  const compCoins = CS.compCoins;
   const variant = CS.variant;
   CS = null;
   state.mode = 'day';
@@ -299,7 +342,8 @@ function cutsceneFinish() {
   setBuildPanel(false, true);
   $('bpHead').classList.add('attention');
   setAnnounce('🌅 برج بعدی!',
-    giftSub + ' — موج ' + faNum(state.wave + 1) + ' در راه است', 3.4);
+    'اسلحه‌ها زیر آوار ماندند — غرامت: +' + faNum(compCoins) + ' سکه • موج '
+    + faNum(state.wave + 1) + ' در راه است', 3.6);
   SFX.morning();
   updateHUD();
 }
@@ -318,6 +362,126 @@ function cutsceneHardReset() {
   $('wrap').classList.remove('cs-mode');
 }
 
+/* ------------------ بخش رانندگی (۸٫۰) ------------------
+   بازیکن خودش ماشین را می‌راند: گاز/ترمز با کلیدهای جهت‌دار (یا A/D)
+   یا لمس نیمه‌ی راست/چپ صفحه؛ بدون ورودی، گازِ خودکارِ ملایم جلو می‌رود
+   تا neither قفل شود نه تستِ زمانی (csGoto) غیرقطعی شود. */
+function startCsDrive() {
+  const cs = CS;
+  cs.zombies = [];                           // صحنه‌ی برج تمام شد
+  state.particles = []; state.texts = [];
+  if (cs.car) { cs.car.x = CS_DRIVE_CAR_X; cs.car.hand = 0; }
+  cs.drive = {
+    scroll: 0, v: 280, progress: 0,
+    keys: { a: false, b: false },            // گاز/ترمز کیبورد
+    touch: { a: false, b: false },           // گاز/ترمز لمسی
+    spawnT: 0.7, zombies: [], hits: {},
+    ended: false, endT: 0,
+  };
+  SFX.csEngine();
+}
+
+function updateCsDrive(dt) {
+  const cs = CS, dr = cs.drive, t = cs.t;
+  if (!dr.ended) {
+    /* --- کنترل بازیکن: گاز/ترمز (کیبورد + لمس) --- */
+    const acc = dr.keys.a || dr.touch.a, brk = dr.keys.b || dr.touch.b;
+    if (acc) dr.v += CS_T.vAcc * dt;
+    else if (brk) dr.v -= CS_T.vBrk * dt;
+    else dr.v += (CS_T.vBase - dr.v) * Math.min(1, dt * 1.1);   // گازِ خودکار
+    dr.v = clamp(dr.v, CS_T.vMin, CS_T.vMax);
+    dr.scroll += dr.v * dt;
+    dr.progress = clamp(dr.scroll / CS_T.driveDist, 0, 1);
+    /* پایان مسیر یا مهلتِ زمانی → ماشین خودش مقصد را پیدا می‌کند */
+    if (dr.progress >= 1 || t - CS_T.driveStart > CS_T.driveMax) {
+      dr.ended = true;
+      dr.endT = t;
+      cs.post = {
+        fadeOut: t,
+        black: t + CS_T.fadeDur,
+        switchT: t + CS_T.switchOff,
+        fadeIn: t + CS_T.fadeInOff,
+        end: t + CS_T.endOff,
+      };
+      SFX.csWhoosh();
+    }
+  } else {
+    /* بعد از مسیر: ماشین خودش دور می‌شود (تا در سیاهی محو شود) */
+    if (cs.car) cs.car.x += (dr.v + 280) * dt;
+    dr.scroll += dr.v * dt;
+  }
+  if (cs.car) {
+    cs.car.spin += (dr.v / 13) * dt;
+    cs.car.kick = Math.max(0, cs.car.kick - dt * 4);
+  }
+  SFX.csEngine();
+  /* دم اگزوز + غبار چرخ‌ها (هرچه تندتر، بیشتر) */
+  if (cs.car && Math.random() < dt * (dr.v / 20)) {
+    spawnParticles(CS_DRIVE_CAR_X - 84, GROUND_Y + 6, 1, 'rgba(190,180,168,0.5)',
+      { speed: 30, life: 0.5, size: 2.4, grav: -20, dir: Math.PI, spread: 0.7 });
+  }
+  /* زامبی‌های خیابانی: جلوتر سر راه می‌آیند تا ماشین آنها را کنار براند */
+  dr.spawnT -= dt;
+  if (dr.spawnT <= 0 && !dr.ended) {
+    dr.spawnT = rand(0.9, 1.7);
+    const r = Math.random();
+    const type = r < 0.62 ? 'normal' : (r < 0.86 ? 'fast' : 'tank');
+    const T = ZTYPES[type];
+    dr.zombies.push({
+      type, x: W + 60, y: GROUND_Y + 14, dir: -1, radius: T.r,
+      walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0, attackSide: 0,
+      lane: 0, depth: 1.06, yJit: rand(-2, 2), stagger: 0, chill: 0, hitFlash: 0,
+      dead: false, deathT: 0, walk: rand(30, 70),
+      hit: false, vx: 0, vy: 0, vr: 0, rot: 0, landed: false,
+      groundY: GROUND_Y + 14,
+    });
+  }
+  for (const z of dr.zombies) {
+    if (z.hit) {
+      z.vy += 900 * dt;
+      z.x += z.vx * dt; z.y += z.vy * dt; z.rot += z.vr * dt;
+      if (z.y > z.groundY) {
+        z.y = z.groundY;
+        if (!z.landed) {
+          z.landed = true;
+          spawnParticles(z.x, z.y, 6, '#7a2f2f', { speed: 110, life: 0.4, size: 2.2, grav: 400 });
+        }
+        z.vx *= 0.8; z.vr = 0;
+        z.rot += (Math.sign(z.rot || 1) * 1.45 - z.rot) * Math.min(1, dt * 9);
+      }
+    } else {
+      z.x -= (dr.v * 0.92 + z.walk) * dt;    // جاده زیر پایشان می‌گذرد
+      z.walkPhase += dt * 5;
+      if (!dr.ended && cs.car && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z, dr.v);
+    }
+  }
+  dr.zombies = dr.zombies.filter(z => z.x > -90 && z.x < W + 160);
+  /* برخورد با موانعِ راه‌بندی: سرعت می‌گیرد/می‌شکند ولی باخت نیست */
+  for (const p of DRIVE_PROPS) {
+    if (p.kind !== 'barrier' || dr.hits[p.wx]) continue;
+    const sx = p.wx - dr.scroll;
+    if (!dr.ended && Math.abs(sx - CS_DRIVE_CAR_X) < 48) {
+      dr.hits[p.wx] = true;
+      dr.v = Math.max(CS_T.vMin, dr.v * 0.55);
+      state.shake = Math.max(state.shake, 7);
+      if (cs.car) cs.car.kick = 1;
+      SFX.csCrash();
+      spawnParticles(sx, GROUND_Y - 6, 14, '#c9a35a', { speed: 200, life: 0.7, size: 3, grav: 500 });
+      spawnParticles(sx, GROUND_Y - 4, 8, 'rgba(190,180,168,0.6)', { speed: 120, life: 0.9, size: 5, grav: -30 });
+    }
+  }
+  /* خطوط سرعت در سرعت بالا */
+  if (dr.v > 430 && Math.random() < dt * 30) {
+    state.particles.push({
+      x: rand(60, W - 60), y: rand(80, GROUND_Y - 40),
+      vx: -dr.v * 1.6, vy: 0, age: 0, life: 0.22, size: rand(1, 2),
+      color: 'rgba(200,215,255,0.5)', grav: 0,
+    });
+  }
+  /* جای بازیکن روی سقف کابین (پاها روی لبه‌ی سقف) */
+  if (cs.car) cs.draw.player = { x: cs.car.x + CS_T.catchDX, y: cs.car.y - 60, rot: -0.06, aim: -0.5 };
+}
+
 /* ------------------ به‌روزرسانی کات‌سین (هر فریم) ------------------ */
 function updateCutscene(dt) {
   if (!CS || CS.paused) return;
@@ -329,47 +493,69 @@ function updateCutscene(dt) {
   state.shake = Math.max(0, state.shake - dt * 22);
   state.flash = Math.max(0, state.flash - dt * 2.2);
 
-  /* ---- مرحله ۱: لرزش شدید + ترک‌خوردن پیش‌رونده ---- */
+  /* ---- مرحله ۱: لرزش پیش‌رونده + ترک‌خوردن (کند و منطقی) ---- */
   if (t < CS_T.shakeEnd) {
-    D.cracks = t / CS_T.shakeEnd;
-    state.shake = 7 + 6 * Math.abs(Math.sin(t * 18));
-    if (Math.random() < dt * 20) {           // گردوغاک چکه‌کن از ترک‌ها
-      spawnParticles(TOWER.x + rand(-52, 52), GROUND_Y - rand(20, 120), 1, '#9c8a6d',
+    const k = t / CS_T.shakeEnd;                   // شدت به‌مرور رشد می‌کند
+    D.cracks = k;
+    state.shake = (2 + 9 * k) * (0.6 + 0.4 * Math.abs(Math.sin(t * 14)));
+    if (Math.random() < dt * 14 * (0.2 + k)) {     // گردوغاک چکه‌کن از ترک‌ها
+      spawnParticles(TOWER.x + rand(-52, 52), GROUND_Y - rand(15, 120), 1, '#9c8a6d',
         { speed: 40, life: 0.7, size: 1.8, grav: 300 });
     }
     SFX.csRumble();
-    if (Math.random() < dt * 1.5) SFX.csCrack();
+    if (Math.random() < dt * 1.1 * (0.3 + k)) SFX.csCrack();
   }
 
-  /* ---- مرحله ۲: فروریختن طبقه‌ی اول و دوم (آجر/چوب) ---- */
-  else if (t < CS_T.colEnd) {
-    const p = clamp((t - CS_T.shakeEnd) / (CS_T.colEnd - CS_T.shakeEnd), 0, 1);
-    if (!cs.boomed) { cs.boomed = true; SFX.csBoom(); state.shake = 14; }
+  /* ---- مرحله ۲: فروریختن طبقه‌ی اول (۳٫۴ تا ۵٫۲) ---- */
+  else if (t < CS_T.col1End) {
+    const p = clamp((t - CS_T.shakeEnd) / (CS_T.col1End - CS_T.shakeEnd), 0, 1);
+    if (!cs.boomed1) { cs.boomed1 = true; SFX.csBoom(); state.shake = 12; }
     D.cracks = 1;
-    D.floors[0].a = clamp(1 - p * 1.5, 0, 1);      // طبقه‌ی اول: فرورفتن و محو
-    D.floors[0].dy = p * p * 46;
-    D.floors[0].rot = p * 0.05;
-    const p2 = clamp((p - 0.12) / 0.88, 0, 1);     // طبقه‌ی دوم: کمی دیرتر
-    D.floors[1].a = clamp(1 - p2 * 1.5, 0, 1);
-    D.floors[1].dy = p2 * p2 * 56;
-    D.floors[1].rot = -p2 * 0.06;
-    D.rubble = clamp(p * 0.55, 0, 0.55);           // توده‌ی آوار رشد می‌کند
-    state.shake = Math.max(state.shake, 5 + 7 * (1 - p));
-    /* موج‌های انفجار آجر در چهار آستانه‌ی پیشرفت */
-    const bn = [0.04, 0.3, 0.6, 0.9].filter(b => p >= b).length;
-    while (cs.bursts < bn) { csBrickBurst(cs.bursts); cs.bursts++; }
+    D.floors[0].a = clamp(1 - p * 1.45, 0, 1);      // طبقه‌ی اول: خرد و محو
+    D.floors[0].dy = p * p * 40;
+    D.floors[0].rot = p * 0.04;
+    D.floors[1].dy = p * 52;                        // طبقه‌های بالا پایین می‌آیند
+    D.floors[2].dy = p * 52;
+    D.rubble = clamp(p * 0.5, 0, 0.5);
+    state.shake = Math.max(state.shake, 3 + 6 * (1 - p));
+    const bn = [0.05, 0.35, 0.65, 0.95].filter(b => p >= b).length;
+    while (cs.bursts1 < bn) { csBrickBurst(0, cs.bursts1); cs.bursts1++; }
+    /* بازیکن روی بامِ در حال نشستن است */
+    D.player = { x: TOWER.x, y: TOWER_TOP_Y + D.floors[2].dy, rot: D.floors[2].rot * 0.6, aim: -1.2 };
   }
 
-  /* ---- مرحله ۳: سقوط تخته‌بام (طبقه‌ی سوم) و خرد شدن روی زمین ---- */
+  /* ---- مرحله ۳: فروریختن طبقه‌ی دوم (۵٫۲ تا ۷٫۰) ---- */
+  else if (t < CS_T.col2End) {
+    const p = clamp((t - CS_T.col1End) / (CS_T.col2End - CS_T.col1End), 0, 1);
+    if (!cs.boomed2) { cs.boomed2 = true; SFX.csBoom(); state.shake = 11; }
+    D.floors[0].a = 0;
+    D.floors[1].a = clamp(1 - p * 1.4, 0, 1);
+    D.floors[1].dy = 52 + p * 70;
+    D.floors[1].rot = -p * 0.05;
+    D.floors[2].dy = 52 + p * 60;                  // بام باز هم پایین می‌آید
+    D.floors[2].rot = p * 0.1;                     // و کم‌کم کج می‌شود
+    D.rubble = clamp(0.5 + p * 0.35, 0, 0.85);
+    state.shake = Math.max(state.shake, 3 + 5 * (1 - p));
+    const bn = [0.1, 0.45, 0.8].filter(b => p >= b).length;
+    while (cs.bursts2 < bn) { csBrickBurst(1, cs.bursts2); cs.bursts2++; }
+    SFX.csRumble();
+    D.player = { x: TOWER.x, y: TOWER_TOP_Y + D.floors[2].dy, rot: D.floors[2].rot * 0.6, aim: -1.2 };
+  }
+
+  /* ---- مرحله ۴: لغزیدن/سقوط بام (طبقه‌ی ۳) روی توده‌ی آوار ---- */
   const cf = clamp((t - CS_T.chunkDrop) / CS_T.chunkDur, 0, 1);
-  if (cf > 0 && t < CS_T.fadeOut) {
-    if (cf < 1) {
-      D.floors[2].a = 1;
-      D.floors[2].dy = cf * cf * (GROUND_Y - TOWER_TOP_Y - 22);   // سقوط شتاب‌دار
-      D.floors[2].rot = -cf * 0.16;                               // کمی کج می‌شود
-    } else if (!cs.chunkHit) {
+  if (cf > 0 && !cs.chunkHit) {
+    D.floors[0].a = 0;
+    D.floors[1].a = 0;
+    D.floors[2].a = 1;
+    D.floors[2].dy = 112 + cf * cf * (GROUND_Y - TOWER_TOP_Y - 140);
+    D.floors[2].rot = 0.1 + cf * 0.34;             // لغزیدن کج
+    if (t < CS_T.playerDrop) {                      // بازیکن هنوز روی بامِ لغزان است
+      D.player = { x: TOWER.x, y: TOWER_TOP_Y + D.floors[2].dy, rot: D.floors[2].rot * 0.6, aim: -1.2 };
+    }
+    if (cf >= 1) {
       cs.chunkHit = true;
-      D.floors[2].a = 0;                 // تخته‌بام خورد و در آوار رفت
+      D.floors[2].a = 0;                           // بام خورد و در آوار رفت
       D.rubble = 1;
       state.shake = 12;
       SFX.csLand();
@@ -378,38 +564,40 @@ function updateCutscene(dt) {
     }
   }
 
-  /* ---- ماشین نجات: ورود سریع از چپ، عبور از میان زامبی‌ها ---- */
-  if (t >= CS_T.carEnter && t < CS_T.fadeOut + 0.6) {
+  /* ---- ماشین نجات: ورود نرم از چپ و ایستادن زیر بازیکن ---- */
+  const catchT = CS_T.playerDrop + CS_T.fallDur;   // لحظه‌ی رسیدن بازیکن به ماشین
+  if (t >= CS_T.carEnter && t < CS_T.driveStart) {
     if (!cs.car) {
-      cs.car = { x: -160, y: GROUND_Y + 14, spin: 0, kick: 0, hand: 1.4 };
+      cs.car = { x: -160, y: GROUND_Y + 14, spin: 0, kick: 0, hand: 1.8 };
       SFX.csEngine();
     }
-    /* حرکت قطعی از زمان (قابل تست و پرش زمانی) */
-    cs.car.x = -160 + CS_T.carSpd * (t - CS_T.carEnter);
-    cs.car.spin += (CS_T.carSpd / 13) * dt;
-    cs.car.kick = Math.max(0, cs.car.kick - dt * 4);
+    if (t < catchT) {
+      /* حرکت قطعی از زمان (قابل تست و پرش زمانی): نرم به زیر برج می‌رسد */
+      const u = clamp((t - CS_T.carEnter) / (catchT - CS_T.carEnter), 0, 1);
+      const e = u * u * (3 - 2 * u);
+      cs.car.x = -160 + (TOWER.x + 160) * e;
+      cs.car.spin += 24 * dt;
+    } else {
+      cs.car.x = TOWER.x;                          // زیر برج منتظر بازیکن
+      cs.car.spin += 6 * dt;
+    }
     cs.car.hand = Math.max(0, cs.car.hand - dt);   // اول کار دست می‌دهد
     SFX.csEngine();
-    if (Math.random() < dt * 26) {                 // دم اگزوز + غبار چرخ‌ها
-      spawnParticles(cs.car.x - 80, cs.car.y - 8, 1, 'rgba(190,180,168,0.5)',
-        { speed: 34, life: 0.55, size: 2.6, grav: -26, dir: Math.PI, spread: 0.7 });
-    }
-    /* تصادف ساده: هر زامبیِ جلوی مسیر کنار پرتاب می‌شود */
+    /* تصادم ساده: هر زامبیِ جلوی مسیر کنار پرتاب می‌شود */
     for (const z of cs.zombies) {
-      if (!z.hit && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z);
+      if (!z.hit && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z, 430);
     }
-  } else if (t >= CS_T.fadeOut + 0.6 && cs.car) {
-    cs.car = null;                                 // ماشین صحنه را ترک کرد
   }
 
-  /* ---- سقوط سینمایی بازیکن و نشستن روی ماشین ---- */
+  /* ---- سقوط قوسی بازیکن و نشستن روی ماشین ---- */
   const pf = clamp((t - CS_T.playerDrop) / CS_T.fallDur, 0, 1);
   if (pf > 0 && !cs.caught) {
-    const y0 = TOWER_TOP_Y + 30;                   // لبه‌ی بامِ در حال سقوط
-    const y1 = GROUND_Y + 14 - 54;                 // سقف ماشین
+    const y0 = TOWER_TOP_Y + 112;                   // بامِ نشسته روی آوار (پیوستگی با فریم قبل)
+    const y1 = GROUND_Y + 14 - 60;                 // سقف کابین ماشین
+    const arc = -46 * Math.sin(Math.PI * Math.min(1, pf * 1.25));   // جهش اول
     D.player = {
       x: TOWER.x + 8 + pf * (CS_T.catchDX - 8),    // کمی به سمت ماشین می‌لغزد
-      y: y0 + (y1 - y0) * pf * pf,                 // شتاب‌دار (جاذبه)
+      y: y0 + arc + (y1 - y0) * pf * pf,           // جهش + سقوط شتاب‌دار
       rot: pf * 0.62,                              // چرخش تدریجی حین سقوط
       aim: -2.35,                                  // اسلحه بالا (چنگ زدن به هوا)
     };
@@ -422,26 +610,17 @@ function updateCutscene(dt) {
         { speed: 120, life: 0.5, size: 2.4, grav: 320, up: true });
     }
   }
-  if (cs.caught && cs.car) {
-    /* سوار شدن: بازیکن روی سقف ماشین، کمی به عقب خم (باد سرعت) */
-    D.player = { x: cs.car.x + CS_T.catchDX, y: cs.car.y - 54, rot: -0.07, aim: -0.5 };
+  if (cs.caught && cs.car && t < CS_T.driveStart) {
+    /* سوار شدن: بازیکن روی سقف کابین، پاها روی لبه‌ی سقف، کمی به عقب خم */
+    D.player = { x: cs.car.x + CS_T.catchDX, y: cs.car.y - 60, rot: -0.07, aim: -0.5 };
   }
 
-  /* ---- هدیه‌ی راننده وسط راه ---- */
-  if (t >= CS_T.giftT) {
-    cutsceneApplyGift();
-    if (CS && CS.car && CS.giftApplied && !cs.giftTextShown) {
-      cs.giftTextShown = true;
-      addText(cs.car.x, cs.car.y - 92, '🎁 +' + faNum(cs.gift.coins), '#ffd873', 17);
-    }
-  }
-
-  /* ---- زامبی‌های صحنه: خزش به سمت برج یا فیزیک پرتاب ---- */
+  /* ---- زامبی‌های صحنه‌ی برج: خزش به سمت آوار یا فیزیک پرتاب ---- */
   for (const z of cs.zombies) {
     if (z.hit) {
       z.vy += 900 * dt;
       z.x += z.vx * dt; z.y += z.vy * dt; z.rot += z.vr * dt;
-      if (z.y > z.groundY) {                       // فرود روی زمین
+      if (z.y > z.groundY) {
         z.y = z.groundY;
         if (!z.landed) {
           z.landed = true;
@@ -449,7 +628,7 @@ function updateCutscene(dt) {
           spawnParticles(z.x, z.y, 6, '#7a2f2f', { speed: 110, life: 0.4, size: 2.2, grav: 400 });
         }
         z.vx *= 0.8; z.vr = 0;
-        z.rot += (Math.sign(z.rot || 1) * 1.45 - z.rot) * Math.min(1, dt * 9);   // خوابیدن صاف
+        z.rot += (Math.sign(z.rot || 1) * 1.45 - z.rot) * Math.min(1, dt * 9);
       }
     } else {
       const dir = Math.sign(TOWER.x - z.x) || 1;
@@ -458,28 +637,38 @@ function updateCutscene(dt) {
     }
   }
 
-  /* ---- محو به سیاهی / سیاهی / بازگشت صحنه ---- */
-  cs.fade = t < CS_T.fadeOut ? 0
-    : t < CS_T.black ? clamp((t - CS_T.fadeOut) / CS_T.fadeDur, 0, 1)
-    : t < CS_T.fadeIn ? 1
-    : clamp(1 - (t - CS_T.fadeIn) / CS_T.fadeInDur, 0, 1);
+  /* ---- شروع بخش رانندگی (زیر پوشش سیاهیِ کوتاه) ----
+     (بعد از تعویض صحنه، رانندگی دیگر به‌روز نمی‌شود — ماشین رفته است) */
+  if (t >= CS_T.driveStart && !cs.drive) startCsDrive();
+  if (cs.drive && !(cs.post && t >= cs.post.switchT)) updateCsDrive(dt);
 
-  /* تعویض صحنه در دلِ سیاهی: برج دوم + شهر سوخته + صحنه‌ی تمیز */
-  if (t >= CS_T.switchT && !cs.switched) {
+  /* ---- محو به سیاهی / سیاهی / بازگشت صحنه (نسبی به پایان رانندگی) ---- */
+  cs.fade = !cs.post ? 0
+    : t < cs.post.fadeOut ? 0
+    : t < cs.post.black ? clamp((t - cs.post.fadeOut) / CS_T.fadeDur, 0, 1)
+    : t < cs.post.fadeIn ? 1
+    : clamp(1 - (t - cs.post.fadeIn) / (CS_T.endOff - CS_T.fadeInOff), 0, 1);
+
+  /* پرداخت غرامت در دلِ سیاهی — قبل از ظاهر شدن متن‌های صفحه‌ی سیاه */
+  if (cs.post && !cs.compApplied && t >= cs.post.black) cutsceneApplyCompensation();
+
+  /* تعویض صحنه در دلِ سیاهی: برج دوم + شهر سوخته */
+  if (cs.post && t >= cs.post.switchT && !cs.switched) {
     cs.switched = true;
     state.towerVariant = cs.variant;
     state.cutsceneDone = true;
     state.dayness = 0.3;
-    state.dayTarget = 1;                    // صبحِ شهر سوخته
+    state.dayTarget = 1;                          // صبحِ شهر سوخته
     cs.zombies = [];
+    if (cs.drive) cs.drive.zombies = [];
     state.particles = []; state.texts = []; state.zaps = []; state.decals = [];
     cs.car = null;
     D.floors = [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }];
-    D.cracks = 0; D.rubble = 0; D.player = null;   // بازیکن روی برج جدید
+    D.cracks = 0; D.rubble = 0; D.player = null;  // بازیکن روی برج جدید
   }
 
   /* ---- پایان کات‌سین → روزِ برج جدید ---- */
-  if (t >= CS_T.end) { cutsceneFinish(); return; }
+  if (cs.post && t >= cs.post.end) { cutsceneFinish(); return; }
 
   /* ذرات/متن‌های کات‌سین همیشه جریان دارند */
   updateParticles(dt); updateTexts(dt); updateZaps(dt);
@@ -608,8 +797,8 @@ function drawTowerCracks(k) {
       for (let i = 1; i < n; i++) ctx.lineTo(TOWER.x + c.pts[i][0] + off, GROUND_Y + c.pts[i][1]);
       ctx.stroke();
     };
-    seg(1.5, 'rgba(232,210,175,0.5)', 1.7);   // لبه‌ی روشنِ تراشه
-    seg(0, 'rgba(13,8,4,0.92)', 3.6);          // شکاف تیره
+    seg(1.5, 'rgba(232,210,175,0.55)', 2.1);   // لبه‌ی روشنِ تراشه
+    seg(0, 'rgba(13,8,4,0.94)', 4.2);          // شکاف تیره
   }
   ctx.fillStyle = 'rgba(160,140,110,' + (0.1 * k).toFixed(2) + ')';
   ctx.beginPath(); ctx.ellipse(TOWER.x, GROUND_Y - 80, 84, 118, 0, 0, Math.PI * 2); ctx.fill();
@@ -647,17 +836,17 @@ function drawRuinedSkyline(d) {
     ctx.fillRect(w2.x, w2.y, 3.4, 5);
   }
   /* کانون‌های آتش + دودِ بالا رونده — حتی روز هم به‌روشنی دیده می‌شوند
-     (شهر هنوز می‌سوزد؛ آتشِ روز کمی کمرنگ‌تر از شب است) */
-  const fireA = 0.78 + 0.22 * (1 - d);
+     (۸٫۰: آتش روز کمی قوی‌تر تا روی آسمان سپیا خوانا بماند) */
+  const fireA = 0.86 + 0.14 * (1 - d);
   for (const f of RUIN_FIRES) {
     const fl = 0.55 + 0.45 * Math.sin(animTime * 5 + f.ph);
-    const g2 = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 17);
-    g2.addColorStop(0, 'rgba(255,150,66,' + (0.8 * fireA * fl).toFixed(2) + ')');
-    g2.addColorStop(0.5, 'rgba(255,110,40,' + (0.4 * fireA * fl).toFixed(2) + ')');
+    const g2 = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 23);
+    g2.addColorStop(0, 'rgba(255,150,66,' + (0.85 * fireA * fl).toFixed(2) + ')');
+    g2.addColorStop(0.5, 'rgba(255,110,40,' + (0.45 * fireA * fl).toFixed(2) + ')');
     g2.addColorStop(1, 'rgba(255,110,40,0)');
-    ctx.fillStyle = g2; circle(f.x, f.y, 17);
-    ctx.fillStyle = 'rgba(255,200,120,' + (0.85 * fireA * fl).toFixed(2) + ')';
-    circle(f.x, f.y, 2.4);                        // هسته‌ی روشن شعله
+    ctx.fillStyle = g2; circle(f.x, f.y, 23);
+    ctx.fillStyle = 'rgba(255,200,120,' + (0.9 * fireA * fl).toFixed(2) + ')';
+    circle(f.x, f.y, 3);                        // هسته‌ی روشن شعله
     const sy = f.y - 13 - (animTime * 7 + f.ph * 10) % 26;
     ctx.fillStyle = 'rgba(64,50,52,' + (0.45 * fireA * fl).toFixed(2) + ')';
     ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime + f.ph) * 4, sy, 7.5, 13, 0, 0, Math.PI * 2); ctx.fill();
@@ -672,16 +861,139 @@ function drawRuinedSkyline(d) {
   ctx.fillRect(-20, GROUND_Y - 46, W + 40, 46);
 }
 
+/* ------------------ صحنه‌ی رانندگی (۸٫۰) ------------------
+   جاده‌ی شب زیر نور چراغ‌ها: خط‌چین متحرک، اجزای کنار راه (چراغ/درخت/
+   بوته/سنگ/مانع)، زامبی‌های سرآمد، ماشین با بازیکن روی سقف و — وقتی
+   نزدیک مقصد می‌شویم — محوشدنِ شهر سوخته در افقِ پیش‌رو. */
+function drawDriveScene() {
+  const cs = CS, dr = cs.drive;
+  const d = state.dayness;                       // کات‌سین شب است (d ≈ ۰)
+
+  /* افق شهر معمولی + تپه‌ها (پس‌زمینه‌ی ثابت — حس حرکت با اجزای نزدیک) */
+  drawSkyline();
+  ctx.fillStyle = mixHex('#16244a', '#8fae6e', d); drawHillRow(HILLS1);
+  strokeCrest(HILLS1, mixHex('#2c4272', '#b7d193', d));
+
+  /* نزدیک‌شدن به مقصد: شهر سوخته در افقِ پیش‌رو ظاهر می‌شود (۸٫۰: پررنگ) */
+  if (dr.progress > 0.4) {
+    ctx.save();
+    ctx.globalAlpha = clamp((dr.progress - 0.4) / 0.35, 0, 1);
+    drawRuinedSkyline(d);
+    ctx.restore();
+  }
+
+  /* جاده‌ی آسفالت + شانه‌ها */
+  const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  gg.addColorStop(0, mixHex('#23262e', '#565b66', d));
+  gg.addColorStop(1, mixHex('#101216', '#2e3238', d));
+  ctx.fillStyle = gg;
+  ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';       // لبه‌ی روشن سرِ جاده
+  ctx.fillRect(-20, GROUND_Y, W + 40, 3);
+  /* خط‌چین زرد وسط جاده — با اسکرول می‌دود (۸٫۰: پررنگ برای خوانایی) */
+  const dash = 46, off = dr.scroll % (dash * 2);
+  ctx.fillStyle = 'rgba(244,206,110,0.66)';
+  for (let x = -dash * 2 + off; x < W + dash; x += dash * 2) {
+    rr(x, GROUND_Y + 24, 32, 5.5, 2.5); ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(220,215,200,0.14)';       // جدول کنار جاده
+  ctx.fillRect(-20, GROUND_Y + 42, W + 40, 3);
+
+  /* اجزای کنار راه */
+  for (const p of DRIVE_PROPS) {
+    const sx = p.wx - dr.scroll;
+    if (sx < -70 || sx > W + 90) continue;
+    drawRoadProp(p, sx);
+  }
+
+  /* زامبی‌های خیابانی + ماشینِ بازیکن (مرتب‌شده با عمق) */
+  const ents = [];
+  for (const z of dr.zombies) ents.push({ y: z.y, csZ: z });
+  if (cs.car) ents.push({ y: cs.car.y - 1, car: cs.car });
+  ents.sort((a, b) => a.y - b.y);
+  for (const e of ents) {
+    if (e.car) drawCar(e.car);
+    else drawCsZombie(e.csZ);
+  }
+}
+
+/* یک جزء کنار راه: چراغ‌برق / درخت / بوته / سنگ / مانعِ راه‌بندی */
+function drawRoadProp(p, sx) {
+  const dr = CS.drive;
+  const d = state.dayness;
+  if (p.kind === 'lamp') {
+    ctx.strokeStyle = mixHex('#151d33', '#3a4457', d); ctx.lineWidth = 3.6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sx, GROUND_Y + 2); ctx.lineTo(sx, GROUND_Y - 52); ctx.stroke();
+    ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(sx, GROUND_Y - 52); ctx.lineTo(sx - 10, GROUND_Y - 52); ctx.stroke();
+    let fl = 0.8 + 0.2 * Math.sin(animTime * 9 + p.ph);
+    if (Math.random() < 0.01) fl = 0.3;
+    ctx.fillStyle = 'rgba(255,214,120,' + (0.75 * fl * (1 - d * 0.8)).toFixed(2) + ')';
+    circle(sx - 9, GROUND_Y - 50, 2.6);
+    const g = ctx.createLinearGradient(sx - 9, GROUND_Y - 48, sx - 9, GROUND_Y + 4);
+    g.addColorStop(0, 'rgba(255,214,120,' + (0.14 * fl * (1 - d * 0.8)).toFixed(2) + ')');
+    g.addColorStop(1, 'rgba(255,214,120,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(sx - 14, GROUND_Y - 48); ctx.lineTo(sx - 4, GROUND_Y - 48);
+    ctx.lineTo(sx + 6, GROUND_Y + 4); ctx.lineTo(sx - 26, GROUND_Y + 4);
+    ctx.closePath(); ctx.fill();
+  } else if (p.kind === 'tree') {
+    drawTree(sx, p.s * 0.85, false);
+  } else if (p.kind === 'bush') {
+    ctx.fillStyle = mixHex('#12251a', '#3c5a33', d);
+    for (const [ox, oy, r] of [[-8, 2, 7], [0, -2, 9], [9, 2, 6.5]]) {
+      ctx.beginPath(); ctx.ellipse(sx + ox * p.s, GROUND_Y + oy * p.s, r * p.s, r * 0.72 * p.s, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (p.kind === 'rock') {
+    ctx.fillStyle = mixHex('#2a2d36', '#6a6f7a', d);
+    ctx.beginPath();
+    ctx.moveTo(sx - 9 * p.s, GROUND_Y + 3);
+    ctx.lineTo(sx - 5 * p.s, GROUND_Y - 7 * p.s);
+    ctx.lineTo(sx + 3 * p.s, GROUND_Y - 9 * p.s);
+    ctx.lineTo(sx + 10 * p.s, GROUND_Y + 3);
+    ctx.closePath(); ctx.fill();
+  } else if (p.kind === 'barrier') {
+    const hit = !!dr.hits[p.wx];
+    ctx.save();
+    ctx.translate(sx, GROUND_Y + 2);
+    if (hit) { ctx.rotate(0.42); ctx.translate(6, 2); }
+    /* بدنه‌ی نارنجی-سفید راه‌بندی + پایه‌ها */
+    ctx.fillStyle = hit ? '#7a4a20' : '#d8712c';
+    rr(-17, -20, 34, 13, 2); ctx.fill();
+    ctx.fillStyle = hit ? '#9c9c94' : '#f2ece0';
+    for (const bx of [-13, -3, 7]) ctx.fillRect(bx, -20, 7, 13);
+    ctx.fillStyle = '#3a3f4a';
+    ctx.fillRect(-15, -8, 4, 10); ctx.fillRect(11, -8, 4, 10);
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2;
+    rr(-17, -20, 34, 13, 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* آیکون کوچک برج مقصد (انتهای نوار پیشرفت رانندگی) */
+function drawMiniTower(x, y) {
+  const cols = ['#3f8d86', '#357871', '#9c4252'];
+  for (let i = 0; i < 3; i++) {
+    const w = 16 - i * 3;
+    ctx.fillStyle = cols[i];
+    ctx.fillRect(x - w / 2, y - 4 - i * 6, w, 6);
+  }
+  ctx.fillStyle = '#ffd873';
+  circle(x, y - 24, 2);
+}
+
 /* ------------------ لایه‌ی رویی کات‌سین ------------------
-   نوارهای سینمایی، زیرنویس مراحل، تپش قرمزِ لرزش، محو/سیاهی
-   و متن‌های صفحه‌ی سیاه — بعد از همه‌ی لایه‌ها رسم می‌شود */
+   نوارهای سینمایی، زیرنویس مراحل، تپش قرمزِ لرزش، نوار پیشرفت و
+   راهنمای رانندگی، محو/سیاهی و متن‌های صفحه‌ی سیاه — بعد از همه‌ی
+   لایه‌ها رسم می‌شود */
 function drawCutscene() {
   if (!CS) return;
   const t = CS.t;
-  /* نوارهای سینمایی (ورود/خروج نرم) */
+  /* نوارهای سینمایی (ورود/خروج نرم) — حین رانندگی کوتاه‌تر تا جاده دیده شود */
   const lIn = clamp(t / 0.45, 0, 1);
-  const lOut = clamp((CS_T.end - t) / 0.55, 0, 1);
-  const L = 46 * Math.min(lIn, lOut);
+  const lOut = clamp(((CS.post ? CS.post.end : CS_T.driveStart + 20) - t) / 0.55, 0, 1);
+  const L = (CS.drive && !CS.drive.ended ? 26 : 46) * Math.min(lIn, lOut);
   if (L > 0.5) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, L);
@@ -690,9 +1002,7 @@ function drawCutscene() {
   /* زیرنویس مراحل (کپسول پایین صحنه) */
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = 'bold 15px Tahoma, sans-serif';
-  const caps = CS_CAPS.slice();
-  if (CS.giftApplied && CS.giftText) caps.push([CS_T.giftT, CS_T.giftT + 1.35, '🎁 ' + CS.giftText]);
-  for (const c of caps) {
+  for (const c of CS_CAPS) {
     if (t < c[0] || t > c[1]) continue;
     const a = Math.min(1, (t - c[0]) / 0.25, (c[1] - t) / 0.25);
     ctx.globalAlpha = a;
@@ -712,28 +1022,88 @@ function drawCutscene() {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
+  /* ---- HUD رانندگی: نوار «مسیر تا برج جدید» + راهنمای کنترل ---- */
+  const dr = CS.drive;
+  if (dr && !dr.ended && t > CS_T.driveStart + 0.4) {
+    const pct = Math.round(dr.progress * 100);
+    const bw = 430, bx = (W - bw) / 2, by = 58;
+    ctx.font = 'bold 13px Tahoma, sans-serif';
+    ctx.fillStyle = '#e8ecf5';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 6;
+    ctx.fillText('مسیر تا برج جدید — ' + faNum(pct) + '٪', W / 2, by - 13);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(5,9,22,0.92)';
+    rr(bx, by, bw, 14, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,216,115,0.55)'; ctx.lineWidth = 1.5;
+    rr(bx, by, bw, 14, 7); ctx.stroke();
+    const fw = (bw - 6) * dr.progress;
+    if (fw > 4) {
+      const fg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+      fg.addColorStop(0, '#f0b53c'); fg.addColorStop(1, '#ffd873');
+      ctx.fillStyle = fg;
+      rr(bx + 3, by + 3, fw, 8, 4); ctx.fill();
+    }
+    /* نشان ماشین روی نوار + آیکون برج مقصد */
+    ctx.fillStyle = '#e8563f';
+    rr(bx + 3 + Math.max(0, fw - 8), by + 1.5, 15, 11, 3); ctx.fill();
+    drawMiniTower(bx + bw + 20, by + 14);
+    /* راهنمای کنترل (چند ثانیه‌ی اول) */
+    const k = clamp((t - CS_T.driveStart - 0.6) / 0.4, 0, 1)
+            * clamp((5.8 - (t - CS_T.driveStart)) / 0.8, 0, 1);
+    if (k > 0.03) {
+      ctx.globalAlpha = k;
+      const hw = 470, hx = (W - hw) / 2, hy = by + 24;
+      ctx.fillStyle = 'rgba(4,7,18,0.94)';
+      rr(hx, hy, hw, 32, 16); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,216,115,0.6)'; ctx.lineWidth = 1.6;
+      rr(hx, hy, hw, 32, 16); ctx.stroke();
+      ctx.font = 'bold 14px Tahoma, sans-serif';
+      ctx.fillStyle = '#ffd873';
+      ctx.fillText('گاز', hx + hw - 54, hy + 16);        // سمت راست: گاز
+      ctx.fillStyle = '#8fd6ff';
+      ctx.fillText('ترمز', hx + 58, hy + 16);           // سمت چپ: ترمز
+      ctx.fillStyle = '#c3cdea';
+      ctx.font = 'bold 12px Tahoma, sans-serif';
+      ctx.fillText('کلیدهای جهت‌دار یا لمس چپ/راست صفحه', W / 2, hy + 16);
+      /* فلش‌های جهت (رسم مسیری — بدون متن، ضد به‌هم‌ریختگی RTL) */
+      ctx.fillStyle = '#ffd873';
+      ctx.beginPath(); ctx.moveTo(hx + hw - 26, hy + 15); ctx.lineTo(hx + hw - 36, hy + 9); ctx.lineTo(hx + hw - 36, hy + 21); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8fd6ff';
+      ctx.beginPath(); ctx.moveTo(hx + 26, hy + 15); ctx.lineTo(hx + 36, hy + 9); ctx.lineTo(hx + 36, hy + 21); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+  /* پوشش سیاهی کوتاه هنگام ورود به جاده (تعویض صحنه زیر آن پنهان است) */
+  if (CS.drive && t < CS_T.driveStart + 0.4) {
+    const a = 1 - clamp((t - CS_T.driveStart) / 0.4, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,' + a.toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
   /* محو به سیاهی */
   if (CS.fade > 0.003) {
     ctx.fillStyle = 'rgba(0,0,0,' + CS.fade.toFixed(3) + ')';
     ctx.fillRect(0, 0, W, H);
   }
-  /* متن‌های صفحه‌ی سیاه: «به موقعیت جدید رسیدید...» / «برج بعدی» */
-  if (CS.fade > 0.965) {
-    const aM = clamp((t - CS_T.black - 0.2) / 0.5, 0, 1);
-    const aS = clamp((t - CS_T.black - 0.8) / 0.5, 0, 1);
-    if (aM > 0) {
-      ctx.globalAlpha = aM;
-      ctx.font = 'bold 30px Tahoma, sans-serif';
-      ctx.fillStyle = '#e8ecf5';
+  /* متن‌های صفحه‌ی سیاه: اسلحه‌ها سوختند + غرامت + رسیدن به مقصد
+     (پنجره‌ی زمانی — نه آلفای محو — تا با شروعِ روشن‌شدن صحنه ناپدید نشوند) */
+  if (CS.post && t >= CS.post.black) {
+    const tb = CS.post.black;
+    const lines = [
+      [tb + 0.15, 'bold 21px Tahoma, sans-serif', '#ff9d8a', 'اسلحه‌هایت زیر آوار ماند...'],
+      [tb + 0.72, 'bold 26px Tahoma, sans-serif', '#ffd873', 'غرامت: +' + faNum(CS.compCoins) + ' سکه'],
+      [tb + 1.35, 'bold 30px Tahoma, sans-serif', '#e8ecf5', 'به موقعیت جدید رسیدید...'],
+      [tb + 1.9, 'bold 19px Tahoma, sans-serif', '#ffd873', '🏗 برج بعدی'],
+    ];
+    let li = 0;
+    for (const [t0, font, col, txt] of lines) {
+      const a = clamp((t - t0) / 0.45, 0, 1) * clamp((CS.post.fadeIn + 0.35 - t) / 0.3, 0, 1);
+      if (a <= 0.02) { li++; continue; }
+      ctx.globalAlpha = a;
+      ctx.font = font; ctx.fillStyle = col;
       ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 12;
-      ctx.fillText('به موقعیت جدید رسیدید...', W / 2, H / 2 - 16);
+      ctx.fillText(txt, W / 2, H / 2 - 52 + li * 36);
       ctx.shadowBlur = 0;
-    }
-    if (aS > 0) {
-      ctx.globalAlpha = aS;
-      ctx.font = 'bold 19px Tahoma, sans-serif';
-      ctx.fillStyle = '#ffd873';
-      ctx.fillText('🏗 برج بعدی', W / 2, H / 2 + 26);
+      li++;
     }
     ctx.globalAlpha = 1;
   }

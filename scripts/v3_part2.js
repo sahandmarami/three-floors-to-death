@@ -419,6 +419,7 @@ const state = {
   weapon: 'pistol',                        // سلاح انتخاب‌شده
   towerVariant: 0,                         // پوسته‌ی برج: ۰=برج اول، ۱=برج دومِ شهر سوخته (۷٫۰)
   cutsceneDone: false,                     // آیا رویداد داستانی فروریختن انجام شده؟ (۷٫۰)
+  weaponSpent: 0,                          // جمع پول خرج‌شده برای اسلحه‌ها (۸٫۰ — مبنای غرامت کات‌سین)
   stats: { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 },
 };
 
@@ -463,6 +464,15 @@ canvas.addEventListener('pointerdown', e => {
     return;
   }
   if (e.button !== 0) return;
+  /* (۸٫۰) بخش رانندگی کات‌سین: لمس نیمه‌ی راست = گاز، چپ = ترمز */
+  if (CS && CS.drive && !CS.drive.ended) {
+    const right = p.x > W / 2;
+    CS.drive.touch.a = right;
+    CS.drive.touch.b = !right;
+    state.mouse.down = false;
+    e.preventDefault();
+    return;
+  }
   state.mouse.down = true;
   if (state.placing && canPlay()) {
     handlePlaceClick();                       // کلیک = نصب برجک
@@ -473,14 +483,24 @@ canvas.addEventListener('pointerdown', e => {
   if (canPlay()) tryShoot();               // شلیک فوری در لحظه‌ی کلیک
   e.preventDefault();
 });
-window.addEventListener('pointerup', () => { state.mouse.down = false; });
+window.addEventListener('pointerup', () => {
+  state.mouse.down = false;
+  /* (۸٫۰) رها کردن لمس = قطع گاز/ترمز لمسی */
+  if (CS && CS.drive) { CS.drive.touch.a = false; CS.drive.touch.b = false; }
+});
 canvas.addEventListener('contextmenu', e => {   // منوی راست‌کلیک باز نشود + لغو نصب
   e.preventDefault();
   if (state.placing) cancelPlacement(true);
 });
 
-/* کیبورد: P/Esc توقف، M صدا، ۱/۲/۳ تعویض سلاح، ۴..۹ خرید از ساخت‌وساز، B جمع/باز پنل */
+/* کیبورد: P/Esc توقف، M صدا، ۱/۲/۳ تعویض سلاح، ۴..۹ خرید از ساخت‌وساز، B جمع/باز پنل
+   (۸٫۰) حین بخش رانندگی کات‌سین: → / D = گاز و ← / A = ترمز */
 window.addEventListener('keydown', e => {
+  if (CS && CS.drive && !CS.drive.ended) {
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') { CS.drive.keys.a = true; e.preventDefault(); }
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { CS.drive.keys.b = true; e.preventDefault(); }
+    return;                                   // در رانندگی، کلیدهای دیگر کاری نکنند
+  }
   if (e.key === 'Escape') {
     if (!$('howtoScreen').classList.contains('hidden')) hideScreen('howtoScreen');
     else if (state.placing) cancelPlacement(true);      // اول لغو نصب برجک (۴٫۰)
@@ -505,6 +525,12 @@ window.addEventListener('keydown', e => {
     if (kind) attemptBuy(kind);
   }
 });
+/* (۸٫۰) رها کردن کلیدهای گاز/ترمز رانندگی */
+window.addEventListener('keyup', e => {
+  if (!(CS && CS.drive)) return;
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') CS.drive.keys.a = false;
+  else if (e.code === 'ArrowLeft' || e.code === 'KeyA') CS.drive.keys.b = false;
+});
 /* اگر تب/پنجره از حالت نمایش خارج شد، بازی خودکار متوقف شود */
 window.addEventListener('blur', () => { if (state.mode === 'playing') pauseGame(); });
 document.addEventListener('visibilitychange', () => {
@@ -524,6 +550,7 @@ function startGame() {
   state.weapon = 'pistol';
   state.towerVariant = 0;                  // برج اول (۷٫۰)
   state.cutsceneDone = false;
+  state.weaponSpent = 0;                   // (۸٫۰) حساب اسلحه‌ها دوباره از صفر
   cutsceneHardReset();                     // اگر کات‌سینی در جریان بود کنسل شود (۷٫۰)
   WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
   state.zombies = []; state.bullets = []; state.coinsArr = [];
@@ -596,7 +623,8 @@ function waveComplete() {
     playTowerCollapseCutscene({
       afterWave: CUTSCENE_AFTER_WAVE,
       variant: 1,                             // پوسته‌ی برج دوم + شهر سوخته
-      gift: { coins: 80, weapon: 'shotgun' }, // هدیه‌ی راننده‌ی ماشین
+      /* (۸٫۰) هدیه‌ی راننده جای خود را به «غرامت اسلحه‌های سوخته» داده است:
+         سلاح‌ها زیر آوار از بین می‌روند و به‌جایش سکه‌ی اضافه می‌رسد */
     });
     return;
   }
@@ -1289,6 +1317,7 @@ function attemptBuy(kind) {
     if (WEAPONS[kind].owned) return;
     if (state.coins < u.price) { denyBPItem(kind); return; }
     state.coins -= u.price;
+    state.weaponSpent += u.price;               // (۸٫۰) مبنای غرامتِ «زیر آوار ماندن»
     WEAPONS[kind].owned = true;
     selectWeapon(kind);                    // بلافاصله دستِ کاربر می‌افتد
     SFX.buy();
@@ -1318,6 +1347,7 @@ function attemptBuy(kind) {
   if (state.coins < price) { denyBPItem(kind); return; }
   state.coins -= price;
   state.upgrades[kind] = lvl + 1;
+  if (kind === 'weapon') state.weaponSpent += price;   // (۸٫۰) مبنای غرامت
   if (kind === 'health') {
     /* هم حداکثر جون زیاد می‌شود هم همین الان ترمیم می‌شود */
     state.tower.maxHp += u.bonus;

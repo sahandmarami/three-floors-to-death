@@ -1,0 +1,744 @@
+     1→/* ==================================================================
+     2→   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — بخش ۴: رویداد داستانی «فروریختن برج»
+     3→   ==================================================================
+     4→   بعد از پاک‌سازی موج ۵ و پیش از موج ۶، یک کات‌سین کوتاه پخش می‌شود:
+     5→     ۱) لرزش شدید صحنه + ترک خوردن برج (غرش + ترک‌های پیش‌رونده)
+     6→     ۲) فروریختن طبقه‌ی اول و دوم با انفجار آجر/چوب و توده‌ی آوار
+     7→     ۳) سقوط بازیکن از بام با فیزیک ساده (افتادن + چرخش تدریجی)
+     8→     ۴) ورود ماشینِ دوستِ راننده از چپ صحنه؛ بازیکن روی ماشین می‌نشیند
+     9→     ۵) ماشین از میان زامبی‌های مانع‌شده رد می‌شود (کنارشان می‌پراند)
+    10→        و صحنه را ترک می‌کند + «هدیه‌ی راننده» (سکه + آنلاک زودهنگام سلاح)
+    11→     ۶) محو به سیاهی + «به موقعیت جدید رسیدید...» / «برج بعدی»
+    12→     ۷) بازگشت صحنه با برج دوم (رنگ‌بندی متفاوت) و پس‌زمینه‌ی شهر سوخته
+    13→   قواعد گیم‌پلی:
+    14→     - جون، سکه، سلاح‌ها، ارتقاها و برجک‌ها دقیقاً حفظ می‌شوند
+    15→     - موج‌های ۶ تا ۱۰ روی برج جدید با همان منطق سختی ادامه می‌یابند
+    16→     - کات‌سین با دکمه‌ی «رد کردن» گوشه‌ی صفحه قابل عبور است
+    17→   جزئیات فنی:
+    18→     - همه‌چیز فقط با Canvas و شکل‌های ساده رسم می‌شود (بدون تصویر خارجی)
+    19→     - playTowerCollapseCutscene پارامتری است تا برای فصل‌های بعدی
+    20→       (برج سوم/چهارم...) هم قابل استفاده باشد
+    21→   ================================================================== */
+    22→
+    23→/* ---------------------- ۱۷) رویداد داستانی ---------------------- */
+    24→
+    25→/* موجی که بعد از پایانش کات‌سین پخش می‌شود */
+    26→const CUTSCENE_AFTER_WAVE = 5;
+    27→
+    28→/* زمان‌بندی مراحل کات‌سین (ثانیه) — همه‌ی حرکت‌ها از t محاسبه می‌شوند
+    29→   تا پرش/تست زمانی (csGoto) دقیق و قطعی باشد */
+    30→const CS_T = {
+    31→  shakeEnd: 1.8,      // پایان لرزش/ترک‌خوردن
+    32→  colEnd: 3.2,        // پایان فروریختن طبقه‌ی ۱ و ۲
+    33→  chunkDrop: 3.25,    // شروع سقوط تخته‌بام (طبقه‌ی ۳)
+    34→  chunkDur: 0.7,      // مدت سقوط تخته‌بام
+    35→  playerDrop: 3.5,    // جدایی بازیکن از بامِ در حال سقوط
+    36→  fallDur: 1.15,      // مدت سقوط سینمایی بازیکن
+    37→  carEnter: 3.25,     // ورود ماشین از لبه‌ی چپ
+    38→  carSpd: 450,        // سرعت ماشین (px/s)
+    39→  catchDX: 14,        // جای بازیکن روی ماشین (نسبت به مرکز ماشین)
+    40→  giftT: 5.2,         // لحظه‌ی دادن هدیه‌ی راننده
+    41→  fadeOut: 6.3,       // شروع محو به سیاهی
+    42→  fadeDur: 0.9,       // مدت محو
+    43→  black: 7.2,         // سیاهی کامل
+    44→  switchT: 8.1,       // تعویض صحنه در دلِ سیاهی (برج دوم + شهر سوخته)
+    45→  fadeIn: 8.5,        // شروع بازگشت صحنه‌ی جدید
+    46→  fadeInDur: 1.0,     // مدت بازگشت
+    47→  end: 9.7,           // پایان کات‌سین → روزِ برج جدید
+    48→};
+    49→
+    50→/* زیرنویس‌های کات‌سین: [شروع، پایان، متن] */
+    51→const CS_CAPS = [
+    52→  [0.30, 1.70, 'زمین می‌لرزد... برج دارد ترک می‌خورد!'],
+    53→  [1.95, 3.05, 'طبقه‌ها فرو می‌ریزند!'],
+    54→  [4.72, 5.15, 'رسیدی! سوار شو'],
+    55→];
+    56→
+    57→/* --- پوسته‌های برج (۷٫۰): برج اول و برج دومِ شهر سوخته ---
+    58→   drawTower این رنگ‌ها را می‌خواند؛ اندازه‌ی برج در هر دو یکی است. */
+    59→const TOWER_SKINS = [
+    60→  { /* برج اول — سنگی/آجری/آبی (ظاهر اصلی بازی) */
+    61→    floors: [
+    62→      { light: '#82705a', base: '#6e5a44', dark: '#4d3f2f', edge: '#453a2c' },
+    63→      { light: '#b25a47', base: '#a04b3a', dark: '#7c3527', edge: '#6e2f24' },
+    64→      { light: '#4f83b5', base: '#41729f', dark: '#2f557c', edge: '#2a4b6b' },
+    65→    ],
+    66→    plinth: ['#3f362b', '#8c7f6a'], batt: ['#33557e', '#5c8ac0'],
+    67→    flag: '#d8453a', flagMark: '#f7c948',
+    68→    banner: ['#a12a20', '#c23a2c'], bannerMark: '#7a1f18',
+    69→    doorFrame: ['#8a7a5e', '#bfae8e'], pole: ['#4a3b2a', '#7a6244'],
+    70→  },
+    71→  { /* برج دوم — سنگ‌خزه/فیروزه/زرشکی (پس از کات‌سین، در شهر سوخته) */
+    72→    floors: [
+    73→      { light: '#6b7a5e', base: '#57644b', dark: '#3e4835', edge: '#39422e' },
+    74→      { light: '#3f8d86', base: '#357871', dark: '#265a55', edge: '#22504b' },
+    75→      { light: '#9c4252', base: '#873644', dark: '#692934', edge: '#5f2530' },
+    76→    ],
+    77→    plinth: ['#2e2a24', '#6e675c'], batt: ['#274f4a', '#4d8a82'],
+    78→    flag: '#3f8d86', flagMark: '#ffd873',
+    79→    banner: ['#274f4a', '#3f8d86'], bannerMark: '#173b37',
+    80→    doorFrame: ['#5a5446', '#8f8871'], pole: ['#3a3529', '#615a48'],
+    81→  },
+    82→];
+    83→
+    84→/* --- شهر سوخته‌ی برج دوم: آسمان‌خراش‌های با لبه‌ی شکسته + کانون‌های آتش ---
+    85→   با همان تولیدکننده‌ی seed دارِ صحنه ساخته می‌شود تا همیشه یکسان باشد */
+    86→const RUIN_SKYLINE = [];
+    87→const RUIN_FIRES = [];
+    88→const RUIN_WINS = [];                       // پنجره‌های شکسته/سوخته‌ی ساختمان‌ها
+    89→{
+    90→  let x = -14;
+    91→  while (x < W + 14) {
+    92→    const bw = 40 + srand() * 58, bh = 30 + srand() * 100;
+    93→    const notch = [];                      // دندانه‌های لبه‌ی فروریخته‌ی بام
+    94→    const nn = 1 + Math.floor(srand() * 3);
+    95→    for (let i = 0; i < nn; i++) {
+    96→      notch.push({ dx: 5 + srand() * (bw - 22), w: 8 + srand() * 14, d: 13 + srand() * 30 });
+    97→    }
+    98→    RUIN_SKYLINE.push({ x, w: bw, h: bh, notch });
+    99→    /* پنجره‌های شکسته: تیره + چند نورافکن نارنجیِ آتش */
+   100→    const wn = 2 + Math.floor(srand() * 4);
+   101→    for (let i = 0; i < wn; i++) {
+   102→      RUIN_WINS.push({
+   103→        x: x + 5 + srand() * (bw - 12), y: GROUND_Y - bh + 8 + srand() * (bh - 20),
+   104→        lit: srand() > 0.72, ph: srand() * 6.28,
+   105→      });
+   106→    }
+   107→    /* چند کانون آتشِ دودکن روی ساختمان‌های بلندتر (۷٫۰: پررنگ و خوانا) */
+   108→    if (bh > 45 && srand() > 0.35 && RUIN_FIRES.length < 6) {
+   109→      RUIN_FIRES.push({ x: x + 9 + srand() * (bw - 18), y: GROUND_Y - bh + 6 + srand() * 22, ph: srand() * 6.28 });
+   110→    }
+   111→    x += bw + 9;
+   112→  }
+   113→}
+   114→
+   115→/* توده‌ی آوار برج (قطعات پیش‌محاسبه‌شده برای رسم سریع) */
+   116→const RUBBLE_PTS = [];
+   117→for (let i = 0; i < 30; i++) RUBBLE_PTS.push({
+   118→  dx: (srand() * 2 - 1) * 74,
+   119→  dy: srand() * 30,
+   120→  w: 5 + srand() * 14, h: 4 + srand() * 9,
+   121→  rot: (srand() * 2 - 1) * 0.7,
+   122→  col: ['#6e5a44', '#8a6f52', '#4d3f2f', '#b25a47', '#9c8a6d'][Math.floor(srand() * 5)],
+   123→});
+   124→
+   125→/* ترک‌های پیش‌فرض برج حین کات‌سین: نقاط نسبی به (TOWER.x, GROUND_Y) */
+   126→const TOWER_CRACKS = [
+   127→  { pts: [[-44, -16], [-33, -30], [-40, -46], [-27, -60], [-31, -74]] },
+   128→  { pts: [[46, -20], [37, -36], [45, -50]] },
+   129→  { pts: [[-38, -84], [-28, -96], [-36, -112], [-24, -126]] },
+   130→  { pts: [[40, -80], [30, -94], [38, -108], [26, -122]] },
+   131→  { pts: [[2, -88], [-4, -102], [3, -116]] },
+   132→];
+   133→
+   134→/* --- صداهای کات‌سین (با همان موتور Web Audio بازی) --- */
+   135→Object.assign(SFX, {
+   136→  csRumble() { if (!sfxGate('csRumble', 420)) return;
+   137→    Snd.noise({ dur: 0.5, vol: 0.16, freq: 95, q: 0.5 });
+   138→    Snd.tone({ type: 'sine', f0: 46, f1: 30, dur: 0.5, vol: 0.2 }); },
+   139→  csCrack()  { Snd.noise({ dur: 0.1, vol: 0.2, ftype: 'highpass', freq: 1900 });
+   140→    Snd.tone({ type: 'square', f0: 850, f1: 190, dur: 0.09, vol: 0.09 }); },
+   141→  csBoom()   { Snd.noise({ dur: 1.1, vol: 0.38, freq: 170, q: 0.4 });
+   142→    Snd.tone({ type: 'sine', f0: 72, f1: 26, dur: 1.0, vol: 0.38 }); },
+   143→  csLand()   { Snd.noise({ dur: 0.35, vol: 0.3, freq: 150, q: 0.5 });
+   144→    Snd.tone({ type: 'sine', f0: 62, f1: 28, dur: 0.4, vol: 0.3 }); },
+   145→  csWhistle(){ Snd.tone({ type: 'sine', f0: 1450, f1: 300, dur: 1.0, vol: 0.06 }); },
+   146→  csEngine() { if (!sfxGate('csEngine', 300)) return;
+   147→    Snd.tone({ type: 'sawtooth', f0: 92, f1: 118, dur: 0.2, vol: 0.08 });
+   148→    Snd.noise({ dur: 0.18, vol: 0.04, freq: 420 }); },
+   149→  csThud()   { Snd.noise({ dur: 0.15, vol: 0.22, freq: 230 });
+   150→    Snd.tone({ type: 'sine', f0: 95, f1: 40, dur: 0.16, vol: 0.18 }); },
+   151→  csGift()   { [660, 880, 1320].forEach((f, i) =>
+   152→    Snd.tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.12, delay: i * 0.08 })); },
+   153→});
+   154→
+   155→/* --- وضعیت اجرای کات‌سین (null = کات‌سینی در جریان نیست) ---
+   156→   draw: داده‌های رندر لحظه‌ای که drawTower/drawPlayer می‌خوانند */
+   157→let CS = null;
+   158→
+   159→/* شروع کات‌سین «فروریختن برج» — تابع پارامتری برای استفاده در فصل‌های بعدی:
+   160→   opts.afterWave  موجِ مقدمه‌ی رویداد
+   161→   opts.variant    شماره‌ی پوسته‌ی برج بعدی (پیش‌فرض ۱)
+   162→   opts.gift       { coins, weapon } هدیه‌ی راننده‌ی ماشین */
+   163→function playTowerCollapseCutscene(opts = {}) {
+   164→  if (CS) return;                            // کات‌سین دیگری در جریان است
+   165→  CS = {
+   166→    t: 0, paused: false,
+   167→    afterWave: opts.afterWave || CUTSCENE_AFTER_WAVE,
+   168→    variant: opts.variant !== undefined ? opts.variant : 1,
+   169→    gift: opts.gift || { coins: 80, weapon: 'shotgun' },
+   170→    giftApplied: false, giftText: '', giftTextShown: false,
+   171→    boomed: false, chunkHit: false, caught: false, whistled: false,
+   172→    switched: false, bursts: 0,
+   173→    zombies: [], car: null, fade: 0,
+   174→    draw: {
+   175→      floors: [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }],
+   176→      cracks: 0, rubble: 0, player: null,
+   177→    },
+   178→  };
+   179→  state.mode = 'cutscene';
+   180→  state.mouse.down = false;
+   181→  state.placing = null;
+   182→  state.slowmo = 0;
+   183→  state.powerTimers = { rapid: 0, freeze: 0 };
+   184→  /* سکه‌ها/جعبه‌های معلق صحنه بلافاصله جمع شوند (پاداش موج نمی‌باید گم شود) */
+   185→  for (const c of state.coinsArr) collectCoin(c);
+   186→  state.coinsArr = [];
+   187→  state.powerups = [];
+   188→  hideDayPanel();
+   189→  hideAnnounce();
+   190→  setBuildPanel(true, true);                 // پنل جمع: حالت سینمایی
+   191→  $('wrap').classList.add('cs-mode');        // نوار سلاح/پنل‌ها مخفی (CSS)
+   192→  $('skipCs').classList.remove('hidden');    // دکمه‌ی «رد کردن»
+   193→  /* زامبی‌های ول‌گردِ صحنه — همان‌ها که بعداً جلوی ماشین را می‌گیرند */
+   194→  const spawns = [
+   195→    { type: 'normal', x: 70 }, { type: 'fast', x: 215 }, { type: 'normal', x: 335 },
+   196→    { type: 'normal', x: 645 }, { type: 'fast', x: 760 }, { type: 'tank', x: 845 },
+   197→    { type: 'normal', x: 940 },
+   198→  ];
+   199→  for (const s of spawns) {
+   200→    const T = ZTYPES[s.type];
+   201→    CS.zombies.push({
+   202→      type: s.type, x: s.x, y: GROUND_Y + 14, dir: s.x < TOWER.x ? 1 : -1,
+   203→      radius: T.r, speed: T.spdBase * 0.55, hp: 10, maxHp: 10,
+   204→      walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0,
+   205→      attackSide: 0, lane: 0, depth: 1.06, yJit: rand(-2, 2), stagger: 0,
+   206→      chill: 0, hitFlash: 0, dead: false, deathT: 0,
+   207→      /* فیلدهای مخصوص کات‌سین: */
+   208→      hit: false, vx: 0, vy: 0, vr: 0, rot: 0, landed: false,
+   209→      groundY: GROUND_Y + 14,
+   210→    });
+   211→  }
+   212→  SFX.csRumble();
+   213→  updateHUD();
+   214→}
+   215→
+   216→/* برخورد ماشین با زامبی مانع: پرتاب به جلو و بالا + خون + لرزش */
+   217→function csKnockZombie(z) {
+   218→  z.hit = true;
+   219→  z.vx = CS_T.carSpd * 0.72 + rand(0, 90);
+   220→  z.vy = -rand(300, 430);
+   221→  z.vr = rand(6, 11) * (Math.random() < 0.5 ? -1 : 1);
+   222→  if (CS && CS.car) CS.car.kick = 1;
+   223→  state.shake = Math.max(state.shake, 3.5);
+   224→  SFX.csThud();
+   225→  spawnParticles(z.x, z.y - 16, 10, '#7a2f2f', { speed: 160, life: 0.5, size: 2.6, grav: 500 });
+   226→  spawnParticles(z.x, z.y - 16, 6, '#5f8f3e', { speed: 130, life: 0.45, size: 2.2, grav: 500 });
+   227→}
+   228→
+   229→/* موج انفجار آجر/چوب حین فروریختن طبقه‌ها (۷٫۰: درشت + جرقه‌های درخشان + غبار) */
+   230→function csBrickBurst(i) {
+   231→  const fy = i < 2 ? GROUND_Y - rand(10, 60) : GROUND_Y - rand(72, 130);
+   232→  const cols = ['#a58a68', '#7d6a4f', '#c46a54', '#5d4c39', '#d9c49b'];
+   233→  spawnParticles(TOWER.x + rand(-58, 58), fy, 26, cols[Math.floor(rand(0, 5))],
+   234→    { speed: rand(180, 320), life: rand(0.8, 1.2), size: rand(4, 6.5), grav: 600 });
+   235→  /* جرقه‌های درخشان (روشن و قابل‌دید در تاریکی) */
+   236→  for (let k = 0; k < 7; k++) {
+   237→    const a = rand(0, Math.PI * 2), sp = rand(140, 330);
+   238→    state.particles.push({
+   239→      x: TOWER.x + rand(-56, 56), y: fy,
+   240→      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
+   241→      age: 0, life: rand(0.5, 0.9), size: rand(1.6, 2.6),
+   242→      color: Math.random() < 0.5 ? '#ffca6e' : '#ff9a4d', grav: 560, glow: true,
+   243→    });
+   244→  }
+   245→  /* ابر غبار نرمِ همره (دایره‌های بزرگِ نیمه‌شفاف) */
+   246→  for (let k = 0; k < 5; k++) {
+   247→    state.particles.push({
+   248→      x: TOWER.x + rand(-64, 64), y: fy - rand(4, 34),
+   249→      vx: rand(-46, 46), vy: rand(-75, -22),
+   250→      age: 0, life: rand(0.9, 1.5), size: rand(9, 17),
+   251→      color: 'rgba(172,152,122,0.30)', grav: -10,
+   252→    });
+   253→  }
+   254→  SFX.csCrack();
+   255→}
+   256→
+   257→/* هدیه‌ی راننده: سکه‌ی اضافه + آنلاک زودهنگام سلاح (idempotent) */
+   258→function cutsceneApplyGift() {
+   259→  if (!CS || CS.giftApplied) return;
+   260→  CS.giftApplied = true;
+   261→  const g = CS.gift;
+   262→  state.coins += g.coins;
+   263→  state.stats.earned += g.coins;
+   264→  let extra = '';
+   265→  if (g.weapon && !WEAPONS[g.weapon].owned) {
+   266→    WEAPONS[g.weapon].owned = true;
+   267→    extra = ' + ' + WEAPONS[g.weapon].name;
+   268→  } else if (!WEAPONS.shotgun.owned) {
+   269→    WEAPONS.shotgun.owned = true;
+   270→    extra = ' + ' + WEAPONS.shotgun.name;
+   271→  } else if (!WEAPONS.mg.owned) {
+   272→    WEAPONS.mg.owned = true;
+   273→    extra = ' + ' + WEAPONS.mg.name;
+   274→  }
+   275→  CS.giftText = 'هدیه‌ی راننده: +' + faNum(g.coins) + ' سکه' + extra;
+   276→  SFX.csGift();
+   277→  pulseCoins();
+   278→  refreshWeaponBar();
+   279→  refreshBuildPanel();
+   280→  updateHUD();
+   281→}
+   282→
+   283→/* پایان کات‌سین: ورود به «روزِ برج جدید» — همه‌ی پیشرفت‌ها حفظ شده‌اند */
+   284→function cutsceneFinish() {
+   285→  if (!CS) return;
+   286→  cutsceneApplyGift();                       // اطمینان: هدیه حتماً داده شود
+   287→  const giftSub = CS.giftText;
+   288→  const variant = CS.variant;
+   289→  CS = null;
+   290→  state.mode = 'day';
+   291→  state.towerVariant = variant;              // برج دوم + شهر سوخته
+   292→  state.cutsceneDone = true;
+   293→  state.dayTarget = 1;
+   294→  state.dayness = Math.max(state.dayness, 0.85);
+   295→  $('wrap').classList.remove('cs-mode');
+   296→  $('skipCs').classList.add('hidden');
+   297→  hideAnnounce();
+   298→  showDayPanel();                            // «شب شود — موج ۶»
+   299→  setBuildPanel(false, true);
+   300→  $('bpHead').classList.add('attention');
+   301→  setAnnounce('🌅 برج بعدی!',
+   302→    giftSub + ' — موج ' + faNum(state.wave + 1) + ' در راه است', 3.4);
+   303→  SFX.morning();
+   304→  updateHUD();
+   305→}
+   306→
+   307→/* رد کردن کات‌سین — دکمه‌ی گوشه‌ی صفحه (برای بازی‌های دوباره) */
+   308→function skipCutscene() {
+   309→  if (!CS) return;
+   310→  SFX.click();
+   311→  cutsceneFinish();
+   312→}
+   313→
+   314→/* ریست کامل حالت کات‌سین (مثلاً هنگام شروع مجدد بازی) */
+   315→function cutsceneHardReset() {
+   316→  CS = null;
+   317→  $('skipCs').classList.add('hidden');
+   318→  $('wrap').classList.remove('cs-mode');
+   319→}
+   320→
+   321→/* ------------------ به‌روزرسانی کات‌سین (هر فریم) ------------------ */
+   322→function updateCutscene(dt) {
+   323→  if (!CS || CS.paused) return;
+   324→  const cs = CS;
+   325→  const t = (cs.t += dt);
+   326→  const D = cs.draw;
+   327→
+   328→  /* زوال جلوه‌های عمومی */
+   329→  state.shake = Math.max(0, state.shake - dt * 22);
+   330→  state.flash = Math.max(0, state.flash - dt * 2.2);
+   331→
+   332→  /* ---- مرحله ۱: لرزش شدید + ترک‌خوردن پیش‌رونده ---- */
+   333→  if (t < CS_T.shakeEnd) {
+   334→    D.cracks = t / CS_T.shakeEnd;
+   335→    state.shake = 7 + 6 * Math.abs(Math.sin(t * 18));
+   336→    if (Math.random() < dt * 20) {           // گردوغاک چکه‌کن از ترک‌ها
+   337→      spawnParticles(TOWER.x + rand(-52, 52), GROUND_Y - rand(20, 120), 1, '#9c8a6d',
+   338→        { speed: 40, life: 0.7, size: 1.8, grav: 300 });
+   339→    }
+   340→    SFX.csRumble();
+   341→    if (Math.random() < dt * 1.5) SFX.csCrack();
+   342→  }
+   343→
+   344→  /* ---- مرحله ۲: فروریختن طبقه‌ی اول و دوم (آجر/چوب) ---- */
+   345→  else if (t < CS_T.colEnd) {
+   346→    const p = clamp((t - CS_T.shakeEnd) / (CS_T.colEnd - CS_T.shakeEnd), 0, 1);
+   347→    if (!cs.boomed) { cs.boomed = true; SFX.csBoom(); state.shake = 14; }
+   348→    D.cracks = 1;
+   349→    D.floors[0].a = clamp(1 - p * 1.5, 0, 1);      // طبقه‌ی اول: فرورفتن و محو
+   350→    D.floors[0].dy = p * p * 46;
+   351→    D.floors[0].rot = p * 0.05;
+   352→    const p2 = clamp((p - 0.12) / 0.88, 0, 1);     // طبقه‌ی دوم: کمی دیرتر
+   353→    D.floors[1].a = clamp(1 - p2 * 1.5, 0, 1);
+   354→    D.floors[1].dy = p2 * p2 * 56;
+   355→    D.floors[1].rot = -p2 * 0.06;
+   356→    D.rubble = clamp(p * 0.55, 0, 0.55);           // توده‌ی آوار رشد می‌کند
+   357→    state.shake = Math.max(state.shake, 5 + 7 * (1 - p));
+   358→    /* موج‌های انفجار آجر در چهار آستانه‌ی پیشرفت */
+   359→    const bn = [0.04, 0.3, 0.6, 0.9].filter(b => p >= b).length;
+   360→    while (cs.bursts < bn) { csBrickBurst(cs.bursts); cs.bursts++; }
+   361→  }
+   362→
+   363→  /* ---- مرحله ۳: سقوط تخته‌بام (طبقه‌ی سوم) و خرد شدن روی زمین ---- */
+   364→  const cf = clamp((t - CS_T.chunkDrop) / CS_T.chunkDur, 0, 1);
+   365→  if (cf > 0 && t < CS_T.fadeOut) {
+   366→    if (cf < 1) {
+   367→      D.floors[2].a = 1;
+   368→      D.floors[2].dy = cf * cf * (GROUND_Y - TOWER_TOP_Y - 22);   // سقوط شتاب‌دار
+   369→      D.floors[2].rot = -cf * 0.16;                               // کمی کج می‌شود
+   370→    } else if (!cs.chunkHit) {
+   371→      cs.chunkHit = true;
+   372→      D.floors[2].a = 0;                 // تخته‌بام خورد و در آوار رفت
+   373→      D.rubble = 1;
+   374→      state.shake = 12;
+   375→      SFX.csLand();
+   376→      spawnParticles(TOWER.x, GROUND_Y - 10, 26, '#8a6f52', { speed: 240, life: 0.8, size: 3.4, grav: 560, up: true });
+   377→      spawnParticles(TOWER.x, GROUND_Y - 4, 18, '#6e5a44', { speed: 170, life: 1.2, size: 4.2, grav: 260, up: true });
+   378→    }
+   379→  }
+   380→
+   381→  /* ---- ماشین نجات: ورود سریع از چپ، عبور از میان زامبی‌ها ---- */
+   382→  if (t >= CS_T.carEnter && t < CS_T.fadeOut + 0.6) {
+   383→    if (!cs.car) {
+   384→      cs.car = { x: -160, y: GROUND_Y + 14, spin: 0, kick: 0, hand: 1.4 };
+   385→      SFX.csEngine();
+   386→    }
+   387→    /* حرکت قطعی از زمان (قابل تست و پرش زمانی) */
+   388→    cs.car.x = -160 + CS_T.carSpd * (t - CS_T.carEnter);
+   389→    cs.car.spin += (CS_T.carSpd / 13) * dt;
+   390→    cs.car.kick = Math.max(0, cs.car.kick - dt * 4);
+   391→    cs.car.hand = Math.max(0, cs.car.hand - dt);   // اول کار دست می‌دهد
+   392→    SFX.csEngine();
+   393→    if (Math.random() < dt * 26) {                 // دم اگزوز + غبار چرخ‌ها
+   394→      spawnParticles(cs.car.x - 80, cs.car.y - 8, 1, 'rgba(190,180,168,0.5)',
+   395→        { speed: 34, life: 0.55, size: 2.6, grav: -26, dir: Math.PI, spread: 0.7 });
+   396→    }
+   397→    /* تصادف ساده: هر زامبیِ جلوی مسیر کنار پرتاب می‌شود */
+   398→    for (const z of cs.zombies) {
+   399→      if (!z.hit && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z);
+   400→    }
+   401→  } else if (t >= CS_T.fadeOut + 0.6 && cs.car) {
+   402→    cs.car = null;                                 // ماشین صحنه را ترک کرد
+   403→  }
+   404→
+   405→  /* ---- سقوط سینمایی بازیکن و نشستن روی ماشین ---- */
+   406→  const pf = clamp((t - CS_T.playerDrop) / CS_T.fallDur, 0, 1);
+   407→  if (pf > 0 && !cs.caught) {
+   408→    const y0 = TOWER_TOP_Y + 30;                   // لبه‌ی بامِ در حال سقوط
+   409→    const y1 = GROUND_Y + 14 - 54;                 // سقف ماشین
+   410→    D.player = {
+   411→      x: TOWER.x + 8 + pf * (CS_T.catchDX - 8),    // کمی به سمت ماشین می‌لغزد
+   412→      y: y0 + (y1 - y0) * pf * pf,                 // شتاب‌دار (جاذبه)
+   413→      rot: pf * 0.62,                              // چرخش تدریجی حین سقوط
+   414→      aim: -2.35,                                  // اسلحه بالا (چنگ زدن به هوا)
+   415→    };
+   416→    if (!cs.whistled) { cs.whistled = true; SFX.csWhistle(); }
+   417→    if (pf >= 1) {                                 // رسید به ماشین — سوار شد
+   418→      cs.caught = true;
+   419→      state.shake = 4;
+   420→      SFX.csThud();
+   421→      spawnParticles(D.player.x, D.player.y, 9, '#ffd873',
+   422→        { speed: 120, life: 0.5, size: 2.4, grav: 320, up: true });
+   423→    }
+   424→  }
+   425→  if (cs.caught && cs.car) {
+   426→    /* سوار شدن: بازیکن روی سقف ماشین، کمی به عقب خم (باد سرعت) */
+   427→    D.player = { x: cs.car.x + CS_T.catchDX, y: cs.car.y - 54, rot: -0.07, aim: -0.5 };
+   428→  }
+   429→
+   430→  /* ---- هدیه‌ی راننده وسط راه ---- */
+   431→  if (t >= CS_T.giftT) {
+   432→    cutsceneApplyGift();
+   433→    if (CS && CS.car && CS.giftApplied && !cs.giftTextShown) {
+   434→      cs.giftTextShown = true;
+   435→      addText(cs.car.x, cs.car.y - 92, '🎁 +' + faNum(cs.gift.coins), '#ffd873', 17);
+   436→    }
+   437→  }
+   438→
+   439→  /* ---- زامبی‌های صحنه: خزش به سمت برج یا فیزیک پرتاب ---- */
+   440→  for (const z of cs.zombies) {
+   441→    if (z.hit) {
+   442→      z.vy += 900 * dt;
+   443→      z.x += z.vx * dt; z.y += z.vy * dt; z.rot += z.vr * dt;
+   444→      if (z.y > z.groundY) {                       // فرود روی زمین
+   445→        z.y = z.groundY;
+   446→        if (!z.landed) {
+   447→          z.landed = true;
+   448→          addDecal(z.x, true);
+   449→          spawnParticles(z.x, z.y, 6, '#7a2f2f', { speed: 110, life: 0.4, size: 2.2, grav: 400 });
+   450→        }
+   451→        z.vx *= 0.8; z.vr = 0;
+   452→        z.rot += (Math.sign(z.rot || 1) * 1.45 - z.rot) * Math.min(1, dt * 9);   // خوابیدن صاف
+   453→      }
+   454→    } else {
+   455→      const dir = Math.sign(TOWER.x - z.x) || 1;
+   456→      if (Math.abs(TOWER.x - z.x) > 155) { z.x += dir * z.speed * dt; z.walkPhase += dt * 5; }
+   457→      else z.walkPhase += dt * 2.2;                // دور آوار جمع می‌شوند
+   458→    }
+   459→  }
+   460→
+   461→  /* ---- محو به سیاهی / سیاهی / بازگشت صحنه ---- */
+   462→  cs.fade = t < CS_T.fadeOut ? 0
+   463→    : t < CS_T.black ? clamp((t - CS_T.fadeOut) / CS_T.fadeDur, 0, 1)
+   464→    : t < CS_T.fadeIn ? 1
+   465→    : clamp(1 - (t - CS_T.fadeIn) / CS_T.fadeInDur, 0, 1);
+   466→
+   467→  /* تعویض صحنه در دلِ سیاهی: برج دوم + شهر سوخته + صحنه‌ی تمیز */
+   468→  if (t >= CS_T.switchT && !cs.switched) {
+   469→    cs.switched = true;
+   470→    state.towerVariant = cs.variant;
+   471→    state.cutsceneDone = true;
+   472→    state.dayness = 0.3;
+   473→    state.dayTarget = 1;                    // صبحِ شهر سوخته
+   474→    cs.zombies = [];
+   475→    state.particles = []; state.texts = []; state.zaps = []; state.decals = [];
+   476→    cs.car = null;
+   477→    D.floors = [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }];
+   478→    D.cracks = 0; D.rubble = 0; D.player = null;   // بازیکن روی برج جدید
+   479→  }
+   480→
+   481→  /* ---- پایان کات‌سین → روزِ برج جدید ---- */
+   482→  if (t >= CS_T.end) { cutsceneFinish(); return; }
+   483→
+   484→  /* ذرات/متن‌های کات‌سین همیشه جریان دارند */
+   485→  updateParticles(dt); updateTexts(dt); updateZaps(dt);
+   486→}
+   487→
+   488→/* ------------------ رسم: ماشین نجات دوست راننده ------------------
+   489→   ماشین عضلانی نارنجی-قرمز با نوار مشکی، شیشه‌ی آبی، راننده‌ی کلاه‌دار،
+   490→   چراغ جلو با مخروط نور (شب)، چرخ‌های در حال چرخش و دنباله‌ی غبار. */
+   491→function drawCar(car) {
+   492→  ctx.save();
+   493→  ctx.translate(car.x, car.y);
+   494→  const b = Math.sin(animTime * 16) * 1.1 - car.kick * 3;   // نرمی تعلیق + ضربه‌ی تصادم
+   495→  /* سایه روی زمین */
+   496→  ctx.fillStyle = 'rgba(0,0,0,0.42)';
+   497→  ctx.beginPath(); ctx.ellipse(0, 4, 78, 10, 0, 0, Math.PI * 2); ctx.fill();
+   498→  /* چرخ‌ها (زیر بدنه) */
+   499→  for (const wx of [-48, 48]) {
+   500→    ctx.fillStyle = '#15181f'; circle(wx, -12, 13);
+   501→    ctx.fillStyle = '#3c4250'; circle(wx, -12, 7.5);
+   502→    ctx.strokeStyle = '#9aa3b5'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+   503→    ctx.beginPath();
+   504→    for (let k = 0; k < 4; k++) {                // پره‌های در حال چرخش
+   505→      const a = car.spin + k * Math.PI / 2;
+   506→      ctx.moveTo(wx - Math.cos(a) * 3, -12 - Math.sin(a) * 3);
+   507→      ctx.lineTo(wx + Math.cos(a) * 6.5, -12 + Math.sin(a) * 6.5);
+   508→    }
+   509→    ctx.stroke();
+   510→    ctx.fillStyle = '#cfd6e4'; circle(wx, -12, 2.2);
+   511→  }
+   512→  ctx.translate(0, b);
+   513→  /* بدنه‌ی پایین — قرمز آتشین + نوار مسابقه‌ای مشکی */
+   514→  const bg = ctx.createLinearGradient(0, -30, 0, 0);
+   515→  bg.addColorStop(0, '#ff7a4d'); bg.addColorStop(0.5, '#e8563f'); bg.addColorStop(1, '#b23a30');
+   516→  ctx.fillStyle = bg; rr(-77, -26, 154, 24, 9); ctx.fill();
+   517→  ctx.fillStyle = 'rgba(20,16,20,0.9)'; rr(-77, -15, 154, 7, 3); ctx.fill();
+   518→  /* کابین + شیشه‌ها */
+   519→  ctx.fillStyle = '#c23a2c';
+   520→  ctx.beginPath();
+   521→  ctx.moveTo(-46, -26); ctx.lineTo(-34, -54); ctx.lineTo(26, -54); ctx.lineTo(44, -26);
+   522→  ctx.closePath(); ctx.fill();
+   523→  ctx.fillStyle = 'rgba(160,215,255,0.5)';
+   524→  ctx.beginPath();
+   525→  ctx.moveTo(-38, -28); ctx.lineTo(-29, -50); ctx.lineTo(20, -50); ctx.lineTo(34, -28);
+   526→  ctx.closePath(); ctx.fill();
+   527→  /* راننده (دوست ما): سر + کلاه + دست تکان‌دادن اول ورود */
+   528→  ctx.fillStyle = '#f0c49a'; circle(-8, -40, 5.5);
+   529→  ctx.fillStyle = '#2c3550';
+   530→  ctx.beginPath(); ctx.arc(-8, -41, 5.8, Math.PI, Math.PI * 2); ctx.fill();
+   531→  ctx.fillRect(-14, -41, 12, 2.4);               // لبه‌ی کلاه
+   532→  if (car.hand > 0) {
+   533→    ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+   534→    ctx.beginPath();
+   535→    ctx.moveTo(-2, -36);
+   536→    ctx.lineTo(-8 + Math.sin(animTime * 9) * 3, -50 - car.hand * 8);
+   537→    ctx.stroke();
+   538→  }
+   539→  /* اسپویلر عقب */
+   540→  ctx.fillStyle = '#8a2f26'; rr(-74, -61, 36, 5, 2); ctx.fill();
+   541→  ctx.fillStyle = '#3c4250';
+   542→  ctx.fillRect(-48, -57, 4, 8); ctx.fillRect(-70, -57, 4, 8);
+   543→  /* سپرهای کرومی + چراغ‌ها */
+   544→  ctx.fillStyle = '#cfd6e4'; rr(72, -15, 8, 8, 3); ctx.fill(); rr(-80, -15, 8, 8, 3); ctx.fill();
+   545→  ctx.fillStyle = '#ff5d4d'; rr(-79, -22, 5, 8, 2); ctx.fill();  // عقب
+   546→  ctx.fillStyle = '#fff3c4'; circle(74, -20, 4.5);               // جلو
+   547→  /* مخروط نور چراغ جلو (کات‌سین در شب است) */
+   548→  const hg = ctx.createLinearGradient(74, -20, 158, -14);
+   549→  hg.addColorStop(0, 'rgba(255,235,160,0.30)'); hg.addColorStop(1, 'rgba(255,235,160,0)');
+   550→  ctx.fillStyle = hg;
+   551→  ctx.beginPath();
+   552→  ctx.moveTo(74, -24); ctx.lineTo(158, -30); ctx.lineTo(158, -4); ctx.lineTo(74, -16);
+   553→  ctx.closePath(); ctx.fill();
+   554→  ctx.restore();
+   555→}
+   556→
+   557→/* زامبی‌های کات‌سین: معمولی = همان رسم بازی؛ پرتاب‌شده = چرخشی + بدون سایه‌ی زمین */
+   558→function drawCsZombie(z) {
+   559→  if (!z.hit) { drawZombie(z); return; }
+   560→  ctx.save();
+   561→  ctx.translate(z.x, z.y - (z.landed ? 10 : 0));
+   562→  if (z.rot) ctx.rotate(z.rot);
+   563→  drawZombie(Object.assign({}, z, { x: 0, y: 0, noShadow: true, attacking: false }));
+   564→  ctx.restore();
+   565→}
+   566→
+   567→/* توده‌ی آوار پایه‌ی برج (k = ۰..۱ اندازه‌ی توده) + غبار روی آن */
+   568→function drawRubble(k) {
+   569→  if (k <= 0.02) return;
+   570→  ctx.save();
+   571→  ctx.globalAlpha = Math.min(1, k * 1.2);
+   572→  ctx.translate(TOWER.x, GROUND_Y + 2);
+   573→  /* هسته‌ی توده + غبار فراگیر روی آن */
+   574→  ctx.fillStyle = 'rgba(58,48,36,0.92)';
+   575→  ctx.beginPath(); ctx.ellipse(0, 2, 74 * k, 16 * k + 4, 0, 0, Math.PI * 2); ctx.fill();
+   576→  ctx.fillStyle = 'rgba(160,140,110,' + (0.16 * k).toFixed(2) + ')';
+   577→  ctx.beginPath(); ctx.ellipse(0, -9 * k, 62 * k + 12, 30 * k + 6, 0, 0, Math.PI * 2); ctx.fill();
+   578→  /* قطعات آجر/سنگ پراکنده */
+   579→  for (const p of RUBBLE_PTS) {
+   580→    ctx.save();
+   581→    ctx.translate(p.dx * k, -p.dy * k - 2);
+   582→    ctx.rotate(p.rot);
+   583→    ctx.fillStyle = p.col;
+   584→    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+   585→    ctx.restore();
+   586→  }
+   587→  /* تیرهای چوبِ کج‌مانده */
+   588→  if (k > 0.7) {
+   589→    ctx.strokeStyle = '#4a3b2a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+   590→    ctx.beginPath();
+   591→    ctx.moveTo(-30, -6); ctx.lineTo(-2, -40);
+   592→    ctx.moveTo(26, -4); ctx.lineTo(44, -30);
+   593→    ctx.stroke();
+   594→  }
+   595→  ctx.restore();
+   596→}
+   597→
+   598→/* ترک‌های داستانی برج (k = ۰..۱ طول هر ترک):
+   599→   شکاف تیره‌ی پهن + لبه‌ی روشنِ تراشه تا در تاریکی شب هم خوانا باشد */
+   600→function drawTowerCracks(k) {
+   601→  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+   602→  for (const c of TOWER_CRACKS) {
+   603→    const n = Math.max(2, Math.ceil(c.pts.length * k));
+   604→    const seg = (off, col, lw) => {
+   605→      ctx.strokeStyle = col; ctx.lineWidth = lw;
+   606→      ctx.beginPath();
+   607→      ctx.moveTo(TOWER.x + c.pts[0][0] + off, GROUND_Y + c.pts[0][1]);
+   608→      for (let i = 1; i < n; i++) ctx.lineTo(TOWER.x + c.pts[i][0] + off, GROUND_Y + c.pts[i][1]);
+   609→      ctx.stroke();
+   610→    };
+   611→    seg(1.5, 'rgba(232,210,175,0.5)', 1.7);   // لبه‌ی روشنِ تراشه
+   612→    seg(0, 'rgba(13,8,4,0.92)', 3.6);          // شکاف تیره
+   613→  }
+   614→  ctx.fillStyle = 'rgba(160,140,110,' + (0.1 * k).toFixed(2) + ')';
+   615→  ctx.beginPath(); ctx.ellipse(TOWER.x, GROUND_Y - 80, 84, 118, 0, 0, Math.PI * 2); ctx.fill();
+   616→}
+   617→
+   618→/* ------------------ افق شهر سوخته (برج دوم) ------------------
+   619→   ساختمان‌های سوگته با بام‌های شکسته + پنجره‌های تیره/نارنجی +
+   620→   کانون‌های آتشِ چشمک‌زن با دنباله‌ی دود + مهِ دودیِ پایه‌ها.
+   621→   آتش و دود در روز هم (کم‌رنگ‌تر) دیده می‌شوند — شهر هنوز می‌سوزد. */
+   622→function drawRuinedSkyline(d) {
+   623→  ctx.fillStyle = mixHex('#141018', '#6e5546', d);
+   624→  ctx.beginPath();
+   625→  for (const b of RUIN_SKYLINE) {
+   626→    const top = GROUND_Y - b.h;
+   627→    ctx.moveTo(b.x, GROUND_Y);
+   628→    ctx.lineTo(b.x, top);
+   629→    for (const n of b.notch) {                 // لبه‌ی فروریخته‌ی بام
+   630→      ctx.lineTo(b.x + n.dx, top);
+   631→      ctx.lineTo(b.x + n.dx + n.w * 0.5, top + n.d);
+   632→      ctx.lineTo(b.x + n.dx + n.w, top);
+   633→    }
+   634→    ctx.lineTo(b.x + b.w, top);
+   635→    ctx.lineTo(b.x + b.w, GROUND_Y);
+   636→    ctx.closePath();
+   637→  }
+   638→  ctx.fill();
+   639→  /* پنجره‌های شکسته: روز و شب — تیره‌ها سیاه، نارنجی‌ها سوسوزن */
+   640→  for (const w2 of RUIN_WINS) {
+   641→    if (w2.lit) {
+   642→      const fl = 0.55 + 0.45 * Math.sin(animTime * 4 + w2.ph);
+   643→      ctx.fillStyle = 'rgba(255,140,60,' + (fl * (0.6 + 0.4 * (1 - d))).toFixed(2) + ')';
+   644→    } else {
+   645→      ctx.fillStyle = 'rgba(5,3,6,0.5)';
+   646→    }
+   647→    ctx.fillRect(w2.x, w2.y, 3.4, 5);
+   648→  }
+   649→  /* کانون‌های آتش + دودِ بالا رونده — حتی روز هم به‌روشنی دیده می‌شوند
+   650→     (شهر هنوز می‌سوزد؛ آتشِ روز کمی کمرنگ‌تر از شب است) */
+   651→  const fireA = 0.78 + 0.22 * (1 - d);
+   652→  for (const f of RUIN_FIRES) {
+   653→    const fl = 0.55 + 0.45 * Math.sin(animTime * 5 + f.ph);
+   654→    const g2 = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 17);
+   655→    g2.addColorStop(0, 'rgba(255,150,66,' + (0.8 * fireA * fl).toFixed(2) + ')');
+   656→    g2.addColorStop(0.5, 'rgba(255,110,40,' + (0.4 * fireA * fl).toFixed(2) + ')');
+   657→    g2.addColorStop(1, 'rgba(255,110,40,0)');
+   658→    ctx.fillStyle = g2; circle(f.x, f.y, 17);
+   659→    ctx.fillStyle = 'rgba(255,200,120,' + (0.85 * fireA * fl).toFixed(2) + ')';
+   660→    circle(f.x, f.y, 2.4);                        // هسته‌ی روشن شعله
+   661→    const sy = f.y - 13 - (animTime * 7 + f.ph * 10) % 26;
+   662→    ctx.fillStyle = 'rgba(64,50,52,' + (0.45 * fireA * fl).toFixed(2) + ')';
+   663→    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime + f.ph) * 4, sy, 7.5, 13, 0, 0, Math.PI * 2); ctx.fill();
+   664→    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime * 0.7 + f.ph) * 7, sy - 17, 11, 16, 0, 0, Math.PI * 2); ctx.fill();
+   665→  }
+   666→  /* مهِ پایه‌ی ساختمان‌ها: خاکستریِ دودی */
+   667→  const fog = ctx.createLinearGradient(0, GROUND_Y - 46, 0, GROUND_Y);
+   668→  fog.addColorStop(0, 'rgba(120,95,80,0)');
+   669→  fog.addColorStop(1, d > 0.5 ? 'rgba(160,130,110,' + (0.24 * d).toFixed(2) + ')'
+   670→                              : 'rgba(80,60,55,' + (0.2 * (1 - d)).toFixed(2) + ')');
+   671→  ctx.fillStyle = fog;
+   672→  ctx.fillRect(-20, GROUND_Y - 46, W + 40, 46);
+   673→}
+   674→
+   675→/* ------------------ لایه‌ی رویی کات‌سین ------------------
+   676→   نوارهای سینمایی، زیرنویس مراحل، تپش قرمزِ لرزش، محو/سیاهی
+   677→   و متن‌های صفحه‌ی سیاه — بعد از همه‌ی لایه‌ها رسم می‌شود */
+   678→function drawCutscene() {
+   679→  if (!CS) return;
+   680→  const t = CS.t;
+   681→  /* نوارهای سینمایی (ورود/خروج نرم) */
+   682→  const lIn = clamp(t / 0.45, 0, 1);
+   683→  const lOut = clamp((CS_T.end - t) / 0.55, 0, 1);
+   684→  const L = 46 * Math.min(lIn, lOut);
+   685→  if (L > 0.5) {
+   686→    ctx.fillStyle = '#000';
+   687→    ctx.fillRect(0, 0, W, L);
+   688→    ctx.fillRect(0, H - L, W, L);
+   689→  }
+   690→  /* زیرنویس مراحل (کپسول پایین صحنه) */
+   691→  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+   692→  ctx.font = 'bold 15px Tahoma, sans-serif';
+   693→  const caps = CS_CAPS.slice();
+   694→  if (CS.giftApplied && CS.giftText) caps.push([CS_T.giftT, CS_T.giftT + 1.35, '🎁 ' + CS.giftText]);
+   695→  for (const c of caps) {
+   696→    if (t < c[0] || t > c[1]) continue;
+   697→    const a = Math.min(1, (t - c[0]) / 0.25, (c[1] - t) / 0.25);
+   698→    ctx.globalAlpha = a;
+   699→    const tw = ctx.measureText(c[2]).width + 26;
+   700→    ctx.fillStyle = 'rgba(0,0,0,0.66)';
+   701→    rr(W / 2 - tw / 2, H - L - 42, tw, 26, 13); ctx.fill();
+   702→    ctx.fillStyle = '#f3e9cf';
+   703→    ctx.fillText(c[2], W / 2, H - L - 29);
+   704→    ctx.globalAlpha = 1;
+   705→  }
+   706→  /* تپش قرمز لبه‌ها حین لرزش زمین */
+   707→  if (t < CS_T.shakeEnd) {
+   708→    const a = 0.1 + 0.08 * Math.sin(t * 26);
+   709→    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+   710→    g.addColorStop(0, 'rgba(180,20,20,0)');
+   711→    g.addColorStop(1, 'rgba(180,20,20,' + a.toFixed(2) + ')');
+   712→    ctx.fillStyle = g;
+   713→    ctx.fillRect(0, 0, W, H);
+   714→  }
+   715→  /* محو به سیاهی */
+   716→  if (CS.fade > 0.003) {
+   717→    ctx.fillStyle = 'rgba(0,0,0,' + CS.fade.toFixed(3) + ')';
+   718→    ctx.fillRect(0, 0, W, H);
+   719→  }
+   720→  /* متن‌های صفحه‌ی سیاه: «به موقعیت جدید رسیدید...» / «برج بعدی» */
+   721→  if (CS.fade > 0.965) {
+   722→    const aM = clamp((t - CS_T.black - 0.2) / 0.5, 0, 1);
+   723→    const aS = clamp((t - CS_T.black - 0.8) / 0.5, 0, 1);
+   724→    if (aM > 0) {
+   725→      ctx.globalAlpha = aM;
+   726→      ctx.font = 'bold 30px Tahoma, sans-serif';
+   727→      ctx.fillStyle = '#e8ecf5';
+   728→      ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 12;
+   729→      ctx.fillText('به موقعیت جدید رسیدید...', W / 2, H / 2 - 16);
+   730→      ctx.shadowBlur = 0;
+   731→    }
+   732→    if (aS > 0) {
+   733→      ctx.globalAlpha = aS;
+   734→      ctx.font = 'bold 19px Tahoma, sans-serif';
+   735→      ctx.fillStyle = '#ffd873';
+   736→      ctx.fillText('🏗 برج بعدی', W / 2, H / 2 + 26);
+   737→    }
+   738→    ctx.globalAlpha = 1;
+   739→  }
+   740→}
+   741→
+   742→/* اتصال دکمه‌ی «رد کردن» (عنصر در HTML موجود است) */
+   743→$('skipCs').addEventListener('click', skipCutscene);
+   744→
