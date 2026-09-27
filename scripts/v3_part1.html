@@ -3,23 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۵٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۶٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
             ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰)
             ۵٫۵) پنل روز: دکمه‌ی «شب شود» (۵٫۰)
             ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال (۵٫۰)  ۸) راهنما
-   تازه‌های ۵٫۰:
-     - پنل ساخت‌وساز آیکونی: به‌جای متن‌های طولانی، تصویر + قیمت
-       (توضیح کامل فقط در تولتیپِ hover نمایش داده می‌شود)
-     - چرخه‌ی روز و شب: بعد از هر موج «صبح» می‌شود؛ بدون زامبی،
-       خرید آزاد، و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
-     - منوی اصلی ساده و تمیز شد (حذف چیپ‌ها و شلوغی)
+   تازه‌های ۶٫۰:
+     - پنل ساخت‌وساز در شب (موج) خودکار جمع می‌شود تا نقشه و
+       زامبی‌های سمت راست کاملاً دیده شوند و شلیک آزاد باشد؛
+       در روز خودکار باز می‌شود (خرید/نصب) — کلید B یا کلیک سربرگ
+     - دکمه‌ی «شب شود» به بالای صفحه (زیر HUD) رفت تا کف نقشة
+       برای دیدن و نصب برجک کاملاً آزاد بماند
+     - ارتقای کلی گرافیک صحنه (آسمان/ماه/شهر/زمین/برج/زامبی‌ها)
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -99,10 +100,18 @@ body{display:flex;align-items:center;justify-content:center}
 /* ---------- ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰) ----------
    به‌جای ردیف‌های متنی، شبکه‌ی ۳ ستونی از کاشی‌های تصویری؛
    هر آیکون با Canvas همین‌جا رسم می‌شود (بدون فایل خارجی).
-   توضیح هر آیتم فقط در تولتیپِ hover دیده می‌شود. */
+   توضیح هر آیتم فقط در تولتیپِ hover دیده می‌شود.
+   (۶٫۰) در شب خودکار «جمع» می‌شود و فقط یک دکمه‌ی کوچک می‌ماند
+   تا دیدن و شلیک به زامبی‌های سمت راست آزاد باشد. */
 #buildPanel{position:absolute;top:60px;right:10px;width:196px;z-index:5;
   background:rgba(8,14,30,.58);border:1px solid #26355c;border-radius:12px;
   backdrop-filter:blur(4px);overflow:visible}
+/* حالت جمع‌شده: فقط سربرگ به‌صورت یک قرص کوچک در آسمان (۶٫۰) */
+#buildPanel.collapsed{width:auto}
+#buildPanel.collapsed .bp-head{border-radius:12px;padding:7px 13px;font-size:12px;
+  background:rgba(13,21,44,.92)}
+#buildPanel:not(.collapsed) #bpList{animation:bpOpen .18s ease}
+@keyframes bpOpen{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
 .bp-head{display:flex;align-items:center;gap:6px;padding:6px 9px;font-size:11.5px;font-weight:bold;
   color:#c3cdea;background:rgba(13,21,44,.85);cursor:pointer;border-bottom:1px solid #24325a;
   border-radius:12px 12px 0 0}
@@ -148,18 +157,18 @@ body{display:flex;align-items:center;justify-content:center}
 #bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
 
 /* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب ----------
-   بعد از پاک‌سازی هر موج صبح می‌شود؛ این دکمه وسطِ پایین
-   می‌آید و با کلیک، شب و موج بعد شروع می‌شود. */
-#dayPanel{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:6;
-  display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
-#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:17px;font-weight:bold;
-  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:12px;
-  padding:13px 42px;box-shadow:0 4px 26px rgba(240,180,60,.45);
+   (۶٫۰) دکمه به بالای صفحه (زیر HUD) منتقل شد تا کف نقشه برای
+   دیدن و نصب برجک کاملاً آزاد بماند. */
+#dayPanel{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:6;
+  display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:15.5px;font-weight:bold;
+  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:999px;
+  padding:10px 34px;box-shadow:0 4px 22px rgba(240,180,60,.4);
   transition:transform .15s,filter .15s;animation:nightGlow 1.6s ease-in-out infinite}
 #btnNight:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.07)}
-@keyframes nightGlow{0%,100%{box-shadow:0 4px 22px rgba(240,180,60,.35)}50%{box-shadow:0 4px 34px rgba(240,180,60,.68)}}
-#dpHint{font-size:11.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.78);
-  border:1px solid #26355c;border-radius:999px;padding:5px 14px;backdrop-filter:blur(4px)}
+@keyframes nightGlow{0%,100%{box-shadow:0 4px 18px rgba(240,180,60,.32)}50%{box-shadow:0 4px 30px rgba(240,180,60,.62)}}
+#dpHint{font-size:10.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.72);
+  border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -280,10 +289,11 @@ body{display:flex;align-items:center;justify-content:center}
   </div>
   <div id="bpTip"></div>
 
-  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============ -->
+  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============
+       (۶٫۰) بالای صفحه، زیر HUD — کف نقشه آزاد می‌ماند -->
   <div id="dayPanel" class="hidden">
     <button id="btnNight">🌙 شب شود</button>
-    <span id="dpHint">در روز زامبی نمی‌آید — ارتقا بخر و برجک بگذار!</span>
+    <span id="dpHint">زامبی نمی‌آید — ارتقا بخر و برجک بگذار</span>
   </div>
 
   <!-- ============ منوی اصلی: مینیمال روی صحنه‌ی زنده ============ -->
@@ -296,7 +306,7 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۵٫۰ — چرخه‌ی روز و شب، اقتصاد نو و برجک‌های خودکار</p>
+      <p class="ver">نسخه‌ی ۶٫۰ — گرافیک ارتقایافته، چرخه‌ی روز و شب و برجک‌های خودکار</p>
     </div>
   </div>
 
@@ -307,10 +317,10 @@ body{display:flex;align-items:center;justify-content:center}
       <p class="subtitle">سی ثانیه بخوان؛ ده موج زنده بمون!</p>
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر</div>
-        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — راحت ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» موج بعد را شروع کن</div>
+        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — راحت ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» (بالای صفحه) موج بعد را شروع کن</div>
         <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰ / G / F:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>T:</b> ارتقای برجک‌ها &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
         <div>⌨ <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> قطع/وصل صدا</div>
-        <div>🛠 <b>پنل ساخت‌وساز</b> سمت راست نقشه همیشه باز است — روی هر آیکون برو تا توضیح و قیمتش را ببینی؛ با پادشایی هر موج هم سکه‌ی جایزه می‌گیری!</div>
+        <div>🛠 <b>پنل ساخت‌وساز:</b> در روز (بالای نقشه‌ی راست) باز است و در شب خودکار جمع می‌شود تا شلیک به زامبی‌ها آزاد باشد — کلید B یا کلیک روی سربرگش باز/جمعش کن؛ خرید سریع با کلیدها همیشه ممکن است</div>
         <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
         <div>🎯 شلیک به <b>سر</b> زامبی = <b>ضربه‌ی بحرانی</b> با دمیج دوبرابر</div>
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>

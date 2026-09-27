@@ -1,17 +1,17 @@
 'use strict';
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — منطق بازی (بخش ۱)
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۱)
    ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
      ۱) ثابت‌ها و تنظیمات       ۲) ابزارهای کمکی
      ۳) موتور صدا (Web Audio)   ۴) وضعیت بازی
      ۵) ورودی (ماوس/کیبورد)     ۶) جریان موج‌ها و تولید زامبی
      ۷) شلیک و سلاح‌ها           ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج
      ۹) سکه‌ها و قدرت‌های ویژه   ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده)
-   تازه‌های ۵٫۰:
-     - اقتصاد نو: قیمت‌ها حدود نصف شدند، سکه‌ی زامبی‌ها و جایزه‌ی
-       پایان موج بالا رفت (پادشایی هر موج: ۱۲ + ۶×شماره موج)
-     - چرخه‌ی روز و شب: بعد از پاک‌سازی هر موج «صبح» می‌شود (حالت day)،
-       زامبی نمی‌آید، خرید آزاد است و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
+   تازه‌های ۶٫۰:
+     - پنل ساخت‌وساز در شب خودکار جمع می‌شود (دید کامل نقشه) و
+       در روز باز می‌شود
+     - عناصر تازه‌ی صحنه برای گرافیک بهتر: ستاره‌های درشت،
+       دکل‌های آنتن با چراغ قرمز، گل‌ها، لبه‌ی چمن و بافت زمین
    ================================================================== */
 
 /* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
@@ -136,11 +136,13 @@ const STARS = Array.from({ length: 80 }, () => ({
 const HILLS1 = Array.from({ length: 18 }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
 const HILLS2 = Array.from({ length: 13 }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
 const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
-/* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس) */
+/* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس — ۶٫۰: دو ابر دیگر) */
 const CLOUDS = [
   { x: 140, y: 58,  s: 1.15, v: 6 },
   { x: 520, y: 96,  s: 0.8,  v: 9 },
   { x: 830, y: 44,  s: 1.35, v: 5 },
+  { x: 300, y: 128, s: 0.6,  v: 12 },
+  { x: 660, y: 30,  s: 0.75, v: 10 },
 ];
 /* کرم‌های شب‌تاب (۳٫۰): نقاط نور کوچکی که آرام حول زمین شنا می‌شوند */
 const FIREFLIES = Array.from({ length: 14 }, () => ({
@@ -160,12 +162,12 @@ const SKYLINE_WINS = [];
   while (x < W + 12) {
     const bw = 34 + srand() * 52, bh = 26 + srand() * 95;
     SKYLINE.push({ x, w: bw, h: bh });
-    /* پنجره‌های روشنِ همین ساختمان */
+    /* پنجره‌های روشنِ همین ساختمان (۶٫۰: هر پنجره فاز سوسوی خودش را دارد) */
     const cols = Math.floor((bw - 8) / 9), rows = Math.floor((bh - 10) / 13);
     for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
       if (srand() > 0.72) {
         SKYLINE_WINS.push({
-          x: x + 5 + c * 9, y: GROUND_Y - bh + 6 + r * 13,
+          x: x + 5 + c * 9, y: GROUND_Y - bh + 6 + r * 13, ph: srand() * 6.28,
           c: srand() > 0.82 ? 'rgba(127,179,255,0.8)' : 'rgba(255,214,122,0.75)',
         });
       }
@@ -173,6 +175,30 @@ const SKYLINE_WINS = [];
     x += bw + 8; i++;
   }
 }
+/* ---------- عناصر تازه‌ی صحنه (۶٫۰: ارتقای گرافیک) ---------- */
+/* ستاره‌های درشت با برقِ چهارپر — روی ستاره‌های ریز قبلی */
+const BIGSTARS = Array.from({ length: 6 }, () => ({
+  x: 30 + srand() * (W - 60), y: 16 + srand() * (GROUND_Y - 210),
+  r: 1.5 + srand() * 1.1, ph: srand() * 6.28, sp: 0.6 + srand() * 1.1,
+}));
+/* دکل‌های آنتن روی بلندترین ساختمان‌ها + چراغ قرمز چشمک‌زنِ هشدار (شب) */
+const ANTENNAS = [];
+for (const b of SKYLINE) {
+  if (b.h > 82 && ANTENNAS.length < 7 && srand() > 0.3) {
+    ANTENNAS.push({ x: b.x + b.w / 2, top: GROUND_Y - b.h, h: 13 + srand() * 17, ph: srand() * 6.28 });
+  }
+}
+/* گل‌های کوچک کنار زمین: روز باز و رنگی، شب بسته و کم‌رنگ */
+const FLOWERS = Array.from({ length: 14 }, () => ({
+  x: 20 + srand() * (W - 40), dy: 4 + srand() * 12,
+  hue: Math.floor(srand() * 360), s: 0.75 + srand() * 0.5, ph: srand() * 6.28,
+}));
+/* لبه‌ی ناهموار چمنِ خط زمین (تیغه‌های ریز) */
+const GRASS_EDGE = Array.from({ length: 70 }, () => ({ x: srand() * W, h: 2 + srand() * 4.5, ph: srand() * 6.28 }));
+/* رگه‌های افقی بافت خاک (عمق متفاوت برای حجم دادن به زمین) */
+const GROUND_STREAKS = Array.from({ length: 12 }, () => ({
+  x: srand() * W, w: 46 + srand() * 110, dy: 7 + srand() * 36, a: 0.05 + srand() * 0.06,
+}));
 
 /* ---------------------- ۳) موتور صدا (Web Audio) ---------------------- */
 /* همه‌ی صداها همین‌جا سینتز می‌شوند — هیچ فایل صوتی خارجی وجود ندارد.
@@ -512,6 +538,7 @@ function startGame() {
   hideOverlays();
   hideDayPanel();                          // پنل روز مطمئناً بسته باشد (۵٫۰)
   $('wrap').classList.remove('menu-mode'); // HUD و پنل‌ها برگردند (۵٫۰)
+  setBuildPanel(false, true);              // پنل ساخت‌وساز در شروع باز باشد (۶٫۰)
   $('btnPause').textContent = '⏸ توقف';
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
@@ -541,6 +568,7 @@ function startWave(n) {
   setAnnounce('موج ' + faNum(n),
     n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
   SFX.wave();
+  setBuildPanel(true, true);               // شب شد: پنل خودکار جمع شود تا نقشه آزاد باشد (۶٫۰)
   $('bpHead').classList.remove('attention');
   updateHUD();
 }
@@ -566,6 +594,7 @@ function waveComplete() {
   SFX.clear();
   SFX.morning();                           // چرپ‌چرپ صبحگاهی
   showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
+  setBuildPanel(false, true);              // روز شد: پنل خودکار باز شود برای خرید/نصب (۶٫۰)
   $('bpHead').classList.add('attention');   // راهنمایی بصری: فرصت خرید رسید
   updateHUD();
 }
@@ -769,6 +798,16 @@ function updateZombies(dt) {
     const yTarget = GROUND_Y - z.lane * 9 + z.yJit;
     z.y += (yTarget - z.y) * Math.min(1, dt * 6);
     z.depth = 1 - z.lane * 0.07;
+
+    /* غبار گام‌ها (۶٫۰): ذره‌ی ریز پشت پای زامبیِ در حال راه رفتن */
+    if (!z.dead && Math.abs(dx) > stop && Math.random() < dt * 2.2) {
+      state.particles.push({
+        x: z.x - z.dir * 7, y: z.y + 1,
+        vx: -z.dir * rand(5, 15), vy: rand(-20, -7),
+        age: 0, life: rand(0.25, 0.42), size: rand(1.2, 1.9),
+        color: 'rgba(96,84,58,0.45)', grav: 60,
+      });
+    }
   }
   state.zombies = state.zombies.filter(z => !z.dead || z.deathT < 0.55);
 }

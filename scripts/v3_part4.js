@@ -1,12 +1,10 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — منطق بازی (بخش ۳)
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۳)
      ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل آیکونی + تولتیپ)
      ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
-   تازه‌های ۵٫۰ در این بخش:
-     - پنل ساخت‌وساز آیکونی: هر آیتم یک کاشی تصویری (Canvas-drawn icon)
-       + قیمت + پین‌های سطح؛ توضیح فقط در تولتیپِ hover
-     - حلقه‌ی اصلی حالت day را هم به‌روز می‌کند (روزِ بین موج‌ها)
-     - دکمه‌ی «شب شود» (btnNight) به startNight وصل شد
+   تازه‌های ۶٫۰ در این بخش:
+     - setBuildPanel: پنل ساخت‌وساز در شروع موج خودکار جمع می‌شود
+       (شلیک آزاد به زامبی‌های سمت راست) و در روز باز می‌شود
    ================================================================== */
 
 /* ---------------------- ۱۵) رابط کاربری ---------------------- */
@@ -305,11 +303,20 @@ function buildPanelInit() {
   $('bpHead').addEventListener('click', toggleBuildPanel);
 }
 
-function toggleBuildPanel() {
+/* تنظیم مستقیم وضعیت پنل ساخت‌وساز (۶٫۰):
+   شب (شروع موج) خودکار جمع می‌شود تا زامبی‌های سمت راست دیده و شلیک شوند؛
+   روز (پس از پاک‌سازی موج) خودکار باز می‌شود برای خرید و نصب. */
+function setBuildPanel(collapsed, silent) {
   const p = $('buildPanel');
-  p.classList.toggle('collapsed');
-  $('bpChev').textContent = p.classList.contains('collapsed') ? '▸' : '▾';
-  SFX.click();
+  if (p.classList.contains('collapsed') === collapsed) return;
+  p.classList.toggle('collapsed', collapsed);
+  $('bpChev').textContent = collapsed ? '▸' : '▾';
+  if (collapsed) hideTip();                 // تولتیپ باز مانده نباشد
+  if (!silent) SFX.click();
+}
+
+function toggleBuildPanel() {
+  setBuildPanel(!$('buildPanel').classList.contains('collapsed'));
 }
 
 /* به‌روزرسانی وضعیت کاشی‌های پنل (قیمت/سطح/قابلیت خرید — ۵٫۰ آیکونی) */
@@ -472,6 +479,7 @@ window.GAME = {
   TURRETS, MAX_TURRETS,
   endWave: waveComplete,             /* شبیه‌سازی پایان موج → صبح (۵٫۰) */
   startNight,                        /* شبیه‌سازی کلیک «شب شود» (۵٫۰) */
+  setBuildPanel,                     /* جمع/باز کردن پنل ساخت‌وساز (۶٫۰) */
   giveCoins(n) { state.coins += n; updateHUD(); },
   spawnType(type) { spawnZombie(type); },
   hurt(n) { damageTower(n, TOWER.x + 10); },

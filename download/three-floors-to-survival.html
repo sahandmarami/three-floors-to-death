@@ -3,23 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۵٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۶٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
             ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰)
             ۵٫۵) پنل روز: دکمه‌ی «شب شود» (۵٫۰)
             ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال (۵٫۰)  ۸) راهنما
-   تازه‌های ۵٫۰:
-     - پنل ساخت‌وساز آیکونی: به‌جای متن‌های طولانی، تصویر + قیمت
-       (توضیح کامل فقط در تولتیپِ hover نمایش داده می‌شود)
-     - چرخه‌ی روز و شب: بعد از هر موج «صبح» می‌شود؛ بدون زامبی،
-       خرید آزاد، و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
-     - منوی اصلی ساده و تمیز شد (حذف چیپ‌ها و شلوغی)
+   تازه‌های ۶٫۰:
+     - پنل ساخت‌وساز در شب (موج) خودکار جمع می‌شود تا نقشه و
+       زامبی‌های سمت راست کاملاً دیده شوند و شلیک آزاد باشد؛
+       در روز خودکار باز می‌شود (خرید/نصب) — کلید B یا کلیک سربرگ
+     - دکمه‌ی «شب شود» به بالای صفحه (زیر HUD) رفت تا کف نقشة
+       برای دیدن و نصب برجک کاملاً آزاد بماند
+     - ارتقای کلی گرافیک صحنه (آسمان/ماه/شهر/زمین/برج/زامبی‌ها)
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -99,10 +100,18 @@ body{display:flex;align-items:center;justify-content:center}
 /* ---------- ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰) ----------
    به‌جای ردیف‌های متنی، شبکه‌ی ۳ ستونی از کاشی‌های تصویری؛
    هر آیکون با Canvas همین‌جا رسم می‌شود (بدون فایل خارجی).
-   توضیح هر آیتم فقط در تولتیپِ hover دیده می‌شود. */
+   توضیح هر آیتم فقط در تولتیپِ hover دیده می‌شود.
+   (۶٫۰) در شب خودکار «جمع» می‌شود و فقط یک دکمه‌ی کوچک می‌ماند
+   تا دیدن و شلیک به زامبی‌های سمت راست آزاد باشد. */
 #buildPanel{position:absolute;top:60px;right:10px;width:196px;z-index:5;
   background:rgba(8,14,30,.58);border:1px solid #26355c;border-radius:12px;
   backdrop-filter:blur(4px);overflow:visible}
+/* حالت جمع‌شده: فقط سربرگ به‌صورت یک قرص کوچک در آسمان (۶٫۰) */
+#buildPanel.collapsed{width:auto}
+#buildPanel.collapsed .bp-head{border-radius:12px;padding:7px 13px;font-size:12px;
+  background:rgba(13,21,44,.92)}
+#buildPanel:not(.collapsed) #bpList{animation:bpOpen .18s ease}
+@keyframes bpOpen{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
 .bp-head{display:flex;align-items:center;gap:6px;padding:6px 9px;font-size:11.5px;font-weight:bold;
   color:#c3cdea;background:rgba(13,21,44,.85);cursor:pointer;border-bottom:1px solid #24325a;
   border-radius:12px 12px 0 0}
@@ -148,18 +157,18 @@ body{display:flex;align-items:center;justify-content:center}
 #bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
 
 /* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب ----------
-   بعد از پاک‌سازی هر موج صبح می‌شود؛ این دکمه وسطِ پایین
-   می‌آید و با کلیک، شب و موج بعد شروع می‌شود. */
-#dayPanel{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:6;
-  display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
-#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:17px;font-weight:bold;
-  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:12px;
-  padding:13px 42px;box-shadow:0 4px 26px rgba(240,180,60,.45);
+   (۶٫۰) دکمه به بالای صفحه (زیر HUD) منتقل شد تا کف نقشه برای
+   دیدن و نصب برجک کاملاً آزاد بماند. */
+#dayPanel{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:6;
+  display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:15.5px;font-weight:bold;
+  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:999px;
+  padding:10px 34px;box-shadow:0 4px 22px rgba(240,180,60,.4);
   transition:transform .15s,filter .15s;animation:nightGlow 1.6s ease-in-out infinite}
 #btnNight:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.07)}
-@keyframes nightGlow{0%,100%{box-shadow:0 4px 22px rgba(240,180,60,.35)}50%{box-shadow:0 4px 34px rgba(240,180,60,.68)}}
-#dpHint{font-size:11.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.78);
-  border:1px solid #26355c;border-radius:999px;padding:5px 14px;backdrop-filter:blur(4px)}
+@keyframes nightGlow{0%,100%{box-shadow:0 4px 18px rgba(240,180,60,.32)}50%{box-shadow:0 4px 30px rgba(240,180,60,.62)}}
+#dpHint{font-size:10.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.72);
+  border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -280,10 +289,11 @@ body{display:flex;align-items:center;justify-content:center}
   </div>
   <div id="bpTip"></div>
 
-  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============ -->
+  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============
+       (۶٫۰) بالای صفحه، زیر HUD — کف نقشه آزاد می‌ماند -->
   <div id="dayPanel" class="hidden">
     <button id="btnNight">🌙 شب شود</button>
-    <span id="dpHint">در روز زامبی نمی‌آید — ارتقا بخر و برجک بگذار!</span>
+    <span id="dpHint">زامبی نمی‌آید — ارتقا بخر و برجک بگذار</span>
   </div>
 
   <!-- ============ منوی اصلی: مینیمال روی صحنه‌ی زنده ============ -->
@@ -296,7 +306,7 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۵٫۰ — چرخه‌ی روز و شب، اقتصاد نو و برجک‌های خودکار</p>
+      <p class="ver">نسخه‌ی ۶٫۰ — گرافیک ارتقایافته، چرخه‌ی روز و شب و برجک‌های خودکار</p>
     </div>
   </div>
 
@@ -307,10 +317,10 @@ body{display:flex;align-items:center;justify-content:center}
       <p class="subtitle">سی ثانیه بخوان؛ ده موج زنده بمون!</p>
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر</div>
-        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — راحت ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» موج بعد را شروع کن</div>
+        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — راحت ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» (بالای صفحه) موج بعد را شروع کن</div>
         <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰ / G / F:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>T:</b> ارتقای برجک‌ها &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
         <div>⌨ <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> قطع/وصل صدا</div>
-        <div>🛠 <b>پنل ساخت‌وساز</b> سمت راست نقشه همیشه باز است — روی هر آیکون برو تا توضیح و قیمتش را ببینی؛ با پادشایی هر موج هم سکه‌ی جایزه می‌گیری!</div>
+        <div>🛠 <b>پنل ساخت‌وساز:</b> در روز (بالای نقشه‌ی راست) باز است و در شب خودکار جمع می‌شود تا شلیک به زامبی‌ها آزاد باشد — کلید B یا کلیک روی سربرگش باز/جمعش کن؛ خرید سریع با کلیدها همیشه ممکن است</div>
         <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
         <div>🎯 شلیک به <b>سر</b> زامبی = <b>ضربه‌ی بحرانی</b> با دمیج دوبرابر</div>
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>
@@ -365,18 +375,18 @@ body{display:flex;align-items:center;justify-content:center}
 <script>
 'use strict';
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — منطق بازی (بخش ۱)
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۱)
    ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
      ۱) ثابت‌ها و تنظیمات       ۲) ابزارهای کمکی
      ۳) موتور صدا (Web Audio)   ۴) وضعیت بازی
      ۵) ورودی (ماوس/کیبورد)     ۶) جریان موج‌ها و تولید زامبی
      ۷) شلیک و سلاح‌ها           ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج
      ۹) سکه‌ها و قدرت‌های ویژه   ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده)
-   تازه‌های ۵٫۰:
-     - اقتصاد نو: قیمت‌ها حدود نصف شدند، سکه‌ی زامبی‌ها و جایزه‌ی
-       پایان موج بالا رفت (پادشایی هر موج: ۱۲ + ۶×شماره موج)
-     - چرخه‌ی روز و شب: بعد از پاک‌سازی هر موج «صبح» می‌شود (حالت day)،
-       زامبی نمی‌آید، خرید آزاد است و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
+   تازه‌های ۶٫۰:
+     - پنل ساخت‌وساز در شب خودکار جمع می‌شود (دید کامل نقشه) و
+       در روز باز می‌شود
+     - عناصر تازه‌ی صحنه برای گرافیک بهتر: ستاره‌های درشت،
+       دکل‌های آنتن با چراغ قرمز، گل‌ها، لبه‌ی چمن و بافت زمین
    ================================================================== */
 
 /* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
@@ -501,11 +511,13 @@ const STARS = Array.from({ length: 80 }, () => ({
 const HILLS1 = Array.from({ length: 18 }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
 const HILLS2 = Array.from({ length: 13 }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
 const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
-/* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس) */
+/* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس — ۶٫۰: دو ابر دیگر) */
 const CLOUDS = [
   { x: 140, y: 58,  s: 1.15, v: 6 },
   { x: 520, y: 96,  s: 0.8,  v: 9 },
   { x: 830, y: 44,  s: 1.35, v: 5 },
+  { x: 300, y: 128, s: 0.6,  v: 12 },
+  { x: 660, y: 30,  s: 0.75, v: 10 },
 ];
 /* کرم‌های شب‌تاب (۳٫۰): نقاط نور کوچکی که آرام حول زمین شنا می‌شوند */
 const FIREFLIES = Array.from({ length: 14 }, () => ({
@@ -525,12 +537,12 @@ const SKYLINE_WINS = [];
   while (x < W + 12) {
     const bw = 34 + srand() * 52, bh = 26 + srand() * 95;
     SKYLINE.push({ x, w: bw, h: bh });
-    /* پنجره‌های روشنِ همین ساختمان */
+    /* پنجره‌های روشنِ همین ساختمان (۶٫۰: هر پنجره فاز سوسوی خودش را دارد) */
     const cols = Math.floor((bw - 8) / 9), rows = Math.floor((bh - 10) / 13);
     for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
       if (srand() > 0.72) {
         SKYLINE_WINS.push({
-          x: x + 5 + c * 9, y: GROUND_Y - bh + 6 + r * 13,
+          x: x + 5 + c * 9, y: GROUND_Y - bh + 6 + r * 13, ph: srand() * 6.28,
           c: srand() > 0.82 ? 'rgba(127,179,255,0.8)' : 'rgba(255,214,122,0.75)',
         });
       }
@@ -538,6 +550,30 @@ const SKYLINE_WINS = [];
     x += bw + 8; i++;
   }
 }
+/* ---------- عناصر تازه‌ی صحنه (۶٫۰: ارتقای گرافیک) ---------- */
+/* ستاره‌های درشت با برقِ چهارپر — روی ستاره‌های ریز قبلی */
+const BIGSTARS = Array.from({ length: 6 }, () => ({
+  x: 30 + srand() * (W - 60), y: 16 + srand() * (GROUND_Y - 210),
+  r: 1.5 + srand() * 1.1, ph: srand() * 6.28, sp: 0.6 + srand() * 1.1,
+}));
+/* دکل‌های آنتن روی بلندترین ساختمان‌ها + چراغ قرمز چشمک‌زنِ هشدار (شب) */
+const ANTENNAS = [];
+for (const b of SKYLINE) {
+  if (b.h > 82 && ANTENNAS.length < 7 && srand() > 0.3) {
+    ANTENNAS.push({ x: b.x + b.w / 2, top: GROUND_Y - b.h, h: 13 + srand() * 17, ph: srand() * 6.28 });
+  }
+}
+/* گل‌های کوچک کنار زمین: روز باز و رنگی، شب بسته و کم‌رنگ */
+const FLOWERS = Array.from({ length: 14 }, () => ({
+  x: 20 + srand() * (W - 40), dy: 4 + srand() * 12,
+  hue: Math.floor(srand() * 360), s: 0.75 + srand() * 0.5, ph: srand() * 6.28,
+}));
+/* لبه‌ی ناهموار چمنِ خط زمین (تیغه‌های ریز) */
+const GRASS_EDGE = Array.from({ length: 70 }, () => ({ x: srand() * W, h: 2 + srand() * 4.5, ph: srand() * 6.28 }));
+/* رگه‌های افقی بافت خاک (عمق متفاوت برای حجم دادن به زمین) */
+const GROUND_STREAKS = Array.from({ length: 12 }, () => ({
+  x: srand() * W, w: 46 + srand() * 110, dy: 7 + srand() * 36, a: 0.05 + srand() * 0.06,
+}));
 
 /* ---------------------- ۳) موتور صدا (Web Audio) ---------------------- */
 /* همه‌ی صداها همین‌جا سینتز می‌شوند — هیچ فایل صوتی خارجی وجود ندارد.
@@ -877,6 +913,7 @@ function startGame() {
   hideOverlays();
   hideDayPanel();                          // پنل روز مطمئناً بسته باشد (۵٫۰)
   $('wrap').classList.remove('menu-mode'); // HUD و پنل‌ها برگردند (۵٫۰)
+  setBuildPanel(false, true);              // پنل ساخت‌وساز در شروع باز باشد (۶٫۰)
   $('btnPause').textContent = '⏸ توقف';
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
@@ -906,6 +943,7 @@ function startWave(n) {
   setAnnounce('موج ' + faNum(n),
     n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
   SFX.wave();
+  setBuildPanel(true, true);               // شب شد: پنل خودکار جمع شود تا نقشه آزاد باشد (۶٫۰)
   $('bpHead').classList.remove('attention');
   updateHUD();
 }
@@ -931,6 +969,7 @@ function waveComplete() {
   SFX.clear();
   SFX.morning();                           // چرپ‌چرپ صبحگاهی
   showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
+  setBuildPanel(false, true);              // روز شد: پنل خودکار باز شود برای خرید/نصب (۶٫۰)
   $('bpHead').classList.add('attention');   // راهنمایی بصری: فرصت خرید رسید
   updateHUD();
 }
@@ -1134,6 +1173,16 @@ function updateZombies(dt) {
     const yTarget = GROUND_Y - z.lane * 9 + z.yJit;
     z.y += (yTarget - z.y) * Math.min(1, dt * 6);
     z.depth = 1 - z.lane * 0.07;
+
+    /* غبار گام‌ها (۶٫۰): ذره‌ی ریز پشت پای زامبیِ در حال راه رفتن */
+    if (!z.dead && Math.abs(dx) > stop && Math.random() < dt * 2.2) {
+      state.particles.push({
+        x: z.x - z.dir * 7, y: z.y + 1,
+        vx: -z.dir * rand(5, 15), vy: rand(-20, -7),
+        age: 0, life: rand(0.25, 0.42), size: rand(1.2, 1.9),
+        color: 'rgba(96,84,58,0.45)', grav: 60,
+      });
+    }
   }
   state.zombies = state.zombies.filter(z => !z.dead || z.deathT < 0.55);
 }
@@ -1653,12 +1702,18 @@ function attemptBuy(kind) {
 /* آسیب فعلی تله (برای نمایش در پنل) */
 function trapDps(lvl) { return lvl <= 0 ? 0 : UPGRADES.trap.dps + UPGRADES.trap.dpsPerLvl * (lvl - 1); }
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۳٫۰ — منطق بازی (بخش ۲: افکت‌ها، به‌روزرسانی و رسم)
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۲: افکت‌ها، به‌روزرسانی و رسم)
      ۱۱) افکت‌ها (ذرات، متن شناور، برق تله، ترک خون، شهاب)
      ۱۲) حلقه به‌روزرسانی + صحنه‌ی زنده‌ی منو
      ۱۳) پایان بازی (برد/باخت)
      ۱۴) رسم صحنه با Canvas (آسمان/شهر/برج/زامبی‌ها/بازیکن/قدرت‌ها/UI)
-   تازه‌های ۳٫۰ در این بخش:
+   تازه‌های ۶٫۰ در این بخش (ارتقای کلی گرافیک):
+     - آسمان غنی‌تر + ستاره‌های درشت چهارپر + ماه/خورشید پرجزئیات
+     - ابرهای چندلایه + دکل آنتن با چراغ قرمز + مهِ پایه‌ی شهر
+     - زمین با گرادیان/چمن‌لبه/مسیر فرسوده/گل‌ها + نور تاج تپه‌ها
+     - برجِ بازطراحی‌شده (سکو، بافت بلوک/آجر، کنگره، پنجره‌ی قوس‌دار، بنر)
+     - جزئیات زامبی (پیراهن پاره، خون دهان، برق مهتاب) + غبار گام‌ها
+     - گریدینگ رنگی سینمایی: تینت سرد شب + گرمای روز + وینیت نرم
      - لکه‌های خون ماندگار روی زمین، رعدوبرق، کرم شب‌تاب، چمن، برکه،
        درخت‌های خشک، تیرهای چراغ، آتش و دودِ برجِ زخمی، برفِ انجماد
      - رسم زامبی با عمق ردیف هجوم + لунجِ کوبیدن دیوار + یخ‌زدگی
@@ -2016,17 +2071,19 @@ function mixHex(a, b, t) {
 }
 
 /* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها
-   (۵٫۰: با dayness به آسمان روشن روز و خورشید گذار می‌کند) */
+   (۵٫۰: با dayness به آسمان روشن روز و خورشید گذار می‌کند)
+   (۶٫۰: گرادیان چهارلایه + ستاره‌های درشتِ چهارپر + ماه/خورشید پرجزئیات) */
 function drawSky() {
   const d = state.dayness;                  // ۰ = شب کامل، ۱ = روز کامل
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
-  g.addColorStop(0,   mixHex('#080e22', '#6fb7e8', d));
-  g.addColorStop(0.5, mixHex('#101c3e', '#a3d4f2', d));
-  g.addColorStop(1,   mixHex('#1d2d58', '#dcecf7', d));
+  g.addColorStop(0,    mixHex('#05091a', '#5aa9e0', d));
+  g.addColorStop(0.42, mixHex('#0d1734', '#93cdf0', d));
+  g.addColorStop(0.78, mixHex('#182550', '#c9e6f6', d));
+  g.addColorStop(1,    mixHex('#233865', '#e9f3fa', d));
   ctx.fillStyle = g;
   ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
 
-  /* ستاره‌ها فقط شب دیده می‌شوند (با طلوع محو می‌شوند) */
+  /* ستاره‌های ریز فقط شب (با طلوع محو می‌شوند) */
   if (d < 0.98) {
     const sf = 1 - d;
     for (const s of STARS) {
@@ -2035,61 +2092,95 @@ function drawSky() {
       ctx.fillStyle = 'rgba(215,228,255,' + a.toFixed(2) + ')';
       circle(s.x, s.y, s.r);
     }
+    /* ستاره‌های درشت با برقِ چهارپر (۶٫۰) */
+    for (const s of BIGSTARS) {
+      const tw = 0.5 + 0.5 * Math.sin(animTime * s.sp + s.ph);
+      const a = (0.35 + 0.65 * tw) * sf;
+      if (a < 0.03) continue;
+      const L = s.r * (2.1 + tw * 1.6);
+      ctx.strokeStyle = 'rgba(230,240,255,' + (a * 0.85).toFixed(2) + ')';
+      ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(s.x - L, s.y); ctx.lineTo(s.x + L, s.y);
+      ctx.moveTo(s.x, s.y - L); ctx.lineTo(s.x, s.y + L);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(245,250,255,' + a.toFixed(2) + ')';
+      circle(s.x, s.y, s.r * 0.8);
+    }
   }
 
-  /* ماه شب */
+  /* ماه شب (۶٫۰: بزرگ‌تر، سایه‌روشن، دهانه‌های بیشتر، لبه‌ی مهتابی) */
   if (d < 0.98) {
-    const mx = 172, my = 86, mr = 34;
+    const mx = 176, my = 88, mr = 37;
     ctx.globalAlpha = 1 - d;
-    const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.7);
-    glow.addColorStop(0, 'rgba(244,238,210,0.30)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
-    ctx.fillStyle = glow; circle(mx, my, mr * 2.7);
-    ctx.fillStyle = '#f2ead0'; circle(mx, my, mr);
+    const glow = ctx.createRadialGradient(mx, my, mr * 0.45, mx, my, mr * 3);
+    glow.addColorStop(0, 'rgba(244,238,210,0.34)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
+    ctx.fillStyle = glow; circle(mx, my, mr * 3);
+    const body = ctx.createRadialGradient(mx - mr * 0.45, my - mr * 0.5, mr * 0.2, mx, my, mr);
+    body.addColorStop(0, '#f9f3dd');
+    body.addColorStop(0.55, '#efe6c4');
+    body.addColorStop(1, '#cfc39c');
+    ctx.fillStyle = body; circle(mx, my, mr);
     ctx.fillStyle = 'rgba(120,110,80,0.16)';
-    circle(mx - 10, my - 6, 6); circle(mx + 8, my + 9, 4.5); circle(mx + 13, my - 11, 3);
+    circle(mx - 12, my - 8, 7); circle(mx + 9, my + 10, 5); circle(mx + 15, my - 12, 3.4);
+    circle(mx - 2, my + 16, 3); circle(mx - 20, my + 8, 2.6);
+    ctx.strokeStyle = 'rgba(255,252,235,0.5)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(mx, my, mr - 1, Math.PI * 0.95, Math.PI * 1.55); ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
-  /* خورشید روز (۵٫۰): هاله‌ی گرم + پرتوهای چرخان ملایم */
+  /* خورشید روز (۵٫۰): هاله‌ی گرم + ۱۲ پرتوِ چرخان بلندتر + برق عدسی (۶٫۰) */
   if (d > 0.02) {
     const sx = 790, sy = 92, sr = 30;
     ctx.globalAlpha = d;
-    const glow = ctx.createRadialGradient(sx, sy, sr * 0.4, sx, sy, sr * 3.1);
-    glow.addColorStop(0, 'rgba(255,240,180,0.5)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
-    ctx.fillStyle = glow; circle(sx, sy, sr * 3.1);
-    ctx.fillStyle = '#ffe9a0'; circle(sx, sy, sr);
-    ctx.fillStyle = '#fff7cf'; circle(sx - sr * 0.25, sy - sr * 0.25, sr * 0.55);
+    const glow = ctx.createRadialGradient(sx, sy, sr * 0.35, sx, sy, sr * 3.4);
+    glow.addColorStop(0, 'rgba(255,240,180,0.55)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = glow; circle(sx, sy, sr * 3.4);
+    ctx.fillStyle = '#ffe28a'; circle(sx, sy, sr);
+    ctx.fillStyle = '#fff7cf'; circle(sx - sr * 0.25, sy - sr * 0.28, sr * 0.6);
     ctx.strokeStyle = 'rgba(255,235,160,' + (0.55 * d).toFixed(2) + ')';
     ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath();
-    for (let k = 0; k < 8; k++) {
-      const a = animTime * 0.25 + k * Math.PI / 4;
-      ctx.moveTo(sx + Math.cos(a) * (sr + 8), sy + Math.sin(a) * (sr + 8));
-      ctx.lineTo(sx + Math.cos(a) * (sr + 16), sy + Math.sin(a) * (sr + 16));
+    for (let k = 0; k < 12; k++) {
+      const a = animTime * 0.25 + k * Math.PI / 6;
+      const len = sr + 19 + 4 * Math.sin(animTime * 2 + k);
+      ctx.moveTo(sx + Math.cos(a) * (sr + 9), sy + Math.sin(a) * (sr + 9));
+      ctx.lineTo(sx + Math.cos(a) * len, sy + Math.sin(a) * len);
     }
     ctx.stroke();
+    ctx.fillStyle = 'rgba(255,246,200,' + (0.35 * d).toFixed(2) + ')';
+    circle(sx - 66, sy + 40, 7); circle(sx - 108, sy + 66, 4);
     ctx.globalAlpha = 1;
   }
 }
 
-/* ابرهای شناور (۵٫۰: شب تیره، روز سفید — با حرکت آرام پیوسته از راست به چپ) */
+/* ابرهای شناور (۵٫۰: شب تیره، روز سفید — با حرکت آرام پیوسته از راست به چپ)
+   (۶٫۰: سه‌لایه — سایه‌ی زیرین، بدنه و هایلایت بالایی — برای حجم و نرمی) */
 function drawClouds() {
   const d = state.dayness;
-  const rC = Math.round(13 + 237 * d), gC = Math.round(20 + 232 * d), bC = Math.round(44 + 211 * d);
-  ctx.fillStyle = 'rgba(' + rC + ',' + gC + ',' + bC + ',0.8)';
+  const dark = 'rgba(' + Math.round(9 + 185 * d) + ',' + Math.round(14 + 180 * d) + ',' + Math.round(34 + 170 * d) + ',0.82)';
+  const main = 'rgba(' + Math.round(15 + 225 * d) + ',' + Math.round(22 + 220 * d) + ',' + Math.round(44 + 200 * d) + ',0.85)';
+  const hi = 'rgba(' + Math.round(46 + 205 * d) + ',' + Math.round(64 + 190 * d) + ',' + Math.round(94 + 160 * d) + ',0.5)';
   for (const c of CLOUDS) {
     const m = W + 300;
     const x = (((c.x - animTime * c.v) % m) + m) % m - 150;
     const y = c.y, s = c.s;
-    ctx.beginPath();
-    ctx.ellipse(x, y, 46 * s, 15 * s, 0, 0, Math.PI * 2);
-    ctx.ellipse(x + 34 * s, y - 6 * s, 30 * s, 12 * s, 0, 0, Math.PI * 2);
-    ctx.ellipse(x - 36 * s, y + 2 * s, 26 * s, 10 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
+    cloudBlob(x, y + 3 * s, s, dark);                  // سایه‌ی زیرین
+    cloudBlob(x, y, s, main);                          // بدنه
+    cloudBlob(x - 8 * s, y - 4 * s, s * 0.6, hi);      // هایلایت بالایی
   }
 }
+function cloudBlob(x, y, s, col) {
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 46 * s, 15 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 34 * s, y - 6 * s, 30 * s, 12 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - 36 * s, y + 2 * s, 26 * s, 10 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
 
-/* افق شهر در دوردست (۵٫۰: شب سیاه‌شکلی با پنجره‌های روشن؛ روز خاکستری روشن) */
+/* افق شهر در دوردست (۵٫۰: شب سیاه‌شکلی با پنجره‌های روشن؛ روز خاکستری روشن)
+   (۶٫۰: سوسوی مستقل پنجره‌ها + دکل آنتن با چراغ قرمز + مهِ پایه‌ی ساختمان‌ها) */
 function drawSkyline() {
   const d = state.dayness;
   ctx.fillStyle = mixHex('#0b1226', '#6a7d96', d);
@@ -2097,29 +2188,116 @@ function drawSkyline() {
   /* لبه‌ی روشن‌ترِ پشت‌بام‌ها برای جدا شدن از آسمان */
   ctx.fillStyle = mixHex('#141d3d', '#8fa2b8', d);
   for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, 2.5);
-  /* پنجره‌ها فقط شب روشن‌اند (روز همه سرِ کارند!) */
+  /* پنجره‌ها فقط شب روشن‌اند (روز همه سرِ کارند!) — با سوسوی مستقل (۶٫۰) */
   if (d < 0.95) {
-    ctx.globalAlpha = 1 - d;
+    const nf = 1 - d;
     for (const w2 of SKYLINE_WINS) {
+      const tw = 0.7 + 0.3 * Math.sin(animTime * 1.4 + w2.ph);
+      ctx.globalAlpha = nf * tw;
       ctx.fillStyle = w2.c;
       ctx.fillRect(w2.x, w2.y, 2.5, 3.5);
     }
     ctx.globalAlpha = 1;
   }
+  /* دکل‌های آنتن روی پشت‌بامِ بلندها + چراغ قرمز چشمک‌زنِ هشدار (۶٫۰) */
+  ctx.strokeStyle = mixHex('#0e1630', '#55667e', d);
+  ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  for (const a of ANTENNAS) {
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.top); ctx.lineTo(a.x, a.top - a.h);
+    ctx.moveTo(a.x - 3.5, a.top - a.h * 0.35); ctx.lineTo(a.x + 3.5, a.top - a.h * 0.35);
+    ctx.stroke();
+    if (d < 0.7) {                        // چراغ هشدار فقط شب کار می‌کند
+      const blink = Math.sin(animTime * 1.6 + a.ph) > 0.1 ? 1 : 0.12;
+      const aa = (1 - d) * blink;
+      const g2 = ctx.createRadialGradient(a.x, a.top - a.h, 0, a.x, a.top - a.h, 5);
+      g2.addColorStop(0, 'rgba(255,70,60,' + (0.8 * aa).toFixed(2) + ')');
+      g2.addColorStop(1, 'rgba(255,70,60,0)');
+      ctx.fillStyle = g2; circle(a.x, a.top - a.h, 5);
+      ctx.fillStyle = 'rgba(255,120,110,' + aa.toFixed(2) + ')';
+      circle(a.x, a.top - a.h, 1.6);
+    }
+  }
+  /* مهِ پایه‌ی ساختمان‌ها: انتقال نرم به تپه‌ها (۶٫۰) */
+  const fog = ctx.createLinearGradient(0, GROUND_Y - 46, 0, GROUND_Y);
+  fog.addColorStop(0, 'rgba(90,115,165,0)');
+  fog.addColorStop(1, d > 0.5 ? 'rgba(190,215,232,' + (0.20 * d).toFixed(2) + ')'
+                              : 'rgba(70,95,150,' + (0.16 * (1 - d)).toFixed(2) + ')');
+  ctx.fillStyle = fog;
+  ctx.fillRect(-20, GROUND_Y - 46, W + 40, 46);
 }
 
-/* تپه‌های دوردست در دو لایه برای عمق + زمین و جاده خاکی (۵٫۰: رنگ روز) */
+/* تپه‌های دوردست در دو لایه برای عمق + زمین (۵٫۰: رنگ روز)
+   (۶٫۰: نور تاجِ تپه‌ها + خاک گرادیانی + لبه‌ی چمن + مسیر فرسوده‌ی زامبی‌ها + گل‌ها) */
 function drawHills() {
   const d = state.dayness;
-  ctx.fillStyle = mixHex('#13203f', '#8fae6e', d); drawHillRow(HILLS1);
-  ctx.fillStyle = mixHex('#0d1731', '#7a9a5e', d); drawHillRow(HILLS2);
+  ctx.fillStyle = mixHex('#16244a', '#8fae6e', d); drawHillRow(HILLS1);
+  strokeCrest(HILLS1, mixHex('#2c4272', '#b7d193', d));
+  ctx.fillStyle = mixHex('#101d3d', '#7a9a5e', d); drawHillRow(HILLS2);
+  strokeCrest(HILLS2, mixHex('#263a63', '#a5c180', d));
 
-  ctx.fillStyle = mixHex('#151d0e', '#4f6b35', d); ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
-  ctx.fillStyle = mixHex('#2c261d', '#6e5f45', d); ctx.fillRect(-20, GROUND_Y, W + 40, 18);
-  ctx.strokeStyle = 'rgba(96,84,60,0.8)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(-20, GROUND_Y); ctx.lineTo(W + 20, GROUND_Y); ctx.stroke();
+  /* زمین: خاک با گرادیان عمقی (۶٫۰) */
+  const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  gg.addColorStop(0, mixHex('#1e2815', '#587a3d', d));
+  gg.addColorStop(1, mixHex('#0c110a', '#2c3f21', d));
+  ctx.fillStyle = gg;
+  ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+
+  /* نوار چمنِ بالای زمین + لبه‌ی ناهموارِ تیغه‌ها (۶٫۰) */
+  ctx.fillStyle = mixHex('#273418', '#6f964b', d);
+  ctx.fillRect(-20, GROUND_Y - 2, W + 40, 9);
+  ctx.strokeStyle = mixHex('#33451f', '#82b25c', d);
+  ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (const e of GRASS_EDGE) {
+    const sway = Math.sin(animTime * 1.6 + e.ph) * 1.2;
+    ctx.moveTo(e.x, GROUND_Y + 2);
+    ctx.lineTo(e.x + sway, GROUND_Y - e.h);
+  }
+  ctx.stroke();
+
+  /* مسیر فرسوده‌ی زامبی‌ها: دو باند خاکی روشن‌تر از دو طرف برج (۶٫۰) */
+  const pathA = d > 0.5 ? 0.26 + 0.10 * d : 0.30 * (1 - d * 0.4);
+  ctx.fillStyle = 'rgba(112,96,64,' + pathA.toFixed(2) + ')';
+  ctx.beginPath(); ctx.ellipse(TOWER.x - 185, GROUND_Y + 7, 172, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(TOWER.x + 185, GROUND_Y + 7, 172, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(58,48,34,0.25)';        // ردِ تیره‌تر وسط مسیر
+  ctx.beginPath(); ctx.ellipse(TOWER.x - 185, GROUND_Y + 8, 128, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(TOWER.x + 185, GROUND_Y + 8, 128, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+
+  /* رگه‌های افقی بافت خاک (۶٫۰) */
+  for (const s of GROUND_STREAKS) {
+    ctx.fillStyle = 'rgba(0,0,0,' + s.a.toFixed(2) + ')';
+    ctx.fillRect(s.x, GROUND_Y + s.dy, s.w, 2);
+    ctx.fillStyle = 'rgba(255,240,200,' + (s.a * 0.5).toFixed(2) + ')';
+    ctx.fillRect(s.x + 6, GROUND_Y + s.dy + 2.4, s.w * 0.8, 1.2);
+  }
+
+  /* سنگ‌ریزه‌ها (۳٫۰) */
   ctx.fillStyle = 'rgba(120,105,80,0.35)';
   for (const p of PEBBLES) circle(p.x, GROUND_Y + p.dy, p.r);
+
+  /* گل‌های کوچک: روز باز و رنگی، شب بسته و کم‌رنگ (۶٫۰) */
+  for (const f of FLOWERS) {
+    const x = f.x, y = GROUND_Y + f.dy;
+    ctx.strokeStyle = mixHex('#2c3d1c', '#4c7a34', d);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 2); ctx.lineTo(x + Math.sin(animTime + f.ph) * 1, y - 4 * f.s);
+    ctx.stroke();
+    if (d > 0.35) {
+      ctx.fillStyle = 'hsl(' + f.hue + ',65%,' + Math.round(58 + 14 * d) + '%)';
+      for (let k = 0; k < 5; k++) {
+        const a = k * 1.256 + f.ph;
+        circle(x + Math.cos(a) * 2.6 * f.s, y - 5 * f.s + Math.sin(a) * 2.6 * f.s, 1.5 * f.s);
+      }
+      ctx.fillStyle = 'rgba(255,240,160,0.95)';
+      circle(x, y - 5 * f.s, 1.2 * f.s);
+    } else {
+      ctx.fillStyle = 'rgba(150,150,140,0.4)';
+      circle(x, y - 5 * f.s, 1.4 * f.s);
+    }
+  }
 }
 function drawHillRow(pts) {
   ctx.beginPath();
@@ -2127,6 +2305,15 @@ function drawHillRow(pts) {
   for (const p of pts) ctx.lineTo(p.x, GROUND_Y - p.h);
   ctx.lineTo(W + 20, GROUND_Y);
   ctx.closePath(); ctx.fill();
+}
+/* خط روشنِ تاج تپه‌ها (۶٫۰) — حس حجم و نور پشت صحنه */
+function strokeCrest(pts, col) {
+  ctx.strokeStyle = col; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(-20, GROUND_Y - pts[0].h);
+  for (const p of pts) ctx.lineTo(p.x, GROUND_Y - p.h);
+  ctx.lineTo(W + 20, GROUND_Y - pts[pts.length - 1].h);
+  ctx.stroke();
 }
 
 /* برکه‌های کوچک (۳٫۰): شب بازتاب ماه؛ روز آسمان آبی را برمی‌گردانند (۵٫۰) */
@@ -2460,44 +2647,121 @@ function drawPlacing() {
   const msg = 'کلیک: نصب  •  راست‌کلیک / Esc: لغو';
   const tw = ctx.measureText(msg).width + 30;
   ctx.fillStyle = 'rgba(8,14,30,0.82)';
-  rr(W / 2 - tw / 2, 76, tw, 27, 8); ctx.fill();
+  rr(W / 2 - tw / 2, 86, tw, 27, 8); ctx.fill();
   ctx.strokeStyle = ok ? 'rgba(110,225,140,0.5)' : 'rgba(235,80,70,0.5)';
   ctx.lineWidth = 1; ctx.stroke();
   ctx.fillStyle = '#e8ecf5';
-  ctx.fillText(msg, W / 2, 90);
+  ctx.fillText(msg, W / 2, 100);
   ctx.restore();
 }
 
-/* برج سه‌طبقه: هر طبقه رنگ و جزئیات متفاوت (سنگی/آجری/آبی) + پرچم */
+/* برج سه‌طبقه (۶٫۰ بازطراحی کامل گرافیکی — اندازه‌ی منطقی تغییری نکرده):
+   سکوی سنگی، بافت بلوک/آجر، لبه‌های برآمده‌ی کنگره‌دار بین طبقه‌ها،
+   درِ چوبی قوس‌دار با نور گرم، پنجره‌های قوس‌دار نورانی با قاب،
+   بنرِ دیواری قرمز و پرچم دوبخشیِ موج‌دار. نور از سمت چپ (ماه). */
 function drawTower() {
+  const d = state.dayness;
   const ratio = state.tower.hp / state.tower.maxHp;
+  const cx = TOWER.x;
   const widths = [136, 124, 112];
   const floors = [
-    { c: '#6e5a44', edge: '#453a2c' },   // طبقه اول: سنگی
-    { c: '#a04b3a', edge: '#6e2f24' },   // طبقه دوم: آجری
-    { c: '#41729f', edge: '#2a4b6b' },   // طبقه سوم: آبی
+    { light: '#82705a', base: '#6e5a44', dark: '#4d3f2f', edge: '#453a2c' },  // طبقه اول: سنگی
+    { light: '#b25a47', base: '#a04b3a', dark: '#7c3527', edge: '#6e2f24' },  // طبقه دوم: آجری
+    { light: '#4f83b5', base: '#41729f', dark: '#2f557c', edge: '#2a4b6b' },  // طبقه سوم: آبی
   ];
+
+  /* --- سکوی سنگی پایه (پلینث) --- */
+  ctx.fillStyle = mixHex('#3f362b', '#8c7f6a', d);
+  rr(cx - 82, GROUND_Y - 5, 164, 15, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.09)';
+  ctx.fillRect(cx - 82, GROUND_Y - 5, 164, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(cx - 82, GROUND_Y + 6, 164, 4);
+
+  /* --- طبقه‌ها از پایین به بالا: گرادیان (مهتاب از چپ) + بافت + لبه --- */
   for (let i = 0; i < 3; i++) {
     const hw = widths[i] / 2;
     const yT = GROUND_Y - (i + 1) * TOWER.floorH, yB = GROUND_Y - i * TOWER.floorH;
-    ctx.fillStyle = floors[i].c;
-    ctx.fillRect(TOWER.x - hw, yT, hw * 2, TOWER.floorH);
-    ctx.strokeStyle = floors[i].edge; ctx.lineWidth = 2;
-    ctx.strokeRect(TOWER.x - hw + 1, yT + 1, hw * 2 - 2, TOWER.floorH - 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(TOWER.x - hw, yB - 3, hw * 2, 3);   // سایه جداکننده طبقه‌ها
+    const F = floors[i];
+    const g = ctx.createLinearGradient(cx - hw, 0, cx + hw, 0);
+    g.addColorStop(0, F.light);
+    g.addColorStop(0.55, F.base);
+    g.addColorStop(1, F.dark);
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - hw, yT, hw * 2, TOWER.floorH);
+    ctx.strokeStyle = F.edge; ctx.lineWidth = 2;
+    ctx.strokeRect(cx - hw + 1, yT + 1, hw * 2 - 2, TOWER.floorH - 2);
+
+    /* بافت بلوک‌های سنگی/آجری: ردیف‌های افقی + درزهای عمودیِ جابه‌جا (۶٫۰) */
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
+    const rows = i === 1 ? 6 : 5;
+    const bw = i === 1 ? 16 : 22;
+    ctx.beginPath();
+    for (let r2 = 0; r2 < rows; r2++) {
+      const y = yT + (r2 + 1) * TOWER.floorH / rows;
+      if (r2 < rows - 1) { ctx.moveTo(cx - hw + 3, y); ctx.lineTo(cx + hw - 3, y); }
+      const off = (r2 % 2) * (bw / 2);
+      for (let x = cx - hw + off + bw; x < cx + hw - 4; x += bw) {
+        ctx.moveTo(x, y - TOWER.floorH / rows + 2); ctx.lineTo(x, y - 1);
+      }
+    }
+    ctx.stroke();
+
+    /* سایه‌ی جداکننده‌ی طبقه‌ها (خط پایین هر طبقه) */
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(cx - hw, yB - 4, hw * 2, 4);
+
+    /* لبه‌ی برآمده (کورنیس) بالای طبقه‌های ۱ و ۲ (۶٫۰) */
+    if (i < 2) {
+      ctx.fillStyle = F.edge;
+      ctx.fillRect(cx - hw - 4, yT - 5, hw * 2 + 8, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.13)';
+      ctx.fillRect(cx - hw - 4, yT - 5, hw * 2 + 8, 1.6);
+    }
   }
 
-  /* درِ قوس‌دار تیره در طبقه اول */
-  ctx.fillStyle = '#241a12';
-  ctx.beginPath();
-  ctx.moveTo(TOWER.x - 14, GROUND_Y);
-  ctx.lineTo(TOWER.x - 14, GROUND_Y - 22);
-  ctx.arc(TOWER.x, GROUND_Y - 22, 14, Math.PI, 0);
-  ctx.lineTo(TOWER.x + 14, GROUND_Y);
-  ctx.closePath(); ctx.fill();
+  /* --- کنگره‌های بام با سایه‌ی داخل دندانه‌ها (۶٫۰) --- */
+  const topW = widths[2] / 2;
+  ctx.fillStyle = floors[2].edge;
+  ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 6);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 1.5);
+  ctx.fillStyle = mixHex('#33557e', '#5c8ac0', d);
+  for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19, TOWER_TOP_Y - 9, 12, 9);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19 + 10, TOWER_TOP_Y - 9, 2, 9);
 
-  /* پنجره‌های نورانی با سوسوی ملایم (وقتی برج زخمی است چشمک هم می‌زنند) */
+  /* --- درِ قوس‌دار چوبی + قاب سنگی + نور گرمِ درزِ در (۶٫۰) --- */
+  ctx.beginPath();                                     // قاب سنگی در
+  ctx.moveTo(cx - 17, GROUND_Y - 2);
+  ctx.lineTo(cx - 17, GROUND_Y - 24);
+  ctx.arc(cx, GROUND_Y - 24, 17, Math.PI, 0);
+  ctx.lineTo(cx + 17, GROUND_Y - 2);
+  ctx.strokeStyle = mixHex('#8a7a5e', '#bfae8e', d); ctx.lineWidth = 3.5; ctx.stroke();
+  ctx.fillStyle = '#241a12';                           // درِ چوبی تیره
+  ctx.beginPath();
+  ctx.moveTo(cx - 13, GROUND_Y - 3);
+  ctx.lineTo(cx - 13, GROUND_Y - 22);
+  ctx.arc(cx, GROUND_Y - 22, 13, Math.PI, 0);
+  ctx.lineTo(cx + 13, GROUND_Y - 3);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();                                     // تخته‌های چوبی
+  for (const dx of [-6, 0, 6]) {
+    const topY = GROUND_Y - 22 - Math.sqrt(Math.max(0, 169 - dx * dx)) + 1;
+    ctx.moveTo(cx + dx, GROUND_Y - 4); ctx.lineTo(cx + dx, topY);
+  }
+  ctx.stroke();
+  /* نور گرم از در، روی زمین (فقط شب — ۶٫۰) */
+  if (d < 0.6) {
+    const doorGlow = 0.5 + 0.2 * Math.sin(animTime * 2.1);
+    const sp = ctx.createRadialGradient(cx, GROUND_Y - 6, 4, cx, GROUND_Y - 6, 52);
+    sp.addColorStop(0, 'rgba(255,190,90,' + (0.20 * (1 - d) * doorGlow).toFixed(2) + ')');
+    sp.addColorStop(1, 'rgba(255,190,90,0)');
+    ctx.fillStyle = sp; circle(cx, GROUND_Y - 6, 52);
+  }
+
+  /* --- پنجره‌های قوس‌دار نورانی با قاب و شیشه‌ی گرادیانی (۶٫۰) --- */
   const wins = [
     { x: -36, y: GROUND_Y - 46 }, { x: 36, y: GROUND_Y - 46 },
     { x: -38, y: GROUND_Y - 108 }, { x: 38, y: GROUND_Y - 108 },
@@ -2506,42 +2770,83 @@ function drawTower() {
   wins.forEach((w2, i) => {
     let a = 0.66 + 0.25 * Math.sin(animTime * 2.1 + i * 1.9);
     if (ratio < 0.5 && Math.random() < 0.05) a *= 0.2;   // چشمکِ برق‌گرفتگی
-    ctx.fillStyle = 'rgba(255,214,110,' + a.toFixed(2) + ')';
-    ctx.fillRect(TOWER.x + w2.x - 7, w2.y - 9, 14, 18);
-    ctx.strokeStyle = 'rgba(40,30,10,0.6)'; ctx.lineWidth = 1.5;
-    ctx.strokeRect(TOWER.x + w2.x - 7, w2.y - 9, 14, 18);
-    ctx.beginPath(); ctx.moveTo(TOWER.x + w2.x, w2.y - 9); ctx.lineTo(TOWER.x + w2.x, w2.y + 9); ctx.stroke();
+    archWin(cx + w2.x, w2.y, 13, 19, a);
   });
 
-  /* کنگره‌های بام */
-  ctx.fillStyle = '#2f5378';
-  for (let k = 0; k < 5; k++) ctx.fillRect(TOWER.x - 52 + k * 22, TOWER_TOP_Y - 9, 14, 9);
+  /* --- بنرِ دیواری طبقه‌ی دوم با نشان طلایی (۶٫۰) --- */
+  {
+    const by = GROUND_Y - 122, tip = Math.sin(animTime * 2) * 1.2;
+    ctx.fillStyle = mixHex('#a12a20', '#c23a2c', 0.35 + 0.3 * d);
+    ctx.beginPath();
+    ctx.moveTo(cx - 11, by);
+    ctx.lineTo(cx + 11, by);
+    ctx.lineTo(cx + 11, by + 25);
+    ctx.lineTo(cx + tip, by + 33);
+    ctx.lineTo(cx - 11, by + 25);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.fillStyle = '#f7c948'; circle(cx, by + 12, 4.2);
+    ctx.fillStyle = '#7a1f18'; circle(cx, by + 12, 1.8);
+    ctx.fillStyle = mixHex('#4a3b2a', '#7a6244', d);
+    ctx.fillRect(cx - 12, by - 2, 24, 2.5);            // میله‌ی بنر
+  }
 
-  /* میله و پرچم موج‌دار */
-  ctx.fillStyle = '#4a3b2a';
-  ctx.fillRect(TOWER.x - 1.5, TOWER_TOP_Y - 36, 3, 36);
-  const wv = Math.sin(animTime * 4) * 2.5;
+  /* --- میله‌ی پرچم با گوی + پرچم دوبخشی موج‌دار (۶٫۰) --- */
+  ctx.fillStyle = mixHex('#4a3b2a', '#7a6244', d);
+  ctx.fillRect(cx - 1.5, TOWER_TOP_Y - 38, 3, 38);
+  ctx.fillStyle = '#f7c948'; circle(cx, TOWER_TOP_Y - 39, 2.2);       // گویِ نوک میله
+  const wv = Math.sin(animTime * 4), wv2 = Math.sin(animTime * 4 - 1.3);
   ctx.fillStyle = '#d8453a';
   ctx.beginPath();
-  ctx.moveTo(TOWER.x + 1.5, TOWER_TOP_Y - 35);
-  ctx.lineTo(TOWER.x + 24 + wv, TOWER_TOP_Y - 28);
-  ctx.lineTo(TOWER.x + 1.5, TOWER_TOP_Y - 21);
+  ctx.moveTo(cx + 2, TOWER_TOP_Y - 36);
+  ctx.bezierCurveTo(cx + 13 + wv * 2, TOWER_TOP_Y - 34.5,
+                    cx + 21 + wv * 3, TOWER_TOP_Y - 32.5 + wv2,
+                    cx + 27 + wv * 3, TOWER_TOP_Y - 29.5);
+  ctx.lineTo(cx + 27 + wv * 3, TOWER_TOP_Y - 20.5);
+  ctx.bezierCurveTo(cx + 19 + wv * 2, TOWER_TOP_Y - 22.5,
+                    cx + 10, TOWER_TOP_Y - 23.5,
+                    cx + 2, TOWER_TOP_Y - 21);
   ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#f7c948'; circle(cx + 15 + wv * 2, TOWER_TOP_Y - 26, 2);  // نشان روی پرچم
 
-  /* ترک‌ها وقتی برج آسیب دیده است */
+  /* --- ترک‌ها وقتی برج آسیب دیده است --- */
   ctx.strokeStyle = 'rgba(20,14,8,0.8)'; ctx.lineWidth = 2;
   if (ratio < 0.55) {
     ctx.beginPath();
-    ctx.moveTo(TOWER.x - 40, GROUND_Y - 14); ctx.lineTo(TOWER.x - 33, GROUND_Y - 30); ctx.lineTo(TOWER.x - 41, GROUND_Y - 44);
-    ctx.moveTo(TOWER.x + 44, GROUND_Y - 80); ctx.lineTo(TOWER.x + 37, GROUND_Y - 96);
+    ctx.moveTo(cx - 40, GROUND_Y - 14); ctx.lineTo(cx - 33, GROUND_Y - 30); ctx.lineTo(cx - 41, GROUND_Y - 44);
+    ctx.moveTo(cx + 44, GROUND_Y - 80); ctx.lineTo(cx + 37, GROUND_Y - 96);
     ctx.stroke();
   }
   if (ratio < 0.28) {
     ctx.beginPath();
-    ctx.moveTo(TOWER.x + 20, GROUND_Y - 100); ctx.lineTo(TOWER.x + 13, GROUND_Y - 118); ctx.lineTo(TOWER.x + 21, GROUND_Y - 132);
-    ctx.moveTo(TOWER.x - 14, GROUND_Y - 150); ctx.lineTo(TOWER.x - 7, GROUND_Y - 166);
+    ctx.moveTo(cx + 20, GROUND_Y - 100); ctx.lineTo(cx + 13, GROUND_Y - 118); ctx.lineTo(cx + 21, GROUND_Y - 132);
+    ctx.moveTo(cx - 14, GROUND_Y - 150); ctx.lineTo(cx - 7, GROUND_Y - 166);
     ctx.stroke();
+    /* آوار کنار پایه (۶٫۰) */
+    ctx.fillStyle = mixHex('#5d4c39', '#948268', d);
+    ctx.fillRect(cx - 74, GROUND_Y - 8, 10, 6); ctx.fillRect(cx - 68, GROUND_Y - 4, 7, 4);
+    ctx.fillRect(cx + 62, GROUND_Y - 7, 11, 6); ctx.fillRect(cx + 70, GROUND_Y - 3, 6, 4);
   }
+}
+
+/* پنجره‌ی قوس‌دار نورانی با قاب و تقسیم‌کندها (۶٫۰) */
+function archWin(x, y, w, h, glow) {
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y + h / 2);
+  ctx.lineTo(x - w / 2, y - h / 2 + w / 2);
+  ctx.arc(x, y - h / 2 + w / 2, w / 2, Math.PI, 0);
+  ctx.lineTo(x + w / 2, y + h / 2);
+  ctx.closePath();
+  const a = Math.min(1, 0.55 + 0.45 * glow);
+  const g = ctx.createLinearGradient(x, y - h / 2, x, y + h / 2);
+  g.addColorStop(0, 'rgba(255,238,170,' + a.toFixed(2) + ')');
+  g.addColorStop(1, 'rgba(255,186,88,' + (a * 0.8).toFixed(2) + ')');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(30,22,12,0.75)'; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.beginPath();                                     // تقسیم‌کندهای شیشه
+  ctx.moveTo(x, y - h / 2 + 2); ctx.lineTo(x, y + h / 2 - 1);
+  ctx.moveTo(x - w / 2 + 2, y + h / 2 - w / 4); ctx.lineTo(x + w / 2 - 2, y + h / 2 - w / 4);
+  ctx.stroke();
 }
 
 /* زامبی: بر اساس نوع رسم می‌شود (معمولی/سریع/تانک/پادشاه)
@@ -2601,6 +2906,12 @@ function drawZombie(z) {
   /* بدن و پارگی پیراهن */
   ctx.fillStyle = shirt; rr(-9, -31 + bob * 0.4, 18, 19, 4); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-3, -24 + bob * 0.4, 6, 7);
+  /* لبه‌ی پاره‌پاره‌ی پیراهن (۶٫۰) */
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.moveTo(-8, -13 + bob * 0.4); ctx.lineTo(-5, -17 + bob * 0.4); ctx.lineTo(-2, -13 + bob * 0.4);
+  ctx.lineTo(1, -13 + bob * 0.4); ctx.lineTo(4, -16.5 + bob * 0.4); ctx.lineTo(7, -13 + bob * 0.4);
+  ctx.closePath(); ctx.fill();
 
   /* زره‌ی شونه برای تانک و پادشاه */
   if (z.type === 'tank' || z.type === 'boss') {
@@ -2627,6 +2938,12 @@ function drawZombie(z) {
   ctx.fillStyle = skin; circle(3, -36 + bob * 0.5, 7);
   ctx.fillStyle = '#2f3b26';
   ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  /* برق مهتاب روی سر (۶٫۰ — فقط شب) */
+  if (state.dayness < 0.55 && !z.dead) {
+    ctx.strokeStyle = 'rgba(195,220,255,' + (0.38 * (1 - state.dayness)).toFixed(2) + ')';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.62); ctx.stroke();
+  }
 
   /* کلاه‌خود فولادی تانک */
   if (z.type === 'tank') {
@@ -2650,6 +2967,13 @@ function drawZombie(z) {
     ctx.fillStyle = flash ? '#ffffff' : (z.type === 'boss' ? '#c44dff' : '#ff4b3e');
     circle(5.5, -37 + bob * 0.5, 1.6); circle(8.8, -37.5 + bob * 0.5, 1.6);
     ctx.restore();
+  }
+
+  /* لکه‌ی خون گوشه‌ی دهان + چکه (۶٫۰) */
+  if (!z.dead) {
+    ctx.fillStyle = 'rgba(110,22,22,0.85)';
+    circle(7.5, -33.4 + bob * 0.5, 1.4);
+    ctx.fillRect(6.9, -33 + bob * 0.5, 1.1, 2.1);
   }
 
   /* هاله‌ی مهیب و تپنده‌ی پادشاه */
@@ -3062,6 +3386,33 @@ function drawCinematic() {
   ctx.fillRect(0, H - h, W, h);
 }
 
+/* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم.
+   بعد از صحنه و قبل از UI رسم می‌شود (بدون لرزش). */
+function drawColorGrade() {
+  const d = state.dayness;
+  /* وینیت نرم همیشه — شب عمیق‌تر */
+  const vg = ctx.createRadialGradient(W / 2, H * 0.46, H * 0.36, W / 2, H * 0.55, H * 0.88);
+  const va = 0.10 + 0.16 * (1 - d);
+  vg.addColorStop(0, 'rgba(2,4,14,0)');
+  vg.addColorStop(1, 'rgba(2,4,14,' + va.toFixed(2) + ')');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+  /* تینت سرمای آبیِ شب (ضرب ملایم) */
+  if (d < 0.85) {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(178,192,236,' + (0.14 * (1 - d)).toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  /* گرمای طلایی روز (روشن‌سازی ملایم) */
+  if (d > 0.15) {
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = 'rgba(255,196,96,' + (0.05 * d).toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
 /* ترتیب رسم صحنه (از دور به نزدیک) — در منو زامبی‌های تزئینی رسم می‌شوند */
 function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -3104,6 +3455,8 @@ function render() {
   drawParticles();
   drawTexts();
   ctx.restore();
+  /* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم */
+  drawColorGrade();
   /* لایه‌ی UI: بدون لرزش */
   drawOffscreenArrows();
   drawReticle();
@@ -3115,14 +3468,12 @@ function render() {
   drawCinematic();
 }
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — منطق بازی (بخش ۳)
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۳)
      ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل آیکونی + تولتیپ)
      ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
-   تازه‌های ۵٫۰ در این بخش:
-     - پنل ساخت‌وساز آیکونی: هر آیتم یک کاشی تصویری (Canvas-drawn icon)
-       + قیمت + پین‌های سطح؛ توضیح فقط در تولتیپِ hover
-     - حلقه‌ی اصلی حالت day را هم به‌روز می‌کند (روزِ بین موج‌ها)
-     - دکمه‌ی «شب شود» (btnNight) به startNight وصل شد
+   تازه‌های ۶٫۰ در این بخش:
+     - setBuildPanel: پنل ساخت‌وساز در شروع موج خودکار جمع می‌شود
+       (شلیک آزاد به زامبی‌های سمت راست) و در روز باز می‌شود
    ================================================================== */
 
 /* ---------------------- ۱۵) رابط کاربری ---------------------- */
@@ -3421,11 +3772,20 @@ function buildPanelInit() {
   $('bpHead').addEventListener('click', toggleBuildPanel);
 }
 
-function toggleBuildPanel() {
+/* تنظیم مستقیم وضعیت پنل ساخت‌وساز (۶٫۰):
+   شب (شروع موج) خودکار جمع می‌شود تا زامبی‌های سمت راست دیده و شلیک شوند؛
+   روز (پس از پاک‌سازی موج) خودکار باز می‌شود برای خرید و نصب. */
+function setBuildPanel(collapsed, silent) {
   const p = $('buildPanel');
-  p.classList.toggle('collapsed');
-  $('bpChev').textContent = p.classList.contains('collapsed') ? '▸' : '▾';
-  SFX.click();
+  if (p.classList.contains('collapsed') === collapsed) return;
+  p.classList.toggle('collapsed', collapsed);
+  $('bpChev').textContent = collapsed ? '▸' : '▾';
+  if (collapsed) hideTip();                 // تولتیپ باز مانده نباشد
+  if (!silent) SFX.click();
+}
+
+function toggleBuildPanel() {
+  setBuildPanel(!$('buildPanel').classList.contains('collapsed'));
 }
 
 /* به‌روزرسانی وضعیت کاشی‌های پنل (قیمت/سطح/قابلیت خرید — ۵٫۰ آیکونی) */
@@ -3588,6 +3948,7 @@ window.GAME = {
   TURRETS, MAX_TURRETS,
   endWave: waveComplete,             /* شبیه‌سازی پایان موج → صبح (۵٫۰) */
   startNight,                        /* شبیه‌سازی کلیک «شب شود» (۵٫۰) */
+  setBuildPanel,                     /* جمع/باز کردن پنل ساخت‌وساز (۶٫۰) */
   giveCoins(n) { state.coins += n; updateHUD(); },
   spawnType(type) { spawnZombie(type); },
   hurt(n) { damageTower(n, TOWER.x + 10); },
