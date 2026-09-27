@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ کات‌سین فروریختن برج با بخش رانندگی تعاملی، غرامت اسلحه‌ها، برج دوم در شهر سوخته زیر ماه خونی، چرخه‌ی روز و شب، پنل ساخت‌وساز مکعبی و برجک‌های دفاعی خودکار (نسخه‌ی ۸٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ کات‌سین فروریختن برج با بخش رانندگی تعاملی، غرامت اسلحه‌ها، برج دوم در شهر سوخته زیر ماه خونی، چرخه‌ی روز و شب، فروشگاه با مکعب‌های تصویر مرجع و برجک‌های دفاعی خودکار (نسخه‌ی ۹٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۸٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۹٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
@@ -102,8 +102,8 @@ body{display:flex;align-items:center;justify-content:center}
    توضیح هر آیتم فقط در تولتیپِ hover دیده می‌شود.
    (۶٫۰) در شب خودکار «جمع» می‌شود و فقط یک دکمه‌ی کوچک می‌ماند
    تا دیدن و شلیک به زامبی‌های سمت راست آزاد باشد. */
-#buildPanel{position:absolute;top:60px;right:10px;width:196px;z-index:5;
-  background:rgba(8,14,30,.58);border:1px solid #26355c;border-radius:12px;
+#buildPanel{position:absolute;top:60px;right:10px;width:206px;z-index:5;
+  background:rgba(9,15,32,.62);border:1px solid #26355c;border-radius:12px;
   backdrop-filter:blur(4px);overflow:visible}
 /* حالت جمع‌شده: فقط سربرگ به‌صورت یک قرص کوچک در آسمان (۶٫۰) */
 #buildPanel.collapsed{width:auto}
@@ -120,18 +120,27 @@ body{display:flex;align-items:center;justify-content:center}
 .bp-head.attention{animation:attentionPulse 1.2s infinite;color:#ffd873}
 #buildPanel.collapsed #bpList{display:none}
 #bpList{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:6px}
-/* عنوان گروه‌ها (خط‌دارِ جمع‌وجور) */
+/* عنوان گروه‌ها (۹٫۰): طلایی مثل تصویر مرجع — چیپ تیره + خط‌های زرشکی */
 .bp-grp{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:4px 2px 1px;
-  font-size:8.5px;font-weight:bold;color:#6d7ea6;letter-spacing:.4px}
-.bp-grp::before,.bp-grp::after{content:'';flex:1;height:1px;background:#24325a}
-/* کاشی آیتم: مکعب + قیمت + کلید + پین‌های سطح */
-.bp-tile{position:relative;height:66px;background:rgba(12,20,44,.66);border:1.5px solid #24325a;
+  font-size:9.5px;font-weight:bold;color:#ffd873;letter-spacing:.5px;
+  text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.bp-grp::before,.bp-grp::after{content:'';flex:1;height:2px;
+  background:linear-gradient(90deg,transparent,#7c2d3e 30%,#7c2d3e 70%,transparent);border-radius:2px}
+/* کاشی آیتم (۹٫۰): زمینه‌ی سرمه‌ای مثل تصویر مرجع + قیمت سکه‌دار */
+.bp-tile{position:relative;height:74px;background:rgba(10,17,38,.78);border:1.5px solid #1c2a4e;
   border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;cursor:pointer;pointer-events:auto;
   transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
-.bp-tile:hover{border-color:#3d548c;background:rgba(20,32,66,.92);transform:translateY(-2px);z-index:2}
-.bp-tile .bp-ic{width:38px;height:38px;display:block}
-.bp-tile .bp-price{font-size:10px;font-weight:bold;color:#ffd873;line-height:1;min-height:10px}
+.bp-tile:hover{border-color:#3d548c;background:rgba(20,32,66,.92);transform:translateY(-2px);z-index:2;
+  box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.bp-tile .bp-ic{width:44px;height:44px;display:block}
+/* قیمت (۹٫۰): نوار تیره‌ی گرد با نقطه‌ی سکه‌ی طلایی — مثل تصویر مرجع */
+.bp-tile .bp-price{font-size:10px;font-weight:bold;color:#ffd873;line-height:1;min-height:14px;
+  display:inline-flex;align-items:center;gap:3px;padding:1.5px 7px 1.5px 5px;
+  background:rgba(4,8,18,.88);border:1px solid #2c3d66;border-radius:999px}
+.bp-tile .bp-price::before{content:'';width:7px;height:7px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 35% 30%,#ffe9a8,#f5c542 55%,#b98a1e);
+  box-shadow:0 0 4px rgba(245,197,66,.55)}
 .bp-key{position:absolute;top:2px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
   border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
 /* پین‌های سطح (آیتم‌های ارتقایی): نقطه‌های روشن = سطح فعلی */
@@ -321,7 +330,7 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۸٫۰ — رانندگی نجات + ماه خونی + مکعب‌های پیکسلی</p>
+      <p class="ver">نسخه‌ی ۹٫۰ — فروشگاه با مکعب‌های خودت + سرعت شلیک</p>
     </div>
   </div>
 
@@ -333,7 +342,7 @@ body{display:flex;align-items:center;justify-content:center}
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر</div>
         <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — راحت ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» (بالای صفحه) موج بعد را شروع کن</div>
-        <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰ / G / F:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>T:</b> ارتقای برجک‌ها &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
+        <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>H:</b> سرعت شلیک &nbsp;•&nbsp; <b>۰ / G / F:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>T:</b> ارتقای برجک‌ها &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
         <div>⌨ <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> قطع/وصل صدا</div>
         <div>🛠 <b>پنل ساخت‌وساز:</b> در روز (بالای نقشه‌ی راست) باز است و در شب خودکار جمع می‌شود تا شلیک به زامبی‌ها آزاد باشد — کلید B یا کلیک روی سربرگش باز/جمعش کن؛ خرید سریع با کلیدها همیشه ممکن است</div>
         <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
@@ -341,7 +350,7 @@ body{display:flex;align-items:center;justify-content:center}
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>
         <div>⚡ از زامبی‌ها جعبه‌ی قدرت می‌افتد: ❤️ درمان &nbsp;•&nbsp; ⚡ شلیک سریع &nbsp;•&nbsp; ❄️ انجماد &nbsp;•&nbsp; 💰 بار سکه</div>
         <div>🧟 زامبی‌ها برج را از هر دو طرف <b>محاصره</b> می‌کنند و پایه‌اش را گاز می‌گیرند؛ جون که تمام شود باختی!</div>
-        <div>🎬 <b>بعد از موج ۵</b> یک کات‌سین می‌افتد: برج طبقه‌به‌طبقه فرو می‌ریزد و با ماشین دوستت فرار می‌کنی — <b>خودت فرمان را دست می‌گیری</b> (گاز: → یا D / ترمز: ← یا A / یا لمس چپ‌وراست صفحه) و زامبی‌ها و موانع را کنار می‌زنی تا برج جدید؛ <b>سلاح‌های همراهت زیر آوار از بین می‌روند</b> ولی به‌جایش سکه‌ی غرامت می‌گیری (سکه‌ها، جون برج، برجک‌ها و ارتقاهای ساختمانی حفظ می‌شوند) — کات‌سین با دکمه‌ی «رد کردن» قابل عبور است</div>
+        <div>🎬 <b>بعد از موج ۵</b> یک کات‌سین می‌افتد: برج طبقه‌به‌طبقه فرو می‌ریزد و با ماشین دوستت فرار می‌کنی — <b>خودت فرمان را دست می‌گیری</b> (گاز: → یا D / ترمز: ← یا A / یا لمس چپ‌وراست صفحه) و زامبی‌ها و موانع را کنار می‌زنی تا برج جدید؛ <b>سلاح‌های همراهت و ارتقاهای اسلحه/سرعت زیر آوار از بین می‌روند</b> ولی به‌جایش سکه‌ی غرامت می‌گیری (سکه‌ها، جون برج، برجک‌ها و ارتقاهای ساختمانی حفظ می‌شوند) — کات‌سین با دکمه‌ی «رد کردن» قابل عبور است</div>
       </div>
       <h3 class="sec-t">🧟 دشمن‌ها</h3>
       <div class="foes">

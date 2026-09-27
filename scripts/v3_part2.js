@@ -67,6 +67,7 @@ const WEAPONS = {
    قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
 const UPGRADES = {
   weapon:  { name: 'ارتقای اسلحه',     base: 15, growth: 1.55, max: 8 },
+  speed:   { name: 'سرعت شلیک',      base: 18, growth: 1.55, max: 6 },   // (۹٫۰) آیکون کفشِ تصویر مرجع — ۸٪ نرخ شلیک سریع‌تر در هر سطح
   health:  { name: 'افزایش جون برج',   base: 12, growth: 1.45, max: 8, bonus: 30 },
   trap:    { name: 'نصب تله پایه برج', base: 20, growth: 1.55, max: 5,
              dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
@@ -415,7 +416,7 @@ const state = {
   muzzleGlow: 0,                           // نور محیطیِ دهانه‌ی اسلحه (۳٫۰)
   slowmo: 0,                               // ثانیه‌ی اسلوموشن سینمایی (۳٫۰)
   lightning: { t: rand(9, 20), a: 0 },     // رعدوبرق گاه‌به‌گاه (۳٫۰)
-  upgrades: { weapon: 0, health: 0, trap: 0, turretUp: 0 },
+  upgrades: { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 },
   weapon: 'pistol',                        // سلاح انتخاب‌شده
   towerVariant: 0,                         // پوسته‌ی برج: ۰=برج اول، ۱=برج دومِ شهر سوخته (۷٫۰)
   cutsceneDone: false,                     // آیا رویداد داستانی فروریختن انجام شده؟ (۷٫۰)
@@ -546,7 +547,7 @@ function startGame() {
   state.coins = 30;                       // سرمایه‌ی شروع (۵٫۰)
   state.dayness = 0; state.dayTarget = 0; state.goingNight = false;   // شبِ شروع
   state.tower.hp = 100; state.tower.maxHp = 100;
-  state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0 };
+  state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 };
   state.weapon = 'pistol';
   state.towerVariant = 0;                  // برج اول (۷٫۰)
   state.cutsceneDone = false;
@@ -706,8 +707,10 @@ function gunMuzzle(len) {
 function tryShoot() {
   if (fireTimer > 0) return;
   const w = WEAPONS[state.weapon];
-  /* قدرت «شلیک سریع» نرخ شلیک را تقریباً دوبرابر می‌کند */
-  fireTimer = w.rate * (state.powerTimers.rapid > 0 ? 0.55 : 1);
+  /* قدرت «شلیک سریع» نرخ شلیک را تقریباً دوبرابر می‌کند +
+     ارتقای «سرعت شلیک» (۹٫۰) هر سطح ۸٪ فاصله‌ی شلیک را کم می‌کند */
+  fireTimer = w.rate * (state.powerTimers.rapid > 0 ? 0.55 : 1)
+            * (1 - 0.08 * (state.upgrades.speed || 0));
   updateAim();                             // اطمینان از جهت صحیح گلوله
   const m = gunMuzzle(w.barrel);
   for (let i = 0; i < w.pellets; i++) {
@@ -1347,7 +1350,7 @@ function attemptBuy(kind) {
   if (state.coins < price) { denyBPItem(kind); return; }
   state.coins -= price;
   state.upgrades[kind] = lvl + 1;
-  if (kind === 'weapon') state.weaponSpent += price;   // (۸٫۰) مبنای غرامت
+  if (kind === 'weapon' || kind === 'speed') state.weaponSpent += price;   // (۸/۹٫۰) مبنای غرامت
   if (kind === 'health') {
     /* هم حداکثر جون زیاد می‌شود هم همین الان ترمیم می‌شود */
     state.tower.maxHp += u.bonus;

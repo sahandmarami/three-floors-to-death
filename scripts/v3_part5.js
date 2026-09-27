@@ -312,6 +312,7 @@ function cutsceneApplyCompensation() {
   WEAPONS.mg.owned = false;
   state.weapon = 'pistol';
   state.upgrades.weapon = 0;
+  state.upgrades.speed = 0;               // (۹٫۰) ارتقای سرعت شلیک هم «زیر آوار» می‌ماند
   state.weaponSpent = 0;
   /* غرامت: سکه‌ی اضافه، جدا از سکه‌های خودمان */
   state.coins += CS.compCoins;
