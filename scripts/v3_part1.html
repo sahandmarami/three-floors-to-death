@@ -3,18 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ ۳ سلاح، ۴ نوع دشمن، کمبو و ضربه‌ی بحرانی، جعبه‌های قدرت، ساخت‌وساز زنده روی نقشه و برجک‌های دفاعی خودکار (نسخه‌ی ۴٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۵٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۳٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
-            ۵) پنل ساخت‌وساز زنده‌ی کنار نقشه
-            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی (قهرمان)  ۸) راهنما
-   تازه‌های ۳٫۰: نوار سلاح نازک و نیمه‌شفاف تا نقشه کامل دیده شود؛
-   فروشگاه به پنل همیشه‌باز کنار نقشه تبدیل شد (خرید وسط مبارزه).
+            ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰)
+            ۵٫۵) پنل روز: دکمه‌ی «شب شود» (۵٫۰)
+            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال (۵٫۰)  ۸) راهنما
+   تازه‌های ۵٫۰:
+     - پنل ساخت‌وساز آیکونی: به‌جای متن‌های طولانی، تصویر + قیمت
+       (توضیح کامل فقط در تولتیپِ hover نمایش داده می‌شود)
+     - چرخه‌ی روز و شب: بعد از هر موج «صبح» می‌شود؛ بدون زامبی،
+       خرید آزاد، و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
+     - منوی اصلی ساده و تمیز شد (حذف چیپ‌ها و شلوغی)
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -91,42 +96,70 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes slotDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .wslot.deny{animation:slotDeny .3s;border-color:#e04b3a}
 
-/* ---------- ۵) پنل ساخت‌وساز زنده‌ی کنار نقشه (۳٫۰) ----------
-   فروشگاه دیگر صفحه‌ی جدا نیست؛ همین پنل همیشه باز است و
-   حتی وسط مبارزه هم می‌شود ارتقا خرید (کلیک یا کلیدهای ۴ تا ۹). */
-#buildPanel{position:absolute;top:60px;right:10px;width:176px;z-index:5;
+/* ---------- ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰) ----------
+   به‌جای ردیف‌های متنی، شبکه‌ی ۳ ستونی از کاشی‌های تصویری؛
+   هر آیکون با Canvas همین‌جا رسم می‌شود (بدون فایل خارجی).
+   توضیح هر آیتم فقط در تولتیپِ hover دیده می‌شود. */
+#buildPanel{position:absolute;top:60px;right:10px;width:196px;z-index:5;
   background:rgba(8,14,30,.58);border:1px solid #26355c;border-radius:12px;
-  backdrop-filter:blur(4px);overflow:hidden}
+  backdrop-filter:blur(4px);overflow:visible}
 .bp-head{display:flex;align-items:center;gap:6px;padding:6px 9px;font-size:11.5px;font-weight:bold;
-  color:#c3cdea;background:rgba(13,21,44,.85);cursor:pointer;border-bottom:1px solid #24325a}
+  color:#c3cdea;background:rgba(13,21,44,.85);cursor:pointer;border-bottom:1px solid #24325a;
+  border-radius:12px 12px 0 0}
 .bp-head .bp-chev{margin-inline-start:auto;font-size:10px;color:#8fa3cf}
-/* جلب توجه پنل در وقفه بین موج‌ها */
+/* جلب توجه پنل در روزِ بین موج‌ها */
 @keyframes attentionPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,216,115,.55)}50%{box-shadow:0 0 0 9px rgba(255,216,115,0)}}
 .bp-head.attention{animation:attentionPulse 1.2s infinite;color:#ffd873}
-#bpList{display:flex;flex-direction:column;gap:4px;padding:5px}
 #buildPanel.collapsed #bpList{display:none}
-.bp-item{display:flex;align-items:center;gap:5px;padding:4px 5px;border-radius:8px;
-  background:rgba(12,20,44,.66);border:1px solid #24325a;cursor:pointer;pointer-events:auto;
-  transition:border-color .15s,background .15s}
-.bp-item:hover{border-color:#3d548c;background:rgba(20,32,66,.9)}
-.bp-item.max{opacity:.5;cursor:default}
-.bp-key{font-size:8px;font-weight:bold;background:#1a2546;border:1px solid #33477c;border-radius:4px;
-  padding:0 4px;color:#8fa3cf;flex-shrink:0;line-height:1.5}
-.bp-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0}
-.bp-mid{display:flex;flex-direction:column;min-width:0;flex:1}
-.bp-mid b{font-size:10px;color:#e8ecf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bp-mid i{font-style:normal;font-size:8px;color:#7d8eaf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bp-cost{font-size:10px;font-weight:bold;color:#ffd873;flex-shrink:0}
-.bp-item.poor{filter:saturate(.55)}
-.bp-item.poor .bp-cost{color:#e06a5a}
-/* لرزش آیتم وقتی سکه کافی نیست */
-@keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
-.bp-item.deny{animation:bpDeny .3s;border-color:#e04b3a}
-/* گروه‌بندی آیتم‌های پنل + حالت «در حال نصب» (۴٫۰) */
-.bp-grp{display:flex;align-items:center;gap:6px;padding:5px 5px 2px;font-size:8.5px;font-weight:bold;
-  color:#6d7ea6;letter-spacing:.4px}
+#bpList{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:6px}
+/* عنوان گروه‌ها (خط‌دارِ جمع‌وجور) */
+.bp-grp{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:4px 2px 1px;
+  font-size:8.5px;font-weight:bold;color:#6d7ea6;letter-spacing:.4px}
 .bp-grp::before,.bp-grp::after{content:'';flex:1;height:1px;background:#24325a}
-.bp-item.placing{border-color:#ffd873;background:rgba(45,58,100,.95);box-shadow:0 0 10px rgba(255,216,115,.28)}
+/* کاشی آیتم: آیکون + قیمت + کلید + پین‌های سطح */
+.bp-tile{position:relative;height:66px;background:rgba(12,20,44,.66);border:1.5px solid #24325a;
+  border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;pointer-events:auto;
+  transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
+.bp-tile:hover{border-color:#3d548c;background:rgba(20,32,66,.92);transform:translateY(-2px);z-index:2}
+.bp-tile .bp-ic{width:34px;height:34px;display:block}
+.bp-tile .bp-price{font-size:10px;font-weight:bold;color:#ffd873;line-height:1;min-height:10px}
+.bp-key{position:absolute;top:2px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
+  border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
+/* پین‌های سطح (آیتم‌های ارتقایی): نقطه‌های روشن = سطح فعلی */
+.bp-lv{position:absolute;bottom:3px;left:4px;display:flex;gap:2px}
+.bp-lv i{width:4px;height:4px;border-radius:50%;background:#26355c}
+.bp-lv i.on{background:#ffd873}
+/* حالت‌ها: گران / حداکثر / در حال نصب */
+.bp-tile.poor .bp-price{color:#e06a5a}
+.bp-tile.poor .bp-ic{filter:saturate(.5) brightness(.72)}
+.bp-tile.max{opacity:.78}
+.bp-tile.max .bp-price{color:#7be389}
+.bp-tile.placing{border-color:#ffd873;background:rgba(45,58,100,.95);animation:bpPulse 1s infinite}
+@keyframes bpPulse{0%,100%{box-shadow:0 0 6px rgba(255,216,115,.25)}50%{box-shadow:0 0 14px rgba(255,216,115,.5)}}
+/* لرزش کاشی وقتی سکه کافی نیست */
+@keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.bp-tile.deny{animation:bpDeny .3s;border-color:#e04b3a}
+/* تولتیپ آیتم‌ها: نام + توضیح + وضعیت (جای متنِ حذف‌شده‌ی کاشی‌ها) */
+#bpTip{position:absolute;z-index:8;width:170px;background:rgba(10,16,36,.96);border:1px solid #33477c;
+  border-radius:10px;padding:8px 10px;font-size:11px;color:#c3cdea;pointer-events:none;
+  display:none;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.5);text-align:right;line-height:1.55}
+#bpTip b{display:block;color:#ffd873;font-size:12px;margin-bottom:2px}
+#bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
+
+/* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب ----------
+   بعد از پاک‌سازی هر موج صبح می‌شود؛ این دکمه وسطِ پایین
+   می‌آید و با کلیک، شب و موج بعد شروع می‌شود. */
+#dayPanel{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:6;
+  display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
+#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:17px;font-weight:bold;
+  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:12px;
+  padding:13px 42px;box-shadow:0 4px 26px rgba(240,180,60,.45);
+  transition:transform .15s,filter .15s;animation:nightGlow 1.6s ease-in-out infinite}
+#btnNight:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.07)}
+@keyframes nightGlow{0%,100%{box-shadow:0 4px 22px rgba(240,180,60,.35)}50%{box-shadow:0 4px 34px rgba(240,180,60,.68)}}
+#dpHint{font-size:11.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.78);
+  border:1px solid #26355c;border-radius:999px;padding:5px 14px;backdrop-filter:blur(4px)}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -156,27 +189,24 @@ body{display:flex;align-items:center;justify-content:center}
   background:#1a2546;border:1px solid #33477c;color:#e8ecf5;transition:background .15s,transform .15s}
 .icon-btn:hover{background:#26365e;transform:translateY(-1px)}
 
-/* ---------- ۷) منوی اصلی: قهرمان روی صحنه‌ی زنده‌ی بازی ---------- */
-#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.62),rgba(4,7,18,.28) 30%,rgba(4,7,18,.04) 58%,rgba(4,7,18,.3) 100%);
+/* ---------- ۷) منوی اصلی: مینیمال و تمیز روی صحنه‌ی زنده (۵٫۰) ----------
+   فقط عنوان + یک جمله + دکمه‌ها؛ صحنه‌ی زنده‌ی بازی خودش تزئین است.
+   در حالت منو، HUD/نوار سلاح/پنل ساخت‌وساز هم مخفی می‌شوند (ضد شلوغی). */
+#wrap.menu-mode #hud, #wrap.menu-mode #weaponBar, #wrap.menu-mode #buildPanel,
+#wrap.menu-mode #bossBar {display:none!important}
+#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.66),rgba(4,7,18,.30) 34%,rgba(4,7,18,.04) 58%,rgba(4,7,18,.34) 100%);
   backdrop-filter:none;pointer-events:none;align-items:flex-start}
-#menuHero{pointer-events:none;text-align:center;max-width:660px;padding:24px 18px 0}
+#menuHero{pointer-events:none;text-align:center;max-width:660px;padding:34px 18px 0}
 #menuHero button{pointer-events:auto}
-.title-row{display:flex;align-items:center;justify-content:center;gap:16px}
-.t-emoji{font-size:33px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.6));animation:emojiBob 2.8s ease-in-out infinite}
-.t-emoji:last-child{animation-delay:1.4s}
-@keyframes emojiBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.game-title{font-size:50px;font-weight:900;margin:0;letter-spacing:.5px;color:#ffd873;
+.game-title{font-size:54px;font-weight:900;margin:0;letter-spacing:.5px;color:#ffd873;
   background:linear-gradient(180deg,#fff8dc 5%,#ffd873 45%,#e8961e 95%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
   filter:drop-shadow(0 4px 16px rgba(255,180,60,.5));animation:titleFloat 3.4s ease-in-out infinite}
 @keyframes titleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.tagline{color:#c9d6f0;font-size:15px;margin-top:8px;text-shadow:0 2px 8px rgba(0,0,0,.85)}
-.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0 18px}
-.chip{background:rgba(10,16,38,.72);border:1px solid #2c3f70;border-radius:999px;padding:6px 14px;
-  font-size:12.5px;font-weight:bold;color:#c3cdea;backdrop-filter:blur(3px)}
-.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:4px}
+.tagline{color:#d5e0f5;font-size:16px;margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
 .btn-big{font-size:20px;padding:15px 52px}
-.ver{margin-top:14px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.ver{margin-top:16px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 
 /* ---------- ۸) راهنمای بازی ---------- */
 .howto-panel{max-width:620px;text-align:center}
@@ -231,43 +261,42 @@ body{display:flex;align-items:center;justify-content:center}
     </div>
     <div class="wslot locked" data-w="shotgun" title="شاتگان — از پنل ساخت‌وساز بخرش">
       <div class="wkey">۲</div><div class="wicon">💥</div><div class="wname">شاتگان</div>
-      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۲۲۰</span></div>
+      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۱۲۰</span></div>
     </div>
     <div class="wslot locked" data-w="mg" title="مسلسل — از پنل ساخت‌وساز بخرش">
       <div class="wkey">۳</div><div class="wicon">🌪</div><div class="wname">مسلسل</div>
-      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۴۸۰</span></div>
+      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۲۶۰</span></div>
     </div>
   </div>
 
-  <!-- ============ پنل ساخت‌وساز زنده (همیشه باز؛ خرید وسط مبارزه) ============
-       آیتم‌ها در جاوااسکریپت ساخته می‌شوند (buildPanelInit در بخش UI). -->
+  <!-- ============ پنل ساخت‌وساز آیکونی (همیشه باز؛ خرید وسط مبارزه) ============
+       کاشی‌ها در جاوااسکریپت ساخته و آیکون‌شان با Canvas رسم می‌شود.
+       #bpTip تولتیپِ توضیح هر آیتم است (جای متن‌های حذف‌شده). -->
   <div id="buildPanel">
     <div class="bp-head" id="bpHead" title="خرید وسط بازی هم مجاز است — کلید B جمع/باز">
       🛠 ساخت‌وساز <span class="bp-chev" id="bpChev">▾</span>
     </div>
     <div id="bpList"></div>
   </div>
+  <div id="bpTip"></div>
 
-  <!-- ============ منوی اصلی: قهرمان روی صحنه‌ی زنده ============ -->
+  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============ -->
+  <div id="dayPanel" class="hidden">
+    <button id="btnNight">🌙 شب شود</button>
+    <span id="dpHint">در روز زامبی نمی‌آید — ارتقا بخر و برجک بگذار!</span>
+  </div>
+
+  <!-- ============ منوی اصلی: مینیمال روی صحنه‌ی زنده ============ -->
   <div class="overlay" id="startScreen">
     <div id="menuHero">
-      <div class="title-row"><span class="t-emoji">🏰</span><h1 class="game-title">سه طبقه تا بقا</h1><span class="t-emoji">🧟</span></div>
-      <p class="tagline">از آخرین پناهگاهت در برابر ۱۰ موج زامبی دفاع کن — با کمبو، ضربه‌ی بحرانی و جعبه‌های قدرت!</p>
-      <div class="chips">
-        <span class="chip">🌊 ۱۰ موج</span>
-        <span class="chip">🧟 ۴ نوع دشمن</span>
-        <span class="chip">🔫 ۳ سلاح</span>
-        <span class="chip">🎯 ضربه‌ی بحرانی</span>
-        <span class="chip">🔥 کمبو و قدرت‌های ویژه</span>
-        <span class="chip">🛠 ساخت‌وساز زنده</span>
-        <span class="chip">🛡 برجک‌های خودکار</span>
-      </div>
+      <h1 class="game-title">سه طبقه تا بقا</h1>
+      <p class="tagline">۱۰ موج زامبی، یک برج سه‌طبقه و تو!</p>
       <div class="menu-btns">
         <button class="btn-main btn-big" id="btnStart">🎮 شروع بازی</button>
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۴٫۰ — برجک‌های دفاعیِ خودکار + همه‌ی گرافیک و صداها همین‌جا و درون همین یک فایل ساخته می‌شوند</p>
+      <p class="ver">نسخه‌ی ۵٫۰ — چرخه‌ی روز و شب، اقتصاد نو و برجک‌های خودکار</p>
     </div>
   </div>
 
@@ -278,10 +307,11 @@ body{display:flex;align-items:center;justify-content:center}
       <p class="subtitle">سی ثانیه بخوان؛ ده موج زنده بمون!</p>
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر</div>
+        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — راحت ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» موج بعد را شروع کن</div>
         <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰ / G / F:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>T:</b> ارتقای برجک‌ها &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
         <div>⌨ <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> قطع/وصل صدا</div>
-        <div>🛠 <b>پنل ساخت‌وساز</b> سمت راست نقشه همیشه باز است — حتی وسط موج می‌تونی ارتقا بخری!</div>
-        <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را از پنل بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
+        <div>🛠 <b>پنل ساخت‌وساز</b> سمت راست نقشه همیشه باز است — روی هر آیکون برو تا توضیح و قیمتش را ببینی؛ با پادشایی هر موج هم سکه‌ی جایزه می‌گیری!</div>
+        <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
         <div>🎯 شلیک به <b>سر</b> زامبی = <b>ضربه‌ی بحرانی</b> با دمیج دوبرابر</div>
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>
         <div>⚡ از زامبی‌ها جعبه‌ی قدرت می‌افتد: ❤️ درمان &nbsp;•&nbsp; ⚡ شلیک سریع &nbsp;•&nbsp; ❄️ انجماد &nbsp;•&nbsp; 💰 بار سکه</div>

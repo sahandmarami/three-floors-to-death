@@ -1,18 +1,17 @@
 'use strict';
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۳٫۰ — منطق بازی (بخش ۱)
+   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — منطق بازی (بخش ۱)
    ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
      ۱) ثابت‌ها و تنظیمات       ۲) ابزارهای کمکی
      ۳) موتور صدا (Web Audio)   ۴) وضعیت بازی
      ۵) ورودی (ماوس/کیبورد)     ۶) جریان موج‌ها و تولید زامبی
      ۷) شلیک و سلاح‌ها           ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج
      ۹) سکه‌ها و قدرت‌های ویژه   ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده)
-   تازه‌های ۳٫۰:
-     - زامبی‌ها برج را در چند ردیف محاصره می‌کنند و به پایه‌اش می‌کوبند
-     - ضربه‌ی بحرانیِ سر (دمیج ×۲)، پس‌زنی و سرخوردن زامبی
-     - سیستم کمبو با جایزه‌ی سکه در رکوردهای بالاتر
-     - جعبه‌های قدرت: درمان / شلیک سریع / انجماد / بار سکه
-     - خرید زنده‌ی ارتقاها وسط مبارزه (کلیدهای ۴ تا ۹)
+   تازه‌های ۵٫۰:
+     - اقتصاد نو: قیمت‌ها حدود نصف شدند، سکه‌ی زامبی‌ها و جایزه‌ی
+       پایان موج بالا رفت (پادشایی هر موج: ۱۲ + ۶×شماره موج)
+     - چرخه‌ی روز و شب: بعد از پاک‌سازی هر موج «صبح» می‌شود (حالت day)،
+       زامبی نمی‌آید، خرید آزاد است و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
    ================================================================== */
 
 /* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
@@ -22,19 +21,20 @@ const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };
 const TOWER_TOP_Y = GROUND_Y - TOWER.floorH * TOWER.floors; // سقف برج = محل ایستادن بازیکن
 
 const TOTAL_WAVES = 10;                    // تعداد کل موج‌ها
-const INTERMISSION_TIME = 5;               // ثانیه وقفه بین موج‌ها
-const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه‌تر قبل از موج اول
+const INTERMISSION_TIME = 5;               // (فقط دیباگ: skipToWave)
+const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه قبل از موج اول (شروع شب)
 
 /* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
-   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰ */
+   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰
+   (۵٫۰: سکه‌ها تقریباً دوبرابر شد تا خرید راحت‌تر باشد) */
 const ZTYPES = {
-  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [2, 3],
+  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [4, 6],
             skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
-  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [1, 2],
+  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [3, 4],
             skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
-  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [5, 7],
+  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [10, 14],
             skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
-  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [26, 32],
+  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [60, 75],
             skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
@@ -52,37 +52,39 @@ const WAVES = [
   { n: 16, f: 10, t: 7, b: 1 },
 ];
 
-/* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک) */
+/* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک)
+   (۵٫۰: قیمت شاتگان و مسلسل حدود نصف شد) */
 const WEAPONS = {
   pistol:  { name: 'تپانچه', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
              price: 0,   owned: true,  barrel: 18, flash: 5, knock: 5,   sfx: 'shootP' },
   shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
-             price: 220, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
+             price: 120, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
   mg:      { name: 'مسلسل', dmg: 2, rate: 0.12, spd: 760, pellets: 1, spread: 0.055, ttl: 2,
-             price: 480, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
+             price: 260, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
 };
 
-/* تنظیمات ساخت‌وساز: قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
+/* تنظیمات ساخت‌وساز (۵٫۰: اقتصاد نو — قیمت‌ها حدود نصف و رشد ملایم‌تر):
+   قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
 const UPGRADES = {
-  weapon:  { name: 'ارتقای اسلحه',     base: 25, growth: 1.75, max: 8 },
-  health:  { name: 'افزایش جون برج',   base: 20, growth: 1.6,  max: 8, bonus: 30 },
-  trap:    { name: 'نصب تله پایه برج', base: 35, growth: 1.8,  max: 5,
+  weapon:  { name: 'ارتقای اسلحه',     base: 15, growth: 1.55, max: 8 },
+  health:  { name: 'افزایش جون برج',   base: 12, growth: 1.45, max: 8, bonus: 30 },
+  trap:    { name: 'نصب تله پایه برج', base: 20, growth: 1.55, max: 5,
              dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
-  turretUp:{ name: 'ارتقای برجک‌ها',   base: 130, growth: 1.85, max: 5 },  // +۳۰٪ دمیج و +۱۲٪ سرعت شلیک برجک‌ها در هر سطح
-  shotgun: { price: 220 },                          // خرید یک‌باره
-  mg:      { price: 480 },                          // خرید یک‌باره
-  repair:  { price: 50, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
+  turretUp:{ name: 'ارتقای برجک‌ها',   base: 70, growth: 1.55, max: 5 },  // +۳۰٪ دمیج و +۱۲٪ سرعت شلیک برجک‌ها در هر سطح
+  shotgun: { price: 120 },                          // خرید یک‌باره
+  mg:      { price: 260 },                          // خرید یک‌باره
+  repair:  { price: 30, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
 };
 
 /* برجک‌های دفاعی خودکار (۴٫۰) — روی زمین نصب می‌شوند و خودشان به زامبی‌ها شلیک می‌کنند:
    gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
    frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
 const TURRETS = {
-  gatling: { name: 'برجک مسلسل',    price: 120, dmg: 3,  rate: 0.26, range: 230, spd: 640,
+  gatling: { name: 'برجک مسلسل',    price: 60,  dmg: 3,  rate: 0.26, range: 230, spd: 640,
              len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
-  sniper:  { name: 'برجک تک‌تیرانداز', price: 300, dmg: 24, rate: 1.6,  range: 400, spd: 950,
+  sniper:  { name: 'برجک تک‌تیرانداز', price: 150, dmg: 24, rate: 1.6,  range: 400, spd: 950,
              len: 30, h: 19, knock: 6, crit: 0.25, sub: 'تک‌ضرب کُشنده • دمیج ۲۴ • برد ۴۰۰' },
-  frost:   { name: 'برجک یخ‌زن',     price: 200, dmg: 4,  rate: 1.05, range: 175, spd: 380,
+  frost:   { name: 'برجک یخ‌زن',     price: 100, dmg: 4,  rate: 1.05, range: 175, spd: 380,
              len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۴ • برد ۱۷۵' },
 };
 const MAX_TURRETS = 6;                       // حداکثر تعداد برجک روی نقشه
@@ -92,17 +94,17 @@ const PTYPES = {
   medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 20 },
   rapid:  { name: 'شلیک سریع',    color: '#ffd873', dur: 8 },
   freeze: { name: 'انجماد',       color: '#8fd6ff', dur: 5 },
-  coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 8 },
+  coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 15 },
 };
 const POWER_LIFE = 9.5;                    // ثانیه عمر جعبه (اگر زودتر به بازیکن نرسد)
 
-/* رکوردهای کمبو: پیام + جایزه‌ی سکه (۳٫۰) */
+/* رکوردهای کمبو: پیام + جایزه‌ی سکه (۵٫۰: جایزه‌ها پررنگ‌تر شد) */
 const COMBO_MILESTONES = {
-  3:  { msg: 'سه‌گانه!',        bonus: 2 },
-  5:  { msg: 'کشتار مضاعف!',   bonus: 3 },
-  8:  { msg: 'توقف‌ناپذیر!',    bonus: 5 },
-  12: { msg: 'زمین‌لرزه!',      bonus: 8 },
-  18: { msg: 'خدای زامبی‌کُش!', bonus: 12 },
+  3:  { msg: 'سه‌گانه!',        bonus: 3 },
+  5:  { msg: 'کشتار مضاعف!',   bonus: 5 },
+  8:  { msg: 'توقف‌ناپذیر!',    bonus: 8 },
+  12: { msg: 'زمین‌لرزه!',      bonus: 12 },
+  18: { msg: 'خدای زامبی‌کُش!', bonus: 18 },
 };
 const COMBO_WINDOW = 2.2;                  // ثانیه‌ی اعتبار کمبو بین هر دو کشتن
 
@@ -322,6 +324,11 @@ const SFX = {
   heartbeat(){ Snd.tone({ type: 'sine',     f0: 64,   f1: 40,  dur: 0.12, vol: 0.22 });
                Snd.tone({ type: 'sine',     f0: 58,   f1: 36,  dur: 0.14, vol: 0.18, delay: 0.18 }); },
   slowmo()   { Snd.tone({ type: 'sawtooth', f0: 400,  f1: 60,  dur: 0.5,  vol: 0.10 }); },
+  /* صداهای چرخه‌ی روز و شب (۵٫۰) */
+  morning(){ [1500, 1820, 1500, 2050].forEach((f, i) =>
+               Snd.tone({ type: 'sine', f0: f, f1: f * 1.18, dur: 0.13, vol: 0.09, delay: i * 0.15 })); },
+  dusk()   { Snd.tone({ type: 'sawtooth', f0: 160, f1: 55, dur: 0.9,  vol: 0.12 });
+             Snd.tone({ type: 'sine',     f0: 240, f1: 115, dur: 1.0, vol: 0.07, delay: 0.12 }); },
   /* صداهای برجک‌های دفاعی (۴٫۰) */
   turShot()  { if (!sfxGate('turShot', 110)) return;
                Snd.noise({ dur: 0.06, vol: 0.10, ftype: 'bandpass', freq: 1500, q: 1 });
@@ -345,17 +352,20 @@ window.addEventListener('keydown', armAudio);
 /* ---------------------- ۴) وضعیت بازی ---------------------- */
 /* mode (وضعیت‌های بازی):
    start        منوی اصلی (صحنه‌ی زنده: زامبی‌های تزئینی دور برج می‌خزند)
-   playing      درگیر موج فعلی
-   intermission وقفه بین موج‌ها (شمارش معکوس + فرصت خرید)
+   playing      درگیر موج فعلی (شب)
+   intermission شمارش معکوس کوتاه قبل از موج ۱ (فقط شروع بازی)
+   day          روزِ بین موج‌ها (۵٫۰): بدون زامبی، خرید آزاد، دکمه‌ی «شب شود»
    paused       توقف دستی
    gameover     باخت (جون برج صفر)
-   victory      برد (پاک‌سازی هر ۱۰ موج)
-   (در ۳٫۰ حالت shop حذف شد: خرید از پنل زنده‌ی کنار نقشه انجام می‌شود) */
+   victory      برد (پاک‌سازی هر ۱۰ موج) */
 const state = {
   mode: 'start', prevMode: null,
   time: 0,                                 // زمان منطقی بازی (در توقف ثابت می‌ماند)
   wave: 0,                                 // موج فعلی (۰ = هنوز شروع نشده)
-  intermission: 0,                         // ثانیه باقی‌مانده تا موج بعد
+  intermission: 0,                         // ثانیه باقی‌مانده تا موج بعد (فقط شروع)
+  dayness: 0,                              // میزان روشنایی روز: ۰ = شب، ۱ = روز کامل (۵٫۰)
+  dayTarget: 0,                            // هدف گذار روز/شب (۵٫۰)
+  goingNight: false,                       // در حال گذار به شب بعد از کلیک دکمه (۵٫۰)
   spawn: { queue: [], timer: 0, interval: 2, bossDelay: false }, // صف تولد زامبی‌های موج
   coins: 0,
   tower: { hp: 100, maxHp: 100 },
@@ -398,7 +408,9 @@ canvas.height = H * DPR;
 try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
 
 /* ---------------------- ۵) ورودی: ماوس/لمس و کیبورد ---------------------- */
-function canPlay() { return state.mode === 'playing' || state.mode === 'intermission'; }
+/* playing و intermission و day همه «قابل بازی»اند: در روز هم می‌شود
+   شلیک کرد، ارتقا خرید و برجک نصب کرد (۵٫۰). */
+function canPlay() { return state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day'; }
 
 /* تبدیل مختصات رویداد ماوس به مختصات منطقی دنیای بازی */
 function canvasPos(e) {
@@ -477,7 +489,8 @@ function startGame() {
   state.mode = 'intermission';
   state.prevMode = null;
   state.time = 0; state.wave = 0;
-  state.coins = 0;
+  state.coins = 30;                       // سرمایه‌ی شروع (۵٫۰)
+  state.dayness = 0; state.dayTarget = 0; state.goingNight = false;   // شبِ شروع
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0 };
   state.weapon = 'pistol';
@@ -497,6 +510,8 @@ function startGame() {
   state.mouse.down = false; fireTimer = 0; announceTimer = 0;
   state.intermission = INTERMISSION_FIRST; // شمارش معکوس کوتاه قبل از موج ۱
   hideOverlays();
+  hideDayPanel();                          // پنل روز مطمئناً بسته باشد (۵٫۰)
+  $('wrap').classList.remove('menu-mode'); // HUD و پنل‌ها برگردند (۵٫۰)
   $('btnPause').textContent = '⏸ توقف';
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
@@ -530,16 +545,46 @@ function startWave(n) {
   updateHUD();
 }
 
-/* پایان موج فعلی: برد، یا ورود به وقفه قبل از موج بعد */
+/* پایان موج فعلی (۵٫۰): جایزه‌ی سکه + «صبح می‌شود»؛
+   در روز زامبی نمی‌آید و بازیکن با دکمه‌ی «شب شود» موج بعد را شروع می‌کند. */
 function waveComplete() {
   if (state.wave >= TOTAL_WAVES) { victory(); return; }
-  state.mode = 'intermission';
-  state.intermission = INTERMISSION_TIME;
-  state.slowmo = Math.max(state.slowmo, 0.45);       // لحظه‌ی سینمایی پاک‌سازی موج
-  setAnnounce('موج ' + faNum(state.wave) + ' پاک‌سازی شد! 🎉',
-    'موج بعدی: ' + faNum(state.wave + 1) + ' — فرصت ارتقا!', INTERMISSION_TIME + 0.2);
+  /* پادشایی موج: جایزه‌ی نقدی صبح (۱۲ + ۶×شماره موج) */
+  const bonus = 12 + state.wave * 6;
+  state.coins += bonus;
+  state.stats.earned += bonus;
+  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
+  pulseCoins();
+  /* صحنه پاک شود و صبح طلوع کند */
+  state.zombies = []; state.bullets = [];
+  state.mode = 'day';
+  state.dayTarget = 1;                     // گذار نرم به روز
+  state.goingNight = false;
+  state.slowmo = Math.max(state.slowmo, 0.45);   // لحظه‌ی سینمایی پاک‌سازی موج
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  setAnnounce('☀️ صبح شد!', 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
   SFX.clear();
-  $('bpHead').classList.add('attention');    // راهنمایی بصری: فرصت خرید رسید
+  SFX.morning();                           // چرپ‌چرپ صبحگاهی
+  showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
+  $('bpHead').classList.add('attention');   // راهنمایی بصری: فرصت خرید رسید
+  updateHUD();
+}
+
+/* پنل روز: دکمه‌ی شروع شب + راهنما (۵٫۰) */
+function showDayPanel() {
+  $('btnNight').innerHTML = '🌙 شب شود — موج ' + faNum(state.wave + 1);
+  $('dayPanel').classList.remove('hidden');
+}
+function hideDayPanel() { $('dayPanel').classList.add('hidden'); }
+
+/* کلیک «شب شود»: گذار گرگ‌ومیش و بعد شروع موج بعد (۵٫۰) */
+function startNight() {
+  if (state.mode !== 'day' || state.goingNight) return;
+  state.goingNight = true;
+  hideDayPanel();
+  state.dayTarget = 0;                     // آسمان آرام تاریک می‌شود
+  setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+  SFX.dusk();
 }
 
 /* تولید یک زامبی از نوع دلخواه از لبه چپ یا راست */

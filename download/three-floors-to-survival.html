@@ -3,18 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ ۳ سلاح، ۴ نوع دشمن، کمبو و ضربه‌ی بحرانی، جعبه‌های قدرت، ساخت‌وساز زنده روی نقشه و برجک‌های دفاعی خودکار (نسخه‌ی ۴٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ چرخه‌ی روز و شب، اقتصاد نو، پنل ساخت‌وساز آیکونی و برجک‌های دفاعی خودکار (نسخه‌ی ۵٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۳٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
-            ۵) پنل ساخت‌وساز زنده‌ی کنار نقشه
-            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی (قهرمان)  ۸) راهنما
-   تازه‌های ۳٫۰: نوار سلاح نازک و نیمه‌شفاف تا نقشه کامل دیده شود؛
-   فروشگاه به پنل همیشه‌باز کنار نقشه تبدیل شد (خرید وسط مبارزه).
+            ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰)
+            ۵٫۵) پنل روز: دکمه‌ی «شب شود» (۵٫۰)
+            ۶) اورلی‌ها و پنل‌ها   ۷) منوی اصلی مینیمال (۵٫۰)  ۸) راهنما
+   تازه‌های ۵٫۰:
+     - پنل ساخت‌وساز آیکونی: به‌جای متن‌های طولانی، تصویر + قیمت
+       (توضیح کامل فقط در تولتیپِ hover نمایش داده می‌شود)
+     - چرخه‌ی روز و شب: بعد از هر موج «صبح» می‌شود؛ بدون زامبی،
+       خرید آزاد، و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
+     - منوی اصلی ساده و تمیز شد (حذف چیپ‌ها و شلوغی)
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -91,42 +96,70 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes slotDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .wslot.deny{animation:slotDeny .3s;border-color:#e04b3a}
 
-/* ---------- ۵) پنل ساخت‌وساز زنده‌ی کنار نقشه (۳٫۰) ----------
-   فروشگاه دیگر صفحه‌ی جدا نیست؛ همین پنل همیشه باز است و
-   حتی وسط مبارزه هم می‌شود ارتقا خرید (کلیک یا کلیدهای ۴ تا ۹). */
-#buildPanel{position:absolute;top:60px;right:10px;width:176px;z-index:5;
+/* ---------- ۵) پنل ساخت‌وساز آیکونی کنار نقشه (۵٫۰) ----------
+   به‌جای ردیف‌های متنی، شبکه‌ی ۳ ستونی از کاشی‌های تصویری؛
+   هر آیکون با Canvas همین‌جا رسم می‌شود (بدون فایل خارجی).
+   توضیح هر آیتم فقط در تولتیپِ hover دیده می‌شود. */
+#buildPanel{position:absolute;top:60px;right:10px;width:196px;z-index:5;
   background:rgba(8,14,30,.58);border:1px solid #26355c;border-radius:12px;
-  backdrop-filter:blur(4px);overflow:hidden}
+  backdrop-filter:blur(4px);overflow:visible}
 .bp-head{display:flex;align-items:center;gap:6px;padding:6px 9px;font-size:11.5px;font-weight:bold;
-  color:#c3cdea;background:rgba(13,21,44,.85);cursor:pointer;border-bottom:1px solid #24325a}
+  color:#c3cdea;background:rgba(13,21,44,.85);cursor:pointer;border-bottom:1px solid #24325a;
+  border-radius:12px 12px 0 0}
 .bp-head .bp-chev{margin-inline-start:auto;font-size:10px;color:#8fa3cf}
-/* جلب توجه پنل در وقفه بین موج‌ها */
+/* جلب توجه پنل در روزِ بین موج‌ها */
 @keyframes attentionPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,216,115,.55)}50%{box-shadow:0 0 0 9px rgba(255,216,115,0)}}
 .bp-head.attention{animation:attentionPulse 1.2s infinite;color:#ffd873}
-#bpList{display:flex;flex-direction:column;gap:4px;padding:5px}
 #buildPanel.collapsed #bpList{display:none}
-.bp-item{display:flex;align-items:center;gap:5px;padding:4px 5px;border-radius:8px;
-  background:rgba(12,20,44,.66);border:1px solid #24325a;cursor:pointer;pointer-events:auto;
-  transition:border-color .15s,background .15s}
-.bp-item:hover{border-color:#3d548c;background:rgba(20,32,66,.9)}
-.bp-item.max{opacity:.5;cursor:default}
-.bp-key{font-size:8px;font-weight:bold;background:#1a2546;border:1px solid #33477c;border-radius:4px;
-  padding:0 4px;color:#8fa3cf;flex-shrink:0;line-height:1.5}
-.bp-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0}
-.bp-mid{display:flex;flex-direction:column;min-width:0;flex:1}
-.bp-mid b{font-size:10px;color:#e8ecf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bp-mid i{font-style:normal;font-size:8px;color:#7d8eaf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bp-cost{font-size:10px;font-weight:bold;color:#ffd873;flex-shrink:0}
-.bp-item.poor{filter:saturate(.55)}
-.bp-item.poor .bp-cost{color:#e06a5a}
-/* لرزش آیتم وقتی سکه کافی نیست */
-@keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
-.bp-item.deny{animation:bpDeny .3s;border-color:#e04b3a}
-/* گروه‌بندی آیتم‌های پنل + حالت «در حال نصب» (۴٫۰) */
-.bp-grp{display:flex;align-items:center;gap:6px;padding:5px 5px 2px;font-size:8.5px;font-weight:bold;
-  color:#6d7ea6;letter-spacing:.4px}
+#bpList{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:6px}
+/* عنوان گروه‌ها (خط‌دارِ جمع‌وجور) */
+.bp-grp{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:4px 2px 1px;
+  font-size:8.5px;font-weight:bold;color:#6d7ea6;letter-spacing:.4px}
 .bp-grp::before,.bp-grp::after{content:'';flex:1;height:1px;background:#24325a}
-.bp-item.placing{border-color:#ffd873;background:rgba(45,58,100,.95);box-shadow:0 0 10px rgba(255,216,115,.28)}
+/* کاشی آیتم: آیکون + قیمت + کلید + پین‌های سطح */
+.bp-tile{position:relative;height:66px;background:rgba(12,20,44,.66);border:1.5px solid #24325a;
+  border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;pointer-events:auto;
+  transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
+.bp-tile:hover{border-color:#3d548c;background:rgba(20,32,66,.92);transform:translateY(-2px);z-index:2}
+.bp-tile .bp-ic{width:34px;height:34px;display:block}
+.bp-tile .bp-price{font-size:10px;font-weight:bold;color:#ffd873;line-height:1;min-height:10px}
+.bp-key{position:absolute;top:2px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
+  border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
+/* پین‌های سطح (آیتم‌های ارتقایی): نقطه‌های روشن = سطح فعلی */
+.bp-lv{position:absolute;bottom:3px;left:4px;display:flex;gap:2px}
+.bp-lv i{width:4px;height:4px;border-radius:50%;background:#26355c}
+.bp-lv i.on{background:#ffd873}
+/* حالت‌ها: گران / حداکثر / در حال نصب */
+.bp-tile.poor .bp-price{color:#e06a5a}
+.bp-tile.poor .bp-ic{filter:saturate(.5) brightness(.72)}
+.bp-tile.max{opacity:.78}
+.bp-tile.max .bp-price{color:#7be389}
+.bp-tile.placing{border-color:#ffd873;background:rgba(45,58,100,.95);animation:bpPulse 1s infinite}
+@keyframes bpPulse{0%,100%{box-shadow:0 0 6px rgba(255,216,115,.25)}50%{box-shadow:0 0 14px rgba(255,216,115,.5)}}
+/* لرزش کاشی وقتی سکه کافی نیست */
+@keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.bp-tile.deny{animation:bpDeny .3s;border-color:#e04b3a}
+/* تولتیپ آیتم‌ها: نام + توضیح + وضعیت (جای متنِ حذف‌شده‌ی کاشی‌ها) */
+#bpTip{position:absolute;z-index:8;width:170px;background:rgba(10,16,36,.96);border:1px solid #33477c;
+  border-radius:10px;padding:8px 10px;font-size:11px;color:#c3cdea;pointer-events:none;
+  display:none;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.5);text-align:right;line-height:1.55}
+#bpTip b{display:block;color:#ffd873;font-size:12px;margin-bottom:2px}
+#bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
+
+/* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب ----------
+   بعد از پاک‌سازی هر موج صبح می‌شود؛ این دکمه وسطِ پایین
+   می‌آید و با کلیک، شب و موج بعد شروع می‌شود. */
+#dayPanel{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:6;
+  display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
+#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:17px;font-weight:bold;
+  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:12px;
+  padding:13px 42px;box-shadow:0 4px 26px rgba(240,180,60,.45);
+  transition:transform .15s,filter .15s;animation:nightGlow 1.6s ease-in-out infinite}
+#btnNight:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.07)}
+@keyframes nightGlow{0%,100%{box-shadow:0 4px 22px rgba(240,180,60,.35)}50%{box-shadow:0 4px 34px rgba(240,180,60,.68)}}
+#dpHint{font-size:11.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.78);
+  border:1px solid #26355c;border-radius:999px;padding:5px 14px;backdrop-filter:blur(4px)}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -156,27 +189,24 @@ body{display:flex;align-items:center;justify-content:center}
   background:#1a2546;border:1px solid #33477c;color:#e8ecf5;transition:background .15s,transform .15s}
 .icon-btn:hover{background:#26365e;transform:translateY(-1px)}
 
-/* ---------- ۷) منوی اصلی: قهرمان روی صحنه‌ی زنده‌ی بازی ---------- */
-#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.62),rgba(4,7,18,.28) 30%,rgba(4,7,18,.04) 58%,rgba(4,7,18,.3) 100%);
+/* ---------- ۷) منوی اصلی: مینیمال و تمیز روی صحنه‌ی زنده (۵٫۰) ----------
+   فقط عنوان + یک جمله + دکمه‌ها؛ صحنه‌ی زنده‌ی بازی خودش تزئین است.
+   در حالت منو، HUD/نوار سلاح/پنل ساخت‌وساز هم مخفی می‌شوند (ضد شلوغی). */
+#wrap.menu-mode #hud, #wrap.menu-mode #weaponBar, #wrap.menu-mode #buildPanel,
+#wrap.menu-mode #bossBar {display:none!important}
+#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.66),rgba(4,7,18,.30) 34%,rgba(4,7,18,.04) 58%,rgba(4,7,18,.34) 100%);
   backdrop-filter:none;pointer-events:none;align-items:flex-start}
-#menuHero{pointer-events:none;text-align:center;max-width:660px;padding:24px 18px 0}
+#menuHero{pointer-events:none;text-align:center;max-width:660px;padding:34px 18px 0}
 #menuHero button{pointer-events:auto}
-.title-row{display:flex;align-items:center;justify-content:center;gap:16px}
-.t-emoji{font-size:33px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.6));animation:emojiBob 2.8s ease-in-out infinite}
-.t-emoji:last-child{animation-delay:1.4s}
-@keyframes emojiBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.game-title{font-size:50px;font-weight:900;margin:0;letter-spacing:.5px;color:#ffd873;
+.game-title{font-size:54px;font-weight:900;margin:0;letter-spacing:.5px;color:#ffd873;
   background:linear-gradient(180deg,#fff8dc 5%,#ffd873 45%,#e8961e 95%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
   filter:drop-shadow(0 4px 16px rgba(255,180,60,.5));animation:titleFloat 3.4s ease-in-out infinite}
 @keyframes titleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.tagline{color:#c9d6f0;font-size:15px;margin-top:8px;text-shadow:0 2px 8px rgba(0,0,0,.85)}
-.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0 18px}
-.chip{background:rgba(10,16,38,.72);border:1px solid #2c3f70;border-radius:999px;padding:6px 14px;
-  font-size:12.5px;font-weight:bold;color:#c3cdea;backdrop-filter:blur(3px)}
-.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:4px}
+.tagline{color:#d5e0f5;font-size:16px;margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
 .btn-big{font-size:20px;padding:15px 52px}
-.ver{margin-top:14px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.ver{margin-top:16px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 
 /* ---------- ۸) راهنمای بازی ---------- */
 .howto-panel{max-width:620px;text-align:center}
@@ -231,43 +261,42 @@ body{display:flex;align-items:center;justify-content:center}
     </div>
     <div class="wslot locked" data-w="shotgun" title="شاتگان — از پنل ساخت‌وساز بخرش">
       <div class="wkey">۲</div><div class="wicon">💥</div><div class="wname">شاتگان</div>
-      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۲۲۰</span></div>
+      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۱۲۰</span></div>
     </div>
     <div class="wslot locked" data-w="mg" title="مسلسل — از پنل ساخت‌وساز بخرش">
       <div class="wkey">۳</div><div class="wicon">🌪</div><div class="wname">مسلسل</div>
-      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۴۸۰</span></div>
+      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۲۶۰</span></div>
     </div>
   </div>
 
-  <!-- ============ پنل ساخت‌وساز زنده (همیشه باز؛ خرید وسط مبارزه) ============
-       آیتم‌ها در جاوااسکریپت ساخته می‌شوند (buildPanelInit در بخش UI). -->
+  <!-- ============ پنل ساخت‌وساز آیکونی (همیشه باز؛ خرید وسط مبارزه) ============
+       کاشی‌ها در جاوااسکریپت ساخته و آیکون‌شان با Canvas رسم می‌شود.
+       #bpTip تولتیپِ توضیح هر آیتم است (جای متن‌های حذف‌شده). -->
   <div id="buildPanel">
     <div class="bp-head" id="bpHead" title="خرید وسط بازی هم مجاز است — کلید B جمع/باز">
       🛠 ساخت‌وساز <span class="bp-chev" id="bpChev">▾</span>
     </div>
     <div id="bpList"></div>
   </div>
+  <div id="bpTip"></div>
 
-  <!-- ============ منوی اصلی: قهرمان روی صحنه‌ی زنده ============ -->
+  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============ -->
+  <div id="dayPanel" class="hidden">
+    <button id="btnNight">🌙 شب شود</button>
+    <span id="dpHint">در روز زامبی نمی‌آید — ارتقا بخر و برجک بگذار!</span>
+  </div>
+
+  <!-- ============ منوی اصلی: مینیمال روی صحنه‌ی زنده ============ -->
   <div class="overlay" id="startScreen">
     <div id="menuHero">
-      <div class="title-row"><span class="t-emoji">🏰</span><h1 class="game-title">سه طبقه تا بقا</h1><span class="t-emoji">🧟</span></div>
-      <p class="tagline">از آخرین پناهگاهت در برابر ۱۰ موج زامبی دفاع کن — با کمبو، ضربه‌ی بحرانی و جعبه‌های قدرت!</p>
-      <div class="chips">
-        <span class="chip">🌊 ۱۰ موج</span>
-        <span class="chip">🧟 ۴ نوع دشمن</span>
-        <span class="chip">🔫 ۳ سلاح</span>
-        <span class="chip">🎯 ضربه‌ی بحرانی</span>
-        <span class="chip">🔥 کمبو و قدرت‌های ویژه</span>
-        <span class="chip">🛠 ساخت‌وساز زنده</span>
-        <span class="chip">🛡 برجک‌های خودکار</span>
-      </div>
+      <h1 class="game-title">سه طبقه تا بقا</h1>
+      <p class="tagline">۱۰ موج زامبی، یک برج سه‌طبقه و تو!</p>
       <div class="menu-btns">
         <button class="btn-main btn-big" id="btnStart">🎮 شروع بازی</button>
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۴٫۰ — برجک‌های دفاعیِ خودکار + همه‌ی گرافیک و صداها همین‌جا و درون همین یک فایل ساخته می‌شوند</p>
+      <p class="ver">نسخه‌ی ۵٫۰ — چرخه‌ی روز و شب، اقتصاد نو و برجک‌های خودکار</p>
     </div>
   </div>
 
@@ -278,10 +307,11 @@ body{display:flex;align-items:center;justify-content:center}
       <p class="subtitle">سی ثانیه بخوان؛ ده موج زنده بمون!</p>
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر</div>
+        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — راحت ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» موج بعد را شروع کن</div>
         <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰ / G / F:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>T:</b> ارتقای برجک‌ها &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
         <div>⌨ <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> قطع/وصل صدا</div>
-        <div>🛠 <b>پنل ساخت‌وساز</b> سمت راست نقشه همیشه باز است — حتی وسط موج می‌تونی ارتقا بخری!</div>
-        <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را از پنل بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
+        <div>🛠 <b>پنل ساخت‌وساز</b> سمت راست نقشه همیشه باز است — روی هر آیکون برو تا توضیح و قیمتش را ببینی؛ با پادشایی هر موج هم سکه‌ی جایزه می‌گیری!</div>
+        <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
         <div>🎯 شلیک به <b>سر</b> زامبی = <b>ضربه‌ی بحرانی</b> با دمیج دوبرابر</div>
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>
         <div>⚡ از زامبی‌ها جعبه‌ی قدرت می‌افتد: ❤️ درمان &nbsp;•&nbsp; ⚡ شلیک سریع &nbsp;•&nbsp; ❄️ انجماد &nbsp;•&nbsp; 💰 بار سکه</div>
@@ -335,19 +365,18 @@ body{display:flex;align-items:center;justify-content:center}
 <script>
 'use strict';
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۳٫۰ — منطق بازی (بخش ۱)
+   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — منطق بازی (بخش ۱)
    ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
      ۱) ثابت‌ها و تنظیمات       ۲) ابزارهای کمکی
      ۳) موتور صدا (Web Audio)   ۴) وضعیت بازی
      ۵) ورودی (ماوس/کیبورد)     ۶) جریان موج‌ها و تولید زامبی
      ۷) شلیک و سلاح‌ها           ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج
      ۹) سکه‌ها و قدرت‌های ویژه   ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده)
-   تازه‌های ۳٫۰:
-     - زامبی‌ها برج را در چند ردیف محاصره می‌کنند و به پایه‌اش می‌کوبند
-     - ضربه‌ی بحرانیِ سر (دمیج ×۲)، پس‌زنی و سرخوردن زامبی
-     - سیستم کمبو با جایزه‌ی سکه در رکوردهای بالاتر
-     - جعبه‌های قدرت: درمان / شلیک سریع / انجماد / بار سکه
-     - خرید زنده‌ی ارتقاها وسط مبارزه (کلیدهای ۴ تا ۹)
+   تازه‌های ۵٫۰:
+     - اقتصاد نو: قیمت‌ها حدود نصف شدند، سکه‌ی زامبی‌ها و جایزه‌ی
+       پایان موج بالا رفت (پادشایی هر موج: ۱۲ + ۶×شماره موج)
+     - چرخه‌ی روز و شب: بعد از پاک‌سازی هر موج «صبح» می‌شود (حالت day)،
+       زامبی نمی‌آید، خرید آزاد است و دکمه‌ی «شب شود» موج بعد را شروع می‌کند
    ================================================================== */
 
 /* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
@@ -357,19 +386,20 @@ const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };
 const TOWER_TOP_Y = GROUND_Y - TOWER.floorH * TOWER.floors; // سقف برج = محل ایستادن بازیکن
 
 const TOTAL_WAVES = 10;                    // تعداد کل موج‌ها
-const INTERMISSION_TIME = 5;               // ثانیه وقفه بین موج‌ها
-const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه‌تر قبل از موج اول
+const INTERMISSION_TIME = 5;               // (فقط دیباگ: skipToWave)
+const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه قبل از موج اول (شروع شب)
 
 /* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
-   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰ */
+   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰
+   (۵٫۰: سکه‌ها تقریباً دوبرابر شد تا خرید راحت‌تر باشد) */
 const ZTYPES = {
-  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [2, 3],
+  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [4, 6],
             skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
-  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [1, 2],
+  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [3, 4],
             skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
-  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [5, 7],
+  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [10, 14],
             skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
-  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [26, 32],
+  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [60, 75],
             skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
@@ -387,37 +417,39 @@ const WAVES = [
   { n: 16, f: 10, t: 7, b: 1 },
 ];
 
-/* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک) */
+/* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک)
+   (۵٫۰: قیمت شاتگان و مسلسل حدود نصف شد) */
 const WEAPONS = {
   pistol:  { name: 'تپانچه', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
              price: 0,   owned: true,  barrel: 18, flash: 5, knock: 5,   sfx: 'shootP' },
   shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
-             price: 220, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
+             price: 120, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
   mg:      { name: 'مسلسل', dmg: 2, rate: 0.12, spd: 760, pellets: 1, spread: 0.055, ttl: 2,
-             price: 480, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
+             price: 260, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
 };
 
-/* تنظیمات ساخت‌وساز: قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
+/* تنظیمات ساخت‌وساز (۵٫۰: اقتصاد نو — قیمت‌ها حدود نصف و رشد ملایم‌تر):
+   قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
 const UPGRADES = {
-  weapon:  { name: 'ارتقای اسلحه',     base: 25, growth: 1.75, max: 8 },
-  health:  { name: 'افزایش جون برج',   base: 20, growth: 1.6,  max: 8, bonus: 30 },
-  trap:    { name: 'نصب تله پایه برج', base: 35, growth: 1.8,  max: 5,
+  weapon:  { name: 'ارتقای اسلحه',     base: 15, growth: 1.55, max: 8 },
+  health:  { name: 'افزایش جون برج',   base: 12, growth: 1.45, max: 8, bonus: 30 },
+  trap:    { name: 'نصب تله پایه برج', base: 20, growth: 1.55, max: 5,
              dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
-  turretUp:{ name: 'ارتقای برجک‌ها',   base: 130, growth: 1.85, max: 5 },  // +۳۰٪ دمیج و +۱۲٪ سرعت شلیک برجک‌ها در هر سطح
-  shotgun: { price: 220 },                          // خرید یک‌باره
-  mg:      { price: 480 },                          // خرید یک‌باره
-  repair:  { price: 50, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
+  turretUp:{ name: 'ارتقای برجک‌ها',   base: 70, growth: 1.55, max: 5 },  // +۳۰٪ دمیج و +۱۲٪ سرعت شلیک برجک‌ها در هر سطح
+  shotgun: { price: 120 },                          // خرید یک‌باره
+  mg:      { price: 260 },                          // خرید یک‌باره
+  repair:  { price: 30, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
 };
 
 /* برجک‌های دفاعی خودکار (۴٫۰) — روی زمین نصب می‌شوند و خودشان به زامبی‌ها شلیک می‌کنند:
    gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
    frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
 const TURRETS = {
-  gatling: { name: 'برجک مسلسل',    price: 120, dmg: 3,  rate: 0.26, range: 230, spd: 640,
+  gatling: { name: 'برجک مسلسل',    price: 60,  dmg: 3,  rate: 0.26, range: 230, spd: 640,
              len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
-  sniper:  { name: 'برجک تک‌تیرانداز', price: 300, dmg: 24, rate: 1.6,  range: 400, spd: 950,
+  sniper:  { name: 'برجک تک‌تیرانداز', price: 150, dmg: 24, rate: 1.6,  range: 400, spd: 950,
              len: 30, h: 19, knock: 6, crit: 0.25, sub: 'تک‌ضرب کُشنده • دمیج ۲۴ • برد ۴۰۰' },
-  frost:   { name: 'برجک یخ‌زن',     price: 200, dmg: 4,  rate: 1.05, range: 175, spd: 380,
+  frost:   { name: 'برجک یخ‌زن',     price: 100, dmg: 4,  rate: 1.05, range: 175, spd: 380,
              len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۴ • برد ۱۷۵' },
 };
 const MAX_TURRETS = 6;                       // حداکثر تعداد برجک روی نقشه
@@ -427,17 +459,17 @@ const PTYPES = {
   medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 20 },
   rapid:  { name: 'شلیک سریع',    color: '#ffd873', dur: 8 },
   freeze: { name: 'انجماد',       color: '#8fd6ff', dur: 5 },
-  coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 8 },
+  coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 15 },
 };
 const POWER_LIFE = 9.5;                    // ثانیه عمر جعبه (اگر زودتر به بازیکن نرسد)
 
-/* رکوردهای کمبو: پیام + جایزه‌ی سکه (۳٫۰) */
+/* رکوردهای کمبو: پیام + جایزه‌ی سکه (۵٫۰: جایزه‌ها پررنگ‌تر شد) */
 const COMBO_MILESTONES = {
-  3:  { msg: 'سه‌گانه!',        bonus: 2 },
-  5:  { msg: 'کشتار مضاعف!',   bonus: 3 },
-  8:  { msg: 'توقف‌ناپذیر!',    bonus: 5 },
-  12: { msg: 'زمین‌لرزه!',      bonus: 8 },
-  18: { msg: 'خدای زامبی‌کُش!', bonus: 12 },
+  3:  { msg: 'سه‌گانه!',        bonus: 3 },
+  5:  { msg: 'کشتار مضاعف!',   bonus: 5 },
+  8:  { msg: 'توقف‌ناپذیر!',    bonus: 8 },
+  12: { msg: 'زمین‌لرزه!',      bonus: 12 },
+  18: { msg: 'خدای زامبی‌کُش!', bonus: 18 },
 };
 const COMBO_WINDOW = 2.2;                  // ثانیه‌ی اعتبار کمبو بین هر دو کشتن
 
@@ -657,6 +689,11 @@ const SFX = {
   heartbeat(){ Snd.tone({ type: 'sine',     f0: 64,   f1: 40,  dur: 0.12, vol: 0.22 });
                Snd.tone({ type: 'sine',     f0: 58,   f1: 36,  dur: 0.14, vol: 0.18, delay: 0.18 }); },
   slowmo()   { Snd.tone({ type: 'sawtooth', f0: 400,  f1: 60,  dur: 0.5,  vol: 0.10 }); },
+  /* صداهای چرخه‌ی روز و شب (۵٫۰) */
+  morning(){ [1500, 1820, 1500, 2050].forEach((f, i) =>
+               Snd.tone({ type: 'sine', f0: f, f1: f * 1.18, dur: 0.13, vol: 0.09, delay: i * 0.15 })); },
+  dusk()   { Snd.tone({ type: 'sawtooth', f0: 160, f1: 55, dur: 0.9,  vol: 0.12 });
+             Snd.tone({ type: 'sine',     f0: 240, f1: 115, dur: 1.0, vol: 0.07, delay: 0.12 }); },
   /* صداهای برجک‌های دفاعی (۴٫۰) */
   turShot()  { if (!sfxGate('turShot', 110)) return;
                Snd.noise({ dur: 0.06, vol: 0.10, ftype: 'bandpass', freq: 1500, q: 1 });
@@ -680,17 +717,20 @@ window.addEventListener('keydown', armAudio);
 /* ---------------------- ۴) وضعیت بازی ---------------------- */
 /* mode (وضعیت‌های بازی):
    start        منوی اصلی (صحنه‌ی زنده: زامبی‌های تزئینی دور برج می‌خزند)
-   playing      درگیر موج فعلی
-   intermission وقفه بین موج‌ها (شمارش معکوس + فرصت خرید)
+   playing      درگیر موج فعلی (شب)
+   intermission شمارش معکوس کوتاه قبل از موج ۱ (فقط شروع بازی)
+   day          روزِ بین موج‌ها (۵٫۰): بدون زامبی، خرید آزاد، دکمه‌ی «شب شود»
    paused       توقف دستی
    gameover     باخت (جون برج صفر)
-   victory      برد (پاک‌سازی هر ۱۰ موج)
-   (در ۳٫۰ حالت shop حذف شد: خرید از پنل زنده‌ی کنار نقشه انجام می‌شود) */
+   victory      برد (پاک‌سازی هر ۱۰ موج) */
 const state = {
   mode: 'start', prevMode: null,
   time: 0,                                 // زمان منطقی بازی (در توقف ثابت می‌ماند)
   wave: 0,                                 // موج فعلی (۰ = هنوز شروع نشده)
-  intermission: 0,                         // ثانیه باقی‌مانده تا موج بعد
+  intermission: 0,                         // ثانیه باقی‌مانده تا موج بعد (فقط شروع)
+  dayness: 0,                              // میزان روشنایی روز: ۰ = شب، ۱ = روز کامل (۵٫۰)
+  dayTarget: 0,                            // هدف گذار روز/شب (۵٫۰)
+  goingNight: false,                       // در حال گذار به شب بعد از کلیک دکمه (۵٫۰)
   spawn: { queue: [], timer: 0, interval: 2, bossDelay: false }, // صف تولد زامبی‌های موج
   coins: 0,
   tower: { hp: 100, maxHp: 100 },
@@ -733,7 +773,9 @@ canvas.height = H * DPR;
 try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
 
 /* ---------------------- ۵) ورودی: ماوس/لمس و کیبورد ---------------------- */
-function canPlay() { return state.mode === 'playing' || state.mode === 'intermission'; }
+/* playing و intermission و day همه «قابل بازی»اند: در روز هم می‌شود
+   شلیک کرد، ارتقا خرید و برجک نصب کرد (۵٫۰). */
+function canPlay() { return state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day'; }
 
 /* تبدیل مختصات رویداد ماوس به مختصات منطقی دنیای بازی */
 function canvasPos(e) {
@@ -812,7 +854,8 @@ function startGame() {
   state.mode = 'intermission';
   state.prevMode = null;
   state.time = 0; state.wave = 0;
-  state.coins = 0;
+  state.coins = 30;                       // سرمایه‌ی شروع (۵٫۰)
+  state.dayness = 0; state.dayTarget = 0; state.goingNight = false;   // شبِ شروع
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0 };
   state.weapon = 'pistol';
@@ -832,6 +875,8 @@ function startGame() {
   state.mouse.down = false; fireTimer = 0; announceTimer = 0;
   state.intermission = INTERMISSION_FIRST; // شمارش معکوس کوتاه قبل از موج ۱
   hideOverlays();
+  hideDayPanel();                          // پنل روز مطمئناً بسته باشد (۵٫۰)
+  $('wrap').classList.remove('menu-mode'); // HUD و پنل‌ها برگردند (۵٫۰)
   $('btnPause').textContent = '⏸ توقف';
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
@@ -865,16 +910,46 @@ function startWave(n) {
   updateHUD();
 }
 
-/* پایان موج فعلی: برد، یا ورود به وقفه قبل از موج بعد */
+/* پایان موج فعلی (۵٫۰): جایزه‌ی سکه + «صبح می‌شود»؛
+   در روز زامبی نمی‌آید و بازیکن با دکمه‌ی «شب شود» موج بعد را شروع می‌کند. */
 function waveComplete() {
   if (state.wave >= TOTAL_WAVES) { victory(); return; }
-  state.mode = 'intermission';
-  state.intermission = INTERMISSION_TIME;
-  state.slowmo = Math.max(state.slowmo, 0.45);       // لحظه‌ی سینمایی پاک‌سازی موج
-  setAnnounce('موج ' + faNum(state.wave) + ' پاک‌سازی شد! 🎉',
-    'موج بعدی: ' + faNum(state.wave + 1) + ' — فرصت ارتقا!', INTERMISSION_TIME + 0.2);
+  /* پادشایی موج: جایزه‌ی نقدی صبح (۱۲ + ۶×شماره موج) */
+  const bonus = 12 + state.wave * 6;
+  state.coins += bonus;
+  state.stats.earned += bonus;
+  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
+  pulseCoins();
+  /* صحنه پاک شود و صبح طلوع کند */
+  state.zombies = []; state.bullets = [];
+  state.mode = 'day';
+  state.dayTarget = 1;                     // گذار نرم به روز
+  state.goingNight = false;
+  state.slowmo = Math.max(state.slowmo, 0.45);   // لحظه‌ی سینمایی پاک‌سازی موج
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  setAnnounce('☀️ صبح شد!', 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
   SFX.clear();
-  $('bpHead').classList.add('attention');    // راهنمایی بصری: فرصت خرید رسید
+  SFX.morning();                           // چرپ‌چرپ صبحگاهی
+  showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
+  $('bpHead').classList.add('attention');   // راهنمایی بصری: فرصت خرید رسید
+  updateHUD();
+}
+
+/* پنل روز: دکمه‌ی شروع شب + راهنما (۵٫۰) */
+function showDayPanel() {
+  $('btnNight').innerHTML = '🌙 شب شود — موج ' + faNum(state.wave + 1);
+  $('dayPanel').classList.remove('hidden');
+}
+function hideDayPanel() { $('dayPanel').classList.add('hidden'); }
+
+/* کلیک «شب شود»: گذار گرگ‌ومیش و بعد شروع موج بعد (۵٫۰) */
+function startNight() {
+  if (state.mode !== 'day' || state.goingNight) return;
+  state.goingNight = true;
+  hideDayPanel();
+  state.dayTarget = 0;                     // آسمان آرام تاریک می‌شود
+  setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+  SFX.dusk();
 }
 
 /* تولید یک زامبی از نوع دلخواه از لبه چپ یا راست */
@@ -1666,16 +1741,21 @@ function updateShootingStar(dt) {
     if (shootStar.life <= 0) shootStar = null;
   } else {
     shootStarT -= dt;
-    if (shootStarT <= 0) {
+    if (shootStarT <= 0 && state.dayness < 0.4) {   // فقط شب (۵٫۰)
       shootStar = { x: rand(150, W - 100), y: rand(20, 130), vx: -rand(300, 480), vy: rand(90, 160), life: 0.8 };
       shootStarT = rand(4, 9);
     }
   }
 }
 
-/* رعدوبرق گاه‌به‌گاه (۳٫۰): فقط صحنه را روشن می‌کند؛ آسیبی ندارد */
+/* رعدوبرق گاه‌به‌گاه (۳٫۰): فقط صحنه را روشن می‌کند؛ آسیبی ندارد — فقط شب (۵٫۰) */
 function updateLightning(dt) {
   const L = state.lightning;
+  if (state.dayness > 0.35) {              // در روز رعدوبرقی نیست
+    L.a = 0;
+    L.t = rand(6, 12);
+    return;
+  }
   L.t -= dt;
   if (L.t <= 0) {
     L.a = 0.9; L.t = rand(13, 30);
@@ -1687,6 +1767,20 @@ function updateLightning(dt) {
 /* ---------------------- ۱۲) حلقه به‌روزرسانی ---------------------- */
 function update(dt) {
   state.time += dt;
+
+  /* ---- چرخه‌ی روز و شب (۵٫۰) ----
+     dayness با گذار نمایی به سمت dayTarget می‌لغزد (~۲ ثانیه):
+     ۰ = شب کامل (ماه/ستاره/رعد) • ۱ = روز کامل (خورشید/آسمان روشن) */
+  if (Math.abs(state.dayness - state.dayTarget) > 0.0008) {
+    state.dayness += (state.dayTarget - state.dayness) * Math.min(1, dt * 1.15);
+  }
+  /* پایان گذار به شب بعد از کلیک «شب شود»: موج بعد شروع می‌شود */
+  if (state.mode === 'day' && state.goingNight && state.dayness <= 0.08) {
+    state.goingNight = false;
+    state.dayness = 0;
+    startWave(state.wave + 1);
+  }
+
   fireTimer = Math.max(0, fireTimer - dt);
   state.shake = Math.max(0, state.shake - dt * 22);
   state.flash = Math.max(0, state.flash - dt * 2.2);
@@ -1716,7 +1810,8 @@ function update(dt) {
   updateAim();
   if (state.mouse.down && canPlay() && !state.placing) tryShoot();
 
-  /* شمارش معکوس بین موج‌ها */
+  /* شمارش معکوس شروع بازی (فقط قبل از موج ۱؛ بعد از هر موج به‌جای این
+     وقفه، «روز» می‌شود و بازیکن خودش شب را شروع می‌کند — ۵٫۰) */
   if (state.mode === 'intermission') {
     state.intermission -= dt;
     if (state.intermission <= 0) startWave(state.wave + 1);
@@ -1860,6 +1955,8 @@ function gameOver() {
   state.mouse.down = false;
   state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
   state.combo = 0;
+  state.dayTarget = 0;                      // باخت همیشه در شب رخ می‌دهد (۵٫۰)
+  hideDayPanel();                           // پنل روز بسته شود (۵٫۰)
   state.shake = 14; state.flash = 1;
   /* آوار و گردوخاک سقوط برج */
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 36, '#8a6f52', { speed: 260, life: 0.9, size: 3.5, grav: 600 });
@@ -1880,6 +1977,8 @@ function victory() {
   state.mouse.down = false;
   state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
   state.combo = 0;
+  state.dayTarget = 1;                      // پیروزی در روشنایی روز (۵٫۰)
+  hideDayPanel();
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 30, '#ffd873', { speed: 240, life: 1.1, size: 3, grav: 350 });
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 20, '#7bd389', { speed: 200, life: 1.0, size: 2.6, grav: 350 });
   $('vStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه: <b>' + faNum(state.stats.earned) +
@@ -1907,32 +2006,77 @@ function rr(x, y, w, h, r) {
   }
 }
 
-/* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها */
+/* ترکیب دو رنگ hex با ضریب t (۵٫۰: گذار نرم روز/شب) */
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const r = Math.round(((pa >> 16) & 255) + ((((pb >> 16) & 255) - ((pa >> 16) & 255)) * t));
+  const g = Math.round(((pa >> 8) & 255) + ((((pb >> 8) & 255) - ((pa >> 8) & 255)) * t));
+  const bl = Math.round((pa & 255) + ((pb & 255) - (pa & 255)) * t);
+  return 'rgb(' + r + ',' + g + ',' + bl + ')';
+}
+
+/* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها
+   (۵٫۰: با dayness به آسمان روشن روز و خورشید گذار می‌کند) */
 function drawSky() {
+  const d = state.dayness;                  // ۰ = شب کامل، ۱ = روز کامل
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
-  g.addColorStop(0, '#080e22'); g.addColorStop(0.5, '#101c3e'); g.addColorStop(1, '#1d2d58');
+  g.addColorStop(0,   mixHex('#080e22', '#6fb7e8', d));
+  g.addColorStop(0.5, mixHex('#101c3e', '#a3d4f2', d));
+  g.addColorStop(1,   mixHex('#1d2d58', '#dcecf7', d));
   ctx.fillStyle = g;
   ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
 
-  for (const s of STARS) {
-    const a = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(animTime * s.sp + s.ph));
-    ctx.fillStyle = 'rgba(215,228,255,' + a.toFixed(2) + ')';
-    circle(s.x, s.y, s.r);
+  /* ستاره‌ها فقط شب دیده می‌شوند (با طلوع محو می‌شوند) */
+  if (d < 0.98) {
+    const sf = 1 - d;
+    for (const s of STARS) {
+      const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(animTime * s.sp + s.ph))) * sf;
+      if (a < 0.02) continue;
+      ctx.fillStyle = 'rgba(215,228,255,' + a.toFixed(2) + ')';
+      circle(s.x, s.y, s.r);
+    }
   }
 
-  /* ماه */
-  const mx = 172, my = 86, mr = 34;
-  const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.7);
-  glow.addColorStop(0, 'rgba(244,238,210,0.30)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
-  ctx.fillStyle = glow; circle(mx, my, mr * 2.7);
-  ctx.fillStyle = '#f2ead0'; circle(mx, my, mr);
-  ctx.fillStyle = 'rgba(120,110,80,0.16)';
-  circle(mx - 10, my - 6, 6); circle(mx + 8, my + 9, 4.5); circle(mx + 13, my - 11, 3);
+  /* ماه شب */
+  if (d < 0.98) {
+    const mx = 172, my = 86, mr = 34;
+    ctx.globalAlpha = 1 - d;
+    const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.7);
+    glow.addColorStop(0, 'rgba(244,238,210,0.30)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
+    ctx.fillStyle = glow; circle(mx, my, mr * 2.7);
+    ctx.fillStyle = '#f2ead0'; circle(mx, my, mr);
+    ctx.fillStyle = 'rgba(120,110,80,0.16)';
+    circle(mx - 10, my - 6, 6); circle(mx + 8, my + 9, 4.5); circle(mx + 13, my - 11, 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* خورشید روز (۵٫۰): هاله‌ی گرم + پرتوهای چرخان ملایم */
+  if (d > 0.02) {
+    const sx = 790, sy = 92, sr = 30;
+    ctx.globalAlpha = d;
+    const glow = ctx.createRadialGradient(sx, sy, sr * 0.4, sx, sy, sr * 3.1);
+    glow.addColorStop(0, 'rgba(255,240,180,0.5)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = glow; circle(sx, sy, sr * 3.1);
+    ctx.fillStyle = '#ffe9a0'; circle(sx, sy, sr);
+    ctx.fillStyle = '#fff7cf'; circle(sx - sr * 0.25, sy - sr * 0.25, sr * 0.55);
+    ctx.strokeStyle = 'rgba(255,235,160,' + (0.55 * d).toFixed(2) + ')';
+    ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const a = animTime * 0.25 + k * Math.PI / 4;
+      ctx.moveTo(sx + Math.cos(a) * (sr + 8), sy + Math.sin(a) * (sr + 8));
+      ctx.lineTo(sx + Math.cos(a) * (sr + 16), sy + Math.sin(a) * (sr + 16));
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 }
 
-/* ابرهای شناور تیره (با حرکت آرام و پیوسته از راست به چپ) */
+/* ابرهای شناور (۵٫۰: شب تیره، روز سفید — با حرکت آرام پیوسته از راست به چپ) */
 function drawClouds() {
-  ctx.fillStyle = 'rgba(13,20,44,0.85)';
+  const d = state.dayness;
+  const rC = Math.round(13 + 237 * d), gC = Math.round(20 + 232 * d), bC = Math.round(44 + 211 * d);
+  ctx.fillStyle = 'rgba(' + rC + ',' + gC + ',' + bC + ',0.8)';
   for (const c of CLOUDS) {
     const m = W + 300;
     const x = (((c.x - animTime * c.v) % m) + m) % m - 150;
@@ -1945,26 +2089,33 @@ function drawClouds() {
   }
 }
 
-/* افق شهر در دوردست: آسمان‌خراش‌های سیاه‌شکلی با پنجره‌های روشن */
+/* افق شهر در دوردست (۵٫۰: شب سیاه‌شکلی با پنجره‌های روشن؛ روز خاکستری روشن) */
 function drawSkyline() {
-  ctx.fillStyle = '#0b1226';
+  const d = state.dayness;
+  ctx.fillStyle = mixHex('#0b1226', '#6a7d96', d);
   for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
   /* لبه‌ی روشن‌ترِ پشت‌بام‌ها برای جدا شدن از آسمان */
-  ctx.fillStyle = '#141d3d';
+  ctx.fillStyle = mixHex('#141d3d', '#8fa2b8', d);
   for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, 2.5);
-  for (const w2 of SKYLINE_WINS) {
-    ctx.fillStyle = w2.c;
-    ctx.fillRect(w2.x, w2.y, 2.5, 3.5);
+  /* پنجره‌ها فقط شب روشن‌اند (روز همه سرِ کارند!) */
+  if (d < 0.95) {
+    ctx.globalAlpha = 1 - d;
+    for (const w2 of SKYLINE_WINS) {
+      ctx.fillStyle = w2.c;
+      ctx.fillRect(w2.x, w2.y, 2.5, 3.5);
+    }
+    ctx.globalAlpha = 1;
   }
 }
 
-/* تپه‌های دوردست در دو لایه برای عمق + زمین و جاده خاکی */
+/* تپه‌های دوردست در دو لایه برای عمق + زمین و جاده خاکی (۵٫۰: رنگ روز) */
 function drawHills() {
-  ctx.fillStyle = '#13203f'; drawHillRow(HILLS1);
-  ctx.fillStyle = '#0d1731'; drawHillRow(HILLS2);
+  const d = state.dayness;
+  ctx.fillStyle = mixHex('#13203f', '#8fae6e', d); drawHillRow(HILLS1);
+  ctx.fillStyle = mixHex('#0d1731', '#7a9a5e', d); drawHillRow(HILLS2);
 
-  ctx.fillStyle = '#151d0e'; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
-  ctx.fillStyle = '#2c261d'; ctx.fillRect(-20, GROUND_Y, W + 40, 18);
+  ctx.fillStyle = mixHex('#151d0e', '#4f6b35', d); ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+  ctx.fillStyle = mixHex('#2c261d', '#6e5f45', d); ctx.fillRect(-20, GROUND_Y, W + 40, 18);
   ctx.strokeStyle = 'rgba(96,84,60,0.8)'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(-20, GROUND_Y); ctx.lineTo(W + 20, GROUND_Y); ctx.stroke();
   ctx.fillStyle = 'rgba(120,105,80,0.35)';
@@ -1978,14 +2129,16 @@ function drawHillRow(pts) {
   ctx.closePath(); ctx.fill();
 }
 
-/* برکه‌های کوچک با بازتاب ماه (۳٫۰) */
+/* برکه‌های کوچک (۳٫۰): شب بازتاب ماه؛ روز آسمان آبی را برمی‌گردانند (۵٫۰) */
 function drawPuddles() {
+  const d = state.dayness;
   for (const p of PUDDLES) {
     const sh = 0.5 + 0.5 * Math.sin(animTime * 1.3 + p.x);
-    ctx.fillStyle = 'rgba(120,150,205,0.10)';
+    ctx.fillStyle = d > 0.5 ? 'rgba(140,190,235,0.16)' : 'rgba(120,150,205,0.10)';
     ctx.beginPath(); ctx.ellipse(p.x, GROUND_Y + 8, p.w / 2, 5, 0, 0, Math.PI * 2); ctx.fill();
-    /* رد بازتاب عمودی نور ماه روی آب */
-    ctx.fillStyle = 'rgba(200,220,255,' + (0.05 + sh * 0.05).toFixed(2) + ')';
+    /* رد بازتاب عمودی: شب نور ماه، روز آسمان روشن */
+    const refA = (1 - d) * (0.05 + sh * 0.05) + d * 0.07;
+    ctx.fillStyle = d > 0.5 ? 'rgba(190,225,255,' + refA.toFixed(2) + ')' : 'rgba(200,220,255,' + refA.toFixed(2) + ')';
     ctx.fillRect(p.x - 1.2, GROUND_Y + 3, 2.4, 9);
   }
 }
@@ -2019,7 +2172,7 @@ function drawDecals() {
 /* رعدوبرق: آسمان و زمین لحظه‌ای روشن می‌شوند (۳٫۰) */
 function drawLightning() {
   const a = state.lightning.a;
-  if (a <= 0.02) return;
+  if (a <= 0.02 || state.dayness > 0.5) return;   // فقط شب (۵٫۰)
   const flick = 0.55 + 0.45 * Math.abs(Math.sin(animTime * 55));
   const k = a * flick;
   ctx.fillStyle = 'rgba(205,225,255,' + (0.30 * k).toFixed(2) + ')';
@@ -2055,14 +2208,16 @@ function drawTree(x, s) {
   ctx.restore();
 }
 
-/* تیرهای چراغ با مخروط نور چشمک‌زن (۳٫۰) */
+/* تیرهای چراغ با مخروط نور چشمک‌زن (۳٫۰) — در روز کم‌نور (۵٫۰) */
 const LAMPS = [236, 724];
 function drawLamps() {
+  const dim = 1 - state.dayness * 0.9;      // چراغ‌ها در روز تقریباً خاموش‌اند
   for (const lx of LAMPS) {
     /* سوسوی ملایم + چشمکِ گاه‌به‌گاه */
     let fl = 0.8 + 0.2 * Math.sin(animTime * 9 + lx) * Math.sin(animTime * 3.7 + lx * 2);
     if (Math.random() < 0.012) fl = 0.3;
-    ctx.strokeStyle = '#151d33'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    fl *= dim;
+    ctx.strokeStyle = mixHex('#151d33', '#3a4457', state.dayness); ctx.lineWidth = 4; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(lx, GROUND_Y + 2); ctx.lineTo(lx, GROUND_Y - 58); ctx.stroke();
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(lx, GROUND_Y - 58); ctx.lineTo(lx + 10, GROUND_Y - 58); ctx.stroke();
@@ -2096,12 +2251,14 @@ function drawMuzzleGlow() {
   ctx.fillStyle = g; circle(m.x, m.y, 85);
 }
 
-/* کرم‌های شب‌تاب (۳٫۰) */
+/* کرم‌های شب‌تاب (۳٫۰) — فقط شب (۵٫۰) */
 function drawFireflies() {
+  const nf = 1 - state.dayness;             // با طلوع محو می‌شوند
+  if (nf < 0.1) return;
   for (const f of FIREFLIES) {
     const x = f.cx + Math.sin(animTime * f.sp + f.ph) * f.rx;
     const y = f.cy + Math.sin(animTime * f.sp * 1.7 + f.ph * 2) * f.ry;
-    const a = 0.18 + 0.5 * (0.5 + 0.5 * Math.sin(animTime * 2.2 + f.ph * 3));
+    const a = (0.18 + 0.5 * (0.5 + 0.5 * Math.sin(animTime * 2.2 + f.ph * 3))) * nf;
     ctx.fillStyle = 'rgba(205,245,150,' + (a * 0.25).toFixed(2) + ')';
     circle(x, y, 3.4);
     ctx.fillStyle = 'rgba(230,255,190,' + a.toFixed(2) + ')';
@@ -2958,14 +3115,14 @@ function render() {
   drawCinematic();
 }
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۳٫۰ — منطق بازی (بخش ۳)
-     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل ساخت‌وساز زنده)
+   سه طبقه تا بقا — نسخه‌ی ۵٫۰ — منطق بازی (بخش ۳)
+     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل آیکونی + تولتیپ)
      ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
-   تازه‌های ۳٫۰ در این بخش:
-     - پنل ساخت‌وساز زنده‌ی کنار نقشه (به‌جای فروشگاه تمام‌صفحه):
-       خرید در هر لحظه‌ی بازی با کلیک یا کلیدهای ۴ تا ۹؛ B پنل را جمع/باز می‌کند
-     - HUD با شمارش زامبی‌های باقی‌مانده‌ی موج
-     - اسلوموشن سینمایی در پایان موج و مرگ پادشاه
+   تازه‌های ۵٫۰ در این بخش:
+     - پنل ساخت‌وساز آیکونی: هر آیتم یک کاشی تصویری (Canvas-drawn icon)
+       + قیمت + پین‌های سطح؛ توضیح فقط در تولتیپِ hover
+     - حلقه‌ی اصلی حالت day را هم به‌روز می‌کند (روزِ بین موج‌ها)
+     - دکمه‌ی «شب شود» (btnNight) به startNight وصل شد
    ================================================================== */
 
 /* ---------------------- ۱۵) رابط کاربری ---------------------- */
@@ -2999,33 +3156,228 @@ function toggleSound() {
   if (!m) SFX.click();
 }
 
-/* ---------- پنل ساخت‌وساز زنده (۳٫۰) ----------
-   تعریف آیتم‌های پنل در سه گروه (۴٫۰): ارتقاها (۴-۷)، سلاح‌ها (۸-۹)
-   و برجک‌های دفاعی (۰، G، F و T) — ترتیب = ترتیب نمایش */
+/* ---------- پنل ساخت‌وساز آیکونی (۵٫۰) ----------
+   تعریف آیتم‌های پنل در سه گروه: ارتقاها (۴-۷)، سلاح‌ها (۸-۹)
+   و برجک‌های دفاعی (۰، G، F و T) — ترتیب = ترتیب نمایش.
+   متن توضیح فقط در تولتیپِ hover دیده می‌شود؛ روی کاشی فقط آیکون + قیمت. */
 const BUILD_DEFS = [
   { grp: 'ارتقاها' },
-  { kind: 'weapon',  key: '۴', codes: ['Digit4', 'Numpad4'], icon: '🎯', name: 'ارتقای اسلحه', desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
-  { kind: 'health',  key: '۵', codes: ['Digit5', 'Numpad5'], icon: '🧱', name: 'جون برج',     desc: '۳۰+ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
-  { kind: 'repair',  key: '۶', codes: ['Digit6', 'Numpad6'], icon: '🧰', name: 'تعمیر برج',   desc: '۵۰٪ جون برج را همان‌جا برمی‌گرداند' },
-  { kind: 'trap',    key: '۷', codes: ['Digit7', 'Numpad7'], icon: '⚡', name: 'تله پایه',    desc: 'آسیب خودکار به زامبی‌های نزدیک برج' },
+  { kind: 'weapon',  key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
+  { kind: 'health',  key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
+  { kind: 'repair',  key: '۶', codes: ['Digit6', 'Numpad6'], name: 'تعمیر برج',    desc: '۵۰٪ جون برج را همان‌جا برمی‌گرداند' },
+  { kind: 'trap',    key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
   { grp: 'سلاح‌ها' },
-  { kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], icon: '💥', name: 'شاتگان',      desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید کلید ۲' },
-  { kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], icon: '🌪', name: 'مسلسل',       desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید کلید ۳' },
-  { grp: 'برجک‌های دفاعی (خودکار)' },
-  { kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], icon: '🔫', name: 'برجک مسلسل',   desc: 'رگبار پیوسته با نرخ شلیک بالا — خودکار به زامبی‌ها می‌زند (برد ۲۳۰)' },
-  { kind: 'sniper',  key: 'G', codes: ['KeyG'],              icon: '🔭', name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با برد بلند و شانس ضربه‌ی بحرانی (برد ۴۰۰)' },
-  { kind: 'frost',   key: 'F', codes: ['KeyF'],              icon: '❄️', name: 'برجک یخ‌زن',    desc: 'زامبی‌های مقابل را کند و یخ‌زده می‌کند (برد ۱۷۵)' },
-  { kind: 'turretUp',key: 'T', codes: ['KeyT'],              icon: '⬆️', name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
+  { kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید کلید ۲' },
+  { kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید کلید ۳' },
+  { grp: 'برجک‌های خودکار' },
+  { kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
+  { kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
+  { kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
+  { kind: 'turretUp',key: 'T', codes: ['KeyT'],              name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
 ];
 /* نگاشت کلیدهای فیزیکی به آیتم خرید (برای خرید سریع با کیبورد) */
 const KEY2KIND = {};
 BUILD_DEFS.forEach(d => { if (d.codes) d.codes.forEach(c => KEY2KIND[c] = d.kind); });
 
-/* ساخت یک‌بارِ آیتم‌های پنل در شروع صفحه */
+/* ---------- آیکون‌های پنل ساخت‌وساز (۵٫۰) ----------
+   هر آیکون یک تصویر ۳۴×۳۴ است که همین‌جا با Canvas رسم می‌شود؛
+   به‌جای متن‌های طولانی، هر خرید با یک نگاه قابل تشخیص است. */
+function rrFill(c, x, y, w, h, r) {
+  c.beginPath();
+  if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
+  c.fill();
+}
+const ICON_PAINTERS = {
+  /* ارتقای اسلحه: نشان هدف + دو گلوله */
+  weapon(c) {
+    c.strokeStyle = '#ffd873'; c.lineWidth = 2.4;
+    c.beginPath(); c.arc(16, 15, 10, 0, 7); c.stroke();
+    c.beginPath(); c.arc(16, 15, 5.2, 0, 7); c.stroke();
+    c.fillStyle = '#ffd873'; c.beginPath(); c.arc(16, 15, 2, 0, 7); c.fill();
+    c.beginPath();
+    c.moveTo(16, 1.5); c.lineTo(16, 5.6); c.moveTo(16, 24.4); c.lineTo(16, 28.5);
+    c.moveTo(2.5, 15); c.lineTo(6.6, 15); c.moveTo(25.4, 15); c.lineTo(29.5, 15);
+    c.stroke();
+    c.fillStyle = '#c9a35a';
+    rrFill(c, 24, 24.5, 2.8, 6.4, 1.3); rrFill(c, 28.2, 26, 2.4, 5, 1.1);
+  },
+  /* جون برج: قلب سرخ با برق سفید */
+  health(c) {
+    c.fillStyle = '#e04b3a'; c.strokeStyle = '#7a1f18'; c.lineWidth = 1.8;
+    c.beginPath();
+    c.moveTo(17, 27.5);
+    c.bezierCurveTo(3.5, 18, 7.5, 5.5, 17, 12);
+    c.bezierCurveTo(26.5, 5.5, 30.5, 18, 17, 27.5);
+    c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.4)';
+    c.beginPath(); c.arc(12, 13.5, 2.4, 0, 7); c.fill();
+  },
+  /* تعمیر: آچار */
+  repair(c) {
+    c.save(); c.translate(17, 17); c.rotate(Math.PI / 4);
+    c.strokeStyle = '#39466b'; c.lineWidth = 1.4;
+    c.fillStyle = '#aebbd2';
+    rrFill(c, -2.4, -6, 4.8, 17, 2.4); c.stroke();
+    c.lineWidth = 4.6; c.strokeStyle = '#aebbd2';
+    c.beginPath(); c.arc(0, -8.5, 5.4, 0.5, Math.PI - 0.5); c.stroke();
+    c.lineWidth = 1.4; c.strokeStyle = '#39466b';
+    c.beginPath(); c.arc(0, -8.5, 7.8, 0.55, Math.PI - 0.55); c.stroke();
+    c.beginPath(); c.arc(0, -8.5, 3, 0.55, Math.PI - 0.55); c.stroke();
+    c.restore();
+  },
+  /* تله: خارهای فلزی روی پایه + جرقه */
+  trap(c) {
+    c.fillStyle = '#c9a35a'; c.strokeStyle = '#6b4a2c'; c.lineWidth = 1.2;
+    for (const x of [7, 13, 19, 25]) {
+      c.beginPath();
+      c.moveTo(x - 3.4, 25); c.lineTo(x + 3.4, 25); c.lineTo(x, 13.5);
+      c.closePath(); c.fill(); c.stroke();
+    }
+    c.fillStyle = '#3c4250'; rrFill(c, 3, 25, 28, 5, 2);
+    c.fillStyle = '#565e70'; c.fillRect(3, 25, 28, 1.6);
+    c.fillStyle = '#ffd873';
+    c.beginPath(); c.arc(13, 10.5, 1.6, 0, 7); c.fill();
+    c.beginPath(); c.arc(19, 10.5, 1.6, 0, 7); c.fill();
+  },
+  /* شاتگان: قنداق + لوله‌ی دوقلو */
+  shotgun(c) {
+    c.fillStyle = '#6b4a2c'; rrFill(c, 2, 14.5, 9, 7.5, 2);
+    c.fillStyle = '#2b2f38'; rrFill(c, 10, 13.5, 7, 9, 1.5);
+    c.fillStyle = '#454b57';
+    rrFill(c, 16.5, 14.8, 15, 3, 1.2); rrFill(c, 16.5, 19.4, 15, 3, 1.2);
+    c.fillStyle = '#20262b'; c.fillRect(29.5, 14.8, 2, 3); c.fillRect(29.5, 19.4, 2, 3);
+    c.fillStyle = '#8a6f3a'; rrFill(c, 19, 23.5, 7, 3.4, 1.4);
+  },
+  /* مسلسل: بدنه + خشاب گرد + سه تیر */
+  mg(c) {
+    c.fillStyle = '#6b4a2c'; rrFill(c, 1.5, 14.5, 5, 6, 1.5);
+    c.fillStyle = '#2b2f38'; rrFill(c, 6, 12.5, 17, 7.5, 2);
+    c.fillStyle = '#454b57'; rrFill(c, 23, 14.6, 9.5, 3.2, 1.2);
+    c.fillStyle = '#31363f'; c.beginPath(); c.arc(14, 24, 4.2, 0, 7); c.fill();
+    c.fillStyle = '#20262b'; c.beginPath(); c.arc(14, 24, 2, 0, 7); c.fill();
+    c.fillStyle = '#ffd873';
+    rrFill(c, 9, 3.5, 2.6, 6, 1.2); rrFill(c, 14, 2.5, 2.6, 6.5, 1.2); rrFill(c, 19, 3.5, 2.6, 6, 1.2);
+  },
+  /* برجک مسلسل: کیسه‌شن + سر چرخان سه‌لوله */
+  gatling(c) {
+    c.fillStyle = '#6e6146'; rrFill(c, 1.5, 24, 11, 6, 2.5); rrFill(c, 22, 24, 11, 6, 2.5);
+    c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1;
+    c.strokeRect(1.5, 24, 11, 6); c.strokeRect(22, 24, 11, 6);
+    c.fillStyle = '#3a4150'; rrFill(c, 11, 16, 12, 9, 2.5);
+    c.fillStyle = '#8a6f3a'; rrFill(c, 23, 18, 6, 5, 1.5);
+    c.strokeStyle = '#c9a35a'; c.lineWidth = 1.4; c.setLineDash([2, 2]);
+    c.beginPath(); c.moveTo(23, 20); c.quadraticCurveTo(19, 18, 16, 17); c.stroke(); c.setLineDash([]);
+    c.fillStyle = '#2b2f38'; c.beginPath(); c.arc(17, 13.5, 5, 0, 7); c.fill();
+    c.strokeStyle = '#5d6575'; c.lineWidth = 2.6;
+    c.beginPath();
+    c.moveTo(20, 11.5); c.lineTo(31.5, 11.5);
+    c.moveTo(20, 13.5); c.lineTo(32.5, 13.5);
+    c.moveTo(20, 15.5); c.lineTo(31.5, 15.5);
+    c.stroke();
+  },
+  /* تک‌تیرانداز: سه‌پایه + لوله‌ی بلند + دوربین */
+  sniper(c) {
+    c.strokeStyle = '#4a3b28'; c.lineWidth = 2.6; c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(14, 19); c.lineTo(7, 29); c.moveTo(20, 19); c.lineTo(27, 29); c.moveTo(17, 20); c.lineTo(17, 29);
+    c.stroke();
+    c.fillStyle = '#334632'; rrFill(c, 5, 14.5, 19, 5.5, 2);
+    c.fillStyle = '#20262b'; rrFill(c, 24, 16, 8, 2.8, 1);
+    c.fillStyle = '#454b57'; rrFill(c, 29.5, 15.4, 3.5, 4, 1);
+    c.fillStyle = '#141a20'; rrFill(c, 10, 9, 8, 4.5, 2);
+    c.fillStyle = 'rgba(140,220,255,.9)'; c.beginPath(); c.arc(14, 11.2, 1.5, 0, 7); c.fill();
+    c.strokeStyle = '#ffd873'; c.lineWidth = 1.2;
+    c.beginPath(); c.arc(17, 25.5, 3.2, 0, 7); c.stroke();
+  },
+  /* برجک یخ‌زن: دانه‌ی برف */
+  frost(c) {
+    c.strokeStyle = '#a8e2ff'; c.lineWidth = 2.3; c.lineCap = 'round';
+    c.beginPath();
+    for (let k = 0; k < 3; k++) {
+      const a = k * Math.PI / 3;
+      c.moveTo(17 - Math.cos(a) * 12, 17 - Math.sin(a) * 12);
+      c.lineTo(17 + Math.cos(a) * 12, 17 + Math.sin(a) * 12);
+    }
+    c.stroke();
+    c.lineWidth = 1.7;
+    c.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const a = k * Math.PI / 3;
+      const bx = 17 + Math.cos(a) * 8, by = 17 + Math.sin(a) * 8;
+      c.moveTo(bx, by); c.lineTo(bx + Math.cos(a + 0.6) * 3.4, by + Math.sin(a + 0.6) * 3.4);
+      c.moveTo(bx, by); c.lineTo(bx + Math.cos(a - 0.6) * 3.4, by + Math.sin(a - 0.6) * 3.4);
+    }
+    c.stroke();
+    c.fillStyle = '#e8f7ff'; c.beginPath(); c.arc(17, 17, 2.6, 0, 7); c.fill();
+  },
+  /* ارتقای برجک‌ها: دو شورون بالا + سه نقطه‌ی سطح */
+  turretUp(c) {
+    c.fillStyle = '#ffd873'; c.strokeStyle = '#8a5a12'; c.lineWidth = 1.4;
+    for (const y0 of [3, 12]) {
+      c.beginPath();
+      c.moveTo(17, y0); c.lineTo(27, y0 + 9); c.lineTo(7, y0 + 9);
+      c.closePath(); c.fill(); c.stroke();
+    }
+    c.fillStyle = '#8fd6ff';
+    for (let i = -1; i <= 1; i++) { c.beginPath(); c.arc(17 + i * 6, 26.5, 2, 0, 7); c.fill(); }
+  },
+};
+
+/* رسم آیکون آیتم روی بوم کوچک (مقیاس ۲ برابر برای شفافیت) */
+function paintIcon(kind, cv) {
+  const c = cv.getContext('2d');
+  const s = cv.width / 34;
+  c.save();
+  c.scale(s, s);
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  const fn = ICON_PAINTERS[kind];
+  if (fn) fn(c);
+  c.restore();
+}
+
+/* وضعیت لحظه‌ای آیتم برای تولتیپ (قیمت/سطح/مالکیت...) */
+function tileStatus(kind) {
+  if (kind === 'shotgun' || kind === 'mg') {
+    return WEAPONS[kind].owned ? 'خریده شد ✅' : 'قفل — بعد از خرید، کلید ' + faNum(kind === 'shotgun' ? 2 : 3);
+  }
+  if (kind === 'repair') {
+    return state.tower.hp >= state.tower.maxHp - 0.5
+      ? 'برج سرِ سلامتی است'
+      : 'جون برج: ' + faNum(Math.ceil(state.tower.hp)) + '/' + faNum(state.tower.maxHp);
+  }
+  if (kind === 'gatling' || kind === 'sniper' || kind === 'frost') {
+    const cnt = state.turrets.filter(t => t.type === kind).length;
+    return (cnt ? faNum(cnt) + ' عدد فعال • ' : '') + 'قیمت: ' + faNum(TURRETS[kind].price) + ' سکه';
+  }
+  const u = UPGRADES[kind], lvl = state.upgrades[kind];
+  if (lvl >= u.max) return 'حداکثر ✅';
+  return 'سطح ' + faNum(lvl) + '/' + faNum(u.max) + ' • قیمت بعدی: ' + faNum(priceOf(kind)) + ' سکه';
+}
+
+/* تولتیپ کاشی‌ها: نمایش کنار پنل (جای متن‌های حذف‌شده) */
+function showTip(d, el) {
+  const tip = $('bpTip');
+  tip.innerHTML = '<b>' + d.name + '</b><span>' + d.desc + '</span>' +
+    '<span class="t-status">' + tileStatus(d.kind) + '</span>';
+  tip.style.display = 'block';
+  positionTip(el);
+}
+function positionTip(el) {
+  const tip = $('bpTip');
+  const wrapR = $('wrap').getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const left = r.left - wrapR.left - tip.offsetWidth - 10;
+  const top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6);
+  tip.style.left = Math.max(4, left) + 'px';
+  tip.style.top = top + 'px';
+}
+function hideTip() { $('bpTip').style.display = 'none'; }
+
+/* ساخت یک‌بارِ کاشی‌های پنل در شروع صفحه (۵٫۰: آیکونی) */
 function buildPanelInit() {
   const list = $('bpList');
   BUILD_DEFS.forEach((d) => {
-    if (d.grp) {                              // عنوان گروه (۴٫۰)
+    if (d.grp) {                              // عنوان گروه
       const g = document.createElement('div');
       g.className = 'bp-grp';
       g.textContent = d.grp;
@@ -3033,15 +3385,36 @@ function buildPanelInit() {
       return;
     }
     const el = document.createElement('div');
-    el.className = 'bp-item';
+    el.className = 'bp-tile';
     el.id = 'bp-' + d.kind;
-    el.title = d.desc;
-    el.innerHTML =
-      '<span class="bp-key">' + d.key + '</span>' +
-      '<span class="bp-icon">' + d.icon + '</span>' +
-      '<span class="bp-mid"><b>' + d.name + '</b><i id="bp-' + d.kind + '-sub"></i></span>' +
-      '<span class="bp-cost" id="bp-' + d.kind + '-cost"></span>';
+    /* آیکون Canvas */
+    const cv = document.createElement('canvas');
+    cv.className = 'bp-ic';
+    cv.width = 68; cv.height = 68;            // ۲ برابر برای شفافیت رتینا
+    paintIcon(d.kind, cv);
+    el.appendChild(cv);
+    /* کلید میان‌بر */
+    if (d.key) {
+      const k = document.createElement('span');
+      k.className = 'bp-key'; k.textContent = d.key;
+      el.appendChild(k);
+    }
+    /* پین‌های سطح برای آیتم‌های ارتقایی */
+    const u = UPGRADES[d.kind];
+    if (u && u.max) {
+      const lv = document.createElement('span');
+      lv.className = 'bp-lv'; lv.id = 'bp-' + d.kind + '-lv';
+      for (let i = 0; i < u.max; i++) lv.appendChild(document.createElement('i'));
+      el.appendChild(lv);
+    }
+    /* قیمت */
+    const price = document.createElement('span');
+    price.className = 'bp-price'; price.id = 'bp-' + d.kind + '-cost';
+    el.appendChild(price);
+
     el.addEventListener('click', () => attemptBuy(d.kind));
+    el.addEventListener('mouseenter', () => showTip(d, el));
+    el.addEventListener('mouseleave', hideTip);
     list.appendChild(el);
   });
   /* کلیک روی سربرگ = جمع/باز کردن پنل */
@@ -3055,12 +3428,12 @@ function toggleBuildPanel() {
   SFX.click();
 }
 
-/* به‌روزرسانی وضعیت آیتم‌های پنل (قیمت/سطح/قابلیت خرید) */
+/* به‌روزرسانی وضعیت کاشی‌های پنل (قیمت/سطح/قابلیت خرید — ۵٫۰ آیکونی) */
 function refreshBuildPanel() {
   for (const d of BUILD_DEFS) {
+    if (!d.kind) continue;
     const item = $('bp-' + d.kind);
     if (!item) continue;
-    const sub = $('bp-' + d.kind + '-sub');
     const cost = $('bp-' + d.kind + '-cost');
     item.classList.remove('deny');
 
@@ -3068,13 +3441,8 @@ function refreshBuildPanel() {
     if (d.kind === 'shotgun' || d.kind === 'mg') {
       const owned = WEAPONS[d.kind].owned;
       item.classList.toggle('max', owned);
-      if (owned) { sub.textContent = 'خریده شد ✅'; cost.textContent = '—'; item.classList.remove('poor'); }
-      else {
-        const price = UPGRADES[d.kind].price;
-        sub.textContent = 'قفل — کلید ' + faNum(d.kind === 'shotgun' ? 2 : 3);
-        cost.textContent = faNum(price);
-        item.classList.toggle('poor', state.coins < price);
-      }
+      cost.textContent = owned ? '✅' : faNum(UPGRADES[d.kind].price);
+      item.classList.toggle('poor', !owned && state.coins < UPGRADES[d.kind].price);
       continue;
     }
 
@@ -3082,12 +3450,8 @@ function refreshBuildPanel() {
     if (d.kind === 'repair') {
       const full = state.tower.hp >= state.tower.maxHp - 0.5;
       item.classList.toggle('max', full);
-      sub.textContent = full ? 'سرِ سلامتی' : 'جون: ' + faNum(Math.ceil(state.tower.hp)) + '/' + faNum(state.tower.maxHp);
-      if (full) { cost.textContent = '—'; item.classList.remove('poor'); }
-      else {
-        cost.textContent = faNum(UPGRADES.repair.price);
-        item.classList.toggle('poor', state.coins < UPGRADES.repair.price);
-      }
+      cost.textContent = full ? '✅' : faNum(UPGRADES.repair.price);
+      item.classList.toggle('poor', !full && state.coins < UPGRADES.repair.price);
       continue;
     }
 
@@ -3098,20 +3462,8 @@ function refreshBuildPanel() {
       const isPlacing = state.placing && state.placing.type === d.kind;
       item.classList.toggle('placing', !!isPlacing);
       item.classList.toggle('max', maxed && !isPlacing);
-      if (isPlacing) {
-        sub.textContent = 'در حال نصب — کلیک روی زمین (راست‌کلیک: لغو)';
-        cost.textContent = faNum(def.price);
-        item.classList.remove('poor');
-      } else if (maxed) {
-        sub.textContent = 'حداکثر ' + faNum(MAX_TURRETS) + ' برجک روی نقشه';
-        cost.textContent = '—';
-        item.classList.remove('poor');
-      } else {
-        const cnt = state.turrets.filter(t => t.type === d.kind).length;
-        sub.textContent = def.sub + (cnt ? ' • ' + faNum(cnt) + ' فعال' : '');
-        cost.textContent = faNum(def.price);
-        item.classList.toggle('poor', state.coins < def.price);
-      }
+      cost.textContent = maxed && !isPlacing ? '✅' : faNum(def.price);
+      item.classList.toggle('poor', !maxed && !isPlacing && state.coins < def.price);
       continue;
     }
 
@@ -3119,18 +3471,11 @@ function refreshBuildPanel() {
     const u = UPGRADES[d.kind], lvl = state.upgrades[d.kind];
     const maxed = lvl >= u.max;
     item.classList.toggle('max', maxed);
-    if (maxed) {
-      sub.textContent = 'حداکثر ✅';
-      cost.textContent = '—';
-      item.classList.remove('poor');
-    } else {
-      sub.textContent = 'سطح ' + faNum(lvl) + '/' + faNum(u.max) +
-        (d.kind === 'trap' && lvl > 0 ? ' • ' + faNum(trapDps(lvl)) + ' دمیج/ث' : '') +
-        (d.kind === 'turretUp' ? ' • ' + faNum(state.turrets.length) + ' برجک فعال' : '');
-      const price = priceOf(d.kind);
-      cost.textContent = faNum(price);
-      item.classList.toggle('poor', state.coins < price);
-    }
+    cost.textContent = maxed ? '✅' : faNum(priceOf(d.kind));
+    item.classList.toggle('poor', !maxed && state.coins < priceOf(d.kind));
+    /* پین‌های سطح روشن/خاموش */
+    const lv = $('bp-' + d.kind + '-lv');
+    if (lv) Array.from(lv.children).forEach((pip, i) => pip.classList.toggle('on', i < lvl));
   }
 }
 
@@ -3145,6 +3490,8 @@ function updateHUD() {
   if (state.mode === 'playing') {
     const rem = state.spawn.queue.length + state.zombies.filter(z => !z.dead).length;
     $('waveText').textContent = 'موج ' + faNum(clamp(state.wave, 1, TOTAL_WAVES)) + '/' + faNum(TOTAL_WAVES) + ' • ' + faNum(rem) + ' باقی';
+  } else if (state.mode === 'day') {
+    $('waveText').textContent = '☀️ روز • موج ' + faNum(clamp(state.wave, 1, TOTAL_WAVES)) + '/' + faNum(TOTAL_WAVES);
   } else {
     $('waveText').textContent = 'موج ' + faNum(clamp(state.wave, 1, TOTAL_WAVES)) + '/' + faNum(TOTAL_WAVES);
   }
@@ -3193,7 +3540,7 @@ function frame(now) {
     state.slowmo = Math.max(0, state.slowmo - dt);
   }
 
-  if (state.mode === 'playing' || state.mode === 'intermission') update(dtG);
+  if (state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day') update(dtG);
   else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
   else if (state.mode === 'start') updateMenuScene(dtG);
   /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */
@@ -3213,6 +3560,7 @@ function init() {
   $('btnMute0').addEventListener('click', toggleSound);
   $('btnMute').addEventListener('click', toggleSound);
   $('btnMute2').addEventListener('click', toggleSound);
+  $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
   $('btnPause').addEventListener('click', () => {
     if (state.mode === 'paused') resumeGame(); else pauseGame();
   });
@@ -3226,8 +3574,9 @@ function init() {
     el.addEventListener('click', () => selectWeapon(el.dataset.w));
   });
 
-  buildPanelInit();    // پنل ساخت‌وساز زنده‌ی کنار نقشه
+  buildPanelInit();    // پنل ساخت‌وساز آیکونیِ کنار نقشه
   initMenuZ();         // زامبی‌های تزئینیِ صحنه‌ی منو
+  $('wrap').classList.add('menu-mode');   // در منو، HUD/پنل‌ها مخفی‌اند (۵٫۰)
   updateHUD();
   requestAnimationFrame(frame);
 }
@@ -3237,6 +3586,8 @@ init();
 window.GAME = {
   state, startGame, startWave, spawnZombie, damageTower, selectWeapon, WEAPONS, ZTYPES, WAVES,
   TURRETS, MAX_TURRETS,
+  endWave: waveComplete,             /* شبیه‌سازی پایان موج → صبح (۵٫۰) */
+  startNight,                        /* شبیه‌سازی کلیک «شب شود» (۵٫۰) */
   giveCoins(n) { state.coins += n; updateHUD(); },
   spawnType(type) { spawnZombie(type); },
   hurt(n) { damageTower(n, TOWER.x + 10); },

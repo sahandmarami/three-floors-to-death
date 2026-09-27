@@ -1,0 +1,1245 @@
+     1→'use strict';
+     2→/* ==================================================================
+     3→   سه طبقه تا بقا — نسخه‌ی ۳٫۰ — منطق بازی (بخش ۱)
+     4→   ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
+     5→     ۱) ثابت‌ها و تنظیمات       ۲) ابزارهای کمکی
+     6→     ۳) موتور صدا (Web Audio)   ۴) وضعیت بازی
+     7→     ۵) ورودی (ماوس/کیبورد)     ۶) جریان موج‌ها و تولید زامبی
+     8→     ۷) شلیک و سلاح‌ها           ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج
+     9→     ۹) سکه‌ها و قدرت‌های ویژه   ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده)
+    10→   تازه‌های ۳٫۰:
+    11→     - زامبی‌ها برج را در چند ردیف محاصره می‌کنند و به پایه‌اش می‌کوبند
+    12→     - ضربه‌ی بحرانیِ سر (دمیج ×۲)، پس‌زنی و سرخوردن زامبی
+    13→     - سیستم کمبو با جایزه‌ی سکه در رکوردهای بالاتر
+    14→     - جعبه‌های قدرت: درمان / شلیک سریع / انجماد / بار سکه
+    15→     - خرید زنده‌ی ارتقاها وسط مبارزه (کلیدهای ۴ تا ۹)
+    16→   ================================================================== */
+    17→
+    18→/* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
+    19→const W = 960, H = 560;                    // ابعاد منطقی دنیای بازی
+    20→const GROUND_Y = 492;                      // خط زمین (پای زامبی‌ها)
+    21→const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };
+    22→const TOWER_TOP_Y = GROUND_Y - TOWER.floorH * TOWER.floors; // سقف برج = محل ایستادن بازیکن
+    23→
+    24→const TOTAL_WAVES = 10;                    // تعداد کل موج‌ها
+    25→const INTERMISSION_TIME = 5;               // ثانیه وقفه بین موج‌ها
+    26→const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه‌تر قبل از موج اول
+    27→
+    28→/* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
+    29→   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰ */
+    30→const ZTYPES = {
+    31→  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [2, 3],
+    32→            skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
+    33→  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [1, 2],
+    34→            skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
+    35→  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [5, 7],
+    36→            skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
+    37→  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [26, 32],
+    38→            skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
+    39→};
+    40→
+    41→/* ترکیب موج‌ها: n=معمولی، f=سریع، t=تانک، b=پادشاه — با هر موج فشار بیشتر می‌شود */
+    42→const WAVES = [
+    43→  { n: 6,  f: 0,  t: 0, b: 0 },
+    44→  { n: 9,  f: 0,  t: 0, b: 0 },
+    45→  { n: 10, f: 3,  t: 0, b: 0 },
+    46→  { n: 12, f: 5,  t: 1, b: 0 },
+    47→  { n: 14, f: 7,  t: 2, b: 0 },
+    48→  { n: 16, f: 9,  t: 3, b: 0 },
+    49→  { n: 19, f: 11, t: 4, b: 0 },
+    50→  { n: 22, f: 13, t: 5, b: 0 },
+    51→  { n: 26, f: 16, t: 6, b: 0 },
+    52→  { n: 16, f: 10, t: 7, b: 1 },
+    53→];
+    54→
+    55→/* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک) */
+    56→const WEAPONS = {
+    57→  pistol:  { name: 'تپانچه', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
+    58→             price: 0,   owned: true,  barrel: 18, flash: 5, knock: 5,   sfx: 'shootP' },
+    59→  shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
+    60→             price: 220, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
+    61→  mg:      { name: 'مسلسل', dmg: 2, rate: 0.12, spd: 760, pellets: 1, spread: 0.055, ttl: 2,
+    62→             price: 480, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
+    63→};
+    64→
+    65→/* تنظیمات ساخت‌وساز: قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
+    66→const UPGRADES = {
+    67→  weapon:  { name: 'ارتقای اسلحه',     base: 25, growth: 1.75, max: 8 },
+    68→  health:  { name: 'افزایش جون برج',   base: 20, growth: 1.6,  max: 8, bonus: 30 },
+    69→  trap:    { name: 'نصب تله پایه برج', base: 35, growth: 1.8,  max: 5,
+    70→             dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
+    71→  turretUp:{ name: 'ارتقای برجک‌ها',   base: 130, growth: 1.85, max: 5 },  // +۳۰٪ دمیج و +۱۲٪ سرعت شلیک برجک‌ها در هر سطح
+    72→  shotgun: { price: 220 },                          // خرید یک‌باره
+    73→  mg:      { price: 480 },                          // خرید یک‌باره
+    74→  repair:  { price: 50, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
+    75→};
+    76→
+    77→/* برجک‌های دفاعی خودکار (۴٫۰) — روی زمین نصب می‌شوند و خودشان به زامبی‌ها شلیک می‌کنند:
+    78→   gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
+    79→   frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
+    80→const TURRETS = {
+    81→  gatling: { name: 'برجک مسلسل',    price: 120, dmg: 3,  rate: 0.26, range: 230, spd: 640,
+    82→             len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
+    83→  sniper:  { name: 'برجک تک‌تیرانداز', price: 300, dmg: 24, rate: 1.6,  range: 400, spd: 950,
+    84→             len: 30, h: 19, knock: 6, crit: 0.25, sub: 'تک‌ضرب کُشنده • دمیج ۲۴ • برد ۴۰۰' },
+    85→  frost:   { name: 'برجک یخ‌زن',     price: 200, dmg: 4,  rate: 1.05, range: 175, spd: 380,
+    86→             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۴ • برد ۱۷۵' },
+    87→};
+    88→const MAX_TURRETS = 6;                       // حداکثر تعداد برجک روی نقشه
+    89→
+    90→/* جعبه‌های قدرت (۳٫۰) — از زامبی‌های کشته‌شده می‌افتند و به بازیکن پرو می‌کنند */
+    91→const PTYPES = {
+    92→  medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 20 },
+    93→  rapid:  { name: 'شلیک سریع',    color: '#ffd873', dur: 8 },
+    94→  freeze: { name: 'انجماد',       color: '#8fd6ff', dur: 5 },
+    95→  coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 8 },
+    96→};
+    97→const POWER_LIFE = 9.5;                    // ثانیه عمر جعبه (اگر زودتر به بازیکن نرسد)
+    98→
+    99→/* رکوردهای کمبو: پیام + جایزه‌ی سکه (۳٫۰) */
+   100→const COMBO_MILESTONES = {
+   101→  3:  { msg: 'سه‌گانه!',        bonus: 2 },
+   102→  5:  { msg: 'کشتار مضاعف!',   bonus: 3 },
+   103→  8:  { msg: 'توقف‌ناپذیر!',    bonus: 5 },
+   104→  12: { msg: 'زمین‌لرزه!',      bonus: 8 },
+   105→  18: { msg: 'خدای زامبی‌کُش!', bonus: 12 },
+   106→};
+   107→const COMBO_WINDOW = 2.2;                  // ثانیه‌ی اعتبار کمبو بین هر دو کشتن
+   108→
+   109→/* ---------------------- ۲) ابزارهای کمکی ---------------------- */
+   110→const $ = id => document.getElementById(id);
+   111→
+   112→/* تبدیل ارقام لاتین به فارسی (۰-۹) */
+   113→const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+   114→function faNum(n) { return String(n).replace(/\d/g, d => FA_DIGITS[d]); }
+   115→
+   116→function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+   117→function rand(a, b) { return a + Math.random() * (b - a); }
+   118→
+   119→/* عدد تصادفیِ «Seed دار» — برای تولید ستاره/تپه/ساختمان‌های ثابت (تا در هر فریم عوض نشوند) */
+   120→let _seed = 1379;
+   121→function srand() { _seed = (_seed * 16807) % 2147483647; return (_seed - 1) / 2147483646; }
+   122→
+   123→/* تبدیل رنگ hex به رشته‌ی rgba با آلفا (برای هاله‌های نور) */
+   124→function hexA(hex, a) {
+   125→  const n = parseInt(hex.slice(1), 16);
+   126→  return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+   127→}
+   128→
+   129→/* عناصر ثابت صحنه: ستاره‌ها، تپه‌ها، سنگ‌ریزه‌ها، ابرها و افق شهر یک بار ساخته می‌شوند */
+   130→const STARS = Array.from({ length: 80 }, () => ({
+   131→  x: srand() * W, y: srand() * (GROUND_Y - 90), r: 0.6 + srand() * 1.4,
+   132→  ph: srand() * 6.28, sp: 0.5 + srand() * 1.6,
+   133→}));
+   134→const HILLS1 = Array.from({ length: 18 }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
+   135→const HILLS2 = Array.from({ length: 13 }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
+   136→const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
+   137→/* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس) */
+   138→const CLOUDS = [
+   139→  { x: 140, y: 58,  s: 1.15, v: 6 },
+   140→  { x: 520, y: 96,  s: 0.8,  v: 9 },
+   141→  { x: 830, y: 44,  s: 1.35, v: 5 },
+   142→];
+   143→/* کرم‌های شب‌تاب (۳٫۰): نقاط نور کوچکی که آرام حول زمین شنا می‌شوند */
+   144→const FIREFLIES = Array.from({ length: 14 }, () => ({
+   145→  cx: srand() * W, cy: GROUND_Y - 8 - srand() * 66,
+   146→  rx: 18 + srand() * 40, ry: 6 + srand() * 22,
+   147→  ph: srand() * 6.28, sp: 0.35 + srand() * 0.6,
+   148→}));
+   149→/* دسته‌های چمن کنار جاده (۳٫۰) */
+   150→const GRASS = Array.from({ length: 40 }, () => ({ x: srand() * W, h: 4 + srand() * 8, ph: srand() * 6.28 }));
+   151→/* برکه‌های کوچک بازتابنده‌ی نور ماه (۳٫۰) */
+   152→const PUDDLES = [{ x: 150, w: 52 }, { x: 392, w: 66 }, { x: 636, w: 46 }];
+   153→/* افق شهر در دوردست: ساختمان‌های سیاه‌شکلی با پنجره‌های روشن (پیش‌محاسبه‌شده) */
+   154→const SKYLINE = [];
+   155→const SKYLINE_WINS = [];
+   156→{
+   157→  let x = -12, i = 0;
+   158→  while (x < W + 12) {
+   159→    const bw = 34 + srand() * 52, bh = 26 + srand() * 95;
+   160→    SKYLINE.push({ x, w: bw, h: bh });
+   161→    /* پنجره‌های روشنِ همین ساختمان */
+   162→    const cols = Math.floor((bw - 8) / 9), rows = Math.floor((bh - 10) / 13);
+   163→    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+   164→      if (srand() > 0.72) {
+   165→        SKYLINE_WINS.push({
+   166→          x: x + 5 + c * 9, y: GROUND_Y - bh + 6 + r * 13,
+   167→          c: srand() > 0.82 ? 'rgba(127,179,255,0.8)' : 'rgba(255,214,122,0.75)',
+   168→        });
+   169→      }
+   170→    }
+   171→    x += bw + 8; i++;
+   172→  }
+   173→}
+   174→
+   175→/* ---------------------- ۳) موتور صدا (Web Audio) ---------------------- */
+   176→/* همه‌ی صداها همین‌جا سینتز می‌شوند — هیچ فایل صوتی خارجی وجود ندارد.
+   177→   AudioContext فقط بعد از اولین تعامل کاربر ساخته می‌شود (سیاست مرورگرها). */
+   178→const Snd = {
+   179→  ctx: null, master: null, noiseBuf: null, muted: false, ready: false,
+   180→
+   181→  init() {
+   182→    if (this.ready) return;
+   183→    try {
+   184→      const AC = window.AudioContext || window.webkitAudioContext;
+   185→      if (!AC) return;
+   186→      this.ctx = new AC();
+   187→      this.master = this.ctx.createGain();
+   188→      this.master.gain.value = this.muted ? 0 : 0.5;
+   189→      this.master.connect(this.ctx.destination);
+   190→      /* بافر نویز سفید یک‌ثانیه‌ای (برای شلیک/برخورد/باد/رعد) */
+   191→      this.noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+   192→      const d = this.noiseBuf.getChannelData(0);
+   193→      for (let j = 0; j < d.length; j++) d[j] = Math.random() * 2 - 1;
+   194→      this.ready = true;
+   195→      this.startAmbient();
+   196→    } catch (e) { /* مرورگر بدون صدا */ }
+   197→  },
+   198→  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+   199→  toggleMute() {
+   200→    this.muted = !this.muted;
+   201→    if (this.master) this.master.gain.value = this.muted ? 0 : 0.5;
+   202→    return this.muted;
+   203→  },
+   204→
+   205→  /* یک نُت: {type,f0,f1,dur,vol,att,delay} */
+   206→  tone(o) {
+   207→    if (!this.ready || this.muted) return;
+   208→    try {
+   209→      const t0 = this.ctx.currentTime + (o.delay || 0);
+   210→      const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+   211→      osc.type = o.type || 'sine';
+   212→      osc.frequency.setValueAtTime(Math.max(1, o.f0), t0);
+   213→      if (o.f1) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), t0 + o.dur);
+   214→      g.gain.setValueAtTime(0.0001, t0);
+   215→      g.gain.exponentialRampToValueAtTime(o.vol, t0 + (o.att || 0.008));
+   216→      g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+   217→      osc.connect(g); g.connect(this.master);
+   218→      osc.start(t0); osc.stop(t0 + o.dur + 0.05);
+   219→    } catch (e) {}
+   220→  },
+   221→  /* نویز فیلترشده: {dur,vol,ftype,freq,q,att,delay} */
+   222→  noise(o) {
+   223→    if (!this.ready || this.muted) return;
+   224→    try {
+   225→      const t0 = this.ctx.currentTime + (o.delay || 0);
+   226→      const src = this.ctx.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+   227→      const f = this.ctx.createBiquadFilter();
+   228→      f.type = o.ftype || 'lowpass'; f.frequency.value = o.freq || 1000; f.Q.value = o.q || 0.8;
+   229→      const g = this.ctx.createGain();
+   230→      g.gain.setValueAtTime(0.0001, t0);
+   231→      g.gain.exponentialRampToValueAtTime(o.vol, t0 + (o.att || 0.005));
+   232→      g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+   233→      src.connect(f); f.connect(g); g.connect(this.master);
+   234→      src.start(t0); src.stop(t0 + o.dur + 0.05);
+   235→    } catch (e) {}
+   236→  },
+   237→
+   238→  /* موسیقی محیطیِ شب: درونِ بم + باد + نُت‌های پراکنده‌ی دل‌انگیز */
+   239→  startAmbient() {
+   240→    try {
+   241→      const dg = this.ctx.createGain(); dg.gain.value = 0.045; dg.connect(this.master);
+   242→      const o1 = this.ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = 55;
+   243→      const o2 = this.ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 110;
+   244→      const lfo = this.ctx.createOscillator(); lfo.frequency.value = 0.09;
+   245→      const lg = this.ctx.createGain(); lg.gain.value = 0.02;
+   246→      lfo.connect(lg); lg.connect(dg.gain);
+   247→      o1.connect(dg); o2.connect(dg);
+   248→      o1.start(); o2.start(); lfo.start();
+   249→      /* صدای باد (نویز لوپِ بسیار بم) */
+   250→      const wind = this.ctx.createBufferSource(); wind.buffer = this.noiseBuf; wind.loop = true;
+   251→      const wf = this.ctx.createBiquadFilter(); wf.type = 'lowpass'; wf.frequency.value = 260;
+   252→      const wg = this.ctx.createGain(); wg.gain.value = 0.02;
+   253→      wind.connect(wf); wf.connect(wg); wg.connect(this.master); wind.start();
+   254→      this.pluck();
+   255→    } catch (e) {}
+   256→  },
+   257→  pluck() {
+   258→    if (!this.ready) return;
+   259→    const notes = [220, 246.9, 261.6, 329.6, 392];
+   260→    const f = notes[Math.floor(rand(0, notes.length))];
+   261→    this.tone({ type: 'sine', f0: f, dur: 2.4, vol: 0.05, att: 0.5 });
+   262→    this.tone({ type: 'sine', f0: f * 1.5, dur: 2.8, vol: 0.028, att: 0.7, delay: 0.03 });
+   263→    setTimeout(() => this.pluck(), rand(3500, 8000));
+   264→  },
+   265→};
+   266→
+   267→/* جلوی اسپمِ صداهای پرتکرار (مثل برخورد ۶ ساچمه‌ی شاتگان در یک فریم) */
+   268→const _sfxGate = {};
+   269→function sfxGate(name, ms) {
+   270→  const t = performance.now();
+   271→  if ((_sfxGate[name] || 0) + ms > t) return false;
+   272→  _sfxGate[name] = t;
+   273→  return true;
+   274→}
+   275→
+   276→/* کتابخانه‌ی جلوه‌های صوتی بازی (۳٫۰: کریت/کمبو/رعد/قدرت/ضربان/اسلوموشن اضافه شد) */
+   277→const SFX = {
+   278→  click()    { Snd.tone({ type: 'square',   f0: 1300, f1: 850, dur: 0.05, vol: 0.07 }); },
+   279→  shootP()   { Snd.noise({ dur: 0.09, vol: 0.20, ftype: 'highpass', freq: 700 });
+   280→               Snd.tone({ type: 'square',   f0: 230,  f1: 70,  dur: 0.08, vol: 0.11 }); },
+   281→  shootS()   { Snd.noise({ dur: 0.22, vol: 0.32, freq: 1300 });
+   282→               Snd.tone({ type: 'sine',     f0: 105,  f1: 36,  dur: 0.24, vol: 0.28 }); },
+   283→  shootM()   { Snd.noise({ dur: 0.05, vol: 0.13, ftype: 'bandpass', freq: 1700, q: 1.1 });
+   284→               Snd.tone({ type: 'square',   f0: 300,  f1: 110, dur: 0.05, vol: 0.06 }); },
+   285→  hit()      { if (!sfxGate('hit', 60)) return;
+   286→               Snd.tone({ type: 'square',   f0: 165,  f1: 90,  dur: 0.06, vol: 0.09 }); },
+   287→  crit()     { if (!sfxGate('crit', 60)) return;
+   288→               Snd.tone({ type: 'triangle', f0: 1500, f1: 2050, dur: 0.07, vol: 0.10 });
+   289→               Snd.tone({ type: 'triangle', f0: 2050, f1: 2650, dur: 0.09, vol: 0.08, delay: 0.05 }); },
+   290→  combo(n)   { const f = 420 * Math.pow(1.14, Math.min(n, 18));
+   291→               Snd.tone({ type: 'triangle', f0: f, dur: 0.09, vol: 0.12 });
+   292→               Snd.tone({ type: 'triangle', f0: f * 1.5, dur: 0.14, vol: 0.10, delay: 0.07 }); },
+   293→  death()    { if (!sfxGate('death', 70)) return;
+   294→               Snd.tone({ type: 'sawtooth', f0: 180,  f1: 42,  dur: 0.30, vol: 0.14 });
+   295→               Snd.noise({ dur: 0.22, vol: 0.12, freq: 650 }); },
+   296→  coin()     { if (!sfxGate('coin', 70)) return;
+   297→               Snd.tone({ type: 'sine',     f0: 920,  dur: 0.07, vol: 0.12 });
+   298→               Snd.tone({ type: 'sine',     f0: 1360, dur: 0.15, vol: 0.12, delay: 0.07 }); },
+   299→  towerHit() { if (!sfxGate('towerHit', 90)) return;
+   300→               Snd.tone({ type: 'sine',     f0: 78,   f1: 40,  dur: 0.20, vol: 0.32 });
+   301→               Snd.noise({ dur: 0.16, vol: 0.20, freq: 260 }); },
+   302→  buy()      { Snd.tone({ type: 'triangle', f0: 520,  f1: 760,  dur: 0.09, vol: 0.15 });
+   303→               Snd.tone({ type: 'triangle', f0: 760,  f1: 1140, dur: 0.14, vol: 0.15, delay: 0.09 }); },
+   304→  deny()     { Snd.tone({ type: 'square',   f0: 130,  dur: 0.09, vol: 0.11 });
+   305→               Snd.tone({ type: 'square',   f0: 96,   dur: 0.15, vol: 0.11, delay: 0.10 }); },
+   306→  wave()     { Snd.tone({ type: 'sawtooth', f0: 196,  dur: 0.15, vol: 0.11 });
+   307→               Snd.tone({ type: 'sawtooth', f0: 262,  dur: 0.20, vol: 0.11, delay: 0.16 }); },
+   308→  clear()    { [440, 554, 659].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.11, delay: i * 0.09 })); },
+   309→  gameover() { [330, 262, 196, 131].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.34, vol: 0.15, delay: i * 0.22 })); },
+   310→  victory()  { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.20, vol: 0.14, delay: i * 0.13 })); },
+   311→  trap()     { if (!sfxGate('trap', 200)) return;
+   312→               Snd.tone({ type: 'square',   f0: 420,  f1: 110, dur: 0.06, vol: 0.07 }); },
+   313→  roar()     { Snd.tone({ type: 'sawtooth', f0: 72,   f1: 30,  dur: 0.90, vol: 0.26 });
+   314→               Snd.noise({ dur: 0.80, vol: 0.18, freq: 300 }); },
+   315→  bossDie()  { Snd.tone({ type: 'sawtooth', f0: 160,  f1: 24,  dur: 1.10, vol: 0.24 }); SFX.victory(); },
+   316→  thunder()  { if (!sfxGate('thunder', 800)) return;
+   317→               Snd.noise({ dur: 1.8, vol: 0.24, freq: 110, q: 0.4, att: 0.12 });
+   318→               Snd.tone({ type: 'sine',     f0: 52,   f1: 30,  dur: 1.6, vol: 0.18, att: 0.05 }); },
+   319→  power()    { [620, 830, 1240].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.12, vol: 0.12, delay: i * 0.06 })); },
+   320→  freeze()   { Snd.noise({ dur: 0.5, vol: 0.10, ftype: 'highpass', freq: 4000 });
+   321→               Snd.tone({ type: 'sine',     f0: 1800, f1: 600,  dur: 0.5,  vol: 0.08 }); },
+   322→  heartbeat(){ Snd.tone({ type: 'sine',     f0: 64,   f1: 40,  dur: 0.12, vol: 0.22 });
+   323→               Snd.tone({ type: 'sine',     f0: 58,   f1: 36,  dur: 0.14, vol: 0.18, delay: 0.18 }); },
+   324→  slowmo()   { Snd.tone({ type: 'sawtooth', f0: 400,  f1: 60,  dur: 0.5,  vol: 0.10 }); },
+   325→  /* صداهای برجک‌های دفاعی (۴٫۰) */
+   326→  turShot()  { if (!sfxGate('turShot', 110)) return;
+   327→               Snd.noise({ dur: 0.06, vol: 0.10, ftype: 'bandpass', freq: 1500, q: 1 });
+   328→               Snd.tone({ type: 'square',   f0: 210, f1: 90,  dur: 0.05, vol: 0.05 }); },
+   329→  sniperShot(){ if (!sfxGate('sniperShot', 300)) return;
+   330→               Snd.noise({ dur: 0.30, vol: 0.26, freq: 900 });
+   331→               Snd.tone({ type: 'sine',     f0: 150, f1: 40,  dur: 0.32, vol: 0.24 });
+   332→               Snd.tone({ type: 'triangle', f0: 620, f1: 190, dur: 0.30, vol: 0.06, delay: 0.14 }); },
+   333→  frostShot(){ if (!sfxGate('frostShot', 150)) return;
+   334→               Snd.tone({ type: 'sine',     f0: 1600, f1: 520, dur: 0.22, vol: 0.07 });
+   335→               Snd.noise({ dur: 0.14, vol: 0.05, ftype: 'highpass', freq: 5000 }); },
+   336→  placeT()   { Snd.tone({ type: 'sine',     f0: 130, f1: 55,  dur: 0.14, vol: 0.22 });
+   337→               Snd.noise({ dur: 0.12, vol: 0.14, freq: 320 }); },
+   338→};
+   339→
+   340→/* فعال‌سازی صدا با اولین تعامل کاربر (سیاست autoplay مرورگرها) */
+   341→const armAudio = () => { Snd.init(); Snd.resume(); };
+   342→window.addEventListener('pointerdown', armAudio, { passive: true });
+   343→window.addEventListener('keydown', armAudio);
+   344→
+   345→/* ---------------------- ۴) وضعیت بازی ---------------------- */
+   346→/* mode (وضعیت‌های بازی):
+   347→   start        منوی اصلی (صحنه‌ی زنده: زامبی‌های تزئینی دور برج می‌خزند)
+   348→   playing      درگیر موج فعلی
+   349→   intermission وقفه بین موج‌ها (شمارش معکوس + فرصت خرید)
+   350→   paused       توقف دستی
+   351→   gameover     باخت (جون برج صفر)
+   352→   victory      برد (پاک‌سازی هر ۱۰ موج)
+   353→   (در ۳٫۰ حالت shop حذف شد: خرید از پنل زنده‌ی کنار نقشه انجام می‌شود) */
+   354→const state = {
+   355→  mode: 'start', prevMode: null,
+   356→  time: 0,                                 // زمان منطقی بازی (در توقف ثابت می‌ماند)
+   357→  wave: 0,                                 // موج فعلی (۰ = هنوز شروع نشده)
+   358→  intermission: 0,                         // ثانیه باقی‌مانده تا موج بعد
+   359→  spawn: { queue: [], timer: 0, interval: 2, bossDelay: false }, // صف تولد زامبی‌های موج
+   360→  coins: 0,
+   361→  tower: { hp: 100, maxHp: 100 },
+   362→  upgrades: { weapon: 0, health: 0, trap: 0 },
+   363→  weapon: 'pistol',                        // سلاح انتخاب‌شده
+   364→  zombies: [], bullets: [], coinsArr: [], particles: [], texts: [], zaps: [],
+   365→  turrets: [],                              // برجک‌های دفاعیِ نصب‌شده (۴٫۰)
+   366→  placing: null,                            // نوع برجکی که منتظر کلیک نصب است (۴٫۰)
+   367→  tipTurret: false,                         // راهنمای نصب فقط بار اول نشان داده شود
+   368→  powerups: [],                            // جعبه‌های قدرتِ روی صحنه
+   369→  decals: [],                              // لکه‌های خون روی زمین (۳٫۰)
+   370→  powerTimers: { rapid: 0, freeze: 0 },    // زمان‌سنج قدرت‌های فعال
+   371→  combo: 0, comboT: 0, comboPop: 0,        // سیستم کمبو
+   372→  killsSinceDrop: 0,                       // شمارش برای «شفقت»: حتماً جعبه بیفتد
+   373→  heartT: 0,                               // زمان‌سنج ضربان قلبِ بحران
+   374→  mouse: { x: W / 2, y: 120, down: false },
+   375→  aimAngle: -Math.PI / 2,                  // زاویه اسلحه بازیکن رو به ماوس
+   376→  shake: 0, flash: 0,                      // لرزش دوربین و فلش قرمزِ آسیب برج
+   377→  fireFlash: 0, recoil: 0,                 // جلوه شلیک (نور دهانه + عقب‌راندگی اسلحه)
+   378→  hitMark: 0, hitMarkCrit: false,          // نشانگر برخورد گلوله (۳٫۰)
+   379→  muzzleGlow: 0,                           // نور محیطیِ دهانه‌ی اسلحه (۳٫۰)
+   380→  slowmo: 0,                               // ثانیه‌ی اسلوموشن سینمایی (۳٫۰)
+   381→  lightning: { t: rand(9, 20), a: 0 },     // رعدوبرق گاه‌به‌گاه (۳٫۰)
+   382→  upgrades: { weapon: 0, health: 0, trap: 0, turretUp: 0 },
+   383→  weapon: 'pistol',                        // سلاح انتخاب‌شده
+   384→  stats: { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 },
+   385→};
+   386→
+   387→let animTime = 0;                          // زمان نمایشی (همیشه جلو می‌رود؛ برای سوسو ستاره‌ها و پرچم)
+   388→let fireTimer = 0;                         // کول‌داون شلیک
+   389→let announceTimer = 0;                     // مدت نمایش اعلان موقت (مثل «موج ۲»)
+   390→let shootStar = null, shootStarT = rand(3, 7);   // شهابِ گاه‌به‌گاه آسمان
+   391→
+   392→/* قاب و بوم */
+   393→const canvas = $('game');
+   394→const ctx = canvas.getContext('2d');
+   395→const DPR = Math.min(window.devicePixelRatio || 1, 2); // شفافیت نمایش در صفحه‌های رتینا
+   396→canvas.width = W * DPR;
+   397→canvas.height = H * DPR;
+   398→try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
+   399→
+   400→/* ---------------------- ۵) ورودی: ماوس/لمس و کیبورد ---------------------- */
+   401→function canPlay() { return state.mode === 'playing' || state.mode === 'intermission'; }
+   402→
+   403→/* تبدیل مختصات رویداد ماوس به مختصات منطقی دنیای بازی */
+   404→function canvasPos(e) {
+   405→  const r = canvas.getBoundingClientRect();
+   406→  return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+   407→}
+   408→
+   409→/* به‌روزرسانی زاویه اسلحه بر اساس موقعیت فعلی ماوس */
+   410→function updateAim() {
+   411→  state.aimAngle = Math.atan2(state.mouse.y - (TOWER_TOP_Y - 17), state.mouse.x - TOWER.x);
+   412→}
+   413→
+   414→canvas.addEventListener('pointermove', e => {
+   415→  const p = canvasPos(e); state.mouse.x = p.x; state.mouse.y = p.y;
+   416→  updateAim();
+   417→});
+   418→canvas.addEventListener('pointerdown', e => {
+   419→  const p = canvasPos(e); state.mouse.x = p.x; state.mouse.y = p.y;
+   420→  updateAim();                             // هدف‌گیری قبل از شلیک به‌روز شود
+   421→  if (e.button === 2) {                    // راست‌کلیک: لغو نصب برجک (۴٫۰)
+   422→    if (state.placing) cancelPlacement(true);
+   423→    return;
+   424→  }
+   425→  if (e.button !== 0) return;
+   426→  state.mouse.down = true;
+   427→  if (state.placing && canPlay()) {
+   428→    handlePlaceClick();                       // کلیک = نصب برجک
+   429→    state.mouse.down = false;                 // شلیک خودکار بلافاصله بعد از نصب فعال نشود
+   430→    e.preventDefault();
+   431→    return;
+   432→  }
+   433→  if (canPlay()) tryShoot();               // شلیک فوری در لحظه‌ی کلیک
+   434→  e.preventDefault();
+   435→});
+   436→window.addEventListener('pointerup', () => { state.mouse.down = false; });
+   437→canvas.addEventListener('contextmenu', e => {   // منوی راست‌کلیک باز نشود + لغو نصب
+   438→  e.preventDefault();
+   439→  if (state.placing) cancelPlacement(true);
+   440→});
+   441→
+   442→/* کیبورد: P/Esc توقف، M صدا، ۱/۲/۳ تعویض سلاح، ۴..۹ خرید از ساخت‌وساز، B جمع/باز پنل */
+   443→window.addEventListener('keydown', e => {
+   444→  if (e.key === 'Escape') {
+   445→    if (!$('howtoScreen').classList.contains('hidden')) hideScreen('howtoScreen');
+   446→    else if (state.placing) cancelPlacement(true);      // اول لغو نصب برجک (۴٫۰)
+   447→    else if (state.mode === 'paused') resumeGame();
+   448→    else if (canPlay()) pauseGame();
+   449→  } else if (e.key === 'p' || e.key === 'P') {
+   450→    if (state.mode === 'paused') resumeGame();
+   451→    else if (canPlay()) pauseGame();
+   452→  } else if (e.key === 'm' || e.key === 'M') {
+   453→    toggleSound();
+   454→  } else if (e.key === 'b' || e.key === 'B') {
+   455→    toggleBuildPanel();
+   456→  } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+   457→    selectWeapon('pistol');
+   458→  } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+   459→    selectWeapon('shotgun');
+   460→  } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+   461→    selectWeapon('mg');
+   462→  } else {
+   463→    /* خرید سریع از پنل ساخت‌وساز — کلید هر آیتم در BUILD_DEFS است (۴-۹، ۰ و T) */
+   464→    const kind = KEY2KIND[e.code];
+   465→    if (kind) attemptBuy(kind);
+   466→  }
+   467→});
+   468→/* اگر تب/پنجره از حالت نمایش خارج شد، بازی خودکار متوقف شود */
+   469→window.addEventListener('blur', () => { if (state.mode === 'playing') pauseGame(); });
+   470→document.addEventListener('visibilitychange', () => {
+   471→  if (document.hidden && state.mode === 'playing') pauseGame();
+   472→});
+   473→
+   474→/* ---------------------- ۶) جریان موج‌ها و تولید زامبی ---------------------- */
+   475→/* شروع/ریست کامل بازی */
+   476→function startGame() {
+   477→  state.mode = 'intermission';
+   478→  state.prevMode = null;
+   479→  state.time = 0; state.wave = 0;
+   480→  state.coins = 0;
+   481→  state.tower.hp = 100; state.tower.maxHp = 100;
+   482→  state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0 };
+   483→  state.weapon = 'pistol';
+   484→  WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
+   485→  state.zombies = []; state.bullets = []; state.coinsArr = [];
+   486→  state.turrets = []; state.placing = null; state.tipTurret = false;
+   487→  state.particles = []; state.texts = []; state.zaps = [];
+   488→  state.powerups = []; state.decals = [];
+   489→  state.powerTimers = { rapid: 0, freeze: 0 };
+   490→  state.combo = 0; state.comboT = 0; state.comboPop = 0;
+   491→  state.killsSinceDrop = 0; state.heartT = 0;
+   492→  state.shake = 0; state.flash = 0;
+   493→  state.hitMark = 0; state.muzzleGlow = 0; state.slowmo = 0;
+   494→  state.lightning = { t: rand(9, 20), a: 0 };
+   495→  state.stats = { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 };
+   496→  state.spawn = { queue: [], timer: 0, interval: 2, bossDelay: false };
+   497→  state.mouse.down = false; fireTimer = 0; announceTimer = 0;
+   498→  state.intermission = INTERMISSION_FIRST; // شمارش معکوس کوتاه قبل از موج ۱
+   499→  hideOverlays();
+   500→  $('btnPause').textContent = '⏸ توقف';
+   501→  $('bpHead').classList.remove('attention');
+   502→  $('bossBar').style.display = 'none'; bossBarVisible = false;
+   503→  updateHUD(); refreshBuildPanel(); refreshWeaponBar();
+   504→}
+   505→
+   506→/* آغاز موج n: صف تولد بر اساس ترکیب جدول WAVES ساخته و شافل می‌شود */
+   507→function startWave(n) {
+   508→  state.wave = n;
+   509→  state.mode = 'playing';
+   510→  const c = WAVES[n - 1];
+   511→  const q = [];
+   512→  for (let i = 0; i < c.n; i++) q.push('normal');
+   513→  for (let i = 0; i < c.f; i++) q.push('fast');
+   514→  for (let i = 0; i < c.t; i++) q.push('tank');
+   515→  for (let i = q.length - 1; i > 0; i--) {          // شافل فیشر–ییتس
+   516→    const j = Math.floor(rand(0, i + 1));
+   517→    const tmp = q[i]; q[i] = q[j]; q[j] = tmp;
+   518→  }
+   519→  if (c.b) q.push('boss');                           // پادشاه همیشه آخرِ صف می‌ایستد
+   520→  state.spawn = {
+   521→    queue: q,
+   522→    timer: 1.2,
+   523→    interval: Math.max(2.0 - n * 0.14, 0.5),        // فاصله بین تولدها (کم‌تر هر موج)
+   524→    bossDelay: false,
+   525→  };
+   526→  setAnnounce('موج ' + faNum(n),
+   527→    n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
+   528→  SFX.wave();
+   529→  $('bpHead').classList.remove('attention');
+   530→  updateHUD();
+   531→}
+   532→
+   533→/* پایان موج فعلی: برد، یا ورود به وقفه قبل از موج بعد */
+   534→function waveComplete() {
+   535→  if (state.wave >= TOTAL_WAVES) { victory(); return; }
+   536→  state.mode = 'intermission';
+   537→  state.intermission = INTERMISSION_TIME;
+   538→  state.slowmo = Math.max(state.slowmo, 0.45);       // لحظه‌ی سینمایی پاک‌سازی موج
+   539→  setAnnounce('موج ' + faNum(state.wave) + ' پاک‌سازی شد! 🎉',
+   540→    'موج بعدی: ' + faNum(state.wave + 1) + ' — فرصت ارتقا!', INTERMISSION_TIME + 0.2);
+   541→  SFX.clear();
+   542→  $('bpHead').classList.add('attention');    // راهنمایی بصری: فرصت خرید رسید
+   543→}
+   544→
+   545→/* تولید یک زامبی از نوع دلخواه از لبه چپ یا راست */
+   546→function spawnZombie(type) {
+   547→  const T = ZTYPES[type || 'normal'];
+   548→  const side = Math.random() < 0.5 ? -1 : 1;
+   549→  const hp = Math.round(T.hpBase + T.hpWave * state.wave);
+   550→  state.zombies.push({
+   551→    type: type || 'normal',
+   552→    x: side < 0 ? -30 : W + 30,
+   553→    y: GROUND_Y + rand(-3, 3),             // کمی پراکندگی عمودی برای خوانایی دسته‌جمعی
+   554→    yJit: rand(-3, 3),                     // جیترِ ردیف هجوم (۳٫۰)
+   555→    dir: side < 0 ? 1 : -1,                // جهت گام (به سمت برج)
+   556→    hp, maxHp: hp,
+   557→    speed: (T.spdBase + T.spdWave * state.wave) * rand(0.85, 1.15),
+   558→    radius: T.r,
+   559→    biteInt: T.bite, biteTimer: rand(0.2, 0.6),   // اولین گاز کمی زودتر/دیرتر
+   560→    dmg: T.dmg,
+   561→    walkPhase: Math.random() * Math.PI * 2,
+   562→    attackAnim: 0,
+   563→    attacking: false, attackSide: 0,       // سمتِ دیواری که به آن می‌کوبد
+   564→    lane: 0, depth: 1,                     // ردیف هجوم و مقیاس عمق (۳٫۰)
+   565→    stagger: 0,                            // سرخوردن بعد از گلوله (۳٫۰)
+   566→    chill: 0,                              // ثانیه‌ی باقی‌مانده‌ی یخ‌زدگی برجک یخ‌زن (۴٫۰)
+   567→    hitFlash: 0, dead: false, deathT: 0,
+   568→  });
+   569→  /* غبارِ ورود از لبه‌ی صفحه (۳٫۰) */
+   570→  spawnParticles(side < 0 ? 8 : W - 8, GROUND_Y - 4, 5, '#5a4a33',
+   571→    { speed: 55, life: 0.4, size: 2.2, grav: 180, up: true });
+   572→  updateHUD();
+   573→}
+   574→
+   575→/* ---------------------- ۷) شلیک و سلاح‌ها ---------------------- */
+   576→/* آسیب هر گلوله/ساچمه بر اساس سلاح + سطح ارتقای اسلحه
+   577→   (سلاح‌های ساچمه‌ای به‌ازای هر سطح +۱ می‌گیرند و تک‌گلوله‌ای +۲) */
+   578→function weaponDmg(w, extra) {
+   579→  const L = state.upgrades.weapon + (extra || 0);
+   580→  return w.dmg + L * (w.pellets > 1 ? 1 : 2);
+   581→}
+   582→
+   583→/* محل دهانه‌ی اسلحه (نوک لوله در بالای برج) — طول لوله به سلاح بستگی دارد */
+   584→function gunMuzzle(len) {
+   585→  const gx = TOWER.x, gy = TOWER_TOP_Y - 17;
+   586→  return { x: gx + Math.cos(state.aimAngle) * (len + 6), y: gy + Math.sin(state.aimAngle) * (len + 6) };
+   587→}
+   588→
+   589→function tryShoot() {
+   590→  if (fireTimer > 0) return;
+   591→  const w = WEAPONS[state.weapon];
+   592→  /* قدرت «شلیک سریع» نرخ شلیک را تقریباً دوبرابر می‌کند */
+   593→  fireTimer = w.rate * (state.powerTimers.rapid > 0 ? 0.55 : 1);
+   594→  updateAim();                             // اطمینان از جهت صحیح گلوله
+   595→  const m = gunMuzzle(w.barrel);
+   596→  for (let i = 0; i < w.pellets; i++) {
+   597→    const a = state.aimAngle + (Math.random() - 0.5) * 2 * w.spread;
+   598→    const sp = w.spd * rand(0.92, 1.08);
+   599→    state.bullets.push({
+   600→      x: m.x, y: m.y,
+   601→      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+   602→      dmg: weaponDmg(w), r: w.pellets > 1 ? 3 : 4, life: w.ttl,
+   603→      knock: w.knock,                      // پس‌زنی سلاح (۳٫۰)
+   604→      dead: false, pellet: w.pellets > 1,  // ساچمه‌های شاتگان ریزترند
+   605→    });
+   606→  }
+   607→  state.stats.shots++;
+   608→  state.fireFlash = 0.07;
+   609→  state.muzzleGlow = 0.07;                 // نور دهانه روی محیط (۳٫۰)
+   610→  state.recoil = w.pellets > 1 ? 1.6 : 1;  // لگد شاتکن محسوس‌تر است
+   611→  SFX[w.sfx]();
+   612→  spawnParticles(m.x, m.y, 3, '#ffe9a8', { speed: 90, life: 0.18, size: 2, grav: 0,
+   613→    dir: state.aimAngle, spread: Math.PI / 3 });
+   614→  spawnShell(state.aimAngle);              // پوکه‌ی پرتاب‌شده
+   615→  if (w.pellets > 1) state.shake = Math.min(8, state.shake + 2);
+   616→}
+   617→
+   618→/* پوکه‌ی براقی که بعد از هر شلیک به عقب پرتاب می‌شود و روی بام می‌غلتد */
+   619→function spawnShell(ang) {
+   620→  const gx = TOWER.x + Math.cos(ang) * 8, gy = TOWER_TOP_Y - 17 + Math.sin(ang) * 8;
+   621→  const a = ang + rand(1.6, 2.2);          // زاویه‌ی پرتاب به عقب/بالا
+   622→  state.particles.push({
+   623→    x: gx, y: gy,
+   624→    vx: Math.cos(a) * rand(60, 130), vy: Math.sin(a) * rand(60, 130) - 70,
+   625→    age: 0, life: rand(0.5, 0.8), size: 2.6, color: '#d9a441', grav: 900,
+   626→    shell: true, rot: rand(0, 6.28), vr: rand(-9, 9),
+   627→  });
+   628→}
+   629→
+   630→/* برخورد گلوله با زامبی‌ها + خروج گلوله از صحنه
+   631→   (۳٫۰: اول دایره‌ی سر بررسی می‌شود — برخورد سر = ضربه‌ی بحرانی ×۲) */
+   632→function updateBullets(dt) {
+   633→  for (const b of state.bullets) {
+   634→    if (b.dead) continue;
+   635→    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+   636→    /* رد برفیِ گلوله‌ی یخی برجک (۴٫۰) */
+   637→    if (b.frost && Math.random() < dt * 34) {
+   638→      state.particles.push({ x: b.x, y: b.y, vx: rand(-12, 12), vy: rand(-12, 12),
+   639→        age: 0, life: 0.3, size: 1.3, color: 'rgba(205,240,255,0.9)', grav: 30 });
+   640→    }
+   641→    if (b.y > GROUND_Y + 4) {              // گلوله به زمین خورد
+   642→      b.dead = true;
+   643→      spawnParticles(b.x, GROUND_Y, 4, '#6a5a43', { speed: 70, life: 0.3, size: 2, grav: 300, up: true });
+   644→      continue;
+   645→    }
+   646→    if (b.x < -40 || b.x > W + 40 || b.y < -40 || b.life <= 0) { b.dead = true; continue; }
+   647→    const dir = Math.sign(b.vx) || 1;      // جهت پس‌زنی = جهت حرکت گلوله
+   648→    const src = b.tur || 'player';         // منبع گلوله: بازیکن یا برجک (۴٫۰)
+   649→    for (const z of state.zombies) {
+   650→      if (z.dead) continue;
+   651→      const s = (z.radius / 15) * (z.depth || 1);   // مرکز بدن بر اساس اندازه‌ی نوع و عمق
+   652→      /* --- سر: ضربه‌ی بحرانی --- */
+   653→      const hx = z.x + z.dir * 3 * s, hy = z.y - 36 * s, hr = 7 * s + b.r;
+   654→      if ((b.x - hx) * (b.x - hx) + (b.y - hy) * (b.y - hy) < hr * hr) {
+   655→        b.dead = true;
+   656→        hitZombie(z, b.dmg, b.x, b.y, dir, true, b.knock, src);
+   657→        if (b.frost) chillZombie(z);
+   658→        break;
+   659→      }
+   660→      /* --- بدن --- */
+   661→      const dx = z.x - b.x, dy = (z.y - 20 * s) - b.y;
+   662→      const rr2 = z.radius * (z.depth || 1) + b.r + 3;
+   663→      if (dx * dx + dy * dy < rr2 * rr2) {
+   664→        b.dead = true;
+   665→        hitZombie(z, b.dmg, b.x, b.y, dir, !!b.crit, b.knock, src);
+   666→        if (b.frost) chillZombie(z);
+   667→        break;
+   668→      }
+   669→    }
+   670→  }
+   671→  state.bullets = state.bullets.filter(b => !b.dead);
+   672→}
+   673→
+   674→/* ---------------------- ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج ----------------------
+   675→   در ۳٫۰ زامبی‌ها دیگر در یک خط نمی‌ایستند: هر طرفِ برج تا ۵ ردیف
+   676→   «دیوارِ زامبی» می‌سازند؛ نزدیک‌ترین مهاجم ردیفِ چسبیده به دیوار را می‌گیرد و
+   677→   بقیه پشت سرش ردیف می‌شوند. ردیف‌های عقب بالاتر و کوچک‌تر رسم می‌شوند و
+   678→   با کشته‌شدنِ ردیف جلو، بقیه فشرده شده و جلو می‌خزند. */
+   679→function updateZombies(dt) {
+   680→  /* رتبه‌بندی مهاجم‌های فعلی بر اساس نزدیکی به دیوار (هر طرف جداگانه):
+   681→     نزدیک‌ترین = ردیف ۰؛ با مرگ ردیف جلو، رتبه‌ها فشرده می‌شوند */
+   682→  const rank = { '-1': 0, '1': 0 };
+   683→  const attackers = state.zombies.filter(z => !z.dead && z.attacking);
+   684→  attackers.sort((a, b) => Math.abs(TOWER.x - a.x) - Math.abs(TOWER.x - b.x));
+   685→  for (const z of attackers) {
+   686→    z.attackSide = z.x < TOWER.x ? -1 : 1;
+   687→    z.lane = Math.min(rank[z.attackSide]++, 4);
+   688→  }
+   689→
+   690→  for (const z of state.zombies) {
+   691→    if (z.dead) { z.deathT += dt; continue; }   // انیمیشن مرگ ادامه پیدا کند
+   692→    z.hitFlash = Math.max(0, z.hitFlash - dt);
+   693→    z.stagger = Math.max(0, z.stagger - dt);    // سرخوردن بعد از ضربه
+   694→    z.chill = Math.max(0, (z.chill || 0) - dt); // یخ‌زدگی برجک یخ‌زن (۴٫۰)
+   695→
+   696→    const dx = TOWER.x - z.x;
+   697→    const side = z.x < TOWER.x ? -1 : 1;        // کدام دیوار برج؟
+   698→    const lane = z.attacking ? z.lane : Math.min(rank[side], 4);
+   699→    const stop = TOWER.baseHalf + z.radius * 0.55 + lane * 15;
+   700→
+   701→    /* انجماد: همه کُند می‌شوند (پادشاه مقاوم‌تر است) — یخ‌زدگی برجک هم جداگانه اثر می‌کند */
+   702→    const slow = state.powerTimers.freeze > 0 ? (z.type === 'boss' ? 0.6 : 0.32) : 1;
+   703→    const spd = z.speed * slow * (z.chill > 0 ? 0.55 : 1) * (z.stagger > 0 ? 0.25 : 1);
+   704→
+   705→    if (Math.abs(dx) > stop) {
+   706→      /* راه رفتن به سمت برج (مهاجمِ پس‌زده‌شده هم برمی‌گردد) */
+   707→      z.attacking = false;
+   708→      z.lane = Math.min(rank[side], 4);
+   709→      z.x += Math.sign(dx) * spd * dt;
+   710→      z.walkPhase += dt * (4 + spd * 0.06);
+   711→    } else {
+   712→      /* رسید به دیوار برج: کوبیدن پایه با فاصله‌ی زمانیِ نوعِ خودش */
+   713→      z.attacking = true;
+   714→      z.attackSide = side;
+   715→      z.attackAnim += dt * 5;
+   716→      z.biteTimer -= dt;
+   717→      if (z.biteTimer <= 0) {
+   718→        z.biteTimer = z.biteInt;
+   719→        damageTower(z.dmg, z.x);
+   720→      }
+   721→    }
+   722→
+   723→    /* عمق تصویری: ردیف‌های عقب‌تر کمی بالاتر ایستاده و کوچک‌تر دیده می‌شوند */
+   724→    const yTarget = GROUND_Y - z.lane * 9 + z.yJit;
+   725→    z.y += (yTarget - z.y) * Math.min(1, dt * 6);
+   726→    z.depth = 1 - z.lane * 0.07;
+   727→  }
+   728→  state.zombies = state.zombies.filter(z => !z.dead || z.deathT < 0.55);
+   729→}
+   730→
+   731→/* آسیب گلوله به زامبی (۳٫۰: کریت ×۲ + پس‌زنی + سرخوردن + نشانگر برخورد) */
+   732→function hitZombie(z, dmg, bx, by, dir, crit, knock, src) {
+   733→  if (z.dead) return;
+   734→  if (src) z.killedBy = src;                 // منبع ضربه — برای آمار کشتار برجک‌ها (۴٫۰)
+   735→  const total = crit ? dmg * 2 : dmg;
+   736→  z.hp -= total;
+   737→  z.hitFlash = 0.15;
+   738→  z.stagger = 0.15;                         // چند لحظه از می‌افتد
+   739→  z.x += dir * (knock || 0) * (crit ? 1.7 : 1);   // پس‌زنی فیزیکی
+   740→  if (crit) {
+   741→    addText(z.x, z.y - 52, faNum(total), '#ffb347', 16);
+   742→    spawnParticles(bx, by, 5, '#ffd873', { speed: 150, life: 0.35, size: 2.2, grav: 300 });
+   743→  } else {
+   744→    addText(z.x, z.y - 46, faNum(total), '#ffffff', 12);
+   745→  }
+   746→  spawnParticles(bx, by, 3, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
+   747→  spawnParticles(bx, by, 3, '#7a2f2f', { speed: 90,  life: 0.35, size: 2, grav: 500 });
+   748→  if (Math.random() < 0.3) addDecal(z.x, false);   // چکه‌ی خون روی زمین
+   749→  state.hitMark = 0.14; state.hitMarkCrit = !!crit; // نشانگر برخورد روی نشان
+   750→  if (crit) SFX.crit(); else SFX.hit();
+   751→  if (z.hp <= 0) killZombie(z);
+   752→}
+   753→
+   754→/* مرگ زامبی: انیمیشن افتادن + خون + سکه + روح + جعبه‌ی قدرت + کمبو (۳٫۰) */
+   755→function killZombie(z) {
+   756→  if (z.dead) return;
+   757→  z.dead = true; z.deathT = 0;
+   758→  state.stats.kills++;
+   759→  if (z.killedBy && z.killedBy !== 'player') state.stats.turKills++;   // کشتار دفاع‌های خودکار (۴٫۰)
+   760→  spawnParticles(z.x, z.y - 18, 12, '#5f8f3e', { speed: 170, life: 0.55, size: 3, grav: 500 });
+   761→  spawnParticles(z.x, z.y - 18, 8, '#7a2f2f', { speed: 130, life: 0.5, size: 2.6, grav: 500 });
+   762→  addDecal(z.x, true);                     // لکه‌ی خون بزرگ زیر جسد
+   763→  /* روحِ سبزِ کوچکی که آرام به آسمان می‌رود */
+   764→  state.particles.push({
+   765→    x: z.x, y: z.y - 26, vx: rand(-6, 6), vy: -38,
+   766→    age: 0, life: 1.3, size: 3, color: 'rgba(190,255,200,0.5)', grav: -26, glow: true,
+   767→  });
+   768→  SFX.death();
+   769→  dropCoins(z);
+   770→  maybeDropPowerup(z);
+   771→  bumpCombo();
+   772→  updateHUD();
+   773→  if (z.type === 'boss') {
+   774→    state.shake = 16; state.flash = 0.8;
+   775→    state.slowmo = 0.9;                    // لحظه‌ی سینمایی مرگ پادشاه
+   776→    SFX.slowmo();
+   777→    spawnParticles(z.x, z.y - 60, 40, '#ffd873', { speed: 300, life: 1.0, size: 3.5, grav: 400 });
+   778→    spawnParticles(z.x, z.y - 60, 24, '#e8563f', { speed: 240, life: 0.8, size: 3, grav: 400 });
+   779→    setAnnounce('👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
+   780→    SFX.bossDie();
+   781→  }
+   782→}
+   783→
+   784→/* سیستم کمبو (۳٫۰): هر کشتنِ تازه، پنجره را باز نگه می‌دارد؛
+   785→   در رکوردهای مشخص پیام + سکه‌ی جایزه می‌گیری. */
+   786→function bumpCombo() {
+   787→  state.combo++;
+   788→  state.comboT = COMBO_WINDOW;
+   789→  state.comboPop = 0.25;
+   790→  state.stats.maxCombo = Math.max(state.stats.maxCombo, state.combo);
+   791→  const m = COMBO_MILESTONES[state.combo];
+   792→  if (m) {
+   793→    state.coins += m.bonus;
+   794→    state.stats.earned += m.bonus;
+   795→    addText(TOWER.x, TOWER_TOP_Y - 46, '+' + faNum(m.bonus) + ' 💰', '#ffd873', 15);
+   796→    setAnnounce('🔥 ' + m.msg, 'جایزه‌ی کمبو: +' + faNum(m.bonus) + ' سکه', 1.6);
+   797→    SFX.combo(state.combo);
+   798→    pulseCoins();
+   799→  }
+   800→}
+   801→
+   802→/* کاهش جون برج (کوبیدن پایه توسط زامبی‌ها) */
+   803→function damageTower(amount, srcX) {
+   804→  if (state.mode !== 'playing') return;
+   805→  state.tower.hp = Math.max(0, state.tower.hp - amount);
+   806→  state.flash = 1;
+   807→  state.shake = Math.min(10, state.shake + 3);
+   808→  const side = srcX < TOWER.x ? -1 : 1;
+   809→  addText(TOWER.x + side * (TOWER.baseHalf + 6), GROUND_Y - 60, faNum(amount), '#ff6b5e', 16);
+   810→  /* تراشه‌های سنگ از پایه‌ی برج می‌پارد (۳٫۰: بیشتر و پررنگ‌تر) */
+   811→  spawnParticles(TOWER.x + side * TOWER.baseHalf, GROUND_Y - rand(10, 55), 7, '#8a6f52',
+   812→    { speed: 130, life: 0.45, size: 2.6, grav: 500 });
+   813→  spawnParticles(TOWER.x + side * TOWER.baseHalf, GROUND_Y - rand(8, 40), 3, '#c9b38a',
+   814→    { speed: 100, life: 0.35, size: 2, grav: 500 });
+   815→  SFX.towerHit();
+   816→  updateHUD();
+   817→  if (state.tower.hp <= 0) gameOver();
+   818→}
+   819→
+   820→/* تله پایه برج: آسیب خودکار و پیوسته به زامبی‌های نزدیک */
+   821→function updateTrap(dt) {
+   822→  const lvl = state.upgrades.trap;
+   823→  if (lvl <= 0) return;
+   824→  const dps = UPGRADES.trap.dps + UPGRADES.trap.dpsPerLvl * (lvl - 1);
+   825→  for (const z of state.zombies) {
+   826→    if (z.dead) continue;
+   827→    if (Math.abs(z.x - TOWER.x) < UPGRADES.trap.radius) {
+   828→      z.hp -= dps * dt;
+   829→      z.hitFlash = Math.max(z.hitFlash, 0.06);
+   830→      if (Math.random() < dt * 6) { addZap(z.x, z.y - 18); SFX.trap(); }  // قوس برق نمایشی
+   831→      if (z.hp <= 0) { z.killedBy = 'trap'; killZombie(z); }
+   832→    }
+   833→  }
+   834→}
+   835→
+   836→/* ---------------------- ۸٫۵) برجک‌های دفاعی خودکار (۴٫۰) ----------------------
+   837→   بازیکن برجک می‌خرد → شبحِ نصب دنبال ماوس می‌آید → کلیک روی زمین = نصب.
+   838→   هر برجک نزدیک‌ترین زامبیِ در برد را نشانه می‌رود و خودکار شلیک می‌کند. */
+   839→
+   840→/* آیا نقطه‌ی (x,y) جای نصب مناسبی است؟ (نوار زمین، دوری از برج/برجک‌ها/مانع‌های صحنه) */
+   841→function placementValid(x, y) {
+   842→  if (y < GROUND_Y - 34 || y > GROUND_Y + 16) return false;    // فقط نوار زمین
+   843→  if (x < 26 || x > W - 200) return false;                      // داخل کادر و دور از پنل ساخت‌وساز
+   844→  if (Math.abs(x - TOWER.x) < TOWER.baseHalf + 34) return false; // چسبیده به پایه‌ی برج نه
+   845→  for (const t of state.turrets) if (Math.hypot(t.x - x, t.y - y) < 36) return false;
+   846→  for (const lx of LAMPS) if (Math.abs(x - lx) < 18) return false;
+   847→  for (const tx of [88, 874]) if (Math.abs(x - tx) < 22) return false;   // درخت‌های خشک
+   848→  for (const p of PUDDLES) if (Math.abs(x - p.x) < p.w / 2 + 8) return false;
+   849→  return true;
+   850→}
+   851→
+   852→/* شروع حالت نصب: پول هنوز کنار نمی‌رود — موقع نصبِ موفق کم می‌شود */
+   853→function startPlacement(kind) {
+   854→  if (state.placing) {
+   855→    if (state.placing.type === kind) cancelPlacement(true);   // کلیک دوباره = لغو
+   856→    else { state.placing = { type: kind }; SFX.click(); refreshBuildPanel(); }
+   857→    return;
+   858→  }
+   859→  if (state.turrets.length >= MAX_TURRETS) { denyBPItem(kind); return; }
+   860→  if (state.coins < TURRETS[kind].price) { denyBPItem(kind); return; }
+   861→  state.placing = { type: kind };
+   862→  SFX.click();
+   863→  if (!state.tipTurret) {
+   864→    state.tipTurret = true;
+   865→    setAnnounce('🛠 نصب ' + TURRETS[kind].name, 'روی زمینِ سبز کلیک کن — راست‌کلیک: لغو', 2.4);
+   866→  }
+   867→  refreshBuildPanel();
+   868→}
+   869→
+   870→/* لغو حالت نصب (Esc یا راست‌کلیک) — هنوز چیزی خرج نشده است */
+   871→function cancelPlacement(notify) {
+   872→  if (!state.placing) return;
+   873→  state.placing = null;
+   874→  if (notify) SFX.click();
+   875→  refreshBuildPanel();
+   876→}
+   877→
+   878→/* کلیک چپ در حالت نصب: اگر جای‌ درست بود برجک ساخته می‌شود */
+   879→function handlePlaceClick() {
+   880→  const pl = state.placing;
+   881→  if (!pl) return;
+   882→  const def = TURRETS[pl.type];
+   883→  const mx = state.mouse.x, my = state.mouse.y;
+   884→  if (!placementValid(mx, my)) { SFX.deny(); return; }
+   885→  if (state.turrets.length >= MAX_TURRETS) { cancelPlacement(); return; }
+   886→  if (state.coins < def.price) { denyBPItem(pl.type); cancelPlacement(); return; }
+   887→  state.coins -= def.price;
+   888→  state.turrets.push({
+   889→    type: pl.type, x: mx, y: my,
+   890→    cd: 0.45,                                // کمی تأخیر اولیه (حسِ نصب)
+   891→    aim: mx < TOWER.x ? 0 : Math.PI,         // اول رو به برج
+   892→    spin: 0, flash: 0, recoil: 0, hover: false, bob: rand(0, 6.28),
+   893→  });
+   894→  /* جلوه‌ی نصب: گردوخاک + کوبیدن + متن */
+   895→  spawnParticles(mx, my + 2, 14, '#7a6a4c', { speed: 110, life: 0.5, size: 2.6, grav: 380, up: true });
+   896→  spawnParticles(mx, my - 4, 8, '#c9b38a', { speed: 90, life: 0.4, size: 2, grav: 300, up: true });
+   897→  state.shake = Math.min(6, state.shake + 3);
+   898→  addText(mx, my - 40, def.name, '#9fe08a', 13);
+   899→  SFX.placeT();
+   900→  state.placing = null;
+   901→  updateHUD();
+   902→}
+   903→
+   904→/* یخ‌زدگی زامبی با گلوله‌ی برجک یخ‌زن */
+   905→function chillZombie(z) {
+   906→  if (z.dead) return;
+   907→  z.chill = Math.max(z.chill || 0, TURRETS.frost.chill);
+   908→  spawnParticles(z.x, z.y - 20, 4, '#cfeaff', { speed: 60, life: 0.4, size: 1.6, grav: 150 });
+   909→}
+   910→
+   911→/* حلقه‌ی برجک‌ها: هدف‌گیری نزدیک‌ترین زامبی در برد + چرخش لوله + شلیک خودکار */
+   912→function updateTurrets(dt) {
+   913→  for (const t of state.turrets) {
+   914→    const def = TURRETS[t.type];
+   915→    t.cd = Math.max(0, t.cd - dt);
+   916→    t.flash = Math.max(0, t.flash - dt);
+   917→    t.recoil = Math.max(0, t.recoil - dt * 5);
+   918→    t.hover = !state.placing && Math.abs(state.mouse.x - t.x) < 26 && Math.abs(state.mouse.y - (t.y - 14)) < 30;
+   919→
+   920→    /* نزدیک‌ترین زامبیِ زنده در شعاع برد */
+   921→    let best = null, bd = Infinity;
+   922→    for (const z of state.zombies) {
+   923→      if (z.dead) continue;
+   924→      const d = Math.abs(z.x - t.x);
+   925→      if (d <= def.range && d < bd) { bd = d; best = z; }
+   926→    }
+   927→    if (best) {
+   928→      const s = (best.radius / 15) * (best.depth || 1);
+   929→      const want = Math.atan2((best.y - 20 * s) - (t.y - def.h), best.x - t.x);
+   930→      let diff = want - t.aim;
+   931→      while (diff > Math.PI) diff -= Math.PI * 2;
+   932→      while (diff < -Math.PI) diff += Math.PI * 2;
+   933→      t.aim += diff * Math.min(1, dt * 8);   // چرخش نرم لوله به سمت هدف
+   934→      if (t.cd <= 0 && Math.abs(diff) < 0.35) turretFire(t);
+   935→    }
+   936→    if (t.type === 'gatling') t.spin += dt * (best ? 16 : 3);   // چرخش لوله‌های مسلسل
+   937→    /* برفک‌های محیطی برجک یخ‌زن */
+   938→    if (t.type === 'frost' && Math.random() < dt * 2.5) {
+   939→      state.particles.push({ x: t.x + rand(-13, 13), y: t.y - rand(14, 30),
+   940→        vx: rand(-6, 6), vy: rand(8, 20), age: 0, life: rand(0.6, 1.2),
+   941→        size: rand(1, 1.8), color: 'rgba(200,235,255,0.8)', grav: 10 });
+   942→    }
+   943→  }
+   944→}
+   945→
+   946→/* شلیک برجک: گلوله با پرچم‌های مخصوص (tur/frost/tracer/crit) به صف گلوله‌ها اضافه می‌شود */
+   947→function turretFire(t) {
+   948→  const def = TURRETS[t.type];
+   949→  const lvl = state.upgrades.turretUp;
+   950→  const dmg = Math.round(def.dmg * (1 + 0.3 * lvl));
+   951→  const mx = t.x + Math.cos(t.aim) * (def.len + 4);
+   952→  const my = t.y - def.h + Math.sin(t.aim) * (def.len + 4);
+   953→  const a = t.aim + rand(-0.03, 0.03);
+   954→  state.bullets.push({
+   955→    x: mx, y: my,
+   956→    vx: Math.cos(a) * def.spd, vy: Math.sin(a) * def.spd,
+   957→    dmg, r: t.type === 'sniper' ? 4 : (t.type === 'frost' ? 4.5 : 2.8),
+   958→    life: t.type === 'sniper' ? 1.4 : 1.1,
+   959→    knock: def.knock, dead: false,
+   960→    pellet: t.type === 'gatling',          // گلوله‌های ریز مسلسل
+   961→    tur: t.type,                           // منبع شلیک (برای آمار)
+   962→    frost: t.type === 'frost',             // گلوله‌ی یخی
+   963→    tracer: t.type === 'sniper',           // رد بلند تک‌تیرانداز
+   964→    crit: t.type === 'sniper' && Math.random() < (def.crit || 0),
+   965→  });
+   966→  t.cd = def.rate / (1 + 0.12 * lvl);
+   967→  t.flash = t.type === 'sniper' ? 0.09 : 0.07;
+   968→  t.recoil = 1;
+   969→  if (t.type === 'gatling') {
+   970→    SFX.turShot();
+   971→    spawnParticles(mx, my, 2, '#ffd88a', { speed: 70, life: 0.12, size: 1.6, grav: 0, dir: t.aim, spread: 0.6 });
+   972→  } else if (t.type === 'sniper') {
+   973→    SFX.sniperShot();
+   974→    state.shake = Math.min(5, state.shake + 1.2);
+   975→    spawnParticles(mx, my, 5, '#fff3c4', { speed: 160, life: 0.22, size: 2.2, grav: 0, dir: t.aim, spread: 0.9 });
+   976→  } else {
+   977→    SFX.frostShot();
+   978→    spawnParticles(mx, my, 4, '#bfe6ff', { speed: 60, life: 0.4, size: 1.8, grav: 60, dir: t.aim, spread: 1.2 });
+   979→  }
+   980→}
+   981→
+   982→/* ---------------------- ۹) سکه‌ها و جعبه‌های قدرت ---------------------- */
+   983→/* با مرگ هر زامبی چند سکه می‌پرد بیرون (تعدادش به نوع دشمن بستگی دارد) */
+   984→function dropCoins(z) {
+   985→  const range = ZTYPES[z.type].coins;
+   986→  const n = Math.round(rand(range[0], range[1]));
+   987→  for (let i = 0; i < n; i++) {
+   988→    state.coinsArr.push({
+   989→      x: z.x, y: z.y - 18, vx: rand(-100, 100), vy: rand(-280, -140),
+   990→      phase: 'drop', t: 0, bounces: 0, flySpeed: 420, dead: false,
+   991→    });
+   992→  }
+   993→}
+   994→
+   995→/* محل شمارنده سکه در HUD (تبدیل مختصات صفحه به مختصات بوم تا سکه‌ها دقیقاً به آن پرو کنند) */
+   996→function coinTarget() {
+   997→  try {
+   998→    const r = canvas.getBoundingClientRect();
+   999→    const c = $('coinItem').getBoundingClientRect();
+  1000→    return {
+  1001→      x: (c.left + c.width / 2 - r.left) / r.width * W,
+  1002→      y: (c.top + c.height / 2 - r.top) / r.height * H,
+  1003→    };
+  1004→  } catch (e) { return { x: W - 150, y: 26 }; }
+  1005→}
+  1006→
+  1007→function updateCoins(dt) {
+  1008→  const target = coinTarget(); // یک بار در هر فریم محاسبه می‌شود
+  1009→  for (const c of state.coinsArr) {
+  1010→    if (c.dead) continue;
+  1011→    c.t += dt;
+  1012→    if (c.phase === 'drop') {
+  1013→      /* پرتاب اولیه + جاذبه + وایراستن روی زمین */
+  1014→      c.vy += 900 * dt;
+  1015→      c.x += c.vx * dt; c.y += c.vy * dt;
+  1016→      if (c.y > GROUND_Y - 6) {
+  1017→        c.y = GROUND_Y - 6;
+  1018→        c.vy *= -0.45; c.vx *= 0.7; c.bounces++;
+  1019→        if (Math.abs(c.vy) < 40 || c.bounces >= 2 || c.t > 0.9) c.phase = 'fly';
+  1020→      }
+  1021→    } else {
+  1022→      /* پرو شتاب‌دار به سمت شمارنده سکه در HUD */
+  1023→      const dx = target.x - c.x, dy = target.y - c.y;
+  1024→      const d = Math.hypot(dx, dy) || 1;
+  1025→      c.flySpeed += 1400 * dt;
+  1026→      const step = Math.min(d, c.flySpeed * dt);
+  1027→      c.x += dx / d * step; c.y += dy / d * step;
+  1028→      if (d < 18) { collectCoin(c); continue; }
+  1029→    }
+  1030→    /* برق کوچکی که گاهی از سکه می‌پرد (۳٫۰) */
+  1031→    if (Math.random() < dt * 2.2) {
+  1032→      state.particles.push({ x: c.x + rand(-5, 5), y: c.y + rand(-5, 5), vx: 0, vy: -14,
+  1033→        age: 0, life: 0.35, size: 1.2, color: '#ffe98a', grav: 0 });
+  1034→    }
+  1035→    if (c.t > 4) collectCoin(c); // بیمه: سکه گم‌نشده جمع شود
+  1036→  }
+  1037→  state.coinsArr = state.coinsArr.filter(c => !c.dead);
+  1038→}
+  1039→
+  1040→function collectCoin(c) {
+  1041→  if (c.dead) return;
+  1042→  c.dead = true;
+  1043→  state.coins++;
+  1044→  state.stats.earned++;
+  1045→  updateHUD();
+  1046→  pulseCoins();
+  1047→}
+  1048→
+  1049→/* پالس بصری شمارنده سکه در HUD */
+  1050→function pulseCoins() {
+  1051→  const el = $('coinItem');
+  1052→  el.classList.remove('pulse');
+  1053→  void el.offsetWidth;                     // ریست انیمیشن
+  1054→  el.classList.add('pulse');
+  1055→}
+  1056→
+  1057→/* ---------- جعبه‌های قدرت (۳٫۰) ----------
+  1058→   از زامبی‌ها می‌افتند، روی زمین وای می‌دارند، بعد خودشان به
+  1059→   بازیکن پرو می‌کنند و اثرشان فعال می‌شود. */
+  1060→function pickPowerType() {
+  1061→  const r = Math.random();
+  1062→  return r < 0.30 ? 'medkit' : r < 0.57 ? 'rapid' : r < 0.80 ? 'freeze' : 'coin';
+  1063→}
+  1064→
+  1065→function spawnPowerupObj(type, x, y) {
+  1066→  state.powerups.push({
+  1067→    type, x, y, vx: rand(-70, 70), vy: rand(-260, -150),
+  1068→    phase: 'drop', t: 0, fs: 260, dead: false, bob: rand(0, 6.28),
+  1069→  });
+  1070→}
+  1071→
+  1072→function maybeDropPowerup(z) {
+  1073→  if (z.type === 'boss') {                 // پادشاه همیشه دو جعبه می‌ریزد
+  1074→    spawnPowerupObj(pickPowerType(), z.x - 24, z.y - 40);
+  1075→    spawnPowerupObj(pickPowerType(), z.x + 24, z.y - 40);
+  1076→    state.killsSinceDrop = 0;
+  1077→    return;
+  1078→  }
+  1079→  state.killsSinceDrop++;
+  1080→  /* شانس پایه ۸٫۵٪ + «شفقت»: اگر خیلی وقت است یکی نیفتاده باشد حتماً می‌افتد */
+  1081→  if (state.killsSinceDrop > 24 || Math.random() < 0.085) {
+  1082→    state.killsSinceDrop = 0;
+  1083→    spawnPowerupObj(pickPowerType(), z.x, z.y - 20);
+  1084→  }
+  1085→}
+  1086→
+  1087→function updatePowerups(dt) {
+  1088→  const tx = TOWER.x, ty = TOWER_TOP_Y - 24;   // مقصد: بازیکن روی بام
+  1089→  for (const p of state.powerups) {
+  1090→    if (p.dead) continue;
+  1091→    p.t += dt;
+  1092→    if (p.phase === 'drop') {
+  1093→      p.vy += 800 * dt;
+  1094→      p.x += p.vx * dt; p.y += p.vy * dt;
+  1095→      if (p.y > GROUND_Y - 10) {
+  1096→        p.y = GROUND_Y - 10;
+  1097→        p.vy *= -0.42; p.vx *= 0.65;
+  1098→        if (Math.abs(p.vy) < 30 || p.t > 0.8) p.phase = 'wait';
+  1099→      }
+  1100→    } else if (p.phase === 'wait') {
+  1101→      if (p.t > 1.15) p.phase = 'fly';    // مکث کوتاه روی زمین، بعد پرو به بازیکن
+  1102→    } else {
+  1103→      const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
+  1104→      p.fs += 900 * dt;
+  1105→      const step = Math.min(d, p.fs * dt);
+  1106→      p.x += dx / d * step; p.y += dy / d * step;
+  1107→      if (d < 18) { applyPowerup(p); p.dead = true; continue; }
+  1108→    }
+  1109→    if (p.t > POWER_LIFE) p.dead = true;  // اگر کسی نگرفت محو شود
+  1110→  }
+  1111→  state.powerups = state.powerups.filter(p => !p.dead);
+  1112→}
+  1113→
+  1114→/* اعمال اثر جعبه‌ی قدرت */
+  1115→function applyPowerup(p) {
+  1116→  const def = PTYPES[p.type];
+  1117→  SFX.power();
+  1118→  switch (p.type) {
+  1119→    case 'medkit': {
+  1120→      const heal = Math.min(def.heal, state.tower.maxHp - state.tower.hp);
+  1121→      state.tower.hp = Math.min(state.tower.maxHp, state.tower.hp + def.heal);
+  1122→      addText(TOWER.x, TOWER_TOP_Y - 44, '+' + faNum(Math.round(heal)) + ' ❤️', '#7be389', 15);
+  1123→      spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 14, '#7be389', { speed: 150, life: 0.55, size: 2.5, grav: 250, up: true });
+  1124→      break;
+  1125→    }
+  1126→    case 'rapid':
+  1127→      state.powerTimers.rapid = def.dur;
+  1128→      addText(TOWER.x, TOWER_TOP_Y - 44, 'شلیک سریع ⚡', '#ffd873', 15);
+  1129→      spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 14, '#ffd873', { speed: 160, life: 0.5, size: 2.4, grav: 250, up: true });
+  1130→      break;
+  1131→    case 'freeze':
+  1132→      state.powerTimers.freeze = def.dur;
+  1133→      SFX.freeze();
+  1134→      addText(TOWER.x, TOWER_TOP_Y - 44, 'انجماد ❄', '#8fd6ff', 15);
+  1135→      spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 18, '#bfe6ff', { speed: 180, life: 0.7, size: 2.4, grav: 120 });
+  1136→      break;
+  1137→    case 'coin': {
+  1138→      state.coins += def.bonus;
+  1139→      state.stats.earned += def.bonus;
+  1140→      for (const c of state.coinsArr) c.phase = 'fly';   // همه‌ی سکه‌های زمین هم جمع شود
+  1141→      addText(TOWER.x, TOWER_TOP_Y - 44, '+' + faNum(def.bonus) + ' 💰', '#f5c542', 15);
+  1142→      pulseCoins();
+  1143→      break;
+  1144→    }
+  1145→  }
+  1146→  updateHUD();
+  1147→}
+  1148→
+  1149→/* ---------------------- ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده) ---------------------- */
+  1150→/* قیمت ارتقای kind در سطح فعلی (گردشده به مضرب ۵) */
+  1151→function priceOf(kind) {
+  1152→  const u = UPGRADES[kind], lvl = state.upgrades[kind];
+  1153→  return Math.round(u.base * Math.pow(u.growth, lvl) / 5) * 5;
+  1154→}
+  1155→
+  1156→/* لرزش آیتم پنل + صدای «نه» وقتی سکه کافی نیست */
+  1157→function denyBPItem(kind) {
+  1158→  const item = $('bp-' + kind);
+  1159→  if (item) { item.classList.remove('deny'); void item.offsetWidth; item.classList.add('deny'); }
+  1160→  SFX.deny();
+  1161→}
+  1162→
+  1163→/* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی نوار سلاح) */
+  1164→function selectWeapon(id) {
+  1165→  if (!WEAPONS[id].owned) {
+  1166→    SFX.deny();
+  1167→    const el = document.querySelector('#weaponBar .wslot[data-w="' + id + '"]');
+  1168→    if (el) { el.classList.remove('deny'); void el.offsetWidth; el.classList.add('deny'); }
+  1169→    return;
+  1170→  }
+  1171→  if (state.weapon === id) return;
+  1172→  state.weapon = id;
+  1173→  SFX.click();
+  1174→  refreshWeaponBar();
+  1175→}
+  1176→
+  1177→/* خرید ارتقا — در ۳٫۰ وسط مبارزه هم مجاز است (پنل زنده‌ی کنار نقشه) */
+  1178→function attemptBuy(kind) {
+  1179→  if (!canPlay()) return;                  // فقط وقتی بازی جریان دارد
+  1180→  const u = UPGRADES[kind];
+  1181→
+  1182→  /* --- برجک‌های دفاعی: به حالت انتخاب محل نصب می‌رود (۴٫۰) --- */
+  1183→  if (kind === 'gatling' || kind === 'sniper' || kind === 'frost') {
+  1184→    startPlacement(kind);
+  1185→    return;
+  1186→  }
+  1187→
+  1188→  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) --- */
+  1189→  if (kind === 'shotgun' || kind === 'mg') {
+  1190→    if (WEAPONS[kind].owned) return;
+  1191→    if (state.coins < u.price) { denyBPItem(kind); return; }
+  1192→    state.coins -= u.price;
+  1193→    WEAPONS[kind].owned = true;
+  1194→    selectWeapon(kind);                    // بلافاصله دستِ کاربر می‌افتد
+  1195→    SFX.buy();
+  1196→    spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 18, '#ffd873', { speed: 170, life: 0.6, size: 2.6, grav: 300, up: true });
+  1197→    updateHUD(); refreshBuildPanel();
+  1198→    return;
+  1199→  }
+  1200→
+  1201→  /* --- تعمیر سریع --- */
+  1202→  if (kind === 'repair') {
+  1203→    if (state.tower.hp >= state.tower.maxHp - 0.5) return;
+  1204→    if (state.coins < u.price) { denyBPItem(kind); return; }
+  1205→    state.coins -= u.price;
+  1206→    const heal = Math.round(state.tower.maxHp * u.frac);
+  1207→    state.tower.hp = Math.min(state.tower.maxHp, state.tower.hp + heal);
+  1208→    addText(TOWER.x, TOWER_TOP_Y - 40, '+' + faNum(heal), '#6fce62', 16);
+  1209→    spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 14, '#6fce62', { speed: 150, life: 0.55, size: 2.5, grav: 250, up: true });
+  1210→    SFX.buy();
+  1211→    updateHUD(); refreshBuildPanel();
+  1212→    return;
+  1213→  }
+  1214→
+  1215→  /* --- ارتقاهای سطح‌دار (اسلحه/جون/تله) --- */
+  1216→  const lvl = state.upgrades[kind];
+  1217→  if (lvl >= u.max) return;
+  1218→  const price = priceOf(kind);
+  1219→  if (state.coins < price) { denyBPItem(kind); return; }
+  1220→  state.coins -= price;
+  1221→  state.upgrades[kind] = lvl + 1;
+  1222→  if (kind === 'health') {
+  1223→    /* هم حداکثر جون زیاد می‌شود هم همین الان ترمیم می‌شود */
+  1224→    state.tower.maxHp += u.bonus;
+  1225→    state.tower.hp = Math.min(state.tower.maxHp, state.tower.hp + u.bonus);
+  1226→    addText(TOWER.x, TOWER_TOP_Y - 40, '+' + faNum(u.bonus), '#6fce62', 15);
+  1227→  }
+  1228→  if (kind === 'turretUp') {
+  1229→    /* جلوه‌ی ارتقای برجک‌ها: جرقه‌ی طلایی روی همه‌ی برجک‌های نصب‌شده (۴٫۰) */
+  1230→    for (const t of state.turrets) spawnParticles(t.x, t.y - 18, 10, '#ffd873',
+  1231→      { speed: 130, life: 0.5, size: 2.2, grav: 250, up: true });
+  1232→    if (state.turrets.length) addText(TOWER.x, TOWER_TOP_Y - 40, 'برجک‌ها قوی‌تر شدند! ⬆', '#ffd873', 14);
+  1233→  }
+  1234→  if (kind === 'trap' && lvl === 0) {
+  1235→    /* نصب اول تله: جلوه بصری نصب */
+  1236→    spawnParticles(TOWER.x, GROUND_Y - 8, 16, '#ffcf6e', { speed: 150, life: 0.5, size: 2.5, grav: 300, up: true });
+  1237→    state.shake = Math.min(8, state.shake + 4);
+  1238→  }
+  1239→  SFX.buy();
+  1240→  updateHUD(); refreshBuildPanel();
+  1241→}
+  1242→
+  1243→/* آسیب فعلی تله (برای نمایش در پنل) */
+  1244→function trapDps(lvl) { return lvl <= 0 ? 0 : UPGRADES.trap.dps + UPGRADES.trap.dpsPerLvl * (lvl - 1); }
+  1245→

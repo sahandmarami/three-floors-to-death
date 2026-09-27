@@ -87,16 +87,21 @@ function updateShootingStar(dt) {
     if (shootStar.life <= 0) shootStar = null;
   } else {
     shootStarT -= dt;
-    if (shootStarT <= 0) {
+    if (shootStarT <= 0 && state.dayness < 0.4) {   // فقط شب (۵٫۰)
       shootStar = { x: rand(150, W - 100), y: rand(20, 130), vx: -rand(300, 480), vy: rand(90, 160), life: 0.8 };
       shootStarT = rand(4, 9);
     }
   }
 }
 
-/* رعدوبرق گاه‌به‌گاه (۳٫۰): فقط صحنه را روشن می‌کند؛ آسیبی ندارد */
+/* رعدوبرق گاه‌به‌گاه (۳٫۰): فقط صحنه را روشن می‌کند؛ آسیبی ندارد — فقط شب (۵٫۰) */
 function updateLightning(dt) {
   const L = state.lightning;
+  if (state.dayness > 0.35) {              // در روز رعدوبرقی نیست
+    L.a = 0;
+    L.t = rand(6, 12);
+    return;
+  }
   L.t -= dt;
   if (L.t <= 0) {
     L.a = 0.9; L.t = rand(13, 30);
@@ -108,6 +113,20 @@ function updateLightning(dt) {
 /* ---------------------- ۱۲) حلقه به‌روزرسانی ---------------------- */
 function update(dt) {
   state.time += dt;
+
+  /* ---- چرخه‌ی روز و شب (۵٫۰) ----
+     dayness با گذار نمایی به سمت dayTarget می‌لغزد (~۲ ثانیه):
+     ۰ = شب کامل (ماه/ستاره/رعد) • ۱ = روز کامل (خورشید/آسمان روشن) */
+  if (Math.abs(state.dayness - state.dayTarget) > 0.0008) {
+    state.dayness += (state.dayTarget - state.dayness) * Math.min(1, dt * 1.15);
+  }
+  /* پایان گذار به شب بعد از کلیک «شب شود»: موج بعد شروع می‌شود */
+  if (state.mode === 'day' && state.goingNight && state.dayness <= 0.08) {
+    state.goingNight = false;
+    state.dayness = 0;
+    startWave(state.wave + 1);
+  }
+
   fireTimer = Math.max(0, fireTimer - dt);
   state.shake = Math.max(0, state.shake - dt * 22);
   state.flash = Math.max(0, state.flash - dt * 2.2);
@@ -137,7 +156,8 @@ function update(dt) {
   updateAim();
   if (state.mouse.down && canPlay() && !state.placing) tryShoot();
 
-  /* شمارش معکوس بین موج‌ها */
+  /* شمارش معکوس شروع بازی (فقط قبل از موج ۱؛ بعد از هر موج به‌جای این
+     وقفه، «روز» می‌شود و بازیکن خودش شب را شروع می‌کند — ۵٫۰) */
   if (state.mode === 'intermission') {
     state.intermission -= dt;
     if (state.intermission <= 0) startWave(state.wave + 1);
@@ -281,6 +301,8 @@ function gameOver() {
   state.mouse.down = false;
   state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
   state.combo = 0;
+  state.dayTarget = 0;                      // باخت همیشه در شب رخ می‌دهد (۵٫۰)
+  hideDayPanel();                           // پنل روز بسته شود (۵٫۰)
   state.shake = 14; state.flash = 1;
   /* آوار و گردوخاک سقوط برج */
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 36, '#8a6f52', { speed: 260, life: 0.9, size: 3.5, grav: 600 });
@@ -301,6 +323,8 @@ function victory() {
   state.mouse.down = false;
   state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
   state.combo = 0;
+  state.dayTarget = 1;                      // پیروزی در روشنایی روز (۵٫۰)
+  hideDayPanel();
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 30, '#ffd873', { speed: 240, life: 1.1, size: 3, grav: 350 });
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 20, '#7bd389', { speed: 200, life: 1.0, size: 2.6, grav: 350 });
   $('vStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه: <b>' + faNum(state.stats.earned) +
@@ -328,32 +352,77 @@ function rr(x, y, w, h, r) {
   }
 }
 
-/* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها */
+/* ترکیب دو رنگ hex با ضریب t (۵٫۰: گذار نرم روز/شب) */
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const r = Math.round(((pa >> 16) & 255) + ((((pb >> 16) & 255) - ((pa >> 16) & 255)) * t));
+  const g = Math.round(((pa >> 8) & 255) + ((((pb >> 8) & 255) - ((pa >> 8) & 255)) * t));
+  const bl = Math.round((pa & 255) + ((pb & 255) - (pa & 255)) * t);
+  return 'rgb(' + r + ',' + g + ',' + bl + ')';
+}
+
+/* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها
+   (۵٫۰: با dayness به آسمان روشن روز و خورشید گذار می‌کند) */
 function drawSky() {
+  const d = state.dayness;                  // ۰ = شب کامل، ۱ = روز کامل
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
-  g.addColorStop(0, '#080e22'); g.addColorStop(0.5, '#101c3e'); g.addColorStop(1, '#1d2d58');
+  g.addColorStop(0,   mixHex('#080e22', '#6fb7e8', d));
+  g.addColorStop(0.5, mixHex('#101c3e', '#a3d4f2', d));
+  g.addColorStop(1,   mixHex('#1d2d58', '#dcecf7', d));
   ctx.fillStyle = g;
   ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
 
-  for (const s of STARS) {
-    const a = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(animTime * s.sp + s.ph));
-    ctx.fillStyle = 'rgba(215,228,255,' + a.toFixed(2) + ')';
-    circle(s.x, s.y, s.r);
+  /* ستاره‌ها فقط شب دیده می‌شوند (با طلوع محو می‌شوند) */
+  if (d < 0.98) {
+    const sf = 1 - d;
+    for (const s of STARS) {
+      const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(animTime * s.sp + s.ph))) * sf;
+      if (a < 0.02) continue;
+      ctx.fillStyle = 'rgba(215,228,255,' + a.toFixed(2) + ')';
+      circle(s.x, s.y, s.r);
+    }
   }
 
-  /* ماه */
-  const mx = 172, my = 86, mr = 34;
-  const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.7);
-  glow.addColorStop(0, 'rgba(244,238,210,0.30)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
-  ctx.fillStyle = glow; circle(mx, my, mr * 2.7);
-  ctx.fillStyle = '#f2ead0'; circle(mx, my, mr);
-  ctx.fillStyle = 'rgba(120,110,80,0.16)';
-  circle(mx - 10, my - 6, 6); circle(mx + 8, my + 9, 4.5); circle(mx + 13, my - 11, 3);
+  /* ماه شب */
+  if (d < 0.98) {
+    const mx = 172, my = 86, mr = 34;
+    ctx.globalAlpha = 1 - d;
+    const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.7);
+    glow.addColorStop(0, 'rgba(244,238,210,0.30)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
+    ctx.fillStyle = glow; circle(mx, my, mr * 2.7);
+    ctx.fillStyle = '#f2ead0'; circle(mx, my, mr);
+    ctx.fillStyle = 'rgba(120,110,80,0.16)';
+    circle(mx - 10, my - 6, 6); circle(mx + 8, my + 9, 4.5); circle(mx + 13, my - 11, 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* خورشید روز (۵٫۰): هاله‌ی گرم + پرتوهای چرخان ملایم */
+  if (d > 0.02) {
+    const sx = 790, sy = 92, sr = 30;
+    ctx.globalAlpha = d;
+    const glow = ctx.createRadialGradient(sx, sy, sr * 0.4, sx, sy, sr * 3.1);
+    glow.addColorStop(0, 'rgba(255,240,180,0.5)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = glow; circle(sx, sy, sr * 3.1);
+    ctx.fillStyle = '#ffe9a0'; circle(sx, sy, sr);
+    ctx.fillStyle = '#fff7cf'; circle(sx - sr * 0.25, sy - sr * 0.25, sr * 0.55);
+    ctx.strokeStyle = 'rgba(255,235,160,' + (0.55 * d).toFixed(2) + ')';
+    ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const a = animTime * 0.25 + k * Math.PI / 4;
+      ctx.moveTo(sx + Math.cos(a) * (sr + 8), sy + Math.sin(a) * (sr + 8));
+      ctx.lineTo(sx + Math.cos(a) * (sr + 16), sy + Math.sin(a) * (sr + 16));
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 }
 
-/* ابرهای شناور تیره (با حرکت آرام و پیوسته از راست به چپ) */
+/* ابرهای شناور (۵٫۰: شب تیره، روز سفید — با حرکت آرام پیوسته از راست به چپ) */
 function drawClouds() {
-  ctx.fillStyle = 'rgba(13,20,44,0.85)';
+  const d = state.dayness;
+  const rC = Math.round(13 + 237 * d), gC = Math.round(20 + 232 * d), bC = Math.round(44 + 211 * d);
+  ctx.fillStyle = 'rgba(' + rC + ',' + gC + ',' + bC + ',0.8)';
   for (const c of CLOUDS) {
     const m = W + 300;
     const x = (((c.x - animTime * c.v) % m) + m) % m - 150;
@@ -366,26 +435,33 @@ function drawClouds() {
   }
 }
 
-/* افق شهر در دوردست: آسمان‌خراش‌های سیاه‌شکلی با پنجره‌های روشن */
+/* افق شهر در دوردست (۵٫۰: شب سیاه‌شکلی با پنجره‌های روشن؛ روز خاکستری روشن) */
 function drawSkyline() {
-  ctx.fillStyle = '#0b1226';
+  const d = state.dayness;
+  ctx.fillStyle = mixHex('#0b1226', '#6a7d96', d);
   for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
   /* لبه‌ی روشن‌ترِ پشت‌بام‌ها برای جدا شدن از آسمان */
-  ctx.fillStyle = '#141d3d';
+  ctx.fillStyle = mixHex('#141d3d', '#8fa2b8', d);
   for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, 2.5);
-  for (const w2 of SKYLINE_WINS) {
-    ctx.fillStyle = w2.c;
-    ctx.fillRect(w2.x, w2.y, 2.5, 3.5);
+  /* پنجره‌ها فقط شب روشن‌اند (روز همه سرِ کارند!) */
+  if (d < 0.95) {
+    ctx.globalAlpha = 1 - d;
+    for (const w2 of SKYLINE_WINS) {
+      ctx.fillStyle = w2.c;
+      ctx.fillRect(w2.x, w2.y, 2.5, 3.5);
+    }
+    ctx.globalAlpha = 1;
   }
 }
 
-/* تپه‌های دوردست در دو لایه برای عمق + زمین و جاده خاکی */
+/* تپه‌های دوردست در دو لایه برای عمق + زمین و جاده خاکی (۵٫۰: رنگ روز) */
 function drawHills() {
-  ctx.fillStyle = '#13203f'; drawHillRow(HILLS1);
-  ctx.fillStyle = '#0d1731'; drawHillRow(HILLS2);
+  const d = state.dayness;
+  ctx.fillStyle = mixHex('#13203f', '#8fae6e', d); drawHillRow(HILLS1);
+  ctx.fillStyle = mixHex('#0d1731', '#7a9a5e', d); drawHillRow(HILLS2);
 
-  ctx.fillStyle = '#151d0e'; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
-  ctx.fillStyle = '#2c261d'; ctx.fillRect(-20, GROUND_Y, W + 40, 18);
+  ctx.fillStyle = mixHex('#151d0e', '#4f6b35', d); ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+  ctx.fillStyle = mixHex('#2c261d', '#6e5f45', d); ctx.fillRect(-20, GROUND_Y, W + 40, 18);
   ctx.strokeStyle = 'rgba(96,84,60,0.8)'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(-20, GROUND_Y); ctx.lineTo(W + 20, GROUND_Y); ctx.stroke();
   ctx.fillStyle = 'rgba(120,105,80,0.35)';
@@ -399,14 +475,16 @@ function drawHillRow(pts) {
   ctx.closePath(); ctx.fill();
 }
 
-/* برکه‌های کوچک با بازتاب ماه (۳٫۰) */
+/* برکه‌های کوچک (۳٫۰): شب بازتاب ماه؛ روز آسمان آبی را برمی‌گردانند (۵٫۰) */
 function drawPuddles() {
+  const d = state.dayness;
   for (const p of PUDDLES) {
     const sh = 0.5 + 0.5 * Math.sin(animTime * 1.3 + p.x);
-    ctx.fillStyle = 'rgba(120,150,205,0.10)';
+    ctx.fillStyle = d > 0.5 ? 'rgba(140,190,235,0.16)' : 'rgba(120,150,205,0.10)';
     ctx.beginPath(); ctx.ellipse(p.x, GROUND_Y + 8, p.w / 2, 5, 0, 0, Math.PI * 2); ctx.fill();
-    /* رد بازتاب عمودی نور ماه روی آب */
-    ctx.fillStyle = 'rgba(200,220,255,' + (0.05 + sh * 0.05).toFixed(2) + ')';
+    /* رد بازتاب عمودی: شب نور ماه، روز آسمان روشن */
+    const refA = (1 - d) * (0.05 + sh * 0.05) + d * 0.07;
+    ctx.fillStyle = d > 0.5 ? 'rgba(190,225,255,' + refA.toFixed(2) + ')' : 'rgba(200,220,255,' + refA.toFixed(2) + ')';
     ctx.fillRect(p.x - 1.2, GROUND_Y + 3, 2.4, 9);
   }
 }
@@ -440,7 +518,7 @@ function drawDecals() {
 /* رعدوبرق: آسمان و زمین لحظه‌ای روشن می‌شوند (۳٫۰) */
 function drawLightning() {
   const a = state.lightning.a;
-  if (a <= 0.02) return;
+  if (a <= 0.02 || state.dayness > 0.5) return;   // فقط شب (۵٫۰)
   const flick = 0.55 + 0.45 * Math.abs(Math.sin(animTime * 55));
   const k = a * flick;
   ctx.fillStyle = 'rgba(205,225,255,' + (0.30 * k).toFixed(2) + ')';
@@ -476,14 +554,16 @@ function drawTree(x, s) {
   ctx.restore();
 }
 
-/* تیرهای چراغ با مخروط نور چشمک‌زن (۳٫۰) */
+/* تیرهای چراغ با مخروط نور چشمک‌زن (۳٫۰) — در روز کم‌نور (۵٫۰) */
 const LAMPS = [236, 724];
 function drawLamps() {
+  const dim = 1 - state.dayness * 0.9;      // چراغ‌ها در روز تقریباً خاموش‌اند
   for (const lx of LAMPS) {
     /* سوسوی ملایم + چشمکِ گاه‌به‌گاه */
     let fl = 0.8 + 0.2 * Math.sin(animTime * 9 + lx) * Math.sin(animTime * 3.7 + lx * 2);
     if (Math.random() < 0.012) fl = 0.3;
-    ctx.strokeStyle = '#151d33'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    fl *= dim;
+    ctx.strokeStyle = mixHex('#151d33', '#3a4457', state.dayness); ctx.lineWidth = 4; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(lx, GROUND_Y + 2); ctx.lineTo(lx, GROUND_Y - 58); ctx.stroke();
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(lx, GROUND_Y - 58); ctx.lineTo(lx + 10, GROUND_Y - 58); ctx.stroke();
@@ -517,12 +597,14 @@ function drawMuzzleGlow() {
   ctx.fillStyle = g; circle(m.x, m.y, 85);
 }
 
-/* کرم‌های شب‌تاب (۳٫۰) */
+/* کرم‌های شب‌تاب (۳٫۰) — فقط شب (۵٫۰) */
 function drawFireflies() {
+  const nf = 1 - state.dayness;             // با طلوع محو می‌شوند
+  if (nf < 0.1) return;
   for (const f of FIREFLIES) {
     const x = f.cx + Math.sin(animTime * f.sp + f.ph) * f.rx;
     const y = f.cy + Math.sin(animTime * f.sp * 1.7 + f.ph * 2) * f.ry;
-    const a = 0.18 + 0.5 * (0.5 + 0.5 * Math.sin(animTime * 2.2 + f.ph * 3));
+    const a = (0.18 + 0.5 * (0.5 + 0.5 * Math.sin(animTime * 2.2 + f.ph * 3))) * nf;
     ctx.fillStyle = 'rgba(205,245,150,' + (a * 0.25).toFixed(2) + ')';
     circle(x, y, 3.4);
     ctx.fillStyle = 'rgba(230,255,190,' + a.toFixed(2) + ')';
