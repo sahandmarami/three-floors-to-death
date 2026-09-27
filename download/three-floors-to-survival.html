@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — بازی دفاع از برج سه‌طبقه در برابر موج‌های زامبی (نسخه پایه ۱.۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ ۳ سلاح، ۴ نوع دشمن، فروشگاه ارتقا، صدا و موسیقی (نسخه‌ی کامل ۲٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — استایل‌های صفحه
-   صفحه راست‌به‌چپ (فارسی) است؛ همه متن‌های رابط کاربری فارسی‌اند.
-   بخش‌ها: ۱) ریست و قاب کلی  ۲) HUD بالای صفحه  ۳) اعلان مرکزی
-            ۴) اورلی‌ها و پنل‌ها  ۵) منوی ساخت‌وساز
+   سه طبقه تا بقا — نسخه‌ی کامل ۲٫۰ — استایل‌های صفحه
+   صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
+   بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه   ۳) نوار باس و اعلان
+            ۴) نوار سلاح پایین   ۵) اورلی‌ها و پنل‌ها  ۶) منوی اصلی (قهرمان)
+            ۷) راهنمای بازی       ۸) منوی ساخت‌وساز
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -49,14 +50,42 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes attentionPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,216,115,.55)}50%{box-shadow:0 0 0 9px rgba(255,216,115,0)}}
 .hud-btn.attention{animation:attentionPulse 1.2s infinite;border-color:#ffd873;color:#ffd873}
 
-/* ---------- ۳) اعلان مرکزی (موج بعدی / شروع موج) ---------- */
-#announce{position:absolute;top:29%;left:0;right:0;text-align:center;pointer-events:none;z-index:4;
+/* ---------- ۳) نوار جون باس + اعلان مرکزی ---------- */
+#bossBar{position:absolute;top:50px;left:50%;transform:translateX(-50%);width:310px;z-index:5;
+  display:none;text-align:center;pointer-events:none}
+#bossBar .bname{font-size:12px;color:#ffb3ab;font-weight:bold;text-shadow:0 1px 4px #000,0 0 12px rgba(232,86,63,.5)}
+#bossBar .btrack{height:11px;background:#160c0c;border:1px solid #5e2a2a;border-radius:6px;overflow:hidden;margin-top:3px}
+#bossBar .bfill{height:100%;width:100%;transition:width .15s linear;
+  background:linear-gradient(90deg,#a12a20,#e8563f)}
+
+#announce{position:absolute;top:26%;left:0;right:0;text-align:center;pointer-events:none;z-index:4;
   opacity:0;transition:opacity .25s ease}
 #announce .big{font-size:36px;font-weight:bold;color:#ffd873;
   text-shadow:0 3px 14px rgba(0,0,0,.85),0 0 34px rgba(255,190,60,.3)}
 #announce .sub{font-size:15px;color:#cdd8f2;margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
 
-/* ---------- ۴) اورلی‌ها و پنل‌ها ---------- */
+/* ---------- ۴) نوار سلاح پایین صفحه ---------- */
+#weaponBar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
+.wslot{position:relative;width:92px;height:60px;background:rgba(8,14,32,.78);border:2px solid #26355c;
+  border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;pointer-events:auto;transition:border-color .15s,transform .15s,box-shadow .15s}
+.wslot:hover{border-color:#3d548c;transform:translateY(-2px)}
+.wslot.active{border-color:#ffd873;box-shadow:0 0 16px rgba(255,216,115,.35)}
+.wslot .wkey{position:absolute;top:3px;right:5px;font-size:10px;font-weight:bold;background:#1a2546;
+  border:1px solid #33477c;border-radius:5px;padding:0 6px;color:#8fa3cf}
+.wslot .wicon{font-size:21px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.wslot .wname{font-size:11px;font-weight:bold;color:#c3cdea}
+/* حالت قفل: پوشش تیره + قفل + قیمت */
+.wslot .wlockinfo{position:absolute;inset:0;background:rgba(5,8,20,.66);border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.wslot .wlockinfo .lock{font-size:15px}
+.wslot .wlockinfo .wprice{font-size:10.5px;font-weight:bold;color:#ffd873}
+.wslot.locked .wicon,.wslot.locked .wname{filter:grayscale(.55) brightness(.65)}
+/* لرزش اسلات موقع انتخابِ سلاحِ قفل */
+@keyframes slotDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.wslot.deny{animation:slotDeny .3s;border-color:#e04b3a}
+
+/* ---------- ۵) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
   background:rgba(4,7,18,.72);backdrop-filter:blur(5px)}
 .hidden{display:none!important}
@@ -80,8 +109,45 @@ body{display:flex;align-items:center;justify-content:center}
 .hint{color:#6d7ea6;font-size:11.5px;margin-top:14px}
 .stat-line{color:#9fb0d8;font-size:13px;margin-top:4px}
 .stat-line b{color:#e8ecf5}
+.icon-btn{cursor:pointer;font-family:inherit;font-size:17px;width:46px;height:46px;border-radius:12px;
+  background:#1a2546;border:1px solid #33477c;color:#e8ecf5;transition:background .15s,transform .15s}
+.icon-btn:hover{background:#26365e;transform:translateY(-1px)}
 
-/* ---------- ۵) منوی ساخت‌وساز ---------- */
+/* ---------- ۶) منوی اصلی: قهرمان روی صحنه‌ی زنده‌ی بازی ---------- */
+/* پس‌زمینه‌ی اورلی شفاف است تا صحنه‌ی متحرکِ بوم (برج، نگهبان، زامبی‌های خزنده، ماه، ابرها) دیده شود.
+   محتوای منو در بالای صفحه می‌نشیند تا برج و زمینِ صحنه آزاد بمانند. */
+#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.62),rgba(4,7,18,.28) 30%,rgba(4,7,18,.04) 58%,rgba(4,7,18,.3) 100%);
+  backdrop-filter:none;pointer-events:none;align-items:flex-start}
+#menuHero{pointer-events:none;text-align:center;max-width:640px;padding:26px 18px 0}
+#menuHero button{pointer-events:auto}
+.title-row{display:flex;align-items:center;justify-content:center;gap:16px}
+.t-emoji{font-size:33px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.6));animation:emojiBob 2.8s ease-in-out infinite}
+.t-emoji:last-child{animation-delay:1.4s}
+@keyframes emojiBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.game-title{font-size:50px;font-weight:900;margin:0;letter-spacing:.5px;color:#ffd873;
+  background:linear-gradient(180deg,#fff8dc 5%,#ffd873 45%,#e8961e 95%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 4px 16px rgba(255,180,60,.5));animation:titleFloat 3.4s ease-in-out infinite}
+@keyframes titleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.tagline{color:#c9d6f0;font-size:15px;margin-top:8px;text-shadow:0 2px 8px rgba(0,0,0,.85)}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0 18px}
+.chip{background:rgba(10,16,38,.72);border:1px solid #2c3f70;border-radius:999px;padding:6px 14px;
+  font-size:12.5px;font-weight:bold;color:#c3cdea;backdrop-filter:blur(3px)}
+.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:4px}
+.btn-big{font-size:20px;padding:15px 52px}
+.ver{margin-top:14px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+
+/* ---------- ۷) راهنمای بازی ---------- */
+.howto-panel{max-width:620px;text-align:center}
+.sec-t{color:#ffd873;font-size:16px;margin:14px 0 8px;text-align:right}
+.foes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 4px}
+.foe{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.04);border:1px solid #26355c;
+  border-radius:10px;padding:8px 12px;font-size:12.5px;text-align:right}
+.foe .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex-shrink:0;box-shadow:0 0 9px var(--c)}
+.foe b{color:#e8ecf5;font-size:12.5px}
+.foe i{color:#8fa3cf;font-style:normal;font-size:11px;display:block;margin-top:1px}
+
+/* ---------- ۸) منوی ساخت‌وساز (فروشگاه ۶ کارتی) ---------- */
 .shop-coins{color:#ffd873;font-weight:bold;font-size:15px;margin:6px 0 2px}
 .shop-cards{display:flex;flex-direction:column;gap:10px;margin:14px 0 4px;text-align:right}
 .card{display:flex;align-items:center;gap:12px;background:#101a36;border:1px solid #2c3f70;
@@ -121,36 +187,88 @@ body{display:flex;align-items:center;justify-content:center}
     <div class="hud-group">
       <button class="hud-btn" id="btnShop">🛠 ساخت‌وساز</button>
       <button class="hud-btn" id="btnPause">⏸ توقف</button>
+      <button class="hud-btn" id="btnMute" title="قطع/وصل صدا (M)">🔊</button>
     </div>
   </div>
 
-  <!-- ============ اعلان مرکزی (موج بعدی / آغاز موج) ============ -->
+  <!-- ============ نوار جون باس (فقط موقع حضور پادشاه زامبی‌ها) ============ -->
+  <div id="bossBar">
+    <div class="bname">👑 پادشاه زامبی‌ها</div>
+    <div class="btrack"><div class="bfill" id="bossFill"></div></div>
+  </div>
+
+  <!-- ============ اعلان مرکزی (موج بعدی / آغاز موج / ورود باس) ============ -->
   <div id="announce">
     <div class="big" id="announceBig"></div>
     <div class="sub" id="announceSub"></div>
   </div>
 
-  <!-- ============ صفحه شروع ============ -->
-  <div class="overlay" id="startScreen">
-    <div class="panel">
-      <h1>🏰 سه طبقه تا بقا 🧟</h1>
-      <p class="subtitle">از برج سه‌طبقه‌ات در برابر ۱۰ موج زامبی دفاع کن!</p>
-      <div class="howto">
-        <div>🖱 با کلیک (یا نگه‌داشتن) ماوس روی زامبی‌ها شلیک کن</div>
-        <div>🧟 نذار زامبی‌ها به برج برسن و جونش تموم شه</div>
-        <div>💰 سکه‌های زامبی‌های کشته‌شده رو جمع کن</div>
-        <div>🛠 بین موج‌ها اسلحه، جون برج یا تله پایه برج بخری</div>
-      </div>
-      <button class="btn-main" id="btnStart">🎮 شروع بازی</button>
-      <p class="hint">کلیدها: P یا Esc = توقف / ادامه</p>
+  <!-- ============ نوار سلاح پایین صفحه (کلیدهای ۱/۲/۳) ============ -->
+  <div id="weaponBar">
+    <div class="wslot active" data-w="pistol" title="تپانچه">
+      <div class="wkey">۱</div><div class="wicon">🔫</div><div class="wname">تپانچه</div>
+      <div class="wlockinfo" style="display:none"><span class="lock">🔒</span></div>
+    </div>
+    <div class="wslot locked" data-w="shotgun" title="شاتگان — از فروشگاه بخرش">
+      <div class="wkey">۲</div><div class="wicon">💥</div><div class="wname">شاتگان</div>
+      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۲۲۰</span></div>
+    </div>
+    <div class="wslot locked" data-w="mg" title="مسلسل — از فروشگاه بخرش">
+      <div class="wkey">۳</div><div class="wicon">🌪</div><div class="wname">مسلسل</div>
+      <div class="wlockinfo"><span class="lock">🔒</span><span class="wprice">۴۸۰</span></div>
     </div>
   </div>
 
-  <!-- ============ منوی ساخت‌وساز (فروشگاه ارتقا) ============ -->
+  <!-- ============ منوی اصلی: قهرمان روی صحنه‌ی زنده ============ -->
+  <div class="overlay" id="startScreen">
+    <div id="menuHero">
+      <div class="title-row"><span class="t-emoji">🏰</span><h1 class="game-title">سه طبقه تا بقا</h1><span class="t-emoji">🧟</span></div>
+      <p class="tagline">از آخرین پناهگاهت در برابر ۱۰ موج زامبی دفاع کن — تا آخرین گلوله!</p>
+      <div class="chips">
+        <span class="chip">🌊 ۱۰ موج</span>
+        <span class="chip">🧟 ۴ نوع دشمن</span>
+        <span class="chip">🔫 ۳ سلاح</span>
+        <span class="chip">🛠 فروشگاه و ارتقا</span>
+        <span class="chip">🔊 صدا و موسیقی</span>
+      </div>
+      <div class="menu-btns">
+        <button class="btn-main btn-big" id="btnStart">🎮 شروع بازی</button>
+        <button class="btn-sec" id="btnHowto">📖 راهنما</button>
+        <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
+      </div>
+      <p class="ver">نسخه‌ی کامل ۲٫۰ — همه‌ی گرافیک و صداها همین‌جا و درون همین یک فایل ساخته می‌شوند</p>
+    </div>
+  </div>
+
+  <!-- ============ راهنمای بازی ============ -->
+  <div class="overlay hidden" id="howtoScreen">
+    <div class="panel howto-panel">
+      <h2>📖 راهنمای بازی</h2>
+      <p class="subtitle">سی ثانیه بخوان؛ ده موج زنده بمون!</p>
+      <div class="howto">
+        <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک به سمت اشاره‌گر از بالای برج</div>
+        <div>⌨ <b>کلیدهای ۱ / ۲ / ۳:</b> تعویض سلاح (شاتگان و مسلسل را اول از فروشگاه بخر)</div>
+        <div>⌨ <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> قطع/وصل صدا</div>
+        <div>💰 بین موج‌ها فروشگاه باز می‌شود؛ سکه‌های زامبی‌ها را جمع کن و ارتقا بخر</div>
+        <div>⚡ تله‌ی پنجه‌ای پای برج، خودش زامبی‌های نزدیک را می‌کوبد</div>
+        <div>❤️ اگر زامبی‌ها به برج برسند جونش کم می‌شود؛ جون صفر یعنی باخت!</div>
+      </div>
+      <h3 class="sec-t">🧟 دشمن‌ها</h3>
+      <div class="foes">
+        <div class="foe"><span class="dot" style="--c:#7fa657"></span><span><b>معمولی</b><i>آهسته ولی تعدادش زیاد است</i></span></div>
+        <div class="foe"><span class="dot" style="--c:#c9a35a"></span><span><b>سریع</b><i>کم‌جون اما تیز می‌دود</i></span></div>
+        <div class="foe"><span class="dot" style="--c:#8a8794"></span><span><b>تانک</b><i>زره‌پوش و کاسه‌ی سخت</i></span></div>
+        <div class="foe"><span class="dot" style="--c:#9c3546"></span><span><b>پادشاه 👑</b><i>موج ۱۰ — نابودش کن!</i></span></div>
+      </div>
+      <div class="btn-row"><button class="btn-sec" id="closeHowto">برگرد به منو</button></div>
+    </div>
+  </div>
+
+  <!-- ============ منوی ساخت‌وساز (فروشگاه ۶ کارتی) ============ -->
   <div class="overlay hidden" id="shopScreen">
     <div class="panel">
       <h2>🛠 منوی ساخت‌وساز</h2>
-      <p class="subtitle">با سکه‌هات برج رو قوی‌تر کن</p>
+      <p class="subtitle">با سکه‌هات برج و زرنگی‌ت رو قوی‌تر کن</p>
       <div class="shop-coins">💰 سکه‌های تو: <span id="shopCoins">۰</span></div>
       <div class="shop-cards">
         <div class="card">
@@ -158,18 +276,44 @@ body{display:flex;align-items:center;justify-content:center}
           <div class="card-body">
             <h3>ارتقای اسلحه</h3>
             <p id="weaponDesc">قدرت گلوله: ۱</p>
-            <p class="lvl" id="weaponLvl">سطح ۰ از ۵</p>
+            <p class="lvl" id="weaponLvl">سطح ۰ از ۸</p>
           </div>
           <button class="buy-btn" id="buyWeapon">خرید — ۲۵ 💰</button>
+        </div>
+        <div class="card">
+          <div class="card-icon">💥</div>
+          <div class="card-body">
+            <h3>سلاح: شاتگان</h3>
+            <p id="shotgunDesc">۶ ساچمه با پراکندگی کشنده</p>
+            <p class="lvl" id="shotgunLvl">قفل — کلید ۲</p>
+          </div>
+          <button class="buy-btn" id="buyShotgun">خرید — ۲۲۰ 💰</button>
+        </div>
+        <div class="card">
+          <div class="card-icon">🌪</div>
+          <div class="card-body">
+            <h3>سلاح: مسلسل</h3>
+            <p id="mgDesc">نگه‌دار و ببار؛ نرخ شلیک خیلی بالا</p>
+            <p class="lvl" id="mgLvl">قفل — کلید ۳</p>
+          </div>
+          <button class="buy-btn" id="buyMg">خرید — ۴۸۰ 💰</button>
         </div>
         <div class="card">
           <div class="card-icon">🧱</div>
           <div class="card-body">
             <h3>افزایش جون برج</h3>
             <p id="healthDesc">حداکثر جون: ۱۰۰</p>
-            <p class="lvl" id="healthLvl">سطح ۰ از ۶</p>
+            <p class="lvl" id="healthLvl">سطح ۰ از ۸</p>
           </div>
           <button class="buy-btn" id="buyHealth">خرید — ۲۰ 💰</button>
+        </div>
+        <div class="card">
+          <div class="card-icon">🧰</div>
+          <div class="card-body">
+            <h3>تعمیر سریع برج</h3>
+            <p id="repairDesc">۵۰٪ جون برج را برمی‌گرداند</p>
+          </div>
+          <button class="buy-btn" id="buyRepair">خرید — ۵۰ 💰</button>
         </div>
         <div class="card">
           <div class="card-icon">⚡</div>
@@ -193,6 +337,7 @@ body{display:flex;align-items:center;justify-content:center}
       <div class="btn-row">
         <button class="btn-main" id="btnResume">▶ ادامه بازی</button>
         <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
+        <button class="btn-sec" id="btnMute2">🔊 صدا روشن</button>
       </div>
     </div>
   </div>
@@ -211,7 +356,7 @@ body{display:flex;align-items:center;justify-content:center}
   <div class="overlay hidden" id="victoryScreen">
     <div class="panel">
       <h1>🏆 پیروزی!</h1>
-      <p class="subtitle">همه‌ی ۱۰ موج رو پاک‌سازی کردی؛ برج هنوز سرپاست!</p>
+      <p class="subtitle">همه‌ی ۱۰ موج رو پاک‌سازی کردی؛ حتی پادشاه زامبی‌ها!</p>
       <p class="stat-line" id="vStats"></p>
       <div class="btn-row"><button class="btn-main" id="btnRestart2">🔄 بازی دوباره</button></div>
     </div>
@@ -221,12 +366,13 @@ body{display:flex;align-items:center;justify-content:center}
 <script>
 'use strict';
 /* ==================================================================
-   سه طبقه تا بقا — منطق بازی (بخش ۱)
+   سه طبقه تا بقا — نسخه‌ی کامل ۲٫۰ — منطق بازی (بخش ۱)
    ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
-     ۱) ثابت‌ها و تنظیمات    ۲) ابزارهای کمکی    ۳) وضعیت بازی
-     ۴) ورودی (ماوس/کیبورد)  ۵) جریان موج‌ها      ۶) شلیک و گلوله
-     ۷) زامبی‌ها و آسیب برج   ۸) سکه‌ها            ۹) اقتصاد و ارتقاها
-    (رسم و رابط کاربری در بخش ۲ ادامه دارد)
+     ۱) ثابت‌ها و تنظیمات      ۲) ابزارهای کمکی
+     ۳) موتور صدا (Web Audio)  ۴) وضعیت بازی
+     ۵) ورودی (ماوس/کیبورد)    ۶) جریان موج‌ها و تولید زامبی
+     ۷) شلیک و سلاح‌ها          ۸) زامبی‌ها و آسیب برج
+     ۹) سکه‌ها                  ۱۰) اقتصاد و ارتقاها (فروشگاه)
    ================================================================== */
 
 /* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
@@ -239,28 +385,52 @@ const TOTAL_WAVES = 10;                    // تعداد کل موج‌ها
 const INTERMISSION_TIME = 5;               // ثانیه وقفه بین موج‌ها
 const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه‌تر قبل از موج اول
 
-/* تنظیمات زامبی: با هر موج تعداد/سرعت/جون بیشتر می‌شود */
-const ZOMBIE_CFG = {
-  baseSpeed: 26, speedPerWave: 7,          // سرعت پایه + رشد هر موج
-  baseHp: 2, hpPerWave: 1,                 // جون پایه + رشد هر موج
-  damage: 5,                               // آسیب هر گاز به برج
-  biteInterval: 1,                         // فاصله زمانی بین گازها (ثانیه)
-  radius: 15,                              // شعاع برخورد گلوله/تله
+/* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
+   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰ */
+const ZTYPES = {
+  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [2, 3],
+            skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
+  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [1, 2],
+            skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
+  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [5, 7],
+            skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
+  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [26, 32],
+            skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
-/* تنظیمات بازیکن و شلیک */
-const PLAYER_CFG = {
-  fireCooldown: 0.18,                      // حداقل فاصله بین شلیک‌ها (ثانیه)
-  bulletSpeed: 720,                        // سرعت گلوله
-  baseDamage: 1,                           // آسیب پایه گلوله (با ارتقا اسلحه زیاد می‌شود)
+/* ترکیب موج‌ها: n=معمولی، f=سریع، t=تانک، b=پادشاه — با هر موج فشار بیشتر می‌شود */
+const WAVES = [
+  { n: 6,  f: 0,  t: 0, b: 0 },
+  { n: 9,  f: 0,  t: 0, b: 0 },
+  { n: 10, f: 3,  t: 0, b: 0 },
+  { n: 12, f: 5,  t: 1, b: 0 },
+  { n: 14, f: 7,  t: 2, b: 0 },
+  { n: 16, f: 9,  t: 3, b: 0 },
+  { n: 19, f: 11, t: 4, b: 0 },
+  { n: 22, f: 13, t: 5, b: 0 },
+  { n: 26, f: 16, t: 6, b: 0 },
+  { n: 16, f: 10, t: 7, b: 1 },
+];
+
+/* سه سلاح: تپانچه (پایه) | شاتگان (۶ ساچمه) | مسلسل (شلیک خودکار با نگه‌داشتن) */
+const WEAPONS = {
+  pistol:  { name: 'تپانچه', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
+             price: 0,   owned: true,  barrel: 18, flash: 5, sfx: 'shootP' },
+  shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
+             price: 220, owned: false, barrel: 22, flash: 9, sfx: 'shootS' },
+  mg:      { name: 'مسلسل', dmg: 2, rate: 0.12, spd: 760, pellets: 1, spread: 0.055, ttl: 2,
+             price: 480, owned: false, barrel: 24, flash: 6, sfx: 'shootM' },
 };
 
-/* تنظیمات فروشگاه: قیمت‌ها تصاعدی هستند (growth^سطح) */
+/* تنظیمات فروشگاه: قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
 const UPGRADES = {
-  weapon: { name: 'ارتقای اسلحه',   base: 25, growth: 1.75, max: 5 },
-  health: { name: 'افزایش جون برج', base: 20, growth: 1.6,  max: 6, bonus: 25 },
-  trap:   { name: 'نصب تله پایه برج', base: 35, growth: 1.8, max: 5,
-            dps: 10, dpsPerLvl: 8, radius: 95 }, // آسیب در ثانیه و شعاع مؤثر تله
+  weapon:  { name: 'ارتقای اسلحه',     base: 25, growth: 1.75, max: 8 },
+  health:  { name: 'افزایش جون برج',   base: 20, growth: 1.6,  max: 8, bonus: 30 },
+  trap:    { name: 'نصب تله پایه برج', base: 35, growth: 1.8,  max: 5,
+             dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
+  shotgun: { price: 220 },                          // خرید یک‌باره
+  mg:      { price: 480 },                          // خرید یک‌باره
+  repair:  { price: 50, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
 };
 
 /* ---------------------- ۲) ابزارهای کمکی ---------------------- */
@@ -273,11 +443,11 @@ function faNum(n) { return String(n).replace(/\d/g, d => FA_DIGITS[d]); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function rand(a, b) { return a + Math.random() * (b - a); }
 
-/* عدد تصادفیِ «Seed دار» — برای تولید ستاره/تپه‌های ثابت (تا در هر فریم عوض نشوند) */
+/* عدد تصادفیِ «Seed دار» — برای تولید ستاره/تپه/ساختمان‌های ثابت (تا در هر فریم عوض نشوند) */
 let _seed = 1379;
 function srand() { _seed = (_seed * 16807) % 2147483647; return (_seed - 1) / 2147483646; }
 
-/* عناصر ثابت صحنه: ستاره‌ها، تپه‌ها و سنگ‌ریزه‌های جاده یک بار ساخته می‌شوند */
+/* عناصر ثابت صحنه: ستاره‌ها، تپه‌ها، سنگ‌ریزه‌ها، ابرها و افق شهر یک بار ساخته می‌شوند */
 const STARS = Array.from({ length: 80 }, () => ({
   x: srand() * W, y: srand() * (GROUND_Y - 90), r: 0.6 + srand() * 1.4,
   ph: srand() * 6.28, sp: 0.5 + srand() * 1.6,
@@ -285,37 +455,207 @@ const STARS = Array.from({ length: 80 }, () => ({
 const HILLS1 = Array.from({ length: 18 }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
 const HILLS2 = Array.from({ length: 13 }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
 const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
+/* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس) */
+const CLOUDS = [
+  { x: 140, y: 58,  s: 1.15, v: 6 },
+  { x: 520, y: 96,  s: 0.8,  v: 9 },
+  { x: 830, y: 44,  s: 1.35, v: 5 },
+];
+/* افق شهر در دوردست: ساختمان‌های سیاه‌شکلی با پنجره‌های روشن (پیش‌محاسبه‌شده) */
+const SKYLINE = [];
+const SKYLINE_WINS = [];
+{
+  let x = -12, i = 0;
+  while (x < W + 12) {
+    const bw = 34 + srand() * 52, bh = 26 + srand() * 95;
+    SKYLINE.push({ x, w: bw, h: bh });
+    /* پنجره‌های روشنِ همین ساختمان */
+    const cols = Math.floor((bw - 8) / 9), rows = Math.floor((bh - 10) / 13);
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+      if (srand() > 0.72) {
+        SKYLINE_WINS.push({
+          x: x + 5 + c * 9, y: GROUND_Y - bh + 6 + r * 13,
+          c: srand() > 0.82 ? 'rgba(127,179,255,0.8)' : 'rgba(255,214,122,0.75)',
+        });
+      }
+    }
+    x += bw + 8; i++;
+  }
+}
 
-/* ---------------------- ۳) وضعیت بازی ---------------------- */
+/* ---------------------- ۳) موتور صدا (Web Audio) ---------------------- */
+/* همه‌ی صداها همین‌جا سینتز می‌شوند — هیچ فایل صوتی خارجی وجود ندارد.
+   AudioContext فقط بعد از اولین تعامل کاربر ساخته می‌شود (سیاست مرورگرها). */
+const Snd = {
+  ctx: null, master: null, noiseBuf: null, muted: false, ready: false,
+
+  init() {
+    if (this.ready) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : 0.5;
+      this.master.connect(this.ctx.destination);
+      /* بافر نویز سفید یک‌ثانیه‌ای (برای شلیک/برخورد/باد) */
+      this.noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+      const d = this.noiseBuf.getChannelData(0);
+      for (let j = 0; j < d.length; j++) d[j] = Math.random() * 2 - 1;
+      this.ready = true;
+      this.startAmbient();
+    } catch (e) { /* مرورگر بدون صدا */ }
+  },
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.master) this.master.gain.value = this.muted ? 0 : 0.5;
+    return this.muted;
+  },
+
+  /* یک نُت: {type,f0,f1,dur,vol,att,delay} */
+  tone(o) {
+    if (!this.ready || this.muted) return;
+    try {
+      const t0 = this.ctx.currentTime + (o.delay || 0);
+      const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+      osc.type = o.type || 'sine';
+      osc.frequency.setValueAtTime(Math.max(1, o.f0), t0);
+      if (o.f1) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), t0 + o.dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(o.vol, t0 + (o.att || 0.008));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+      osc.connect(g); g.connect(this.master);
+      osc.start(t0); osc.stop(t0 + o.dur + 0.05);
+    } catch (e) {}
+  },
+  /* نویز فیلترشده: {dur,vol,ftype,freq,q,att,delay} */
+  noise(o) {
+    if (!this.ready || this.muted) return;
+    try {
+      const t0 = this.ctx.currentTime + (o.delay || 0);
+      const src = this.ctx.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+      const f = this.ctx.createBiquadFilter();
+      f.type = o.ftype || 'lowpass'; f.frequency.value = o.freq || 1000; f.Q.value = o.q || 0.8;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(o.vol, t0 + (o.att || 0.005));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+      src.connect(f); f.connect(g); g.connect(this.master);
+      src.start(t0); src.stop(t0 + o.dur + 0.05);
+    } catch (e) {}
+  },
+
+  /* موسیقی محیطیِ شب: درونِ بم + باد + نُت‌های پراکنده‌ی دل‌انگیز */
+  startAmbient() {
+    try {
+      const dg = this.ctx.createGain(); dg.gain.value = 0.045; dg.connect(this.master);
+      const o1 = this.ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = 55;
+      const o2 = this.ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 110;
+      const lfo = this.ctx.createOscillator(); lfo.frequency.value = 0.09;
+      const lg = this.ctx.createGain(); lg.gain.value = 0.02;
+      lfo.connect(lg); lg.connect(dg.gain);
+      o1.connect(dg); o2.connect(dg);
+      o1.start(); o2.start(); lfo.start();
+      /* صدای باد (نویز لوپِ بسیار بم) */
+      const wind = this.ctx.createBufferSource(); wind.buffer = this.noiseBuf; wind.loop = true;
+      const wf = this.ctx.createBiquadFilter(); wf.type = 'lowpass'; wf.frequency.value = 260;
+      const wg = this.ctx.createGain(); wg.gain.value = 0.02;
+      wind.connect(wf); wf.connect(wg); wg.connect(this.master); wind.start();
+      this.pluck();
+    } catch (e) {}
+  },
+  pluck() {
+    if (!this.ready) return;
+    const notes = [220, 246.9, 261.6, 329.6, 392];
+    const f = notes[Math.floor(rand(0, notes.length))];
+    this.tone({ type: 'sine', f0: f, dur: 2.4, vol: 0.05, att: 0.5 });
+    this.tone({ type: 'sine', f0: f * 1.5, dur: 2.8, vol: 0.028, att: 0.7, delay: 0.03 });
+    setTimeout(() => this.pluck(), rand(3500, 8000));
+  },
+};
+
+/* جلوی اسپمِ صداهای پرتکرار (مثل برخورد ۶ ساچمه‌ی شاتگان در یک فریم) */
+const _sfxGate = {};
+function sfxGate(name, ms) {
+  const t = performance.now();
+  if ((_sfxGate[name] || 0) + ms > t) return false;
+  _sfxGate[name] = t;
+  return true;
+}
+
+/* کتابخانه‌ی جلوه‌های صوتی بازی */
+const SFX = {
+  click()    { Snd.tone({ type: 'square',   f0: 1300, f1: 850, dur: 0.05, vol: 0.07 }); },
+  shootP()   { Snd.noise({ dur: 0.09, vol: 0.20, ftype: 'highpass', freq: 700 });
+               Snd.tone({ type: 'square',   f0: 230,  f1: 70,  dur: 0.08, vol: 0.11 }); },
+  shootS()   { Snd.noise({ dur: 0.22, vol: 0.32, freq: 1300 });
+               Snd.tone({ type: 'sine',     f0: 105,  f1: 36,  dur: 0.24, vol: 0.28 }); },
+  shootM()   { Snd.noise({ dur: 0.05, vol: 0.13, ftype: 'bandpass', freq: 1700, q: 1.1 });
+               Snd.tone({ type: 'square',   f0: 300,  f1: 110, dur: 0.05, vol: 0.06 }); },
+  hit()      { if (!sfxGate('hit', 60)) return;
+               Snd.tone({ type: 'square',   f0: 165,  f1: 90,  dur: 0.06, vol: 0.09 }); },
+  death()    { if (!sfxGate('death', 70)) return;
+               Snd.tone({ type: 'sawtooth', f0: 180,  f1: 42,  dur: 0.30, vol: 0.14 });
+               Snd.noise({ dur: 0.22, vol: 0.12, freq: 650 }); },
+  coin()     { if (!sfxGate('coin', 70)) return;
+               Snd.tone({ type: 'sine',     f0: 920,  dur: 0.07, vol: 0.12 });
+               Snd.tone({ type: 'sine',     f0: 1360, dur: 0.15, vol: 0.12, delay: 0.07 }); },
+  towerHit() { if (!sfxGate('towerHit', 90)) return;
+               Snd.tone({ type: 'sine',     f0: 78,   f1: 40,  dur: 0.20, vol: 0.32 });
+               Snd.noise({ dur: 0.16, vol: 0.20, freq: 260 }); },
+  buy()      { Snd.tone({ type: 'triangle', f0: 520,  f1: 760,  dur: 0.09, vol: 0.15 });
+               Snd.tone({ type: 'triangle', f0: 760,  f1: 1140, dur: 0.14, vol: 0.15, delay: 0.09 }); },
+  deny()     { Snd.tone({ type: 'square',   f0: 130,  dur: 0.09, vol: 0.11 });
+               Snd.tone({ type: 'square',   f0: 96,   dur: 0.15, vol: 0.11, delay: 0.10 }); },
+  wave()     { Snd.tone({ type: 'sawtooth', f0: 196,  dur: 0.15, vol: 0.11 });
+               Snd.tone({ type: 'sawtooth', f0: 262,  dur: 0.20, vol: 0.11, delay: 0.16 }); },
+  clear()    { [440, 554, 659].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.11, delay: i * 0.09 })); },
+  gameover() { [330, 262, 196, 131].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.34, vol: 0.15, delay: i * 0.22 })); },
+  victory()  { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.20, vol: 0.14, delay: i * 0.13 })); },
+  trap()     { if (!sfxGate('trap', 200)) return;
+               Snd.tone({ type: 'square',   f0: 420,  f1: 110, dur: 0.06, vol: 0.07 }); },
+  roar()     { Snd.tone({ type: 'sawtooth', f0: 72,   f1: 30,  dur: 0.90, vol: 0.26 });
+               Snd.noise({ dur: 0.80, vol: 0.18, freq: 300 }); },
+  bossDie()  { Snd.tone({ type: 'sawtooth', f0: 160,  f1: 24,  dur: 1.10, vol: 0.24 }); SFX.victory(); },
+};
+
+/* فعال‌سازی صدا با اولین تعامل کاربر (سیاست autoplay مرورگرها) */
+const armAudio = () => { Snd.init(); Snd.resume(); };
+window.addEventListener('pointerdown', armAudio, { passive: true });
+window.addEventListener('keydown', armAudio);
+
+/* ---------------------- ۴) وضعیت بازی ---------------------- */
 /* mode (وضعیت‌های بازی):
-   start        صفحه شروع
+   start        منوی اصلی (صحنه‌ی زنده: زامبی‌های تزئینی دور برج می‌خزند)
    playing      درگیر موج فعلی
    intermission وقفه بین موج‌ها (شمارش معکوس + فرصت خرید)
    shop         منوی ساخت‌وساز باز است (بازی متوقف)
    paused       توقف دستی
    gameover     باخت (جون برج صفر)
-   victory      برد (پاک‌سازی هر ۱۰ موج)
-*/
+   victory      برد (پاک‌سازی هر ۱۰ موج) */
 const state = {
   mode: 'start', prevMode: null,
   time: 0,                                 // زمان منطقی بازی (در توقف ثابت می‌ماند)
   wave: 0,                                 // موج فعلی (۰ = هنوز شروع نشده)
   intermission: 0,                         // ثانیه باقی‌مانده تا موج بعد
-  spawn: { remaining: 0, timer: 0, interval: 2 }, // وضعیت تولید زامبی موج فعلی
+  spawn: { queue: [], timer: 0, interval: 2, bossDelay: false }, // صف تولد زامبی‌های موج
   coins: 0,
   tower: { hp: 100, maxHp: 100 },
   upgrades: { weapon: 0, health: 0, trap: 0 },
+  weapon: 'pistol',                        // سلاح انتخاب‌شده
   zombies: [], bullets: [], coinsArr: [], particles: [], texts: [], zaps: [],
   mouse: { x: W / 2, y: 120, down: false },
   aimAngle: -Math.PI / 2,                  // زاویه اسلحه بازیکن رو به ماوس
   shake: 0, flash: 0,                      // لرزش دوربین و فلش قرمزِ آسیب برج
   fireFlash: 0, recoil: 0,                 // جلوه شلیک (نور دهانه + عقب‌راندگی اسلحه)
-  stats: { kills: 0, earned: 0 },
+  stats: { kills: 0, earned: 0, shots: 0 },
 };
 
 let animTime = 0;                          // زمان نمایشی (همیشه جلو می‌رود؛ برای سوسو ستاره‌ها و پرچم)
 let fireTimer = 0;                         // کول‌داون شلیک
 let announceTimer = 0;                     // مدت نمایش اعلان موقت (مثل «موج ۲»)
+let shootStar = null, shootStarT = rand(3, 7);   // شهابِ گاه‌به‌گاه آسمان
 
 /* قاب و بوم */
 const canvas = $('game');
@@ -325,7 +665,7 @@ canvas.width = W * DPR;
 canvas.height = H * DPR;
 try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
 
-/* ---------------------- ۴) ورودی: ماوس/لمس و کیبورد ---------------------- */
+/* ---------------------- ۵) ورودی: ماوس/لمس و کیبورد ---------------------- */
 function canPlay() { return state.mode === 'playing' || state.mode === 'intermission'; }
 
 /* تبدیل مختصات رویداد ماوس به مختصات منطقی دنیای بازی */
@@ -353,15 +693,24 @@ canvas.addEventListener('pointerdown', e => {
 window.addEventListener('pointerup', () => { state.mouse.down = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault()); // منوی راست‌کلیک باز نشود
 
-/* کیبورد: P یا Esc برای توقف/ادامه، Esc برای بستن فروشگاه */
+/* کیبورد: P/Esc توقف، M صدا، ۱/۲/۳ تعویض سلاح، Esc بستن فروشگاه/راهنما */
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (state.mode === 'shop') closeShop();
+    if (!$('howtoScreen').classList.contains('hidden')) hideScreen('howtoScreen');
+    else if (state.mode === 'shop') closeShop();
     else if (state.mode === 'paused') resumeGame();
     else if (canPlay()) pauseGame();
   } else if (e.key === 'p' || e.key === 'P') {
     if (state.mode === 'paused') resumeGame();
     else if (canPlay()) pauseGame();
+  } else if (e.key === 'm' || e.key === 'M') {
+    toggleSound();
+  } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+    selectWeapon('pistol');
+  } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+    selectWeapon('shotgun');
+  } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+    selectWeapon('mg');
   }
 });
 /* اگر تب/پنجره از حالت نمایش خارج شد، بازی خودکار متوقف شود */
@@ -370,7 +719,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && state.mode === 'playing') pauseGame();
 });
 
-/* ---------------------- ۵) جریان موج‌ها ---------------------- */
+/* ---------------------- ۶) جریان موج‌ها و تولید زامبی ---------------------- */
 /* شروع/ریست کامل بازی */
 function startGame() {
   state.mode = 'intermission';
@@ -379,29 +728,45 @@ function startGame() {
   state.coins = 0;
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0 };
+  state.weapon = 'pistol';
+  WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
   state.zombies = []; state.bullets = []; state.coinsArr = [];
   state.particles = []; state.texts = []; state.zaps = [];
   state.shake = 0; state.flash = 0;
-  state.stats = { kills: 0, earned: 0 };
-  state.spawn = { remaining: 0, timer: 0, interval: 2 };
+  state.stats = { kills: 0, earned: 0, shots: 0 };
+  state.spawn = { queue: [], timer: 0, interval: 2, bossDelay: false };
   state.mouse.down = false; fireTimer = 0; announceTimer = 0;
   state.intermission = INTERMISSION_FIRST; // شمارش معکوس کوتاه قبل از موج ۱
   hideOverlays();
   $('btnPause').textContent = '⏸ توقف';
   $('btnShop').classList.remove('attention');
-  updateHUD(); refreshShop();
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  updateHUD(); refreshShop(); refreshWeaponBar();
 }
 
-/* آغاز موج n */
+/* آغاز موج n: صف تولد بر اساس ترکیب جدول WAVES ساخته و شافل می‌شود */
 function startWave(n) {
   state.wave = n;
   state.mode = 'playing';
+  const c = WAVES[n - 1];
+  const q = [];
+  for (let i = 0; i < c.n; i++) q.push('normal');
+  for (let i = 0; i < c.f; i++) q.push('fast');
+  for (let i = 0; i < c.t; i++) q.push('tank');
+  for (let i = q.length - 1; i > 0; i--) {          // شافل فیشر–ییتس
+    const j = Math.floor(rand(0, i + 1));
+    const tmp = q[i]; q[i] = q[j]; q[j] = tmp;
+  }
+  if (c.b) q.push('boss');                           // پادشاه همیشه آخرِ صف می‌ایستد
   state.spawn = {
-    remaining: 5 + 3 * n,                                  // تعداد زامبی‌های این موج
-    timer: 1.2,                                            // تأخیر اولین تولد
-    interval: Math.max(2.3 - n * 0.16, 0.55),              // فاصله بین تولدها (کم‌تر هر موج)
+    queue: q,
+    timer: 1.2,
+    interval: Math.max(2.0 - n * 0.14, 0.5),        // فاصله بین تولدها (کم‌تر هر موج)
+    bossDelay: false,
   };
-  setAnnounce('موج ' + faNum(n), 'دفاع کن! 🧟', 2);
+  setAnnounce('موج ' + faNum(n),
+    n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
+  SFX.wave();
   $('btnShop').classList.remove('attention');
   updateHUD();
 }
@@ -411,52 +776,83 @@ function waveComplete() {
   if (state.wave >= TOTAL_WAVES) { victory(); return; }
   state.mode = 'intermission';
   state.intermission = INTERMISSION_TIME;
-  setAnnounce('موج بعدی: ' + faNum(state.wave + 1), '', INTERMISSION_TIME + 0.2);
+  setAnnounce('موج ' + faNum(state.wave) + ' پاک‌سازی شد! 🎉',
+    'موج بعدی: ' + faNum(state.wave + 1) + ' — فرصت ارتقا!', INTERMISSION_TIME + 0.2);
+  SFX.clear();
   $('btnShop').classList.add('attention');  // راهنمایی بصری: فرصت خرید رسید
 }
 
-/* تولید یک زامبی از لبه چپ یا راست */
-function spawnZombie() {
+/* تولید یک زامبی از نوع دلخواه از لبه چپ یا راست */
+function spawnZombie(type) {
+  const T = ZTYPES[type || 'normal'];
   const side = Math.random() < 0.5 ? -1 : 1;
-  const hp = ZOMBIE_CFG.baseHp + ZOMBIE_CFG.hpPerWave * state.wave;
+  const hp = Math.round(T.hpBase + T.hpWave * state.wave);
   state.zombies.push({
+    type: type || 'normal',
     x: side < 0 ? -30 : W + 30,
     y: GROUND_Y + rand(-4, 4),             // کمی پراکندگی عمودی برای خوانایی دسته‌جمعی
     dir: side < 0 ? 1 : -1,                // جهت گام (به سمت برج)
     hp, maxHp: hp,
-    speed: (ZOMBIE_CFG.baseSpeed + ZOMBIE_CFG.speedPerWave * state.wave) * rand(0.8, 1.2),
-    radius: ZOMBIE_CFG.radius,
-    biteTimer: rand(0.2, 0.6),             // اولین گاز کمی زودتر/دیرتر
+    speed: (T.spdBase + T.spdWave * state.wave) * rand(0.85, 1.15),
+    radius: T.r,
+    biteInt: T.bite, biteTimer: rand(0.2, 0.6),   // اولین گاز کمی زودتر/دیرتر
+    dmg: T.dmg,
     walkPhase: Math.random() * Math.PI * 2,
     attackAnim: 0,
-    attacking: false, hitFlash: 0, dead: false,
+    attacking: false, hitFlash: 0, dead: false, deathT: 0,
   });
 }
 
-/* ---------------------- ۶) شلیک و گلوله‌ها ---------------------- */
-/* آسیب هر گلوله بر اساس سطح ارتقای اسلحه */
-function bulletDamage() { return PLAYER_CFG.baseDamage + state.upgrades.weapon; }
+/* ---------------------- ۷) شلیک و سلاح‌ها ---------------------- */
+/* آسیب هر گلوله/ساچمه بر اساس سلاح + سطح ارتقای اسلحه
+   (سلاح‌های ساچمه‌ای به‌ازای هر سطح +۱ می‌گیرند و تک‌گلوله‌ای +۲) */
+function weaponDmg(w, extra) {
+  const L = state.upgrades.weapon + (extra || 0);
+  return w.dmg + L * (w.pellets > 1 ? 1 : 2);
+}
 
-/* محل دهانه اسلحه (نوک لوله در بالای برج) */
-function gunMuzzle() {
-  const gx = TOWER.x, gy = TOWER_TOP_Y - 17, L = 23;
-  return { x: gx + Math.cos(state.aimAngle) * L, y: gy + Math.sin(state.aimAngle) * L };
+/* محل دهانه‌ی اسلحه (نوک لوله در بالای برج) — طول لوله به سلاح بستگی دارد */
+function gunMuzzle(len) {
+  const gx = TOWER.x, gy = TOWER_TOP_Y - 17;
+  return { x: gx + Math.cos(state.aimAngle) * (len + 6), y: gy + Math.sin(state.aimAngle) * (len + 6) };
 }
 
 function tryShoot() {
   if (fireTimer > 0) return;
+  const w = WEAPONS[state.weapon];
+  fireTimer = w.rate;
   updateAim();                             // اطمینان از جهت صحیح گلوله
-  fireTimer = PLAYER_CFG.fireCooldown;
-  const m = gunMuzzle();
-  state.bullets.push({
-    x: m.x, y: m.y,
-    vx: Math.cos(state.aimAngle) * PLAYER_CFG.bulletSpeed,
-    vy: Math.sin(state.aimAngle) * PLAYER_CFG.bulletSpeed,
-    dmg: bulletDamage(), r: 4, life: 2, dead: false,
-  });
-  state.fireFlash = 0.07; state.recoil = 1;
+  const m = gunMuzzle(w.barrel);
+  for (let i = 0; i < w.pellets; i++) {
+    const a = state.aimAngle + (Math.random() - 0.5) * 2 * w.spread;
+    const sp = w.spd * rand(0.92, 1.08);
+    state.bullets.push({
+      x: m.x, y: m.y,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      dmg: weaponDmg(w), r: w.pellets > 1 ? 3 : 4, life: w.ttl,
+      dead: false, pellet: w.pellets > 1,  // ساچمه‌های شاتگان ریزترند
+    });
+  }
+  state.stats.shots++;
+  state.fireFlash = 0.07;
+  state.recoil = w.pellets > 1 ? 1.6 : 1;  // لگد شاتکن محسوس‌تر است
+  SFX[w.sfx]();
   spawnParticles(m.x, m.y, 3, '#ffe9a8', { speed: 90, life: 0.18, size: 2, grav: 0,
     dir: state.aimAngle, spread: Math.PI / 3 });
+  spawnShell(state.aimAngle);              // پوکه‌ی پرتاب‌شده
+  if (w.pellets > 1) state.shake = Math.min(8, state.shake + 2);
+}
+
+/* پوکه‌ی براقی که بعد از هر شلیک به عقب پرتاب می‌شود و روی بام می‌غلتد */
+function spawnShell(ang) {
+  const gx = TOWER.x + Math.cos(ang) * 8, gy = TOWER_TOP_Y - 17 + Math.sin(ang) * 8;
+  const a = ang + rand(1.6, 2.2);          // زاویه‌ی پرتاب به عقب/بالا
+  state.particles.push({
+    x: gx, y: gy,
+    vx: Math.cos(a) * rand(60, 130), vy: Math.sin(a) * rand(60, 130) - 70,
+    age: 0, life: rand(0.5, 0.8), size: 2.6, color: '#d9a441', grav: 900,
+    shell: true, rot: rand(0, 6.28), vr: rand(-9, 9),
+  });
 }
 
 /* برخورد گلوله با زامبی‌ها + خروج گلوله از صحنه */
@@ -472,9 +868,10 @@ function updateBullets(dt) {
     if (b.x < -40 || b.x > W + 40 || b.y < -40 || b.life <= 0) { b.dead = true; continue; }
     for (const z of state.zombies) {
       if (z.dead) continue;
-      const dx = z.x - b.x, dy = (z.y - 20) - b.y; // مرکز بدن زامبی
-      const rr = z.radius + b.r + 3;
-      if (dx * dx + dy * dy < rr * rr) {
+      const s = z.radius / 15;             // مرکز بدن بر اساس اندازه‌ی نوع
+      const dx = z.x - b.x, dy = (z.y - 20 * s) - b.y;
+      const rr2 = z.radius + b.r + 3;
+      if (dx * dx + dy * dy < rr2 * rr2) {
         b.dead = true;
         hitZombie(z, b.dmg, b.x, b.y);
         break;
@@ -484,13 +881,13 @@ function updateBullets(dt) {
   state.bullets = state.bullets.filter(b => !b.dead);
 }
 
-/* ---------------------- ۷) زامبی‌ها: حرکت، حمله، تله ---------------------- */
+/* ---------------------- ۸) زامبی‌ها: حرکت، حمله، تله ---------------------- */
 function updateZombies(dt) {
   for (const z of state.zombies) {
-    if (z.dead) continue;
+    if (z.dead) { z.deathT += dt; continue; }   // انیمیشن مرگ ادامه پیدا کند
     z.hitFlash = Math.max(0, z.hitFlash - dt);
     const dx = TOWER.x - z.x;
-    const stop = TOWER.baseHalf + z.radius; // فاصله توقف از مرکز برج
+    const stop = TOWER.baseHalf + z.radius; // فاصله توقف از مرکز برج (به اندازه‌ی نوع)
 
     if (Math.abs(dx) > stop) {
       /* راه رفتن به سمت برج */
@@ -498,17 +895,17 @@ function updateZombies(dt) {
       z.x += Math.sign(dx) * z.speed * dt;
       z.walkPhase += dt * (4 + z.speed * 0.06);
     } else {
-      /* رسید به برج: گاز گرفتن با فاصله زمانی ثابت */
+      /* رسید به برج: گاز گرفتن با فاصله زمانیِ نوعِ خودش */
       z.attacking = true;
       z.attackAnim += dt * 5;
       z.biteTimer -= dt;
       if (z.biteTimer <= 0) {
-        z.biteTimer = ZOMBIE_CFG.biteInterval;
-        damageTower(ZOMBIE_CFG.damage, z.x);
+        z.biteTimer = z.biteInt;
+        damageTower(z.dmg, z.x);
       }
     }
   }
-  state.zombies = state.zombies.filter(z => !z.dead);
+  state.zombies = state.zombies.filter(z => !z.dead || z.deathT < 0.55);
 }
 
 /* آسیب گلوله به زامبی */
@@ -517,21 +914,31 @@ function hitZombie(z, dmg, bx, by) {
   z.hp -= dmg;
   z.hitFlash = 0.15;
   addText(z.x, z.y - 46, faNum(dmg), '#ffffff', 12);
-  spawnParticles(bx, by, 4, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
+  spawnParticles(bx, by, 3, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
+  spawnParticles(bx, by, 3, '#7a2f2f', { speed: 90,  life: 0.35, size: 2, grav: 500 });
+  SFX.hit();
   if (z.hp <= 0) killZombie(z);
 }
 
-/* مرگ زامبی: افکت + ریختن سکه */
+/* مرگ زامبی: انیمیشن افتادن + خون + ریختن سکه (و جشنِ کشتنِ پادشاه) */
 function killZombie(z) {
   if (z.dead) return;
-  z.dead = true;
+  z.dead = true; z.deathT = 0;
   state.stats.kills++;
-  spawnParticles(z.x, z.y - 18, 14, '#5f8f3e', { speed: 170, life: 0.55, size: 3, grav: 500 });
-  spawnParticles(z.x, z.y - 18, 5, '#7a2f2f', { speed: 120, life: 0.45, size: 2.5, grav: 500 });
-  dropCoins(z.x, z.y - 18);
+  spawnParticles(z.x, z.y - 18, 12, '#5f8f3e', { speed: 170, life: 0.55, size: 3, grav: 500 });
+  spawnParticles(z.x, z.y - 18, 8, '#7a2f2f', { speed: 130, life: 0.5, size: 2.6, grav: 500 });
+  SFX.death();
+  dropCoins(z);
+  if (z.type === 'boss') {
+    state.shake = 16; state.flash = 0.8;
+    spawnParticles(z.x, z.y - 60, 40, '#ffd873', { speed: 300, life: 1.0, size: 3.5, grav: 400 });
+    spawnParticles(z.x, z.y - 60, 24, '#e8563f', { speed: 240, life: 0.8, size: 3, grav: 400 });
+    setAnnounce('👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
+    SFX.bossDie();
+  }
 }
 
-/* کاهش جون برج (دست زامبی) */
+/* کاهش جون برج (گاز زامبی) */
 function damageTower(amount, srcX) {
   if (state.mode !== 'playing') return;
   state.tower.hp = Math.max(0, state.tower.hp - amount);
@@ -541,6 +948,7 @@ function damageTower(amount, srcX) {
   addText(TOWER.x + side * (TOWER.baseHalf + 6), GROUND_Y - 60, faNum(amount), '#ff6b5e', 16);
   spawnParticles(TOWER.x + side * TOWER.baseHalf, GROUND_Y - rand(20, 60), 6, '#8a6f52',
     { speed: 120, life: 0.4, size: 2.5, grav: 500 });
+  SFX.towerHit();
   updateHUD();
   if (state.tower.hp <= 0) gameOver();
 }
@@ -555,19 +963,20 @@ function updateTrap(dt) {
     if (Math.abs(z.x - TOWER.x) < UPGRADES.trap.radius) {
       z.hp -= dps * dt;
       z.hitFlash = Math.max(z.hitFlash, 0.06);
-      if (Math.random() < dt * 6) addZap(z.x, z.y - 18);   // قوس برق نمایشی
+      if (Math.random() < dt * 6) { addZap(z.x, z.y - 18); SFX.trap(); }  // قوس برق نمایشی
       if (z.hp <= 0) killZombie(z);
     }
   }
 }
 
-/* ---------------------- ۸) سکه‌ها: ریختن، زمین‌خوردن، جمع‌شدن ---------------------- */
-/* با مرگ هر زامبی چند سکه می‌پرد بیرون */
-function dropCoins(x, y) {
-  const n = 3 + Math.floor(state.wave / 2) + (Math.random() < 0.5 ? 1 : 0);
+/* ---------------------- ۹) سکه‌ها: ریختن، زمین‌خوردن، جمع‌شدن ---------------------- */
+/* با مرگ هر زامبی چند سکه می‌پرد بیرون (تعدادش به نوع دشمن بستگی دارد) */
+function dropCoins(z) {
+  const range = ZTYPES[z.type].coins;
+  const n = Math.round(rand(range[0], range[1]));
   for (let i = 0; i < n; i++) {
     state.coinsArr.push({
-      x, y, vx: rand(-90, 90), vy: rand(-260, -120),
+      x: z.x, y: z.y - 18, vx: rand(-100, 100), vy: rand(-280, -140),
       phase: 'drop', t: 0, bounces: 0, flySpeed: 420, dead: false,
     });
   }
@@ -630,24 +1039,69 @@ function pulseCoins() {
   el.classList.add('pulse');
 }
 
-/* ---------------------- ۹) اقتصاد و ارتقاها (منوی ساخت‌وساز) ---------------------- */
+/* ---------------------- ۱۰) اقتصاد و ارتقاها (منوی ساخت‌وساز) ---------------------- */
 /* قیمت ارتقای kind در سطح فعلی (گردشده به مضرب ۵) */
 function priceOf(kind) {
   const u = UPGRADES[kind], lvl = state.upgrades[kind];
   return Math.round(u.base * Math.pow(u.growth, lvl) / 5) * 5;
 }
 
+/* لرزش دکمه + صدای «نه» وقتی سکه کافی نیست */
+function denyBtn(btnId) {
+  const btn = $(btnId);
+  if (btn) { btn.classList.remove('deny'); void btn.offsetWidth; btn.classList.add('deny'); }
+  SFX.deny();
+}
+
+/* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی نوار سلاح) */
+function selectWeapon(id) {
+  if (!WEAPONS[id].owned) {
+    SFX.deny();
+    const el = document.querySelector('#weaponBar .wslot[data-w="' + id + '"]');
+    if (el) { el.classList.remove('deny'); void el.offsetWidth; el.classList.add('deny'); }
+    return;
+  }
+  if (state.weapon === id) return;
+  state.weapon = id;
+  SFX.click();
+  refreshWeaponBar();
+}
+
 function attemptBuy(kind) {
   const u = UPGRADES[kind];
+
+  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) --- */
+  if (kind === 'shotgun' || kind === 'mg') {
+    if (WEAPONS[kind].owned) return;
+    if (state.coins < u.price) { denyBtn('buy' + kind[0].toUpperCase() + kind.slice(1)); return; }
+    state.coins -= u.price;
+    WEAPONS[kind].owned = true;
+    selectWeapon(kind);                    // بلافاصله دستِ کاربر می‌افتد
+    SFX.buy();
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 18, '#ffd873', { speed: 170, life: 0.6, size: 2.6, grav: 300, up: true });
+    updateHUD(); refreshShop();
+    return;
+  }
+
+  /* --- تعمیر سریع --- */
+  if (kind === 'repair') {
+    if (state.tower.hp >= state.tower.maxHp - 0.5) return;
+    if (state.coins < u.price) { denyBtn('buyRepair'); return; }
+    state.coins -= u.price;
+    const heal = Math.round(state.tower.maxHp * u.frac);
+    state.tower.hp = Math.min(state.tower.maxHp, state.tower.hp + heal);
+    addText(TOWER.x, TOWER_TOP_Y - 40, '+' + faNum(heal), '#6fce62', 16);
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 14, '#6fce62', { speed: 150, life: 0.55, size: 2.5, grav: 250, up: true });
+    SFX.buy();
+    updateHUD(); refreshShop();
+    return;
+  }
+
+  /* --- ارتقاهای سطح‌دار (اسلحه/جون/تله) --- */
   const lvl = state.upgrades[kind];
   if (lvl >= u.max) return;
   const price = priceOf(kind);
-  const btn = $('buy' + kind[0].toUpperCase() + kind.slice(1));
-  if (state.coins < price) {
-    /* سکه کافی نیست: لرزش دکمه */
-    btn.classList.remove('deny'); void btn.offsetWidth; btn.classList.add('deny');
-    return;
-  }
+  if (state.coins < price) { denyBtn('buy' + kind[0].toUpperCase() + kind.slice(1)); return; }
   state.coins -= price;
   state.upgrades[kind] = lvl + 1;
   if (kind === 'health') {
@@ -661,21 +1115,21 @@ function attemptBuy(kind) {
     spawnParticles(TOWER.x, GROUND_Y - 8, 16, '#ffcf6e', { speed: 150, life: 0.5, size: 2.5, grav: 300, up: true });
     state.shake = Math.min(8, state.shake + 4);
   }
-  updateHUD(); refreshShop(); pulseCoins();
+  SFX.buy();
+  updateHUD(); refreshShop();
 }
 
 /* آسیب فعلی تله (برای نمایش در فروشگاه) */
 function trapDps(lvl) { return lvl <= 0 ? 0 : UPGRADES.trap.dps + UPGRADES.trap.dpsPerLvl * (lvl - 1); }
-
 /* ==================================================================
-   سه طبقه تا بقا — منطق بازی (بخش ۲)
-   ۱۰) افکت‌ها (ذرات، متن‌های شناور، قوس برق تله)
-   ۱۱) حلقه به‌روزرسانی      ۱۲) پایان بازی (برد/باخت)
-   ۱۳) رسم صحنه با Canvas   ۱۴) رابط کاربری (HUD/فروشگاه/اورلی‌ها)
-   ۱۵) حلقه اصلی و راه‌اندازی
+   سه طبقه تا بقا — نسخه‌ی کامل ۲٫۰ — منطق بازی (بخش ۲: افکت‌ها، به‌روزرسانی و رسم)
+     ۱۱) افکت‌ها (ذرات، متن‌های شناور، قوس برق، شهاب)
+     ۱۲) حلقه به‌روزرسانی + صحنه‌ی زنده‌ی منو
+     ۱۳) پایان بازی (برد/باخت)
+     ۱۴) رسم صحنه با Canvas (آسمان/شهر/برج/زامبی‌ها/بازیکن/سلاح‌ها)
    ================================================================== */
 
-/* ---------------------- ۱۰) افکت‌ها ---------------------- */
+/* ---------------------- ۱۱) افکت‌ها ---------------------- */
 /* تولید ذره (پارتیکل) — o: {speed, life, size, grav, dir, spread, up} */
 function spawnParticles(x, y, n, color, o = {}) {
   const speed = o.speed || 120, life = o.life || 0.4;
@@ -696,6 +1150,7 @@ function updateParticles(dt) {
   for (const p of state.particles) {
     p.age += dt; p.vy += p.grav * dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.shell) p.rot += p.vr * dt;                   // چرخش پوکه
     if (p.y > GROUND_Y + 2 && p.vy > 0) { p.y = GROUND_Y + 2; p.vy *= -0.3; p.vx *= 0.6; } // وایراستن روی زمین
   }
   state.particles = state.particles.filter(p => p.age < p.life);
@@ -727,7 +1182,23 @@ function updateZaps(dt) {
   state.zaps = state.zaps.filter(z => z.age < z.life);
 }
 
-/* ---------------------- ۱۱) حلقه به‌روزرسانی ---------------------- */
+/* شهابِ گاه‌به‌گاه آسمان (در همه‌ی حالت‌ها، حتی منو) */
+function updateShootingStar(dt) {
+  if (shootStar) {
+    shootStar.x += shootStar.vx * dt;
+    shootStar.y += shootStar.vy * dt;
+    shootStar.life -= dt;
+    if (shootStar.life <= 0) shootStar = null;
+  } else {
+    shootStarT -= dt;
+    if (shootStarT <= 0) {
+      shootStar = { x: rand(150, W - 100), y: rand(20, 130), vx: -rand(300, 480), vy: rand(90, 160), life: 0.8 };
+      shootStarT = rand(4, 9);
+    }
+  }
+}
+
+/* ---------------------- ۱۲) حلقه به‌روزرسانی ---------------------- */
 function update(dt) {
   state.time += dt;
   fireTimer = Math.max(0, fireTimer - dt);
@@ -747,18 +1218,28 @@ function update(dt) {
   }
 
   if (state.mode === 'playing') {
-    /* تولید زامبی‌های موج فعلی */
-    if (state.spawn.remaining > 0) {
+    /* تولد زامبی‌های صف موج فعلی */
+    if (state.spawn.queue.length) {
       state.spawn.timer -= dt;
       if (state.spawn.timer <= 0) {
-        spawnZombie();
-        state.spawn.remaining--;
-        state.spawn.timer = state.spawn.interval * rand(0.7, 1.3);
+        const next = state.spawn.queue[0];
+        if (next === 'boss' && !state.spawn.bossDelay) {
+          /* ورود سینمایی پادشاه: تأخیر + زلزله + غرش */
+          state.spawn.bossDelay = true;
+          state.spawn.timer = 2.4;
+          setAnnounce('زمین می‌لرزه... 👑', 'پادشاه زامبی‌ها داره میاد!', 2.2);
+          state.shake = Math.min(12, state.shake + 8);
+          SFX.roar();
+        } else {
+          spawnZombie(state.spawn.queue.shift());
+          state.spawn.timer = state.spawn.interval * rand(0.7, 1.3);
+        }
       }
-    } else if (state.zombies.length === 0) {
+    } else if (!state.zombies.some(z => !z.dead)) {
       waveComplete();                      // همه‌ی زامبی‌های موج از بین رفتند
     }
     updateTrap(dt);                        // تله پایه برج
+    updateBossBar();                       // نوار جون پادشاه (اگر حاضر باشد)
   }
 
   if (canPlay()) {
@@ -775,6 +1256,40 @@ function updateFx(dt) {
   state.shake = Math.max(0, state.shake - dt * 22);
   state.flash = Math.max(0, state.flash - dt * 2.2);
   updateParticles(dt); updateTexts(dt); updateZaps(dt);
+}
+
+/* ---------- صحنه‌ی زنده‌ی منوی اصلی ----------
+   چند زامبی تزئینی دور صحنه خزند و هرگز به برج نمی‌رسند؛
+   نزدیک که شدند از اولِ لبه‌ی صفحه با نوعی تازه ظاهر می‌شوند. */
+const menuZ = [];
+function makeMenuZombie(type, x) {
+  const T = ZTYPES[type];
+  return {
+    type, x, y: GROUND_Y + rand(-3, 3), dir: x < W / 2 ? 1 : -1,
+    radius: T.r, speed: T.spdBase * 0.7,
+    walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0,
+    hitFlash: 0, dead: false, deathT: 0, hp: 1, maxHp: 1,
+    biteInt: 1, biteTimer: 1, dmg: 0,
+  };
+}
+function initMenuZ() {
+  menuZ.length = 0;
+  const types = ['normal', 'fast', 'tank', 'normal', 'fast'];
+  const xs = [-60, W + 80, -260, W + 300, -430];
+  for (let i = 0; i < types.length; i++) menuZ.push(makeMenuZombie(types[i], xs[i]));
+}
+function updateMenuScene(dt) {
+  for (const z of menuZ) {
+    z.walkPhase += dt * (4 + z.speed * 0.06);
+    z.x += z.dir * z.speed * dt;
+    if (Math.abs(z.x - TOWER.x) < 130) {
+      /* رسید نزدیک برج: از اول بیرونِ قاب با نوعی تازه ظاهر می‌شود */
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const type = ['normal', 'fast', 'normal', 'tank'][Math.floor(rand(0, 4))];
+      Object.assign(z, makeMenuZombie(type, TOWER.x + side * (W / 2 + rand(40, 260))));
+    }
+  }
+  updateParticles(dt); updateTexts(dt);   // ذراتِ شلیک آزمایشی/پوکه در منو هم تمام شوند
 }
 
 /* اعلان مرکزی: در وقفه «موج بعدی + شمارش» و در شروع موج بنر موقت */
@@ -798,7 +1313,7 @@ function setAnnounce(big, sub, t) {
 }
 function hideAnnounce() { $('announce').style.opacity = 0; announceTimer = 0; }
 
-/* ---------------------- ۱۲) پایان بازی ---------------------- */
+/* ---------------------- ۱۳) پایان بازی ---------------------- */
 function gameOver() {
   if (state.mode === 'gameover') return;
   state.mode = 'gameover';
@@ -808,8 +1323,10 @@ function gameOver() {
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 36, '#8a6f52', { speed: 260, life: 0.9, size: 3.5, grav: 600 });
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 16, '#e04b3a', { speed: 200, life: 0.7, size: 3, grav: 600 });
   $('goSubtitle').textContent = 'برج سقوط کرد... تا موج ' + faNum(state.wave) + ' از ' + faNum(TOTAL_WAVES) + ' دووم آوردی.';
-  $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) + '</b>';
+  $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) + '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
+  SFX.gameover();
   showScreen('gameoverScreen');
 }
 
@@ -818,13 +1335,15 @@ function victory() {
   state.mode = 'victory';
   state.mouse.down = false;
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 30, '#ffd873', { speed: 240, life: 1.1, size: 3, grav: 350 });
-  $('vStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه: <b>' + faNum(state.coins) +
-    '</b> &nbsp;|&nbsp; ❤️ جون باقی‌مانده: <b>' + faNum(Math.ceil(state.tower.hp)) + '</b>';
+  spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 20, '#7bd389', { speed: 200, life: 1.0, size: 2.6, grav: 350 });
+  $('vStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه: <b>' + faNum(state.stats.earned) + '</b> &nbsp;|&nbsp; ❤️ جون باقی‌مانده: <b>' + faNum(Math.ceil(state.tower.hp)) + '</b>';
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
+  SFX.victory();
   showScreen('victoryScreen');
 }
 
-/* ---------------------- ۱۳) رسم صحنه با Canvas ---------------------- */
+/* ---------------------- ۱۴) رسم صحنه با Canvas ---------------------- */
 /* ابزارهای رسم */
 function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
 function rr(x, y, w, h, r) {
@@ -840,7 +1359,7 @@ function rr(x, y, w, h, r) {
   }
 }
 
-/* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه + تپه‌ها + زمین و جاده */
+/* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها */
 function drawSky() {
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
   g.addColorStop(0, '#080e22'); g.addColorStop(0.5, '#101c3e'); g.addColorStop(1, '#1d2d58');
@@ -853,7 +1372,7 @@ function drawSky() {
     circle(s.x, s.y, s.r);
   }
 
-  /* ماه با هاله و دهانه‌ها */
+  /* ماه */
   const mx = 172, my = 86, mr = 34;
   const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.7);
   glow.addColorStop(0, 'rgba(244,238,210,0.30)'); glow.addColorStop(1, 'rgba(244,238,210,0)');
@@ -861,12 +1380,41 @@ function drawSky() {
   ctx.fillStyle = '#f2ead0'; circle(mx, my, mr);
   ctx.fillStyle = 'rgba(120,110,80,0.16)';
   circle(mx - 10, my - 6, 6); circle(mx + 8, my + 9, 4.5); circle(mx + 13, my - 11, 3);
+}
 
-  /* تپه‌های دوردست در دو لایه برای عمق */
-  drawHills(HILLS1, '#13203f');
-  drawHills(HILLS2, '#0d1731');
+/* ابرهای شناور تیره (با حرکت آرام و پیوسته از راست به چپ) */
+function drawClouds() {
+  ctx.fillStyle = 'rgba(13,20,44,0.85)';
+  for (const c of CLOUDS) {
+    const m = W + 300;
+    const x = (((c.x - animTime * c.v) % m) + m) % m - 150;
+    const y = c.y, s = c.s;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 46 * s, 15 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + 34 * s, y - 6 * s, 30 * s, 12 * s, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - 36 * s, y + 2 * s, 26 * s, 10 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 
-  /* زمین و جاده خاکی که زامبی‌ها روی آن راه می‌روند */
+/* افق شهر در دوردست: آسمان‌خراش‌های سیاه‌شکلی با پنجره‌های روشن */
+function drawSkyline() {
+  ctx.fillStyle = '#0b1226';
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
+  /* لبه‌ی روشن‌ترِ پشت‌بام‌ها برای جدا شدن از آسمان */
+  ctx.fillStyle = '#141d3d';
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, 2.5);
+  for (const w2 of SKYLINE_WINS) {
+    ctx.fillStyle = w2.c;
+    ctx.fillRect(w2.x, w2.y, 2.5, 3.5);
+  }
+}
+
+/* تپه‌های دوردست در دو لایه برای عمق + زمین و جاده خاکی */
+function drawHills() {
+  ctx.fillStyle = '#13203f'; drawHillRow(HILLS1);
+  ctx.fillStyle = '#0d1731'; drawHillRow(HILLS2);
+
   ctx.fillStyle = '#151d0e'; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
   ctx.fillStyle = '#2c261d'; ctx.fillRect(-20, GROUND_Y, W + 40, 18);
   ctx.strokeStyle = 'rgba(96,84,60,0.8)'; ctx.lineWidth = 2;
@@ -874,13 +1422,27 @@ function drawSky() {
   ctx.fillStyle = 'rgba(120,105,80,0.35)';
   for (const p of PEBBLES) circle(p.x, GROUND_Y + p.dy, p.r);
 }
-function drawHills(pts, color) {
-  ctx.fillStyle = color;
+function drawHillRow(pts) {
   ctx.beginPath();
   ctx.moveTo(-20, GROUND_Y);
   for (const p of pts) ctx.lineTo(p.x, GROUND_Y - p.h);
   ctx.lineTo(W + 20, GROUND_Y);
   ctx.closePath(); ctx.fill();
+}
+
+/* شهاب آسمان (خط نورانی محوشونده) */
+function drawShootingStar() {
+  if (!shootStar) return;
+  const a = clamp(shootStar.life / 0.8, 0, 1);
+  const g = ctx.createLinearGradient(shootStar.x, shootStar.y,
+    shootStar.x - shootStar.vx * 0.14, shootStar.y - shootStar.vy * 0.14);
+  g.addColorStop(0, 'rgba(255,255,255,' + (0.9 * a).toFixed(2) + ')');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(shootStar.x, shootStar.y);
+  ctx.lineTo(shootStar.x - shootStar.vx * 0.14, shootStar.y - shootStar.vy * 0.14);
+  ctx.stroke();
 }
 
 /* تله پایه برج: خارهای فلزی + محدوده اثر + قوس‌های برق */
@@ -900,11 +1462,12 @@ function drawTrap() {
   g.addColorStop(0, 'rgba(255,110,60,0.16)'); g.addColorStop(1, 'rgba(255,110,60,0)');
   ctx.fillStyle = g; circle(TOWER.x, GROUND_Y, 90);
 
-  /* خارهای فلزی دو طرف پایه برج */
+  /* خارهای فلزی دو طرف پایه برج — با هر سطح بلندتر و پرتعدادتر */
+  const perSide = 4 + lvl;
   for (const side of [-1, 1]) {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < perSide; i++) {
       const x = TOWER.x + side * (TOWER.baseHalf + 8 + i * 7);
-      const h = i > 3 ? 10 : 14;
+      const h = 10 + lvl * 1.6 + (i > perSide - 2 ? -4 : 0);
       ctx.fillStyle = '#8b93a3';
       ctx.beginPath();
       ctx.moveTo(x - 4, GROUND_Y + 2); ctx.lineTo(x + 4, GROUND_Y + 2); ctx.lineTo(x, GROUND_Y + 2 - h);
@@ -989,22 +1552,49 @@ function drawTower() {
   }
 }
 
-/* زامبی: پاهای متحرک، دست‌های کشته، سر خمیده و چشم‌های قرمز */
+/* زامبی: بر اساس نوع رسم می‌شود (معمولی/سریع/تانک/پادشاه)
+   - پاهای متحرک، دست‌های کشیده، سر خمیده و چشم‌های درخشان
+   - سریع: کج به جلو + خط‌های سرعت
+   - تانک: زره شانه + کلاه‌خود فولادی
+   - پادشاه: تاج + هاله‌ی مهیب + چشم‌های بنفش
+   - مرگ: کج شدن و محو شدن تدریجی */
 function drawZombie(z) {
+  const T = ZTYPES[z.type];
+  const s = z.radius / 15;                 // ضریب اندازه‌ی نوع (معمولی=۱)
   const flash = z.hitFlash > 0;
-  const skin = flash ? '#d9f2c6' : '#7fa657';
-  const shirt = flash ? '#9db4cc' : '#4a5d73';
-  const pants = flash ? '#5d6a80' : '#333d4d';
+  const skin = flash ? '#d9f2c6' : T.skin;
+  const shirt = flash ? '#9db4cc' : T.shirt;
+  const pants = flash ? '#5d6a80' : T.pants;
 
   /* سایه روی زمین */
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, 13, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, 13 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
 
   ctx.save();
   ctx.translate(z.x, z.y);
-  ctx.scale(z.dir, 1);                     // آینه بر اساس جهت حرکت
+
+  /* انیمیشن مرگ: کج شدن به عقب + فرو رفتن + محو شدن */
+  if (z.dead) {
+    const t = clamp(z.deathT / 0.55, 0, 1);
+    ctx.globalAlpha = 1 - t;
+    ctx.rotate(-z.dir * t * 1.5);
+    ctx.translate(0, t * 7);
+  }
+
+  ctx.scale(z.dir * s, s);                 // آینه بر اساس جهت حرکت + مقیاس نوع
+
   const walk = Math.sin(z.walkPhase);
   const bob = z.attacking ? Math.sin(z.attackAnim) * 1.5 : Math.abs(walk) * 1.2;
+
+  /* نوع سریع: کج به جلو + خط‌های سرعت پشت سرش */
+  if (z.type === 'fast' && !z.dead) {
+    ctx.rotate(-0.12);
+    ctx.strokeStyle = 'rgba(220,190,120,0.3)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-14, -20); ctx.lineTo(-24, -20);
+    ctx.moveTo(-13, -14); ctx.lineTo(-21, -14);
+    ctx.stroke();
+  }
 
   /* پاها */
   ctx.strokeStyle = pants; ctx.lineWidth = 5; ctx.lineCap = 'round';
@@ -1017,6 +1607,16 @@ function drawZombie(z) {
   ctx.fillStyle = shirt; rr(-9, -31 + bob * 0.4, 18, 19, 4); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-3, -24 + bob * 0.4, 6, 7);
 
+  /* زره‌ی شونه برای تانک و پادشاه */
+  if (z.type === 'tank' || z.type === 'boss') {
+    ctx.fillStyle = z.type === 'boss' ? '#3f151d' : '#39364a';
+    ctx.fillRect(-11, -33 + bob * 0.4, 7, 6);
+    ctx.fillRect(4, -33 + bob * 0.4, 7, 6);
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+    ctx.strokeRect(-11, -33 + bob * 0.4, 7, 6);
+    ctx.strokeRect(4, -33 + bob * 0.4, 7, 6);
+  }
+
   /* بازوهای کشیده به جلو */
   const armY = -27 + bob * 0.4;
   const armSw = z.attacking ? Math.sin(z.attackAnim) * 4 : Math.sin(z.walkPhase * 0.5) * 2;
@@ -1028,28 +1628,61 @@ function drawZombie(z) {
   ctx.fillStyle = skin;
   circle(13, armY + armSw, 3); circle(14, armY + 5 + armSw * 0.6, 3);
 
-  /* سر + مو + چشم‌های قرمز */
+  /* سر + مو */
   ctx.fillStyle = skin; circle(3, -36 + bob * 0.5, 7);
   ctx.fillStyle = '#2f3b26';
   ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
-  ctx.fillStyle = flash ? '#ffffff' : '#ff4b3e';
-  circle(5.5, -37 + bob * 0.5, 1.5); circle(8.8, -37.5 + bob * 0.5, 1.5);
+
+  /* کلاه‌خود فولادی تانک */
+  if (z.type === 'tank') {
+    ctx.fillStyle = '#5c5f74';
+    ctx.fillRect(-4, -44 + bob * 0.5, 14, 4);
+  }
+  /* تاجِ پادشاه */
+  if (z.type === 'boss') {
+    ctx.fillStyle = '#f7c948';
+    ctx.beginPath();
+    ctx.moveTo(-3, -42 + bob * 0.5); ctx.lineTo(-3, -48 + bob * 0.5); ctx.lineTo(0, -44 + bob * 0.5);
+    ctx.lineTo(3, -49 + bob * 0.5); ctx.lineTo(6, -44 + bob * 0.5); ctx.lineTo(9, -48 + bob * 0.5);
+    ctx.lineTo(9, -42 + bob * 0.5); ctx.closePath(); ctx.fill();
+  }
+
+  /* چشم‌های درخشان (قرمز؛ پادشاه بنفش) */
+  if (!z.dead) {
+    ctx.save();
+    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
+    ctx.shadowBlur = 5 * s;
+    ctx.fillStyle = flash ? '#ffffff' : (z.type === 'boss' ? '#c44dff' : '#ff4b3e');
+    circle(5.5, -37 + bob * 0.5, 1.6); circle(8.8, -37.5 + bob * 0.5, 1.6);
+    ctx.restore();
+  }
+
+  /* هاله‌ی مهیب و تپنده‌ی پادشاه */
+  if (z.type === 'boss' && !z.dead) {
+    ctx.strokeStyle = 'rgba(196,77,223,' + (0.22 + 0.12 * Math.sin(animTime * 3)).toFixed(2) + ')';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(4, -22, 30, 0, Math.PI * 2); ctx.stroke();
+  }
+
   ctx.restore();
 
   /* نوار جون بالای سر (وقتی آسیب دیده) */
-  if (z.hp < z.maxHp - 0.001) {
-    const w2 = 26, ratio = clamp(z.hp / z.maxHp, 0, 1);
+  if (!z.dead && z.hp < z.maxHp - 0.001) {
+    const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
+    const by = z.y - 50 * s - 8;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(z.x - w2 / 2, z.y - 50, w2, 4.5);
-    ctx.fillStyle = ratio > 0.5 ? '#6fce62' : (ratio > 0.25 ? '#e7b53a' : '#e04b3a');
-    ctx.fillRect(z.x - w2 / 2 + 0.75, z.y - 49.25, (w2 - 1.5) * ratio, 3);
+    rr(z.x - w2 / 2, by, w2, 4.5, 2); ctx.fill();
+    ctx.fillStyle = ratio2 > 0.5 ? '#6fce62' : (ratio2 > 0.25 ? '#e7b53a' : '#e04b3a');
+    ctx.fillRect(z.x - w2 / 2 + 0.75, by + 0.75, (w2 - 1.5) * ratio2, 3);
   }
 }
 
-/* بازیکن: نگهبان کوچک روی بام برج با اسلحه چرخان رو به ماوس */
+/* بازیکن: نگهبان کوچک روی بام برج با اسلحه‌ی چرخانِ رو به ماوس
+   شکل اسلحه با نوع سلاح عوض می‌شود (تپانچه/شاتگان/مسلسل) */
 function drawPlayer() {
   const px = TOWER.x, py = TOWER_TOP_Y;
   const bob = Math.sin(animTime * 2.4) * 1.1;
+  const w = WEAPONS[state.weapon];
   ctx.save();
   ctx.translate(px, py + bob * 0.4);
 
@@ -1078,24 +1711,38 @@ function drawPlayer() {
   ctx.translate(0, -17);
   ctx.rotate(state.aimAngle);
   ctx.translate(-state.recoil * 3, 0);
-  ctx.fillStyle = '#2b2f38'; ctx.fillRect(-5, -3, 10, 6);   // بدنه اسلحه
-  ctx.fillStyle = '#454b57'; ctx.fillRect(5, -2.5, 18, 5);  // لوله
-  if (state.fireFlash > 0) {                                // شعله دهانه
-    ctx.fillStyle = 'rgba(255,240,170,' + (state.fireFlash / 0.07).toFixed(2) + ')';
-    circle(25, 0, 6);
+  if (state.weapon === 'pistol') {
+    ctx.fillStyle = '#2b2f38'; ctx.fillRect(-4, -2.5, 9, 5);     // بدنه
+    ctx.fillStyle = '#454b57'; ctx.fillRect(5, -2, 13, 4);       // لوله
+  } else if (state.weapon === 'shotgun') {
+    ctx.fillStyle = '#4a3320'; ctx.fillRect(-8, -3, 12, 6);      // قنداق چوبی
+    ctx.fillStyle = '#2b2f38'; ctx.fillRect(2, -3, 20, 5);       // لوله‌ی دوقلو
+    ctx.fillStyle = '#6b4a2c'; ctx.fillRect(8, 2, 8, 4);         // پمپ
+  } else {                                                       // مسلسل
+    ctx.fillStyle = '#2b2f38'; ctx.fillRect(-6, -3.5, 26, 6);    // بدنه
+    ctx.fillStyle = '#454b57'; ctx.fillRect(20, -2.5, 12, 4);    // لوله
+    ctx.fillStyle = '#31363f'; circle(6, 5, 5);                  // خشاب گرد
+    ctx.fillRect(-6, 2.5, 4, 3);                                 // قنداق کوتاه
+  }
+  /* شعله‌ی دهانه‌ی اسلحه (اندازه‌اش به سلاح بستگی دارد) */
+  if (state.fireFlash > 0) {
+    const a = state.fireFlash / 0.07;
+    ctx.fillStyle = 'rgba(255,240,170,' + a.toFixed(2) + ')';
+    circle(w.barrel + 12, 0, w.flash * (0.6 + 0.4 * a));
   }
   ctx.restore();
   ctx.restore();
 }
 
-/* گلوله با دنباله درخشان */
+/* گلوله با دنباله درخشان (ساچمه‌های شاتگان ریزترند) */
 function drawBullet(b) {
-  ctx.strokeStyle = 'rgba(255,216,115,0.45)'; ctx.lineWidth = 3;
+  const tl = b.pellet ? 0.022 : 0.04;
+  ctx.strokeStyle = 'rgba(255,216,115,0.45)'; ctx.lineWidth = b.pellet ? 2 : 3;
   ctx.beginPath();
-  ctx.moveTo(b.x - b.vx * 0.04, b.y - b.vy * 0.04);
+  ctx.moveTo(b.x - b.vx * tl, b.y - b.vy * tl);
   ctx.lineTo(b.x, b.y); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,200,80,0.25)'; circle(b.x, b.y, 7);
-  ctx.fillStyle = '#ffe9a8'; circle(b.x, b.y, 3.5);
+  ctx.fillStyle = 'rgba(255,200,80,0.25)'; circle(b.x, b.y, b.pellet ? 5 : 7);
+  ctx.fillStyle = '#ffe9a8'; circle(b.x, b.y, b.pellet ? 2.5 : 3.5);
 }
 
 /* سکه در حال چرخش (افکت سه‌بعدی با scale افقی) */
@@ -1134,8 +1781,17 @@ function drawParticles() {
   for (const p of state.particles) {
     const a = 1 - p.age / p.life;
     ctx.globalAlpha = Math.max(0, a);
-    ctx.fillStyle = p.color;
-    circle(p.x, p.y, p.size);
+    if (p.shell) {
+      /* پوکه‌ی چرخان مستطیلی */
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size, -p.size * 0.55, p.size * 2, p.size * 1.1);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = p.color;
+      circle(p.x, p.y, p.size);
+    }
   }
   ctx.globalAlpha = 1;
 }
@@ -1177,15 +1833,33 @@ function drawFlash() {
   }
 }
 
-/* ترتیب رسم صحنه (از دور به نزدیک) */
+/* هشدار قرمزِ تپنده وقتی جون برج بحرانی است (زیر ۳۰٪) */
+function drawVignette() {
+  if (!canPlay()) return;
+  const ratio = state.tower.hp / state.tower.maxHp;
+  if (ratio >= 0.3) return;
+  const a = Math.max(0, (0.3 - ratio) / 0.3 * (0.2 + 0.12 * Math.sin(animTime * 6)));
+  const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.78);
+  g.addColorStop(0, 'rgba(180,20,20,0)');
+  g.addColorStop(1, 'rgba(180,20,20,' + a.toFixed(2) + ')');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* ترتیب رسم صحنه (از دور به نزدیک) — در منو زامبی‌های تزئینی رسم می‌شوند */
 function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.save();
   if (state.shake > 0.2) ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
   drawSky();
+  drawClouds();
+  drawSkyline();
+  drawHills();
+  drawShootingStar();
   drawTrap();
   drawTower();
-  for (const z of state.zombies) drawZombie(z);
+  const zlist = state.mode === 'start' ? menuZ : state.zombies;
+  for (const z of zlist) drawZombie(z);
   drawPlayer();
   for (const b of state.bullets) drawBullet(b);
   for (const c of state.coinsArr) drawCoin(c);
@@ -1195,13 +1869,20 @@ function render() {
   ctx.restore();
   drawReticle();   // لایه UI: بدون لرزش
   drawFlash();
+  drawVignette();
 }
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی کامل ۲٫۰ — منطق بازی (بخش ۳)
+     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / فروشگاه / اورلی‌ها)
+     ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
+   ================================================================== */
 
-/* ---------------------- ۱۴) رابط کاربری ---------------------- */
+/* ---------------------- ۱۵) رابط کاربری ---------------------- */
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreen(id) { $(id).classList.add('hidden'); }
 function hideOverlays() {
-  ['startScreen', 'shopScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen'].forEach(hideScreen);
+  ['startScreen', 'howtoScreen', 'shopScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen']
+    .forEach(hideScreen);
 }
 
 function pauseGame() {
@@ -1228,7 +1909,17 @@ function closeShop() {
   hideScreen('shopScreen');
 }
 
-/* به‌روزرسانی HUD (نوار جون، سکه، موج) */
+/* قطع/وصل صدا — همه‌ی دکمه‌های صدا هم‌زمان به‌روز می‌شوند */
+function toggleSound() {
+  Snd.init();
+  const m = Snd.toggleMute();
+  $('btnMute').textContent = m ? '🔇' : '🔊';
+  $('btnMute0').textContent = m ? '🔇' : '🔊';
+  $('btnMute2').textContent = m ? '🔇 صدا خاموش' : '🔊 صدا روشن';
+  if (!m) SFX.click();
+}
+
+/* به‌روزرسانی HUD (نوار جون، سکه، موج) + نوار سلاح */
 function updateHUD() {
   const t = state.tower, ratio = t.hp / t.maxHp;
   const fill = $('healthFill');
@@ -1237,9 +1928,37 @@ function updateHUD() {
   $('healthText').textContent = faNum(Math.ceil(t.hp)) + '/' + faNum(t.maxHp);
   $('coinText').textContent = faNum(state.coins);
   $('waveText').textContent = 'موج ' + faNum(clamp(state.wave, 1, TOTAL_WAVES)) + '/' + faNum(TOTAL_WAVES);
+  refreshWeaponBar();
 }
 
-/* به‌روزرسانی کارت‌های منوی ساخت‌وساز */
+/* نوار سلاح: هایلایتِ سلاح فعال + قفل/قیمتِ سلاح‌های نخریده */
+function refreshWeaponBar() {
+  document.querySelectorAll('#weaponBar .wslot').forEach(el => {
+    const id = el.dataset.w;
+    el.classList.toggle('active', state.weapon === id && WEAPONS[id].owned);
+    const locked = !WEAPONS[id].owned;
+    el.classList.toggle('locked', locked);
+    const info = el.querySelector('.wlockinfo');
+    if (info) info.style.display = locked ? 'flex' : 'none';
+  });
+}
+
+/* نوار جون پادشاه زامبی‌ها (فقط وقتی زنده است نمایش داده می‌شود) */
+let bossBarVisible = false;
+function updateBossBar() {
+  const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
+  const el = $('bossBar');
+  if (boss) {
+    el.style.display = 'block';
+    $('bossFill').style.width = (clamp(boss.hp / boss.maxHp, 0, 1) * 100).toFixed(1) + '%';
+    bossBarVisible = true;
+  } else if (bossBarVisible) {
+    el.style.display = 'none';
+    bossBarVisible = false;
+  }
+}
+
+/* به‌روزرسانی کارت‌های منوی ساخت‌وساز (۶ کارت) */
 function setBuyBtn(btnId, kind) {
   const btn = $(btnId), u = UPGRADES[kind], lvl = state.upgrades[kind];
   if (lvl >= u.max) { btn.disabled = true; btn.textContent = 'حداکثر ✅'; return; }
@@ -1247,20 +1966,58 @@ function setBuyBtn(btnId, kind) {
   btn.disabled = state.coins < price;
   btn.textContent = 'خرید — ' + faNum(price) + ' 💰';
 }
+function setWeaponBtn(btnId, kind) {
+  const btn = $(btnId);
+  if (WEAPONS[kind].owned) { btn.disabled = true; btn.textContent = 'خریده شد ✅'; return; }
+  btn.disabled = state.coins < UPGRADES[kind].price;
+  btn.textContent = 'خرید — ' + faNum(UPGRADES[kind].price) + ' 💰';
+}
 function refreshShop() {
   $('shopCoins').textContent = faNum(state.coins);
   const w = state.upgrades.weapon, h = state.upgrades.health, t = state.upgrades.trap;
 
-  $('weaponDesc').textContent = 'قدرت گلوله: ' + faNum(bulletDamage()) +
-    (w < UPGRADES.weapon.max ? ' ← ' + faNum(bulletDamage() + 1) : '');
+  /* ارتقای اسلحه */
+  const pd = weaponDmg(WEAPONS.pistol);
+  $('weaponDesc').textContent = 'آسیب همه‌ی سلاح‌ها بالا می‌ره (تپانچه: ' + faNum(pd) +
+    (w < UPGRADES.weapon.max ? ' ← ' + faNum(weaponDmg(WEAPONS.pistol, 1)) : '') + ')';
   $('weaponLvl').textContent = 'سطح ' + faNum(w) + ' از ' + faNum(UPGRADES.weapon.max);
   setBuyBtn('buyWeapon', 'weapon');
 
+  /* شاتگان */
+  $('shotgunDesc').textContent = WEAPONS.shotgun.owned
+    ? 'آزاد شد — با کلید ۲ انتخابش کن'
+    : '۶ ساچمه با پراکندگی کشنده (آسیب هر ساچمه: ' + faNum(weaponDmg(WEAPONS.shotgun)) + ')';
+  $('shotgunLvl').textContent = WEAPONS.shotgun.owned ? 'در خدمتِ تو! 🎖' : 'قفل — کلید ۲';
+  setWeaponBtn('buyShotgun', 'shotgun');
+
+  /* مسلسل */
+  $('mgDesc').textContent = WEAPONS.mg.owned
+    ? 'آزاد شد — با کلید ۳ انتخابش کن'
+    : 'نگه‌دار و ببار! (آسیب هر گلوله: ' + faNum(weaponDmg(WEAPONS.mg)) + ')';
+  $('mgLvl').textContent = WEAPONS.mg.owned ? 'در خدمتِ تو! 🎖' : 'قفل — کلید ۳';
+  setWeaponBtn('buyMg', 'mg');
+
+  /* جون برج */
   $('healthDesc').textContent = 'حداکثر جون: ' + faNum(state.tower.maxHp) +
     (h < UPGRADES.health.max ? ' ← ' + faNum(state.tower.maxHp + UPGRADES.health.bonus) + ' (+' + faNum(UPGRADES.health.bonus) + ')' : '');
   $('healthLvl').textContent = 'سطح ' + faNum(h) + ' از ' + faNum(UPGRADES.health.max);
   setBuyBtn('buyHealth', 'health');
 
+  /* تعمیر سریع */
+  const full = state.tower.hp >= state.tower.maxHp - 0.5;
+  const heal = Math.round(state.tower.maxHp * UPGRADES.repair.frac);
+  $('repairDesc').textContent = full
+    ? 'برج سرِ سلامتیه — فعلاً نیازی نیست'
+    : 'جون برج: ' + faNum(Math.ceil(state.tower.hp)) + ' ← ' +
+      faNum(Math.min(state.tower.maxHp, Math.ceil(state.tower.hp) + heal));
+  const rbtn = $('buyRepair');
+  if (full) { rbtn.disabled = true; rbtn.textContent = 'سرِ سلامتی ✅'; }
+  else {
+    rbtn.disabled = state.coins < UPGRADES.repair.price;
+    rbtn.textContent = 'خرید — ' + faNum(UPGRADES.repair.price) + ' 💰';
+  }
+
+  /* تله */
   $('trapDesc').textContent = t === 0
     ? 'آسیب خودکار به زامبی‌های نزدیک برج (' + faNum(trapDps(1)) + ' دمیج در ثانیه)'
     : 'آسیب خودکار: ' + faNum(trapDps(t)) + (t < UPGRADES.trap.max ? ' ← ' + faNum(trapDps(t + 1)) : '') + ' در ثانیه';
@@ -1268,7 +2025,7 @@ function refreshShop() {
   setBuyBtn('buyTrap', 'trap');
 }
 
-/* ---------------------- ۱۵) حلقه اصلی و راه‌اندازی ---------------------- */
+/* ---------------------- ۱۶) حلقه اصلی و راه‌اندازی ---------------------- */
 let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05); // سقف dt برای جلوگیری از پرش فیزیک
@@ -1276,13 +2033,21 @@ function frame(now) {
   animTime += dt;                                // زمان نمایشی همیشه جلو می‌رود
   if (state.mode === 'playing' || state.mode === 'intermission') update(dt);
   else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dt);
+  else if (state.mode === 'start') updateMenuScene(dt);
+  /* حالت‌های paused/shop: هیچ آپدیتی نمی‌شوند (انجماد کامل) */
+  updateShootingStar(dt);                        // شهاب در همه‌ی حالت‌ها
   render();
   requestAnimationFrame(frame);
 }
 
 function init() {
-  /* اتصال دکمه‌ها */
+  /* اتصال دکمه‌های منو و اورلی‌ها */
   $('btnStart').addEventListener('click', startGame);
+  $('btnHowto').addEventListener('click', () => { SFX.click(); showScreen('howtoScreen'); });
+  $('closeHowto').addEventListener('click', () => { SFX.click(); hideScreen('howtoScreen'); });
+  $('btnMute0').addEventListener('click', toggleSound);
+  $('btnMute').addEventListener('click', toggleSound);
+  $('btnMute2').addEventListener('click', toggleSound);
   $('btnPause').addEventListener('click', () => {
     if (state.mode === 'paused') resumeGame(); else pauseGame();
   });
@@ -1293,9 +2058,18 @@ function init() {
   $('btnRestart1').addEventListener('click', startGame);
   $('btnRestart2').addEventListener('click', startGame);
   $('buyWeapon').addEventListener('click', () => attemptBuy('weapon'));
+  $('buyShotgun').addEventListener('click', () => attemptBuy('shotgun'));
+  $('buyMg').addEventListener('click', () => attemptBuy('mg'));
   $('buyHealth').addEventListener('click', () => attemptBuy('health'));
+  $('buyRepair').addEventListener('click', () => attemptBuy('repair'));
   $('buyTrap').addEventListener('click', () => attemptBuy('trap'));
 
+  /* کلیک روی اسلات‌های نوار سلاح */
+  document.querySelectorAll('#weaponBar .wslot').forEach(el => {
+    el.addEventListener('click', () => selectWeapon(el.dataset.w));
+  });
+
+  initMenuZ();       // زامبی‌های تزئینیِ صحنه‌ی منو
   updateHUD();
   refreshShop();
   requestAnimationFrame(frame);
@@ -1304,25 +2078,32 @@ init();
 
 /* رابط اشکال‌زدایی/تست خودکار — برای توسعه‌های بعدی در دسترس است */
 window.GAME = {
-  state, startGame, startWave, spawnZombie, damageTower,
+  state, startGame, startWave, spawnZombie, damageTower, selectWeapon, WEAPONS, ZTYPES, WAVES,
   giveCoins(n) { state.coins += n; updateHUD(); refreshShop(); },
+  spawnType(type) { spawnZombie(type); },
+  hurt(n) { damageTower(n, TOWER.x + 10); },
+  hurtBoss(n) {
+    const b = state.zombies.find(z => z.type === 'boss' && !z.dead);
+    if (b) { b.hp -= n; if (b.hp <= 0) killZombie(b); }
+  },
   /* پرش سریع به موج n (برای تست) */
   skipToWave(n) {
     n = clamp(n, 1, TOTAL_WAVES);
-    state.zombies = []; state.bullets = [];
+    state.zombies = []; state.bullets = []; state.coinsArr = [];
     state.wave = n - 1;
-    state.spawn = { remaining: 0, timer: 0, interval: 1 };
+    state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
     if (state.mode === 'playing') waveComplete();
-    else if (state.mode !== 'start' && state.mode !== 'gameover' && state.mode !== 'victory') {
+    else if (!['start', 'gameover', 'victory', 'paused', 'shop'].includes(state.mode)) {
       state.mode = 'intermission'; state.intermission = 0.3;
     }
   },
-  /* شبیه‌سازی برد (برای تست) */
+  /* شبیه‌سازی برد (برای تست) — از هر حالتی کار می‌کند */
   win() {
     state.wave = TOTAL_WAVES;
-    state.spawn = { remaining: 0, timer: 0, interval: 1 };
+    state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
     state.zombies = []; state.bullets = [];
-    if (state.mode === 'playing') waveComplete();
+    state.mode = 'playing';          // حتی از وقفه/فروشگاه هم برد شبیه‌سازی شود
+    waveComplete();
   },
 };
 </script>
