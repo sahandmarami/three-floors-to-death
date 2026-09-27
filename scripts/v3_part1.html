@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ ۳ سلاح، ۴ نوع دشمن، کمبو و ضربه‌ی بحرانی، جعبه‌های قدرت، ساخت‌وساز زنده روی نقشه (نسخه‌ی ۳٫۰)">
+<meta name="description" content="سه طبقه تا بقا — دفاع از برج سه‌طبقه در برابر ۱۰ موج زامبی؛ ۳ سلاح، ۴ نوع دشمن، کمبو و ضربه‌ی بحرانی، جعبه‌های قدرت، ساخت‌وساز زنده روی نقشه و برجک‌های دفاعی خودکار (نسخه‌ی ۴٫۰)">
 <title>سه طبقه تا بقا</title>
 <style>
 /* ==================================================================
@@ -122,6 +122,11 @@ body{display:flex;align-items:center;justify-content:center}
 /* لرزش آیتم وقتی سکه کافی نیست */
 @keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .bp-item.deny{animation:bpDeny .3s;border-color:#e04b3a}
+/* گروه‌بندی آیتم‌های پنل + حالت «در حال نصب» (۴٫۰) */
+.bp-grp{display:flex;align-items:center;gap:6px;padding:5px 5px 2px;font-size:8.5px;font-weight:bold;
+  color:#6d7ea6;letter-spacing:.4px}
+.bp-grp::before,.bp-grp::after{content:'';flex:1;height:1px;background:#24325a}
+.bp-item.placing{border-color:#ffd873;background:rgba(45,58,100,.95);box-shadow:0 0 10px rgba(255,216,115,.28)}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها ---------- */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -255,13 +260,14 @@ body{display:flex;align-items:center;justify-content:center}
         <span class="chip">🎯 ضربه‌ی بحرانی</span>
         <span class="chip">🔥 کمبو و قدرت‌های ویژه</span>
         <span class="chip">🛠 ساخت‌وساز زنده</span>
+        <span class="chip">🛡 برجک‌های خودکار</span>
       </div>
       <div class="menu-btns">
         <button class="btn-main btn-big" id="btnStart">🎮 شروع بازی</button>
         <button class="btn-sec" id="btnHowto">📖 راهنما</button>
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۳٫۰ — همه‌ی گرافیک و صداها همین‌جا و درون همین یک فایل ساخته می‌شوند</p>
+      <p class="ver">نسخه‌ی ۴٫۰ — برجک‌های دفاعیِ خودکار + همه‌ی گرافیک و صداها همین‌جا و درون همین یک فایل ساخته می‌شوند</p>
     </div>
   </div>
 
@@ -272,9 +278,10 @@ body{display:flex;align-items:center;justify-content:center}
       <p class="subtitle">سی ثانیه بخوان؛ ده موج زنده بمون!</p>
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر</div>
-        <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> خرید سریع از ساخت‌وساز &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
+        <div>⌨ <b>۱ / ۲ / ۳:</b> تعویض سلاح &nbsp;•&nbsp; <b>۴ تا ۹:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰ / G / F:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>T:</b> ارتقای برجک‌ها &nbsp;•&nbsp; <b>B:</b> جمع/باز کردن پنل</div>
         <div>⌨ <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> قطع/وصل صدا</div>
         <div>🛠 <b>پنل ساخت‌وساز</b> سمت راست نقشه همیشه باز است — حتی وسط موج می‌تونی ارتقا بخری!</div>
+        <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را از پنل بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
         <div>🎯 شلیک به <b>سر</b> زامبی = <b>ضربه‌ی بحرانی</b> با دمیج دوبرابر</div>
         <div>🔥 کشتنِ پشت‌سرهم = <b>کمبو</b>؛ در رکوردهای بالاتر سکه‌ی جایزه می‌گیری</div>
         <div>⚡ از زامبی‌ها جعبه‌ی قدرت می‌افتد: ❤️ درمان &nbsp;•&nbsp; ⚡ شلیک سریع &nbsp;•&nbsp; ❄️ انجماد &nbsp;•&nbsp; 💰 بار سکه</div>

@@ -135,7 +135,7 @@ function update(dt) {
 
   /* اسلحه همیشه رو به ماوس باشد؛ اگر ماوس پایین است شلیک خودکار ادامه یابد */
   updateAim();
-  if (state.mouse.down && canPlay()) tryShoot();
+  if (state.mouse.down && canPlay() && !state.placing) tryShoot();
 
   /* شمارش معکوس بین موج‌ها */
   if (state.mode === 'intermission') {
@@ -194,6 +194,7 @@ function update(dt) {
   if (canPlay()) {
     updateZombies(dt);
     updateBullets(dt);
+    updateTurrets(dt);                     // برجک‌های دفاعی خودکار (۴٫۰)
     updateCoins(dt);
     updatePowerups(dt);
     updateDecals(dt);
@@ -278,6 +279,7 @@ function gameOver() {
   if (state.mode === 'gameover') return;
   state.mode = 'gameover';
   state.mouse.down = false;
+  state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
   state.combo = 0;
   state.shake = 14; state.flash = 1;
   /* آوار و گردوخاک سقوط برج */
@@ -285,7 +287,8 @@ function gameOver() {
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 16, '#e04b3a', { speed: 200, life: 0.7, size: 3, grav: 600 });
   $('goSubtitle').textContent = 'برج سقوط کرد... تا موج ' + faNum(state.wave) + ' از ' + faNum(TOTAL_WAVES) + ' دووم آوردی.';
   $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) +
-    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
+    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
+    '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
   SFX.gameover();
@@ -296,11 +299,13 @@ function victory() {
   if (state.mode === 'victory') return;
   state.mode = 'victory';
   state.mouse.down = false;
+  state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
   state.combo = 0;
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 30, '#ffd873', { speed: 240, life: 1.1, size: 3, grav: 350 });
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 20, '#7bd389', { speed: 200, life: 1.0, size: 2.6, grav: 350 });
   $('vStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه: <b>' + faNum(state.stats.earned) +
-    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; ❤️ جون باقی‌مانده: <b>' + faNum(Math.ceil(state.tower.hp)) + '</b>';
+    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
+    '</b> &nbsp;|&nbsp; ❤️ جون باقی‌مانده: <b>' + faNum(Math.ceil(state.tower.hp)) + '</b>';
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
   SFX.victory();
@@ -572,6 +577,161 @@ function drawTrap() {
   }
 }
 
+/* برجک‌های دفاعی خودکار (۴٫۰) — هر نوع شکل مخصوص خودش را دارد:
+   مسلسل: کیسه‌ی شن + سه لوله‌ی چرخان | تک‌تیرانداز: سه‌پایه + لوله‌ی بلند + دوربین
+   یخ‌زن: پایه‌ی سنگی + بلور شناورِ درخشان. بالای سر هر برجک، پین‌های سطح ارتقا رسم می‌شود. */
+function drawTurret(t) {
+  const def = TURRETS[t.type];
+  const lvl = state.upgrades.turretUp;
+  ctx.save();
+  ctx.translate(t.x, t.y);
+
+  /* سایه روی زمین */
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 15, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+
+  if (t.type === 'gatling') {
+    /* کیسه‌های شن دو طرف */
+    ctx.fillStyle = '#6e6146';
+    rr(-17, -7, 14, 8, 3); ctx.fill();
+    rr(4, -7, 14, 8, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1;
+    ctx.strokeRect(-17, -7, 14, 8); ctx.strokeRect(4, -7, 14, 8);
+    /* بدنه + جعبه‌ی مهمات */
+    ctx.fillStyle = '#3a4150'; rr(-8, -17, 16, 12, 3); ctx.fill();
+    ctx.fillStyle = '#8a6f3a'; rr(9, -13, 8, 6, 1.5); ctx.fill();
+    /* نوار مهمات از جعبه تا سرِ لوله‌ها (حسِ مسلسل) */
+    ctx.strokeStyle = '#c9a35a'; ctx.lineWidth = 1.6; ctx.setLineDash([2.5, 2]);
+    ctx.beginPath(); ctx.moveTo(9, -12); ctx.quadraticCurveTo(4, -15, 1, -16.5); ctx.stroke();
+    ctx.setLineDash([]);
+    /* سر چرخان با سه لوله (دورشدن لوله‌ها با spin) */
+    ctx.save();
+    ctx.translate(0, -def.h);
+    ctx.rotate(t.aim);
+    ctx.translate(-t.recoil * 2, 0);
+    ctx.fillStyle = '#2b2f38'; circle(0, 0, 6.5);
+    for (let k = 0; k < 3; k++) {
+      const off = Math.sin((t.spin || 0) + k * 2.094) * 3.2;
+      ctx.strokeStyle = '#5d6575'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(2, off); ctx.lineTo(def.len, off); ctx.stroke();
+    }
+    /* نوکِ لوله‌ها همیشه دیده شود */
+    ctx.fillStyle = '#8b93a3';
+    for (let k = 0; k < 3; k++) {
+      const off = Math.sin((t.spin || 0) + k * 2.094) * 3.2;
+      circle(def.len, off, 1.5);
+    }
+    if (t.flash > 0) {
+      const a = t.flash / 0.07;
+      ctx.fillStyle = 'rgba(255,220,140,' + a.toFixed(2) + ')';
+      circle(def.len + 3, 0, 5 * a + 2);
+    }
+    ctx.restore();
+  } else if (t.type === 'sniper') {
+    /* سه‌پایه‌ی چوبی */
+    ctx.strokeStyle = '#4a3b28'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-4, -12); ctx.lineTo(-12, 0);
+    ctx.moveTo(4, -12); ctx.lineTo(12, 0);
+    ctx.moveTo(0, -13); ctx.lineTo(0, 1);
+    ctx.stroke();
+    /* بدنه‌ی سبز تیره + لوله‌ی بلند + دوربین */
+    ctx.save();
+    ctx.translate(0, -def.h);
+    ctx.rotate(t.aim);
+    ctx.translate(-t.recoil * 4, 0);
+    ctx.fillStyle = '#334632'; rr(-7, -3.5, 14, 7, 2.5); ctx.fill();
+    ctx.fillStyle = '#20262b'; ctx.fillRect(6, -1.6, def.len, 3.2);
+    ctx.fillStyle = '#454b57'; ctx.fillRect(6 + def.len - 4, -2.4, 4, 4.8);
+    ctx.fillStyle = '#141a20'; rr(0, -6.5, 7, 4, 1.5); ctx.fill();
+    ctx.fillStyle = 'rgba(140,220,255,0.75)'; circle(3.5, -4.5, 1.3);
+    if (t.flash > 0) {
+      const a = t.flash / 0.09;
+      ctx.fillStyle = 'rgba(255,235,170,' + a.toFixed(2) + ')';
+      circle(def.len + 8, 0, 8 * a + 3);
+    }
+    ctx.restore();
+  } else {
+    /* برجک یخ‌زن: پایه‌ی سنگی + بلور شناور */
+    ctx.fillStyle = '#3f4a5e'; rr(-11, -10, 22, 11, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1; ctx.strokeRect(-11, -10, 22, 11);
+    ctx.fillStyle = 'rgba(160,200,240,0.25)'; rr(-11, -10, 22, 3, 2); ctx.fill();
+    const bob = Math.sin(animTime * 2.6 + (t.bob || 0)) * 2.2;
+    ctx.save();
+    ctx.translate(0, -def.h + bob);
+    const g = ctx.createRadialGradient(0, 0, 2, 0, 0, 16);
+    g.addColorStop(0, 'rgba(140,215,255,0.5)');
+    g.addColorStop(1, 'rgba(140,215,255,0)');
+    ctx.fillStyle = g; circle(0, 0, 16);
+    ctx.fillStyle = t.flash > 0 ? '#eaf8ff' : '#9fdcff';
+    ctx.beginPath();
+    ctx.moveTo(0, -9); ctx.lineTo(6, 0); ctx.lineTo(0, 9); ctx.lineTo(-6, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,120,170,0.8)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.restore();
+  }
+
+  /* پین‌های سطح ارتقای برجک‌ها (هر سطح یک مثلث طلایی) */
+  for (let i = 0; i < lvl; i++) {
+    ctx.fillStyle = '#ffd873';
+    ctx.beginPath();
+    ctx.moveTo(-10 + i * 6, -30); ctx.lineTo(-7 + i * 6, -34); ctx.lineTo(-4 + i * 6, -30);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  /* حلقه‌ی برد هنگام hover روی برجک */
+  if (t.hover) {
+    ctx.strokeStyle = 'rgba(130,190,255,0.4)';
+    ctx.lineWidth = 1.6; ctx.setLineDash([6, 8]);
+    ctx.beginPath(); ctx.ellipse(t.x, t.y + 4, def.range, def.range * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* شبحِ نصب برجک (۴٫۰): دنبال ماوس می‌آید — سبز = مجاز، قرمز = نامعتبر */
+function drawPlacing() {
+  if (!state.placing || !canPlay()) return;
+  const def = TURRETS[state.placing.type];
+  const mx = state.mouse.x, my = state.mouse.y;
+  const ok = placementValid(mx, my);
+
+  /* حلقه‌ی برد + رنگ وضعیت */
+  ctx.strokeStyle = ok ? 'rgba(110,225,140,0.5)' : 'rgba(235,80,70,0.55)';
+  ctx.lineWidth = 1.8; ctx.setLineDash([7, 9]);
+  ctx.beginPath(); ctx.ellipse(mx, my + 6, def.range, def.range * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* شبحِ نیمه‌شفاف برجک */
+  ctx.globalAlpha = 0.62;
+  drawTurret({ type: state.placing.type, x: mx, y: my, cd: 9, flash: 0, recoil: 0,
+    aim: mx < TOWER.x ? 0 : Math.PI, spin: animTime * 2, hover: false, bob: 0 });
+  ctx.globalAlpha = 1;
+
+  /* علامت ✕ اگر جای نامعتبری است */
+  if (!ok) {
+    ctx.strokeStyle = 'rgba(235,80,70,0.9)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(mx - 10, my - 30); ctx.lineTo(mx + 10, my - 10);
+    ctx.moveTo(mx + 10, my - 30); ctx.lineTo(mx - 10, my - 10);
+    ctx.stroke();
+  }
+
+  /* نوار راهنمای نصب بالای صحنه */
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 13px Tahoma, sans-serif';
+  const msg = 'کلیک: نصب  •  راست‌کلیک / Esc: لغو';
+  const tw = ctx.measureText(msg).width + 30;
+  ctx.fillStyle = 'rgba(8,14,30,0.82)';
+  rr(W / 2 - tw / 2, 76, tw, 27, 8); ctx.fill();
+  ctx.strokeStyle = ok ? 'rgba(110,225,140,0.5)' : 'rgba(235,80,70,0.5)';
+  ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#e8ecf5';
+  ctx.fillText(msg, W / 2, 90);
+  ctx.restore();
+}
+
 /* برج سه‌طبقه: هر طبقه رنگ و جزئیات متفاوت (سنگی/آجری/آبی) + پرچم */
 function drawTower() {
   const ratio = state.tower.hp / state.tower.maxHp;
@@ -773,6 +933,14 @@ function drawZombie(z) {
     ctx.globalAlpha = 1;
   }
 
+  /* لایه‌ی یخِ ملایم‌تر گلوله‌ی برجک یخ‌زن (۴٫۰) */
+  if (!z.dead && z.chill > 0) {
+    ctx.globalAlpha = Math.min(0.30, 0.12 + z.chill * 0.09);
+    ctx.fillStyle = '#a5d8ff';
+    circle(z.x, z.y - 18 * s, 14 * s + 3);
+    ctx.globalAlpha = 1;
+  }
+
   /* نوار جون بالای سر (وقتی آسیب دیده) */
   if (!z.dead && z.hp < z.maxHp - 0.001) {
     const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
@@ -884,8 +1052,28 @@ function drawPowerTimers() {
   }
 }
 
-/* گلوله با دنباله درخشان (ساچمه‌های شاتگان ریزترند) */
+/* گلوله با دنباله درخشان — ساچمه/مسلسل ریز، تیر تک‌تیرانداز ردِ بلند، یخی لوزی (۴٫۰) */
 function drawBullet(b) {
+  if (b.frost) {
+    /* گلوله‌ی یخی: لوزی درخشان آبی + رد محو */
+    ctx.strokeStyle = 'rgba(160,225,255,0.45)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(b.x - b.vx * 0.03, b.y - b.vy * 0.03); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.fillStyle = 'rgba(140,215,255,0.3)'; circle(b.x, b.y, 6);
+    ctx.save();
+    ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx));
+    ctx.fillStyle = '#dff3ff';
+    ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(-3, 3.2); ctx.lineTo(-3, -3.2); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (b.tracer) {
+    /* تیر تک‌تیرانداز: ردِ بلند سفید-زرد */
+    ctx.strokeStyle = 'rgba(255,244,200,0.55)'; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(b.x - b.vx * 0.085, b.y - b.vy * 0.085); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,235,170,0.3)'; circle(b.x, b.y, 8);
+    ctx.fillStyle = '#fff7d6'; circle(b.x, b.y, 3.2);
+    return;
+  }
   const tl = b.pellet ? 0.022 : 0.04;
   ctx.strokeStyle = 'rgba(255,216,115,0.45)'; ctx.lineWidth = b.pellet ? 2 : 3;
   ctx.beginPath();
@@ -1061,9 +1249,9 @@ function drawOffscreenArrows() {
   }
 }
 
-/* نشانگر هدف‌گیری ماوس */
+/* نشانگر هدف‌گیری ماوس (در حالت نصب برجک مخفی می‌شود) */
 function drawReticle() {
-  if (!canPlay()) return;
+  if (!canPlay() || state.placing) return;
   const m = state.mouse;
   const r = 9 + state.recoil * 2.5;         // با شلیک باز می‌شود
   ctx.strokeStyle = 'rgba(255,90,80,0.85)'; ctx.lineWidth = 1.5;
@@ -1159,10 +1347,19 @@ function render() {
   drawFireflies();
   drawTrap();
   drawTower();
-  /* زامبی‌ها بر اساس عمق (y) مرتب می‌شوند تا ردیف‌های عقب پشت سر جلو دیده شوند */
-  const zlist = (state.mode === 'start' ? menuZ : state.zombies).slice().sort((a, b) => a.y - b.y);
-  for (const z of zlist) drawZombie(z);
+  /* زامبی‌ها و برجک‌ها بر اساس عمق (y) با هم مرتب می‌شوند تا ردیف‌های عقب
+     پشت سر جلو دیده شوند و برجک‌ها هم در جای درستِ خودشان بایستند (۴٫۰) */
+  if (state.mode === 'start') {
+    for (const z of menuZ.slice().sort((a, b) => a.y - b.y)) drawZombie(z);
+  } else {
+    const ents = [];
+    for (const z of state.zombies) ents.push({ y: z.y, z });
+    for (const t of state.turrets) ents.push({ y: t.y + 0.1, t });
+    ents.sort((a, b) => a.y - b.y);
+    for (const e of ents) { if (e.z) drawZombie(e.z); else drawTurret(e.t); }
+  }
   drawPlayer();
+  drawPlacing();                              // شبحِ نصب برجک روی همه‌چیز (۴٫۰)
   drawPowerTimers();
   for (const b of state.bullets) drawBullet(b);
   for (const c of state.coinsArr) drawCoin(c);

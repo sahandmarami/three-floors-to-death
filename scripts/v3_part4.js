@@ -41,26 +41,44 @@ function toggleSound() {
 }
 
 /* ---------- پنل ساخت‌وساز زنده (۳٫۰) ----------
-   تعریف ۶ آیتم پنل: ترتیب = ترتیب کلیدهای ۴ تا ۹ */
+   تعریف آیتم‌های پنل در سه گروه (۴٫۰): ارتقاها (۴-۷)، سلاح‌ها (۸-۹)
+   و برجک‌های دفاعی (۰، G، F و T) — ترتیب = ترتیب نمایش */
 const BUILD_DEFS = [
-  { kind: 'weapon',  icon: '🎯', name: 'ارتقای اسلحه', desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
-  { kind: 'health',  icon: '🧱', name: 'جون برج',     desc: '۳۰+ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
-  { kind: 'repair',  icon: '🧰', name: 'تعمیر برج',   desc: '۵۰٪ جون برج را همان‌جا برمی‌گرداند' },
-  { kind: 'trap',    icon: '⚡', name: 'تله پایه',    desc: 'آسیب خودکار به زامبی‌های نزدیک برج' },
-  { kind: 'shotgun', icon: '💥', name: 'شاتگان',      desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید کلید ۲' },
-  { kind: 'mg',      icon: '🌪', name: 'مسلسل',       desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید کلید ۳' },
+  { grp: 'ارتقاها' },
+  { kind: 'weapon',  key: '۴', codes: ['Digit4', 'Numpad4'], icon: '🎯', name: 'ارتقای اسلحه', desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
+  { kind: 'health',  key: '۵', codes: ['Digit5', 'Numpad5'], icon: '🧱', name: 'جون برج',     desc: '۳۰+ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
+  { kind: 'repair',  key: '۶', codes: ['Digit6', 'Numpad6'], icon: '🧰', name: 'تعمیر برج',   desc: '۵۰٪ جون برج را همان‌جا برمی‌گرداند' },
+  { kind: 'trap',    key: '۷', codes: ['Digit7', 'Numpad7'], icon: '⚡', name: 'تله پایه',    desc: 'آسیب خودکار به زامبی‌های نزدیک برج' },
+  { grp: 'سلاح‌ها' },
+  { kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], icon: '💥', name: 'شاتگان',      desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید کلید ۲' },
+  { kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], icon: '🌪', name: 'مسلسل',       desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید کلید ۳' },
+  { grp: 'برجک‌های دفاعی (خودکار)' },
+  { kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], icon: '🔫', name: 'برجک مسلسل',   desc: 'رگبار پیوسته با نرخ شلیک بالا — خودکار به زامبی‌ها می‌زند (برد ۲۳۰)' },
+  { kind: 'sniper',  key: 'G', codes: ['KeyG'],              icon: '🔭', name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با برد بلند و شانس ضربه‌ی بحرانی (برد ۴۰۰)' },
+  { kind: 'frost',   key: 'F', codes: ['KeyF'],              icon: '❄️', name: 'برجک یخ‌زن',    desc: 'زامبی‌های مقابل را کند و یخ‌زده می‌کند (برد ۱۷۵)' },
+  { kind: 'turretUp',key: 'T', codes: ['KeyT'],              icon: '⬆️', name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
 ];
+/* نگاشت کلیدهای فیزیکی به آیتم خرید (برای خرید سریع با کیبورد) */
+const KEY2KIND = {};
+BUILD_DEFS.forEach(d => { if (d.codes) d.codes.forEach(c => KEY2KIND[c] = d.kind); });
 
 /* ساخت یک‌بارِ آیتم‌های پنل در شروع صفحه */
 function buildPanelInit() {
   const list = $('bpList');
-  BUILD_DEFS.forEach((d, i) => {
+  BUILD_DEFS.forEach((d) => {
+    if (d.grp) {                              // عنوان گروه (۴٫۰)
+      const g = document.createElement('div');
+      g.className = 'bp-grp';
+      g.textContent = d.grp;
+      list.appendChild(g);
+      return;
+    }
     const el = document.createElement('div');
     el.className = 'bp-item';
     el.id = 'bp-' + d.kind;
     el.title = d.desc;
     el.innerHTML =
-      '<span class="bp-key">' + faNum(i + 4) + '</span>' +
+      '<span class="bp-key">' + d.key + '</span>' +
       '<span class="bp-icon">' + d.icon + '</span>' +
       '<span class="bp-mid"><b>' + d.name + '</b><i id="bp-' + d.kind + '-sub"></i></span>' +
       '<span class="bp-cost" id="bp-' + d.kind + '-cost"></span>';
@@ -114,7 +132,31 @@ function refreshBuildPanel() {
       continue;
     }
 
-    /* --- ارتقاهای سطح‌دار (اسلحه/جون/تله) --- */
+    /* --- برجک‌های دفاعی: خرید → حالت نصب (۴٫۰) --- */
+    if (d.kind === 'gatling' || d.kind === 'sniper' || d.kind === 'frost') {
+      const def = TURRETS[d.kind];
+      const maxed = state.turrets.length >= MAX_TURRETS;
+      const isPlacing = state.placing && state.placing.type === d.kind;
+      item.classList.toggle('placing', !!isPlacing);
+      item.classList.toggle('max', maxed && !isPlacing);
+      if (isPlacing) {
+        sub.textContent = 'در حال نصب — کلیک روی زمین (راست‌کلیک: لغو)';
+        cost.textContent = faNum(def.price);
+        item.classList.remove('poor');
+      } else if (maxed) {
+        sub.textContent = 'حداکثر ' + faNum(MAX_TURRETS) + ' برجک روی نقشه';
+        cost.textContent = '—';
+        item.classList.remove('poor');
+      } else {
+        const cnt = state.turrets.filter(t => t.type === d.kind).length;
+        sub.textContent = def.sub + (cnt ? ' • ' + faNum(cnt) + ' فعال' : '');
+        cost.textContent = faNum(def.price);
+        item.classList.toggle('poor', state.coins < def.price);
+      }
+      continue;
+    }
+
+    /* --- ارتقاهای سطح‌دار (اسلحه/جون/تله/برجک‌ها) --- */
     const u = UPGRADES[d.kind], lvl = state.upgrades[d.kind];
     const maxed = lvl >= u.max;
     item.classList.toggle('max', maxed);
@@ -124,7 +166,8 @@ function refreshBuildPanel() {
       item.classList.remove('poor');
     } else {
       sub.textContent = 'سطح ' + faNum(lvl) + '/' + faNum(u.max) +
-        (d.kind === 'trap' && lvl > 0 ? ' • ' + faNum(trapDps(lvl)) + ' دمیج/ث' : '');
+        (d.kind === 'trap' && lvl > 0 ? ' • ' + faNum(trapDps(lvl)) + ' دمیج/ث' : '') +
+        (d.kind === 'turretUp' ? ' • ' + faNum(state.turrets.length) + ' برجک فعال' : '');
       const price = priceOf(d.kind);
       cost.textContent = faNum(price);
       item.classList.toggle('poor', state.coins < price);
@@ -234,6 +277,7 @@ init();
 /* رابط اشکال‌زدایی/تست خودکار — برای توسعه‌های بعدی در دسترس است */
 window.GAME = {
   state, startGame, startWave, spawnZombie, damageTower, selectWeapon, WEAPONS, ZTYPES, WAVES,
+  TURRETS, MAX_TURRETS,
   giveCoins(n) { state.coins += n; updateHUD(); },
   spawnType(type) { spawnZombie(type); },
   hurt(n) { damageTower(n, TOWER.x + 10); },
@@ -241,6 +285,15 @@ window.GAME = {
     const b = state.zombies.find(z => z.type === 'boss' && !z.dead);
     if (b) { b.hp -= n; if (b.hp <= 0) killZombie(b); }
   },
+  /* خرید و نصبِ مستقیم برجک بدون کلیک (برای تست) */
+  placeTurret(type, x, y) {
+    state.turrets.push({ type, x, y, cd: 0.3,
+      aim: x < TOWER.x ? 0 : Math.PI, spin: 0, flash: 0, recoil: 0, hover: false, bob: rand(0, 6.28) });
+    refreshBuildPanel();
+  },
+  /* شبیه‌سازی کلیک در حالت نصب (برای تست) */
+  clickPlace(x, y) { state.mouse.x = x; state.mouse.y = y; handlePlaceClick(); },
+  attemptBuy,
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },
   /* پرش سریع به موج n (برای تست) */
