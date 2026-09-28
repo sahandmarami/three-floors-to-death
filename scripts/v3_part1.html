@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۰٫۰: چهار فصل (محله‌ی قدیمی، انبارهای مه‌گرفته، پاسگاه نظامی، برج مخابراتی)، کات‌سین افتتاحیه با روایت داستان، کوله‌پشتی و وسایل بقا، چراغ‌قوه و قطع برق، دستفروش مرموز، انتقال‌های سینمایی-قابل‌بازی بین فصل‌ها، باس «آخرین شب» و سیو خودکار localStorage">
+<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۱٫۰: چهار فصل، گفتگوهای داستانی با صدا و پرتره، موسیقی چندقطعه‌ای، غولِ آخرین شبِ واقعی، گرافیک ارتقایافته، سیو دستی و خروج امن، بهینه برای موبایل و اندروید، چراغ‌قوه، کوله‌پشتی و سیو خودکار">
 <title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۹٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۱۱٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
    بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
             ۳) نوار باس و اعلان  ۴) نوار سلاح جمع‌وجور پایین
@@ -34,12 +34,48 @@ body{display:flex;align-items:center;justify-content:center}
   box-shadow:0 12px 70px rgba(0,0,0,.75),0 0 0 1px #1e2a4a}
 #game{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
 
+/* ---------- (۱۱٫۰) جعبه‌ی گفتگوی داستانی: پرتره + حباب ---------- */
+#dlgBox{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:30;
+  display:flex;align-items:flex-end;gap:10px;direction:rtl;max-width:88%;pointer-events:none}
+#dlgPortrait{width:92px;height:92px;border-radius:14px;background:rgba(10,14,26,.92);
+  border:2px solid #3d548c;flex:none;margin-bottom:5px;transition:box-shadow .3s}
+#dlgTextWrap{position:relative;background:rgba(8,12,24,.9);border:1.5px solid #33477c;
+  border-radius:14px 14px 4px 14px;padding:9px 16px 11px;min-width:320px;max-width:600px;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);backdrop-filter:blur(3px)}
+#dlgWho{font-size:12px;font-weight:bold;letter-spacing:.5px;margin-bottom:3px}
+#dlgText{font-size:15px;line-height:1.85;min-height:28px;color:#f3f0e4;font-weight:bold}
+#dlgText::after{content:'\258C';color:#ffd873;animation:dlgCaret 1s steps(2) infinite;margin-inline-start:2px}
+@keyframes dlgCaret{50%{opacity:0}}
+#dlgHint{font-size:9px;color:#7a8cb8;margin-top:4px;text-align:left}
+#dlgBox.hidden{display:none}
+
+/* ---------- (۱۱٫۰) چرخاندن گوشی در حالت عمودی ---------- */
+#rotateHint{position:absolute;inset:0;z-index:99;background:rgba(6,9,18,.96);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  font-size:44px;font-weight:bold;color:#ffd873;text-align:center;padding:20px;pointer-events:none}
+#rotateHint div{font-size:15px;color:#c3cdea;font-weight:normal;line-height:1.9}
+#rotateHint.hidden{display:none}
+/* (۱۱٫۰) نمایش rotateHint با JS مدیریت می‌شود (v4_mobile — orient) */
+
+/* ---------- (۱۱٫۰) لمس: دکمه‌های بزرگ‌تر و مناسب انگشت ---------- */
+#wrap.touch .hud-btn{padding:9px 15px;font-size:14px;min-height:40px}
+#wrap.touch .wslot{width:74px;height:48px}
+#wrap.touch .wslot .wname{font-size:10px}
+#wrap.touch .bp-tile{min-height:62px}
+#wrap.touch #buildPanel{width:192px;top:56px}
+#wrap.touch #hud{padding:6px 8px}
+#wrap.touch #weaponBar{bottom:8px}
+#wrap.touch #dlgText{font-size:16.5px}
+#wrap.touch #dlgTextWrap{min-width:250px}
+#wrap.touch #bpTip{display:none!important}
+#wrap.touch .overlay .btn-main,#wrap.touch .overlay .btn-sec{min-height:46px;font-size:15px}
+
 /* ---------- ۲) HUD بالای صفحه ---------- */
 #hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
   align-items:flex-start;padding:8px 12px;gap:10px;pointer-events:none;z-index:5}
 .hud-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.hud-item{display:flex;align-items:center;gap:7px;background:rgba(8,14,32,.74);
-  border:1px solid #26355c;border-radius:10px;padding:5px 11px;font-size:13px;font-weight:bold;
+.hud-item{display:flex;align-items:center;gap:6px;background:rgba(8,14,32,.72);
+  border:1px solid #26355c;border-radius:10px;padding:4px 10px;font-size:12.5px;font-weight:bold;
   backdrop-filter:blur(4px);white-space:nowrap}
 #healthBar{width:128px;height:13px;background:#160c0c;border:1px solid #3a1f24;border-radius:7px;overflow:hidden}
 #healthFill{height:100%;width:100%;border-radius:7px;transition:width .18s ease;
@@ -65,9 +101,9 @@ body{display:flex;align-items:center;justify-content:center}
 
 #announce{position:absolute;top:24%;left:0;right:0;text-align:center;pointer-events:none;z-index:4;
   opacity:0;transition:opacity .25s ease}
-#announce .big{font-size:36px;font-weight:bold;color:#ffd873;
-  text-shadow:0 3px 14px rgba(0,0,0,.85),0 0 34px rgba(255,190,60,.3)}
-#announce .sub{font-size:15px;color:#cdd8f2;margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+#announce .big{font-size:29px;font-weight:bold;color:#ffd873;   /* (۱۱٫۰) جمع‌وجورتر — صفحه شلوغ نشود */
+  text-shadow:0 3px 12px rgba(0,0,0,.85),0 0 26px rgba(255,190,60,.3)}
+#announce .sub{font-size:13.5px;color:#cdd8f2;margin-top:7px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
 /* ورود ضربه‌ای اعلان‌ها (۳٫۰) */
 #announce.pop .big{animation:annPop .5s cubic-bezier(.2,1.7,.5,1) both}
 @keyframes annPop{0%{transform:scale(.4) translateY(10px);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -248,7 +284,7 @@ body{display:flex;align-items:center;justify-content:center}
 .foe b{color:#e8ecf5;font-size:12.5px}
 .foe i{color:#8fa3cf;font-style:normal;font-size:11px;display:block;margin-top:1px}
 /* ==================================================================
-   نسخه‌ی ۱۰٫۰ — فصل‌ها، کوله‌پشتی، چراغ‌قوه، دستفروش، انتقال‌ها، منو
+   نسخه‌ی ۱۱٫۰ — گفتگو صوتی، موسیقی، موبایل، ذخیره/خروج
    ================================================================== */
 
 /* --- HUD چراغ‌قوه + باتری --- */
@@ -466,6 +502,18 @@ body{display:flex;align-items:center;justify-content:center}
     <div id="ccSub">شب‌های آجری</div>
   </div>
 
+  <!-- ============ (۱۱٫۰) جعبه‌ی گفتگوی داستانی: پرتره + حباب متن ============ -->
+  <div id="dlgBox" class="hidden">
+    <div id="dlgTextWrap">
+      <div id="dlgWho">ارشان</div>
+      <div id="dlgText"></div>
+      <div id="dlgHint">کلیک / Space = ادامه</div>
+    </div>
+    <canvas id="dlgPortrait" width="96" height="96"></canvas>
+  </div>
+
+  <!-- ============ (۱۱٫۰) راهنمای چرخاندن گوشی (حالت عمودی) ============ -->
+  <div id="rotateHint" class="hidden">🔄<div>برای بازی، گوشی را <b>افقی</b> بچرخان</div></div>
   <!-- ============ دکمه‌ی «رد کردن» کات‌سین داستانی (۷٫۰) — ۱۰٫۰: افتتاحیه/انتقال‌ها هم ============ -->
   <button id="skipCs" class="hidden">⏭ رد کردن</button>
 
@@ -487,7 +535,7 @@ body{display:flex;align-items:center;justify-content:center}
       <div class="menu-quick">
         <button class="icon-btn" id="btnMute0" title="قطع/وصل صدا">🔊</button>
       </div>
-      <p class="ver">نسخه‌ی ۱۰٫۰ — چهار فصل + کوله‌پشتی + چراغ‌قوه + آخرین شب</p>
+      <p class="ver">نسخه‌ی ۱۱٫۰ — گفتگو صوتی + موسیقی + غولِ واقعی + موبایل</p>
     </div>
   </div>
 
@@ -528,6 +576,7 @@ body{display:flex;align-items:center;justify-content:center}
       <p class="subtitle">نفسی تازه کن... زامبی‌ها منتظرت می‌مونن!</p>
       <div class="btn-row">
         <button class="btn-main" id="btnResume">▶ ادامه بازی</button>
+        <button class="btn-sec" id="btnSaveExit">💾 ذخیره و خروج</button>
         <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
         <button class="btn-sec" id="btnMute2">🔊 صدا روشن</button>
       </div>
@@ -568,12 +617,12 @@ body{display:flex;align-items:center;justify-content:center}
   <div class="overlay hidden" id="aboutScreen">
     <div class="panel" style="max-width:470px">
       <h2>ℹ️ درباره‌ی بازی</h2>
-      <p class="subtitle">سه طبقه تا بقا — نسخه‌ی ۱۰٫۰</p>
+      <p class="subtitle">سه طبقه تا بقا — نسخه‌ی ۱۱٫۰</p>
       <div class="howto" style="text-align:right">
         <div>چند ماه پیش یک ویروس ناشناخته شهر را خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتان دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیوی قدیمی خبر شنیده‌اید برسید.</div>
         <div>۴ فصل، ۳۳ شب، ۳ صحنه‌ی فرار سینمایی-قابل‌بازی و یک «آخرین شب» با نگهبانِ آن.</div>
         <div>همه‌چیز با <b>HTML5 Canvas</b> و جاوااسکریپت خالص در <b>یک فایل واحد</b> ساخته شده — بدون هیچ تصویر یا فایل صوتی خارجی؛ آیکون‌های فروشگاه هم از تصویر خود شما برش خورده‌اند. 🧡</div>
-        <div>روایت افتتاحیه (فایل <b>narration.mp3</b>) کاملاً اختیاری است؛ اگر کنار بازی باشد پخش می‌شود، وگرنه بازی فقط با زیرنویس ادامه پیدا می‌کند.</div>
+        <div>(۱۱٫۰) تمام گفتگوهای داستانی <b>صدای واقعی دارند</b> و داخل خود فایل جاسازی شده‌اند (راوی، ارشان، تو، رادیو، نگهبان و دستفروش) — بدون هیچ فایل جانبی.</div>
       </div>
       <div class="btn-row"><button class="btn-main" id="closeAbout">برگرد</button></div>
     </div>
@@ -603,7 +652,7 @@ body{display:flex;align-items:center;justify-content:center}
 </div>
 
 <!-- ============ (۱۰٫۰) روایت اختیاری کات‌سین افتتاحیه ============
-     فایل صوتی روایت (مثلاً ساخت ElevenLabs) را با نام narration.mp3 کنار همین
+     (قدیمی) فایل narration.mp3 دیگر لازم نیست — صداهای گفتار داخل فایل‌اند. کنار همین
      فایل HTML قرار دهید تا هنگام پخش داستان آغازین اجرا شود؛ اگر نباشد یا
      لود نشود، بازی بدون خطا فقط با زیرنویس‌ها ادامه پیدا می‌کند. -->
 <audio id="narrAudio" src="narration.mp3" preload="auto"></audio>

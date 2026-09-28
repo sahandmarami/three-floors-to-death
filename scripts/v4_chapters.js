@@ -34,7 +34,7 @@ const CHAPTERS = [
   { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
     name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
     waves: WAVES_PER_CH,
-    mulHp: 1.00, mulSpd: 1.00, mulCount: 1.00,
+    mulHp: 1.15, mulSpd: 1.05, mulCount: 1.18,
     unlock: { fast: 3, tank: 6 },
     blackout: null,
     theme: {
@@ -54,7 +54,7 @@ const CHAPTERS = [
   { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
     name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
     waves: WAVES_PER_CH,
-    mulHp: 1.28, mulSpd: 1.08, mulCount: 1.12,
+    mulHp: 1.50, mulSpd: 1.13, mulCount: 1.30,
     unlock: { fast: 1, tank: 3 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -75,7 +75,7 @@ const CHAPTERS = [
   { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
     name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
     waves: WAVES_PER_CH,
-    mulHp: 1.60, mulSpd: 1.16, mulCount: 1.22,
+    mulHp: 1.90, mulSpd: 1.21, mulCount: 1.45,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 0, max: 1 },
     theme: {
@@ -97,7 +97,7 @@ const CHAPTERS = [
   { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
     name: 'برج مخابراتی', sub: 'آخرین قله',
     waves: WAVES_PER_CH,
-    mulHp: 1.95, mulSpd: 1.25, mulCount: 1.32,
+    mulHp: 2.40, mulSpd: 1.29, mulCount: 1.60,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -133,9 +133,9 @@ function waveLabel() {
 function buildWaveQueue(w) {
   if (w >= FINAL_WAVE) return ['boss'];
   const ch = waveChapter(w), wv = waveInChapter(w), C = CHAPTERS[ch - 1];
-  let n = Math.round((5 + wv * 1.55) * C.mulCount);
-  const f = wv >= C.unlock.fast ? Math.round(n * 0.30) : 0;
-  const t = wv >= C.unlock.tank ? Math.max(1, Math.round(n * 0.13)) : 0;
+  let n = Math.round((5 + wv * 1.85) * C.mulCount);          // (۱۱٫۰) موج‌ها پرتر
+  const f = wv >= C.unlock.fast ? Math.round(n * 0.32) : 0;
+  const t = wv >= C.unlock.tank ? Math.max(1, Math.round(n * 0.16)) : 0;
   n = Math.max(3, n - Math.round((f + t) * 0.55));
   const q = [];
   for (let i = 0; i < n; i++) q.push('normal');
@@ -151,7 +151,7 @@ function buildWaveQueue(w) {
 /* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر */
 function spawnInterval(w) {
   const ch = waveChapter(w), wv = waveInChapter(w);
-  return clamp(2.1 - wv * 0.12 - (ch - 1) * 0.18, 0.55, 2.2);
+  return clamp(2.0 - wv * 0.13 - (ch - 1) * 0.2, 0.5, 2.0);   // (۱۱٫۰) فشرده‌تر
 }
 
 /* ---------------------- ۵-۳) بازنویسی جریان اصلی ---------------------- */
@@ -287,7 +287,8 @@ function enterDay() {
     : 'زامبی نمی‌آید — ارتقا بخر و برجک بگذار';
   peddlerRoll();                          // (۱۰٫۰) شانس آمدن دستفروش مرموز
   saveGame();                             // (۱۰٫۰) سیو خودکارِ پایان موج
-  setBuildPanel(false, true);
+  /* (۱۱٫۰) روی موبایل پنلِ باز شلوغ است — جمع شروع می‌شود (با ضربه باز می‌شود) */
+  setBuildPanel((typeof IS_TOUCH !== 'undefined' && IS_TOUCH) ? true : false, true);
   $('bpHead').classList.add('attention');
   updateHUD(); refreshBackpack();
 }
@@ -321,7 +322,9 @@ function spawnZombie(type) {
   const C = curCh();
   const wv = waveInChapter(clamp(state.wave, 1, FINAL_WAVE));
   const side = Math.random() < 0.5 ? -1 : 1;
-  const hp = Math.max(1, Math.round((T.hpBase + T.hpWave * wv) * C.mulHp));
+  /* (۱۱٫۰) نگهبانِ آخرین شب جونِ ثابت دارد — ضریب فصل روی او اعمال نمی‌شود
+     (زرهاش خودش سختی را می‌سازند: ×۰٫۵ معمولی، ×۲٫۶ کریتِ سر) */
+  const hp = Math.max(1, Math.round((T.hpBase + T.hpWave * wv) * ((type || 'normal') === 'boss' ? 1 : C.mulHp)));
   state.zombies.push({
     type: type || 'normal',
     x: side < 0 ? -30 : W + 30,
@@ -395,7 +398,9 @@ function collectSave() {
   return {
     v: 1,
     chapter: state.chapter,
-    wave: state.wave + 1,                      // موجی که بعداً بازی می‌شود
+    /* (۱۱٫۰) حین شبِ N → خودِ N ذخیره می‌شود (همان شب از اول بازی شود)؛
+       در روز/وقفه بعد از موج N → N+۱ (موج بعدی) */
+    wave: state.wave + (state.mode === 'playing' ? 0 : 1),
     coins: state.coins,
     hp: Math.ceil(state.tower.hp), maxHp: state.tower.maxHp,
     upgrades: Object.assign({}, state.upgrades),
@@ -493,6 +498,47 @@ function continueGame() {
     setAnnounce('💾 بازی ادامه پیدا کرد',
       'فصل ' + faNum(state.chapter) + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(WAVES_PER_CH), 2.8);
   });
+}
+
+/* (۱۱٫۰) ذخیره‌ی وسط بازی + خروج امن به منو — «ادامه» از اولِ همان شب/روز
+   سیوِ حین شبِ N → ادامه در روزِ قبل از N با دکمه‌ی «شب شود — موج N» */
+function saveAndExit() {
+  SFX.click();
+  saveGame();                       // حین playing/day/intermission مجاز است
+  exitToMenu();
+  setTimeout(() => setAnnounce('💾 ذخیره شد!', 'هر وقت خواستی از منو «ادامه‌ی بازی» را بزن', 3), 350);
+}
+
+function exitToMenu() {
+  try { VOICE.stop(); } catch (e) {}
+  try { DLG.skip(); } catch (e) {}
+  try { MUSIC.set('menu'); } catch (e) {}
+  cutsceneHardReset();
+  transitionHardReset();
+  introHardReset();
+  hideOverlays();
+  hideDayPanel();
+  hidePeddlerPanel();
+  hideChapterCard();
+  hideAnnounce();
+  $('skipCs').classList.add('hidden');
+  state.mode = 'start';
+  state.prevMode = null;
+  state.mouse.down = false;
+  state.placing = null;
+  state.goingNight = false;
+  state.zombies = []; state.bullets = []; state.projectiles = [];
+  state.coinsArr = []; state.powerups = []; state.particles = []; state.texts = [];
+  state.bossBar && ($('bossBar').style.display = 'none');
+  bossBarVisible = false;
+  $('lockBadge').classList.add('hidden');
+  $('btnPause').textContent = '⏸ توقف';
+  $('wrap').classList.add('menu-mode');
+  $('wrap').classList.remove('cs-mode', 'cine-mode');
+  initMenuZ();                       // صحنه‌ی زنده‌ی منو
+  refreshMenuContinue();
+  showScreen('startScreen');
+  updateHUD();
 }
 
 /* بعد از باخت: تلاش دوباره از آخرین سیو (وگرنه شروع تازه) */

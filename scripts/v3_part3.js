@@ -1331,8 +1331,15 @@ function drawZombie(z) {
   ctx.moveTo(4, -13); ctx.lineTo(4 - (z.attacking ? 0 : walk * 6), -1);
   ctx.stroke();
 
-  /* بدن و پارگی پیراهن */
+  /* بدن و پارگی پیراهن — (۱۱٫۰) سایه‌روشن گرادیانی برای حجم بیشتر */
   ctx.fillStyle = shirt; rr(-9, -31 + bob * 0.4, 18, 19, 4); ctx.fill();
+  {
+    const shg = ctx.createLinearGradient(-9, -31 + bob * 0.4, 9, -12 + bob * 0.4);
+    shg.addColorStop(0, 'rgba(255,255,255,0.14)');
+    shg.addColorStop(0.55, 'rgba(0,0,0,0)');
+    shg.addColorStop(1, 'rgba(0,0,0,0.34)');
+    ctx.fillStyle = shg; rr(-9, -31 + bob * 0.4, 18, 19, 4); ctx.fill();
+  }
   ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-3, -24 + bob * 0.4, 6, 7);
   /* لبه‌ی پاره‌پاره‌ی پیراهن (۶٫۰) */
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -1341,7 +1348,7 @@ function drawZombie(z) {
   ctx.lineTo(1, -13 + bob * 0.4); ctx.lineTo(4, -16.5 + bob * 0.4); ctx.lineTo(7, -13 + bob * 0.4);
   ctx.closePath(); ctx.fill();
 
-  /* زره‌ی شونه برای تانک و پادشاه */
+  /* زره‌ی شونه برای تانک و پادشاه — (۱۱٫۰) نگهبان: خار + برق زره */
   if (z.type === 'tank' || z.type === 'boss') {
     ctx.fillStyle = z.type === 'boss' ? '#3f151d' : '#39364a';
     ctx.fillRect(-11, -33 + bob * 0.4, 7, 6);
@@ -1349,6 +1356,22 @@ function drawZombie(z) {
     ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
     ctx.strokeRect(-11, -33 + bob * 0.4, 7, 6);
     ctx.strokeRect(4, -33 + bob * 0.4, 7, 6);
+    if (z.type === 'boss') {
+      ctx.fillStyle = '#c44dff';
+      ctx.beginPath();
+      ctx.moveTo(-11, -33 + bob * 0.4); ctx.lineTo(-13, -39 + bob * 0.4); ctx.lineTo(-7, -34 + bob * 0.4);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(11, -33 + bob * 0.4); ctx.lineTo(13, -39 + bob * 0.4); ctx.lineTo(7, -34 + bob * 0.4);
+      ctx.closePath(); ctx.fill();
+      if (!z.dead && z.ai && z.ai.staggerT > 0) {           // پنجره‌ی زره‌ترکیده
+        ctx.strokeStyle = 'rgba(196,77,223,0.9)'; ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-9, -31 + bob * 0.4); ctx.lineTo(-4, -26 + bob * 0.4); ctx.lineTo(-1, -30 + bob * 0.4);
+        ctx.moveTo(6, -30 + bob * 0.4); ctx.lineTo(9, -25 + bob * 0.4);
+        ctx.stroke();
+      }
+    }
   }
 
   /* بازوهای کشیده به جلو (موقع حمله می‌کوبند) */
@@ -1891,8 +1914,10 @@ function render() {
   drawTree(874, 0.7, !!curCh().theme.deadTrees);
   drawLamps();
   drawMuzzleGlow();
-  drawShootingStar();
-  drawFireflies();
+  if (!(typeof PERF !== 'undefined' && PERF.low)) {          // (۱۱٫۰) حالت کم‌بار
+    drawShootingStar();
+    drawFireflies();
+  }
   drawTrap();
   drawTower();
   drawChapterProps();                          // (۱۰٫۰) اسباب‌متعلقات فصل (جعبه/کیسه‌شن/برف) + صحنه‌های انتقال

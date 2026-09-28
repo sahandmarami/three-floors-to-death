@@ -1,0 +1,14 @@
+{
+  "created": 1790604032,
+  "id": "202609282200328c1dc08f69904728",
+  "request_id": "202609282200328c1dc08f69904728",
+  "text": "看人，看捏，看捏，看捏，看捏，看捏，看捏，看捏，看捏。",
+  "usage": {
+    "completion_tokens": 20,
+    "prompt_tokens": 217,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 237
+  }
+}

@@ -28,13 +28,13 @@ const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه �
    normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰
    (۵٫۰: سکه‌ها تقریباً دوبرابر شد تا خرید راحت‌تر باشد) */
 const ZTYPES = {
-  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [4, 6],
+  normal: { r: 15, hpBase: 9,  hpWave: 2.6, spdBase: 27, spdWave: 7.5, bite: 1.0, dmg: 6,  coins: [5, 7],
             skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
-  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [3, 4],
+  fast:   { r: 12, hpBase: 6,  hpWave: 1.7, spdBase: 64, spdWave: 9.5, bite: 0.7, dmg: 4,  coins: [4, 5],
             skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
-  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [10, 14],
+  tank:   { r: 22, hpBase: 50, hpWave: 11,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 14, coins: [12, 16],
             skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
-  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [60, 75],
+  boss:   { r: 50, hpBase: 3600, hpWave: 0, spdBase: 12, spdWave: 1,   bite: 1.8, dmg: 55, coins: [80, 100],
             skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
@@ -71,7 +71,7 @@ const UPGRADES = {
   health:  { name: 'افزایش جون برج',   base: 12, growth: 1.45, max: 8, bonus: 30 },
   trap:    { name: 'نصب تله پایه برج', base: 20, growth: 1.55, max: 5,
              dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
-  turretUp:{ name: 'ارتقای برجک‌ها',   base: 70, growth: 1.55, max: 5 },  // +۳۰٪ دمیج و +۱۲٪ سرعت شلیک برجک‌ها در هر سطح
+  turretUp:{ name: 'ارتقای برجک‌ها',   base: 90, growth: 1.55, max: 5 },  // +۲۲٪ دمیج و +۱۰٪ سرعت شلیک برجک‌ها در هر سطح
   shotgun: { price: 120 },                          // خرید یک‌باره
   mg:      { price: 260 },                          // خرید یک‌باره
   repair:  { price: 30, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
@@ -81,12 +81,12 @@ const UPGRADES = {
    gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
    frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
 const TURRETS = {
-  gatling: { name: 'برجک مسلسل',    price: 60,  dmg: 3,  rate: 0.26, range: 230, spd: 640,
-             len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
-  sniper:  { name: 'برجک تک‌تیرانداز', price: 150, dmg: 24, rate: 1.6,  range: 400, spd: 950,
-             len: 30, h: 19, knock: 6, crit: 0.25, sub: 'تک‌ضرب کُشنده • دمیج ۲۴ • برد ۴۰۰' },
-  frost:   { name: 'برجک یخ‌زن',     price: 100, dmg: 4,  rate: 1.05, range: 175, spd: 380,
-             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۴ • برد ۱۷۵' },
+  gatling: { name: 'برجک مسلسل',    price: 75,  dmg: 2.2, rate: 0.30, range: 230, spd: 640,
+             len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
+  sniper:  { name: 'برجک تک‌تیرانداز', price: 170, dmg: 16, rate: 1.9,  range: 400, spd: 950,
+             len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۶ • برد ۴۰۰' },
+  frost:   { name: 'برجک یخ‌زن',     price: 115, dmg: 3,  rate: 1.05, range: 175, spd: 380,
+             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۳ • برد ۱۷۵' },
 };
 const MAX_TURRETS = 6;                       // حداکثر تعداد برجک روی نقشه
 
@@ -295,7 +295,7 @@ const Snd = {
       const wf = this.ctx.createBiquadFilter(); wf.type = 'lowpass'; wf.frequency.value = 260;
       const wg = this.ctx.createGain(); wg.gain.value = 0.02;
       wind.connect(wf); wf.connect(wg); wg.connect(this.musicGain); wind.start();
-      this.pluck();
+      /* (۱۱٫۰) ملودی‌های پراکنده‌ی قدیمی حذف شد — آهنگساز MUSIC (بخش ۱۰) جایگزین است */
     } catch (e) {}
   },
   pluck() {
@@ -457,7 +457,8 @@ let shootStar = null, shootStarT = rand(3, 7);   // شهابِ گاه‌به‌�
 /* قاب و بوم */
 const canvas = $('game');
 const ctx = canvas.getContext('2d');
-const DPR = Math.min(window.devicePixelRatio || 1, 2); // شفافیت نمایش در صفحه‌های رتینا
+const DPR = Math.min(window.devicePixelRatio || 1,
+  (('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches) ? 1.5 : 2); // (۱۱٫۰) موبایل: سقف ۱٫۵ برای سرعت
 canvas.width = W * DPR;
 canvas.height = H * DPR;
 try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
@@ -921,14 +922,16 @@ function hitZombie(z, dmg, bx, by, dir, crit, knock, src) {
   z.hitFlash = 0.15;
   z.stagger = 0.15;                         // چند لحظه از می‌افتد
   z.x += dir * (knock || 0) * (crit ? 1.7 : 1);   // پس‌زنی فیزیکی
+  /* (۱۱٫۰) ضدشلوغی: عدد دمیج فقط برای کریت/باس — ضربات معمولی بی‌عدد */
+  hitZombie._n = (hitZombie._n || 0) + 1;
   if (crit) {
     addText(z.x, z.y - 52, faNum(total), '#ffb347', 16);
-    spawnParticles(bx, by, 5, '#ffd873', { speed: 150, life: 0.35, size: 2.2, grav: 300 });
-  } else {
-    addText(z.x, z.y - 46, faNum(total), '#ffffff', 12);
+    spawnParticles(bx, by, 4, '#ffd873', { speed: 150, life: 0.35, size: 2.2, grav: 300 });
+  } else if (z.type === 'boss' || hitZombie._n % 4 === 0) {
+    addText(z.x, z.y - 46, faNum(total), 'rgba(255,255,255,0.85)', 11);
   }
-  spawnParticles(bx, by, 3, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
-  spawnParticles(bx, by, 3, '#7a2f2f', { speed: 90,  life: 0.35, size: 2, grav: 500 });
+  spawnParticles(bx, by, 2, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
+  spawnParticles(bx, by, 2, '#7a2f2f', { speed: 90,  life: 0.35, size: 2, grav: 500 });
   if (Math.random() < 0.3) addDecal(z.x, false);   // چکه‌ی خون روی زمین
   state.hitMark = 0.14; state.hitMarkCrit = !!crit; // نشانگر برخورد روی نشان
   if (crit) SFX.crit(); else SFX.hit();
@@ -962,6 +965,8 @@ function killZombie(z) {
     spawnParticles(z.x, z.y - 60, 24, '#e8563f', { speed: 240, life: 0.8, size: 3, grav: 400 });
     setAnnounce(state.wave >= FINAL_WAVE ? '🌑 نگهبان از پا درآمد!' : '👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
     SFX.bossDie();
+    /* (۱۱٫۰) آخرین کلمه‌ی نگهبان — فقط در «آخرین شب» */
+    if (state.wave >= FINAL_WAVE) { try { VOICE.speak('bd1', 1); } catch (e) {} }
   }
 }
 

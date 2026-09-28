@@ -550,9 +550,9 @@ UPDATE_HOOKS.push(function survivalUpdate(dt) {
           ev.fired = true;
           B.on = true;
           B.until = B.waveT + ev.dur;
-          setAnnounce('⚠️ قطع برق!',
-            state.torch.owned ? 'چراغ‌قوه را روشن کن (L)' : 'دیدت محدود شد... فکر کنی نداری؟', 2);
           SFX.powerDown();
+          try { bark('bo1', '🔌 [تو]: برق رفت!',
+            state.torch.owned ? 'چراغ‌قوه رو روشن کن — کلید L!' : 'چراغ‌قوه نداری؟!', 2.6); } catch (e) {}
           Dark.level = Math.max(Dark.level, 0.6);   // با ضربه تیره شود
           break;
         }
@@ -583,6 +583,7 @@ function peddlerRoll(force) {
     state.peddler.stock = pickRareStock();
     setAnnounce('🕳 دستفروش مرموز رسید...', 'کالای کمیاب دارد — ولی ۳۰٪ شانس تقلبی بودن!', 2.8);
     SFX.peddler();
+    try { bark('pd1', '🕳 دستفروش مرموز رسید...', '«کالای کمیاب دارم... فقط، برای تو.» — ۳۰٪ شانس تقلبی!', 4); } catch (e) {}
     renderPeddlerStock();
   } else {
     hidePeddlerPanel();

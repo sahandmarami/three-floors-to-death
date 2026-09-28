@@ -482,6 +482,16 @@ window.GAME = {
     get Dark() { return Dark; },
     get CHT() { return curCh(); },
   },
+  /* ---- (۱۱٫۰) رابط تست/دیباگ نسخه‌ی صدا/موسیقی/گفتگو/موبایل ---- */
+  v11: {
+    VOICE, MUSIC, DLG, PERF: (typeof PERF !== 'undefined' ? PERF : null),
+    INTRO_DLGS: (typeof INTRO_DLGS !== 'undefined' ? INTRO_DLGS : null),
+    TR_DLGS: (typeof TR_DLGS !== 'undefined' ? TR_DLGS : null),
+    say(id) { return VOICE.speak(id, 1); },
+    saveAndExit, exitToMenu,
+    isTouch: (typeof IS_TOUCH !== 'undefined' ? IS_TOUCH : false),
+    setPerfLow(v) { if (typeof PERF !== 'undefined') { PERF.low = !!v; document.body.classList.toggle('perf-low', !!v); } },
+  },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },
   /* پرش سریع به موج n (برای تست) */

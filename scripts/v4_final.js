@@ -1,48 +1,117 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۹: «آخرین شب» و صحنه‌ی پیروزی
+   سه طبقه تا بقا — نسخه‌ی ۱۱٫۰ — بخش ۹: «آخرین شب» و صحنه‌ی پیروزی
    ==================================================================
    موج ۳۳ (پایان فصل ۴) = آخرین موج کل بازی:
-     - فروشگاه/ساخت‌وساز قفل است؛ فقط موجودی کوله‌پشتی و برج
-     - برق کاملاً قطع است؛ تنها چراغ‌قوه کار می‌کند؛ اگر باتری
-       تمام شود چند لحظه صفحه تقریباً کاملاً تاریک می‌شود (فقط
-       چشم‌های زامبی‌ها و برقِ آسمان دیده می‌شود)
-     - باس «نگهبانِ آخرین شب» با الگوی حمله‌ی خاص:
-         · پرتاب آوار به سمت بام (گلوله‌ات می‌تواند آوار را بترکاند)
-         · فراخوان زامبی‌های سریع
-         · فاز خشم زیر ۴۰٪ جون (سریع‌تر و پرتابِ بیشتر)
+     - فروشگاه/ساخت‌وساز قفل است؛ فقط موجودی کوله‌ی پشتی و برج
+     - برق کاملاً قطع است؛ تنها چراغ‌قوه کار می‌کند
+     - باس «نگهبانِ آخرین شب» — بازطراحی ۱۱٫۰ به یک باسِ واقعی:
+         · ۳۶۰۰ جون + زره‌ی پوستی (ضربه‌ی معمولی نیم‌اثر؛ تیر به سر =×۲٫۵)
+         · «پلکانی‌شدن»: هر ۷۵۰ دمیجِ متمرکز → ۲.۲ ثانیه بی‌زره و کُند
+         · کوبش زمین نزدیک برج (۲۰ آسیب + لرزش)
+         · پرتاب آوار (گلوله می‌تواند آوار را بترکاند) — زیر ۱۸٪: دو‌تایی
+         · فراخوان زامبی + فاز خشم زیر ۴۰٪ + آخرین نفس زیر ۱۸٪
      - رد شدن از این موج = صحنه‌ی سحرِ پیروزی + پایان واقعی بازی
    ================================================================== */
 
 let VC = null;      // وضعیت صحنه‌ی پیروزی (victory cinematic)
+
+/* ---------------------- ۹-۱-الف) زره و پلکانی‌شدن نگهبان ---------------------- */
+/* hitZombie اصلی را می‌پوشانیم (بازنویسی اتصال — مثل بقیه‌ی هوک‌های ۱۰):
+   زامبی معمولی بی‌تغییر؛ نگهبانِ آخرین شب: ضربه‌ی معمولی ×۰٫۵ (زره)،
+   کریت (سر) ×۱٫۲۵ قبل از ضریب داخلی ×۲ = ×۲٫۵؛ حین stagger کامل می‌خورد */
+const _hitZombieBase = hitZombie;
+hitZombie = function (z, dmg, bx, by, dir, crit, knock, src) {
+  if (z && z.type === 'boss' && !z.dead && state.wave >= FINAL_WAVE) {
+    const ai = z.ai || (z.ai = {});
+    let d = dmg;
+    if (ai.staggerT > 0) {
+      d = Math.max(1, Math.round(d * 1.15));                   // پنجره‌ی زره‌ترکیده
+    } else if (crit) {
+      d = Math.max(1, Math.round(d * 1.25));                   // سر = نقطه‌ضعف
+    } else {
+      d = Math.max(1, Math.round(d * 0.5));                    // زره‌ی پوستی
+    }
+    ai.dmgAcc = (ai.dmgAcc || 0) + d;
+    if (ai.dmgAcc >= 750 && (ai.staggerT || 0) <= 0) {         // پلکانی‌شدن
+      ai.dmgAcc = 0;
+      ai.staggerT = 2.2;
+      z.stagger = 0.3;
+      setAnnounce('🛡 زره‌ی نگهبان ترکید!', '۲ ثانیه فرصت — ببار!', 1.6);
+      SFX.crit();
+      spawnParticles(z.x, z.y - 70, 14, '#c44dff', { speed: 200, life: 0.6, size: 3, grav: 350 });
+    }
+    return _hitZombieBase(z, d, bx, by, dir, crit, knock, src);
+  }
+  return _hitZombieBase(z, dmg, bx, by, dir, crit, knock, src);
+};
 
 /* ---------------------- ۹-۱) هوک باس: الگوی حمله ---------------------- */
 UPDATE_HOOKS.push(function bossUpdate(dt) {
   if (state.mode !== 'playing' || state.wave < FINAL_WAVE) return;
   const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
   if (boss) {
-    if (!boss.ai) boss.ai = { throwT: 3.6, summonT: 11, rage: false };
+    if (!boss.ai) boss.ai = { throwT: 2.9, summonT: 7.5, slamT: 4.5, slam: 0, rage: false, staggerT: 0, dmgAcc: 0, hinted: false, baseSpd: boss.speed };
     const ai = boss.ai;
-    const rage = boss.hp < boss.maxHp * 0.4;
+    const hpFrac = boss.hp / boss.maxHp;
+    const rage = hpFrac < 0.4;
+    const desp = hpFrac < 0.18;                               // آخرین نفس
+    /* نکته‌ی ارشان وسط مبارزه */
+    if (!ai.hinted && hpFrac < 0.75) {
+      ai.hinted = true;
+      try { bark('b1a1', '🎯 [ارشان]: آوارها رو بترکون!', 'گلوله‌ات آوارِ پرتابی را در هوا می‌ترکاند — نذار به بام بخوره!', 3); } catch (e) {}
+    }
     if (rage && !ai.rage) {
       ai.rage = true;
-      boss.speed *= 1.5;
-      setAnnounce('🔥 نگهبان خشمگین شد!', 'سریع‌تر و پرتاب‌هایش بیشتر شد — مراقب بام باش!', 2.4);
+      boss.speed = ai.baseSpd * 1.45;
+      try { bark('b1b1', '🔥 نگهبان خشمگین شد!', 'سریع‌تر شد و بیشتر می‌کوبد — مراقب بام باش!', 2.6); } catch (e) {}
       SFX.roar();
-      state.shake = 10;
+      state.shake = 12;
     }
-    /* پرتاب آوار به سمت بام برج */
+    /* پنجره‌ی stagger: کند و بی‌زره */
+    if (ai.staggerT > 0) {
+      ai.staggerT -= dt;
+      boss.stagger = 0.25;
+      if (ai.staggerT <= 0) setAnnounce('🛡 زره برگشت', 'متمرکز بزن تا دوباره بشکند', 1.4);
+    }
+    /* کوبش زمین: نزدیک برج → آماده‌باش ۰٫۹۵s (بی‌حرکت) → فرود */
+    ai.slamT -= dt;
+    if (ai.slam > 0) {
+      ai.slam -= dt;
+      boss.stagger = 0.3;                                    // حین آماده‌باش نمی‌جنبد
+      if (ai.slam <= 0) {
+        damageTower(20, TOWER.x + (boss.x < TOWER.x ? -55 : 55));
+        state.shake = 20;
+        SFX.csBoom();
+        for (let i = 0; i < 26; i++) {
+          const a = (i / 26) * Math.PI * 2;
+          spawnParticles(TOWER.x + Math.cos(a) * 40, GROUND_Y - Math.abs(Math.sin(a)) * 18, 1, '#8a7a5c',
+            { speed: 220, life: 0.55, size: 3, grav: 500, dir: a, spread: 1.2, up: true });
+        }
+        ai.slamT = rage ? 5.5 : 7.5;
+      }
+    } else if (ai.slamT <= 0 && Math.abs(boss.x - TOWER.x) < 150) {
+      ai.slam = 0.95;
+      setAnnounce('💢 نگهبان می‌کوبد!', 'ضربه‌ی زمین در راه است!', 1.2);
+      SFX.roar();
+    }
+    /* پرتاب آوار — حین کوبش/پلکان نه */
     ai.throwT -= dt;
-    if (ai.throwT <= 0 && Math.abs(boss.x - TOWER.x) > 150) {
-      ai.throwT = rage ? 2.7 : 4.2;
-      bossThrowDebris(boss);
+    if (ai.throwT <= 0 && ai.slam <= 0 && ai.staggerT <= 0) {
+      if (Math.abs(boss.x - TOWER.x) > 150) {
+        ai.throwT = rage ? 1.9 : 3.0;
+        bossThrowDebris(boss);
+        if (desp) bossThrowDebris(boss);                      // آخرین نفس: دو آوار
+      } else ai.throwT = 1.1;
     }
-    /* فراخوان زامبی‌های سریع */
+    /* فراخوان زامبی‌ها */
     ai.summonT -= dt;
-    if (ai.summonT <= 0 && state.zombies.filter(z => !z.dead).length < 7) {
-      ai.summonT = rage ? 9 : 13;
+    if (ai.summonT <= 0 && state.zombies.filter(z => !z.dead).length < 8) {
+      ai.summonT = rage ? 6.5 : 9.5;
       setAnnounce('💀 نگهبان فراخوان می‌کند!', 'زامبی‌های سریع در راه‌اند — جلویشون رو بگیر!', 1.8);
       SFX.roar();
-      for (let i = 0; i < 3; i++) spawnZombie('fast');
+      spawnZombie('fast');
+      if (rage) spawnZombie('fast');
+      if (desp) spawnZombie('normal');
     }
   }
   /* فیزیک آوار پرتابی + برخوردها */
@@ -51,10 +120,10 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
     p.vy += 700 * dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.rot += p.vr * dt;
-    /* برخورد با برج: آسیب به بام */
+    /* برخورد با برج: آسیب به بام (۱۱٫۰: ۲۲ — محسوس‌تر) */
     if (Math.abs(p.x - TOWER.x) < 40 && p.y > TOWER_TOP_Y - 26 && p.y < GROUND_Y) {
       p.dead = true;
-      damageTower(16, p.x);
+      damageTower(22, p.x);
       debrisBurst(p.x, p.y);
       continue;
     }
@@ -148,6 +217,8 @@ function startVictoryCine() {
 function updateVictoryCine(dt) {
   if (!VC) return;
   VC.t += dt;
+  DLG.update(dt);                                  // (۱۱٫۰) گفتگوی سحر پیروزی
+  state.dayness = Math.min(1, state.dayness + dt * 0.55);   // (۱۱٫۰) سحرِ سریع و سینمایی
   state.shake = Math.max(0, state.shake - dt * 22);
   state.flash = Math.max(0, state.flash - dt * 2.2);
   state.comboPop = Math.max(0, state.comboPop - dt);
@@ -158,12 +229,22 @@ function updateVictoryCine(dt) {
     spawnParticles(rand(0, W), -8, 1, '#ffd873',
       { speed: 26, life: 2.4, size: 2.4, grav: 110 });
   }
+  /* (۱۱٫۰) راوی: «سحر رسیده...» + گفتگوی پایانی — صحنه بلندتر شد */
+  if (!VC.spoken && VC.t > 1.3) {
+    VC.spoken = true;
+    DLG.start([
+      { who: 'n', voice: 'v1n', text: 'سحر رسیده... و تو هنوز ایستاده‌ای.' },
+      { who: 'a', voice: 'i5a1', text: 'شنیدی؟! پناهگاه هنوز بازه... فقط چند کیلومتر مانده. بریم!' },
+    ], () => { if (VC) VC.done = true; });
+  }
   /* صدای رادیو در سحر */
   if (!VC.radio && VC.t > 3.2) {
     VC.radio = true;
     SFX.peddler();
   }
-  if (VC.t > 4.6) {
+  if ((VC.done || VC.t > 16) && VC.t > 6) {
+    VOICE.stop();
+    DLG.skip();
     wipeSave();                              // پایان بازی — سیو پاک شود
     victory();
   }
@@ -196,19 +277,9 @@ function renderVictoryCine() {
   drawFireflies();
   drawParticles();
   drawTexts();
-  /* زیرنویس */
-  if (VC.t > 2.9 && VC.t < 4.6) {
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 15px Tahoma, sans-serif';
-    const txt = '— [ارشان]: شنیدی؟! پناهگاه هنوز بازه... فقط چند کیلومتر مانده.';
-    const tw = ctx.measureText(txt).width + 34;
-    ctx.fillStyle = 'rgba(0,0,0,0.66)';
-    rr(W / 2 - tw / 2, H - 64, tw, 28, 14); ctx.fill();
-    ctx.fillStyle = '#f3e9cf';
-    ctx.fillText(txt, W / 2, H - 50);
-  }
+  /* (۱۱٫۰) زیرنویس ارشان حذف شد — گفتگوی صوتی DLG جایگزین است */
   /* محو به سفیدیِ سحر */
-  const a = clamp((VC.t - 4.0) / 0.7, 0, 1);
+  const a = clamp((VC.t - 6.8) / 0.8, 0, 1);
   if (a > 0) {
     ctx.fillStyle = 'rgba(255,250,240,' + a.toFixed(2) + ')';
     ctx.fillRect(0, 0, W, H);

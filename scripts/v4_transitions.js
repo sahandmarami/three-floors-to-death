@@ -20,6 +20,25 @@
 let TR = null;          // وضعیت انتقال فعال (null = انتقالی در جریان نیست)
 const PXM = 24;         // پیکسل به «متر» برای نمایش پیشرفت فرار
 
+/* (۱۱٫۰) گفتگوی صوتی فاز ۱ هر انتقال + صداهای فاز ۲/۳ */
+const TR_DLGS = {
+  1: [ { who: 'a', voice: 't1a1', text: 'برج داره فرو می‌ریزه! بپر! سریع!' } ],
+  2: [ { who: 'p', voice: 't2p1', text: 'همه چی سیاهه... نمی‌تونم چیزی ببینم.' },
+       { who: 'a', voice: 't2a1', text: 'چراغ‌قوه‌ت رو روشن کن! و موانع رو رد کن!' } ],
+  3: [ { who: 'a', voice: 't3a1', text: 'راه زمینی بسته‌ست! باید از روی دره بریم!' },
+       { who: 'p', voice: 't3p1', text: 'از بالای دره؟ تو دیوونه‌ای!' } ],
+};
+const TR_BARKS = {
+  1: { catch: 't1a2', start: 't1a3', outro: 't1a4' },
+  2: { catch: null,   start: 't2a2', outro: 't2a3' },
+  3: { catch: 't3a2', start: null,   outro: 't3a3' },
+};
+/* صدای کوتاه + زیرنویس انتقال (بدون بلوک ورودی) */
+function transBark(voiceId, txt, dur) {
+  const d = (voiceId && VOICE.speak(voiceId, 1)) || 0;
+  setTransSub(txt || '', dur || Math.max(2.4, d + 0.4));
+}
+
 /* ورودی مینی‌گیم */
 const mgKeys = { left: false, right: false, duck: false };
 
@@ -64,6 +83,9 @@ function startTransition(fromCh) {
   $('wrap').classList.add('cine-mode');       // همه‌ی UI مخفی (حالت سینمایی کامل)
   $('skipCs').classList.remove('hidden');     // دکمه‌ی «رد کردن»
   setupTransitionIntro(TR.ch);
+  /* (۱۱٫۰) گفتگوی صوتی آغاز انتقال */
+  const dl = TR_DLGS[TR.ch];
+  if (dl) DLG.start(dl, null);
   SFX.csRumble();
   updateHUD();
 }
@@ -72,6 +94,8 @@ function startTransition(fromCh) {
 function transitionHardReset() {
   TR = null;
   CS = null;                                  // شبه‌کات‌سینِ فاز ۱ هم پاک شود
+  try { VOICE.stop(); } catch (e) {}
+  try { DLG.skip(); } catch (e) {}
   $('wrap').classList.remove('cine-mode');
   $('skipCs').classList.add('hidden');
 }
@@ -374,8 +398,11 @@ function mgBegin() {
   TR.t = 0;
   TR.fade = 1;                       // با سیاهی کوتاه شروع می‌شود
   TR.fadeWhite = false;
+  DLG.skip();                        // (۱۱٫۰) گفتگوی فاز ۱ حتماً بسته شود
   MG.reset(MGCFG[TR.ch]);
   setTransSub(MGCFG[TR.ch].startSub, 3.2);
+  const b = TR_BARKS[TR.ch];         // (۱۱٫۰) صدای شروع مینی‌گیم
+  if (b && b.start) transBark(b.start, MGCFG[TR.ch].startSub, 3.4);
 }
 
 function mgUpdate(dt) {
@@ -481,6 +508,8 @@ function mgOutro() {
   MG.obs = [];
   setTransSub(MGCFG[TR.ch].outroSub, 2.6);
   SFX.clear();
+  const b = TR_BARKS[TR.ch];         // (۱۱٫۰) صدای پایان فرار
+  if (b && b.outro) transBark(b.outro, MGCFG[TR.ch].outroSub, 3.2);
 }
 
 /* فاز ۳ مشترک: حرکت خودکار + محوِ پایانی */
@@ -505,9 +534,16 @@ function updateTransition(dt) {
   state.comboPop = Math.max(0, state.comboPop - dt);
 
   if (TR.phase === 1) {
+    DLG.update(dt);                                     // (۱۱٫۰) گفتگوی صوتی
     if (TR.ch === 1) introUpdate1(dt);
     else if (TR.ch === 2) introUpdate2(dt);
     else introUpdate3(dt);
+    /* (۱۱٫۰) لحظه‌ی گرفتن بازیکن توسط ماشین ارشان (چ۱) / جهش زیپ‌لاین (چ۳) */
+    const b = TR_BARKS[TR.ch];
+    if (b && b.catch && !TR.ev.catchBark && TR.t > (TR.ch === 1 ? 4.9 : 4.2)) {
+      TR.ev.catchBark = true;
+      transBark(b.catch, TR.ch === 1 ? '— [ارشان]: گرفتمت! محکم خودت رو بگیر!' : '— [ارشان]: دیوونه‌ی زنده! برو! من پشتتم!', 2.6);
+    }
     if (TR.t >= TRCFG[TR.ch].introDur) mgBegin();
   } else if (TR.phase === 2) {
     mgUpdate(dt);

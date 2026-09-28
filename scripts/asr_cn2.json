@@ -1,0 +1,14 @@
+{
+  "created": 1790603981,
+  "id": "20260928215941e23a2b38016f4990",
+  "request_id": "20260928215941e23a2b38016f4990",
+  "text": "你好，今晚是第一个围困之夜。",
+  "usage": {
+    "completion_tokens": 12,
+    "prompt_tokens": 97,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 109
+  }
+}

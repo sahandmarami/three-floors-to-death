@@ -1,44 +1,44 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۸: کات‌سین افتتاحیه + تنظیمات
+   سه طبقه تا بقا — نسخه‌ی ۱۱٫۰ — بخش ۸: کات‌سین افتتاحیه + تنظیمات
    ==================================================================
    کات‌سین افتتاحیه فقط بعد از «بازی جدید» یک‌بار پخش می‌شود:
-     ۵ صحنه‌ی Canvas (شهر خالی با مه / خیابان متروک / ساخت برج /
-     شبِ محاصره / رادیو و نقشه‌ی راه پناهگاه) + زیرنویس فارسیِ متن داستان.
-   روایت صوتی کاملاً اختیاری است: فایل narration.mp3 (مثلاً از ElevenLabs)
-   کنار بازی گذاشته شود پخش می‌شود؛ اگر نبود/لود نشد، بازی بدون خطا
-   فقط با زیرنویس ادامه پیدا می‌کند (تگ <audio> در HTML هست).
+     ۵ صحنه‌ی Canvas + گفتگوی داستانیِ صوتی (DLG — پرتره + ماشین‌نویس
+     همگام با صدا؛ صداهای واقعی از voices_data.js).
+   هر صحنه وقتی پیش می‌رود که گفتگویش تمام شود.
    ================================================================== */
 
 let INTRO = null;      // وضعیت کات‌سین افتتاحیه
 
 /* ---------------------- ۸-۱) صحنه‌ها و زیرنویس‌ها ---------------------- */
 const INTRO_SCENES = [
-  { dur: 9,  draw: introScCity },      // ۱: شهر در غروبِ خالی‌شدن
-  { dur: 9,  draw: introScStreet },    // ۲: خیابان متروک
-  { dur: 9,  draw: introScBuild },     // ۳: ساخت برج
-  { dur: 10, draw: introScNight },     // ۴: شبِ محاصره
-  { dur: 11, draw: introScRadio },     // ۵: رادیو + نقشه‌ی پناهگاه
+  { dur: 5,  draw: introScCity },      // ۱: شهر در غروبِ خالی‌شدن
+  { dur: 6,  draw: introScStreet },    // ۲: خیابان متروک
+  { dur: 6,  draw: introScBuild },     // ۳: ساخت برج
+  { dur: 6,  draw: introScNight },     // ۴: شبِ محاصره
+  { dur: 7,  draw: introScRadio },     // ۵: رادیو + نقشه‌ی پناهگاه
 ];
 
-/* زیرنویس‌ها: [زمان شروع جهانی، پایان، متن] — کل ~۴۴ ثانیه */
-const INTRO_SUBS = [
-  [0.0,  4.4,  'چند ماه پیش، یک ویروس ناشناخته از آزمایشگاهی در حومه‌ی شهر نشت کرد...'],
-  [4.6,  9.0,  'ظرف چند هفته، شهر خالی شد.'],
-  [9.2,  13.6, 'تو و دوستت، ارشان، از آخرین کسایی بودید که در محله ماندید —'],
-  [13.8, 18.0, 'نه چون شجاع بودید؛ چون جایی برای رفتن نداشتید.'],
-  [18.2, 22.6, 'با هرچه در دستتان رسید، بالای ساختمانی نیمه‌ویران برجی ساختید؛'],
-  [22.8, 27.0, 'فقط برای یک شب بیشتر دوام بیاورید.'],
-  [27.2, 31.4, 'اما شب‌ها تمام نمی‌شوند...'],
-  [31.6, 36.2, 'ارشان رادیویی قدیمی پیدا کرده؛ صدایی مرموز می‌گوید:'],
-  [36.4, 39.6, '«پناهگاهی هنوز باز است، آن‌طرف شهر.»'],
-  [39.8, 44.0, 'برج به برج، شب به شب — تا پناهگاه.'],
+/* (۱۱٫۰) گفتگوی صوتی هر صحنه — who: n=راوی a=ارشان p=بازیکن r=رادیو */
+const INTRO_DLGS = [
+  [ { who: 'n', voice: 'i1n1', text: 'چند ماه پیش، یک ویروس ناشناخته از حومه‌ی شهر نشت کرد.' },
+    { who: 'n', voice: 'i1n2', text: 'ظرف چند هفته، شهر خالی شد.' } ],
+  [ { who: 'a', voice: 'i2a1', text: 'وای... چه قدر ساکت شده. فکر کنم فقط ما دو تا مونده‌ایم.' },
+    { who: 'p', voice: 'i2p1', text: 'شاید. ولی تا وقتی این برج وایساده، ما هم وایساده‌ایم.' } ],
+  [ { who: 'a', voice: 'i3a1', text: 'بیار ببین... طبقه‌ی سوم بهترین جاست. از بالا همه جا رو می‌بینیم.' },
+    { who: 'n', voice: 'i3n1', text: 'با هر چیزی که در دستتان رسید، برجی ساختید.' } ],
+  [ { who: 'a', voice: 'i4a1', text: 'صداشون رو می‌شنوی؟ دارن میان!' },
+    { who: 'p', voice: 'i4p1', text: 'آره. امشب، اولین شبِ محاصره‌ست. آماده باش!' } ],
+  [ { who: 'r', voice: 'i5r1', text: 'به همه‌ی بازمانده‌ها: به سمت پاسگاه شمالی حرکت کنید. این پیام تکرار می‌شود.' },
+    { who: 'a', voice: 'i5a1', text: 'شنیدی؟ یه جای امن هست! باید برسیمش!' },
+    { who: 'p', voice: 'i5p1', text: 'اول باید از این شب زنده بمونیم. بعد حرف می‌زنیم.' },
+    { who: 'n', voice: 'i5n1', text: 'هر شبی که دوام بیاری، یک قدم به پناهگاه نزدیک‌تری.' } ],
 ];
-const INTRO_TOTAL = 44;
+/* (۱۱٫۰) INTRO_SUBS حذف شد — گفتگوی صوتی INTRO_DLGS جایگزین زیرنویس است */
 
 /* ---------------------- ۸-۲) اجرا/توقف/رد کردن ---------------------- */
 function startIntroCine() {
   introHardReset();
-  INTRO = { t: 0, idx: 0, _paused: false };
+  INTRO = { t: 0, idx: 0, _paused: false, dlgStarted: false, dlgDone: false, noDlg: false };
   state.mode = 'intro';
   state.mouse.down = false;
   hideOverlays();
@@ -47,7 +47,6 @@ function startIntroCine() {
   hideAnnounce();
   $('wrap').classList.add('cine-mode');
   $('skipCs').classList.remove('hidden');
-  tryPlayNarration();
 }
 
 /* روایت اختیاری — هر خطایی بی‌صدا بلعیده می‌شود (فایل نبود = فقط زیرنویس) */
@@ -69,9 +68,18 @@ function updateIntro(dt) {
   if (!INTRO || INTRO._paused) return;
   INTRO.t += dt;
   const S = INTRO_SCENES[INTRO.idx];
-  if (INTRO.t >= S.dur) {
+  DLG.update(dt);                                   // (۱۱٫۰) گفتگوی صوتی صحنه
+  /* شروع گفتگو کمی بعد از ورود صحنه */
+  if (!INTRO.dlgStarted && INTRO.t > 0.75 && !INTRO.noDlg) {
+    INTRO.dlgStarted = true;
+    const dlg = INTRO_DLGS[INTRO.idx];
+    if (dlg && dlg.length) DLG.start(dlg, () => { if (INTRO) INTRO.dlgDone = true; });
+    else INTRO.dlgDone = true;
+  }
+  /* صحنه‌ی بعد وقتی گفتگو تمام شد (حداقل نفسِ ۲.۲ ثانیه‌ای صحنه) */
+  if ((INTRO.dlgDone || INTRO.noDlg) && INTRO.t >= (INTRO.noDlg ? 0.05 : 2.2)) {
     INTRO.idx++;
-    INTRO.t = 0;
+    INTRO.t = 0; INTRO.dlgStarted = false; INTRO.dlgDone = false;
     if (INTRO.idx >= INTRO_SCENES.length) { endIntro(); return; }
     SFX.csWhoosh();
   }
@@ -83,11 +91,14 @@ function updateIntro(dt) {
 function skipIntro() {
   if (!INTRO) return;
   SFX.click();
+  DLG.skip();
   endIntro();
 }
 
 function endIntro() {
   stopNarration();
+  VOICE.stop();
+  DLG.skip();
   INTRO = null;
   $('wrap').classList.remove('cine-mode');
   $('skipCs').classList.add('hidden');
@@ -127,26 +138,13 @@ function renderIntro() {
   vg.addColorStop(1, 'rgba(0,0,0,0.4)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, W, H);
-  /* زیرنویس فعلی */
-  const T = introGlobalT();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 15px Tahoma, sans-serif';
-  for (const s of INTRO_SUBS) {
-    if (T < s[0] || T > s[1]) continue;
-    const al = clamp(Math.min((T - s[0]) / 0.35, (s[1] - T) / 0.35), 0, 1);
-    ctx.globalAlpha = al;
-    const tw = ctx.measureText(s[2]).width + 34;
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    rr(W / 2 - tw / 2, H - 66, tw, 28, 14); ctx.fill();
-    ctx.fillStyle = '#f3e9cf';
-    ctx.fillText(s[2], W / 2, H - 52);
-    ctx.globalAlpha = 1;
-  }
+  /* (۱۱٫۰) زیرنویس حذف شد — گفتگوی صوتی DLG (پرتره + حباب) جایگزین است */
   /* نوارهای سینمایی */
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, 28);
   ctx.fillRect(0, H - 28, W, 28);
   /* راهنمای رد کردن (چند ثانیه‌ی اول) */
+  const T = introGlobalT();
   if (T < 5) {
     ctx.globalAlpha = clamp(1 - T / 5, 0, 1) * 0.8;
     ctx.font = 'bold 11.5px Tahoma, sans-serif';
