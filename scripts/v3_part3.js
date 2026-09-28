@@ -19,10 +19,14 @@
    ================================================================== */
 
 /* ---------------------- ۱۱) افکت‌ها ---------------------- */
-/* تولید ذره (پارتیکل) — o: {speed, life, size, grav, dir, spread, up} */
+/* تولید ذره (پارتیکل) — o: {speed, life, size, grav, dir, spread, up}
+   (۱۲٫۰) سقف ذرات: در رگبارهای سنگین دیگر بی‌مرز انباشته نمی‌شود */
+const PARTS_MAX = 300;
 function spawnParticles(x, y, n, color, o = {}) {
+  if (state.particles.length >= PARTS_MAX) return;
   const speed = o.speed || 120, life = o.life || 0.4;
   const size = o.size || 2.5, grav = (o.grav === undefined ? 400 : o.grav);
+  n = Math.min(n, PARTS_MAX - state.particles.length);
   for (let i = 0; i < n; i++) {
     let a;
     if (o.dir !== undefined) a = o.dir + rand(-(o.spread || 1) / 2, (o.spread || 1) / 2);
@@ -304,19 +308,28 @@ function setAnnounce(big, sub, t) {
 }
 function hideAnnounce() { $('announce').style.opacity = 0; announceTimer = 0; }
 
-/* ---------------------- ۱۳) پایان بازی ---------------------- */
+/* ---------------------- ۱۳) پایان بازی (۱۲٫۰) ----------------------
+   باخت دیگر یک‌باره نیست: اول سینماییِ سقوط برج (بالا آمدن زامبی‌ها +
+   فروریختن طبقه‌طبقه + کوبیدن بام) پخش می‌شود، بعد صفحه‌ی باخت با
+   «ادامه از آخرین روز» می‌آید. */
 function gameOver() {
-  if (state.mode === 'gameover') return;
-  state.mode = 'gameover';
+  if (state.mode === 'gameover' || state.mode === 'defeatcine') return;
   state.mouse.down = false;
-  state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
+  state.placing = null;                     // لغو نصبِ نیمه‌کاره
   state.combo = 0;
-  state.dayTarget = 0;                      // باخت همیشه در شب رخ می‌دهد (۵٫۰)
-  hideDayPanel();                           // پنل روز بسته شود (۵٫۰)
+  state.dayTarget = 0;                      // باخت همیشه در شب رخ می‌دهد
+  hideDayPanel();                           // پنل روز بسته شود
   state.shake = 14; state.flash = 1;
   /* آوار و گردوخاک سقوط برج */
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 36, '#8a6f52', { speed: 260, life: 0.9, size: 3.5, grav: 600 });
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 16, '#e04b3a', { speed: 200, life: 0.7, size: 3, grav: 600 });
+  startDefeatCine();                        // (۱۲٫۰) سینماییِ سقوط برج
+}
+
+/* مسیر مستقیمِ قدیمی (بدون سینمایی) — فقط پشتیبان */
+function legacyGameOver() {
+  if (state.mode === 'gameover') return;
+  state.mode = 'gameover';
   $('goSubtitle').textContent = 'برج سقوط کرد... تا ' + faNum(state.wave) + ' شب از ' + faNum(FINAL_WAVE) + ' دووم آوردی.';
   $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) +
     '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
@@ -1410,15 +1423,17 @@ function drawZombie(z) {
     ctx.lineTo(9, -42 + bob * 0.5); ctx.closePath(); ctx.fill();
   }
 
-  /* چشم‌های درخشان (قرمز؛ نگهبان بنفش؛ فصل خرابه: اخگریِ نارنجی — ۸٫۰) */
+  /* چشم‌های درخشان (قرمز؛ نگهبان بنفش؛ فصل خرابه: اخگریِ نارنجی)
+     (۱۲٫۰) بدون shadowBlur — هاله با دایره‌ی کم‌آلفا: روی موبایل روان */
   if (!z.dead) {
-    const emberE = !!curCh().theme.emberEyes && z.type !== 'boss';   // (۱۰٫۰)
-    ctx.save();
-    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : (emberE ? '#ff8a3c' : '#ff4b3e');
-    ctx.shadowBlur = 5 * s;
+    const emberE = !!curCh().theme.emberEyes && z.type !== 'boss';
+    const eCol = z.type === 'boss' ? '#c44dff' : (emberE ? '#ff8a3c' : '#ff4b3e');
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = eCol;
+    circle(5.5, -37 + bob * 0.5, 3.1); circle(8.8, -37.5 + bob * 0.5, 3.1);
+    ctx.globalAlpha = 1;
     ctx.fillStyle = flash ? '#ffffff' : (z.type === 'boss' ? '#c44dff' : (emberE ? '#ffb03c' : '#ff4b3e'));
     circle(5.5, -37 + bob * 0.5, 1.6); circle(8.8, -37.5 + bob * 0.5, 1.6);
-    ctx.restore();
   }
 
   /* لکه‌ی خون گوشه‌ی دهان + چکه (۶٫۰) */
@@ -1693,12 +1708,14 @@ function drawParticles() {
     const a = 1 - p.age / p.life;
     ctx.globalAlpha = Math.max(0, a);
     if (p.glow) {
-      /* ذره‌ی نورانی (روح زامبی و...) */
-      ctx.save();
-      ctx.shadowColor = p.color; ctx.shadowBlur = 10;
+      /* ذره‌ی نورانی (روح زامبی و...) — (۱۲٫۰) بدون shadowBlur:
+         هاله = دایره‌ی بزرگ کم‌آلفا؛ روی موبایل هم روان */
+      ctx.globalAlpha = Math.max(0, a * 0.28);
+      ctx.fillStyle = p.color;
+      circle(p.x, p.y, p.size * 2.4);
+      ctx.globalAlpha = Math.max(0, a);
       ctx.fillStyle = p.color;
       circle(p.x, p.y, p.size);
-      ctx.restore();
     } else if (p.shell) {
       /* پوکه‌ی چرخان مستطیلی */
       ctx.save();
@@ -1968,5 +1985,6 @@ function render() {
   drawFreezeOverlay();
   drawCinematic();
   if (CS && state.mode === 'cutscene') drawCutscene();   // لایه‌ی کات‌سین (۷٫۰) — (۱۰٫۰) فقط در حالت cutscene
+  if (typeof DF !== 'undefined' && DF && state.mode === 'defeatcine') drawDefeatOverlay();  // (۱۲٫۰) لایه‌ی سینماییِ سقوط
   drawTransitionOverlay();                     // (۱۰٫۰) نوار سینما/زیرنویس/پیشرفتِ انتقال فصل‌ها
 }

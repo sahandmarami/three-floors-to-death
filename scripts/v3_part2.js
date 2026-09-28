@@ -398,8 +398,9 @@ window.addEventListener('keydown', armAudio);
    intermission شمارش معکوس کوتاه قبل از موج ۱ (فقط شروع بازی)
    day          روزِ بین موج‌ها (۵٫۰): بدون زامبی، خرید آزاد، دکمه‌ی «شب شود»
    paused       توقف دستی
-   gameover     باخت (جون برج صفر)
-   victory      برد (پاک‌سازی هر ۱۰ موج) */
+   defeatcine   سینماییِ سقوط برج هنگام باخت (۱۲٫۰)
+   gameover     صفحه‌ی باخت (بعد از سینماییِ سقوط)
+   victory      برد */
 const state = {
   mode: 'start', prevMode: null,
   time: 0,                                 // زمان منطقی بازی (در توقف ثابت می‌ماند)
@@ -965,8 +966,8 @@ function killZombie(z) {
     spawnParticles(z.x, z.y - 60, 24, '#e8563f', { speed: 240, life: 0.8, size: 3, grav: 400 });
     setAnnounce(state.wave >= FINAL_WAVE ? '🌑 نگهبان از پا درآمد!' : '👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
     SFX.bossDie();
-    /* (۱۱٫۰) آخرین کلمه‌ی نگهبان — فقط در «آخرین شب» */
-    if (state.wave >= FINAL_WAVE) { try { VOICE.speak('bd1', 1); } catch (e) {} }
+    /* (۱۲٫۰) آخرین کلمه‌ی نگهبان — فقط در «آخرین شب»، با صدای خودش */
+    if (state.wave >= FINAL_WAVE) { try { VOICE.speak('نمی‌شه... تمومش کردی...', 'b'); } catch (e) {} }
   }
 }
 
@@ -1351,18 +1352,13 @@ function denyBPItem(kind) {
   SFX.deny();
 }
 
-/* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی نوار سلاح) */
+/* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی کاشیِ سلاح در پنل ساخت‌وساز — ۱۲٫۰) */
 function selectWeapon(id) {
-  if (!WEAPONS[id].owned) {
-    SFX.deny();
-    const el = document.querySelector('#weaponBar .wslot[data-w="' + id + '"]');
-    if (el) { el.classList.remove('deny'); void el.offsetWidth; el.classList.add('deny'); }
-    return;
-  }
+  if (!WEAPONS[id].owned) { SFX.deny(); denyBPItem(id); return; }
   if (state.weapon === id) return;
   state.weapon = id;
   SFX.click();
-  refreshWeaponBar();
+  updateHUD();
 }
 
 /* خرید ارتقا — در ۳٫۰ وسط مبارزه هم مجاز است (پنل زنده‌ی کنار نقشه) */
@@ -1376,14 +1372,15 @@ function attemptBuy(kind) {
     return;
   }
 
-  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) --- */
+  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) — ۱۲٫۰: کلیک بعدی = در دست شدن --- */
   if (kind === 'shotgun' || kind === 'mg') {
-    if (WEAPONS[kind].owned) return;
+    if (WEAPONS[kind].owned) { selectWeapon(kind); return; }
     if (state.coins < u.price) { denyBPItem(kind); return; }
     state.coins -= u.price;
-    state.weaponSpent += u.price;               // (۸٫۰) مبنای غرامتِ «زیر آوار ماندن»
+    state.weaponSpent += u.price;               // مبنای غرامتِ «زیر آوار ماندن»
     WEAPONS[kind].owned = true;
     selectWeapon(kind);                    // بلافاصله دستِ کاربر می‌افتد
+    setBPTab('wpn', true);                 // (۱۲٫۰) تب سلاح‌ها جلوی چشم باشد
     SFX.buy();
     spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 18, '#ffd873', { speed: 170, life: 0.6, size: 2.6, grav: 300, up: true });
     updateHUD(); refreshBuildPanel();

@@ -1140,5 +1140,6 @@ function drawCutscene() {
 $('skipCs').addEventListener('click', () => {
   if (state.mode === 'intro') skipIntro();
   else if (state.mode === 'transition') skipTransition();
+  else if (state.mode === 'defeatcine') skipDefeatCine();   /* (۱۲٫۰) */
   else skipCutscene();
 });

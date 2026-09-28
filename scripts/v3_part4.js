@@ -40,33 +40,44 @@ function toggleSound() {
   if (SETT.sfx) SFX.click();
 }
 
-/* ---------- پنل ساخت‌وساز آیکونی (۵٫۰ / بازطراحی ۹٫۰) ----------
-   ترتیب گروه «ارتقاء» مطابق تصویر مرجع کاربر است: قلب (تعمیر)،
-   کفش (سرعت شلیک — ۹٫۰)، سپر (جون)، گلوله (ارتقای اسلحه)، تله.
-   متن توضیح فقط در تولتیپِ hover دیده می‌شود؛ روی کاشی فقط آیکون + قیمت. */
+/* ---------- پنل ساخت‌وساز تب‌دار (۱۲٫۰) ----------
+   چهار تب (ارتقاء/سلاح‌ها/برجک‌ها/بقا) به‌جای فهرست بلند؛ سلاح‌های
+   خریداری‌شده با کلیک روی کاشی‌شان «در دست» می‌شوند (نوار پایین حذف شد). */
+const BP_TABS = [
+  { id: 'up',  label: 'ارتقاء', ic: '⛏' },
+  { id: 'wpn', label: 'سلاح‌ها', ic: '🔫' },
+  { id: 'tur', label: 'برجک‌ها', ic: '🛡' },
+  { id: 'sur', label: 'بقا',    ic: '🎒' },
+];
+let BP_TAB = 'up';
+function setBPTab(id, silent) {
+  if (!BP_TABS.some(t => t.id === id)) return;
+  if (BP_TAB === id) return;
+  BP_TAB = id;
+  document.querySelectorAll('#bpTabs .bp-tab').forEach(el => el.classList.toggle('on', el.dataset.tab === id));
+  if (!silent) SFX.click();
+  refreshBuildPanel();
+}
+
 const BUILD_DEFS = [
-  { grp: 'ارتقاء' },
-  { kind: 'repair', key: '۶', codes: ['Digit6', 'Numpad6'], name: 'تعمیر برج',    desc: '۵۰٪ جون برج را همان‌جا برمی‌گرداند' },
-  { kind: 'speed',  key: 'H', codes: ['KeyH'],              name: 'سرعت شلیک',   desc: 'نرخ شلیک همه‌ی سلاح‌ها ۸٪ سریع‌تر در هر سطح (حداکثر ۶ سطح)' },
-  { kind: 'health', key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
-  { kind: 'weapon', key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
-  { kind: 'trap',   key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
-  { grp: 'سلاح‌ها' },
-  { kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید کلید ۲' },
-  { kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید کلید ۳' },
-  { grp: 'برجک‌ها' },
-  { kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
-  { kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
-  { kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
-  { kind: 'turretUp',key: 'T', codes: ['KeyT'],              name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
-  { grp: 'وسایل بقی' },                                   /* (۱۰٫۰) — به کوله‌پشتی می‌روند */
-  { kind: 'flashlight', key: 'J', codes: ['KeyJ'], name: 'چراغ‌قوه',
+  { tab: 'up', kind: 'repair', key: '۶', codes: ['Digit6', 'Numpad6'], name: 'تعمیر برج',    desc: '۵۰٪ جون برج را همان‌جا برمی‌گرداند' },
+  { tab: 'up', kind: 'speed',  key: 'H', codes: ['KeyH'],              name: 'سرعت شلیک',   desc: 'نرخ شلیک همه‌ی سلاح‌ها ۸٪ سریع‌تر در هر سطح (حداکثر ۶ سطح)' },
+  { tab: 'up', kind: 'health', key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
+  { tab: 'up', kind: 'weapon', key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
+  { tab: 'up', kind: 'trap',   key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
+  { tab: 'wpn', kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید، خودش در دستت می‌آید' },
+  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید، خودش در دستت می‌آید' },
+  { tab: 'tur', kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
+  { tab: 'tur', kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
+  { tab: 'tur', kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
+  { tab: 'tur', kind: 'turretUp',key: 'T', codes: ['KeyT'],              name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
+  { tab: 'sur', kind: 'flashlight', key: 'J', codes: ['KeyJ'], name: 'چراغ‌قوه',
     desc: 'با L روشن/خاموش می‌شود — دید در مه و قطع برق (باتری مصرف می‌کند)' },
-  { kind: 'battery',    key: 'K', codes: ['KeyK'], name: 'باتری',
+  { tab: 'sur', kind: 'battery',    key: 'K', codes: ['KeyK'], name: 'باتری',
     desc: '+۵۰٪ شارژ چراغ‌قوه — داخل کوله‌پشتی ذخیره می‌شود' },
-  { kind: 'canned',     key: 'C', codes: ['KeyC'], name: 'کنسرو',
+  { tab: 'sur', kind: 'canned',     key: 'C', codes: ['KeyC'], name: 'کنسرو',
     desc: 'شفای تدریجی ۴۵ جون در ۱۲ ثانیه — با کلیک/کلید کوله مصرف می‌شود' },
-  { kind: 'medkit',     key: 'V', codes: ['KeyV'], name: 'کیت کمک‌های اولیه',
+  { tab: 'sur', kind: 'medkit',     key: 'V', codes: ['KeyV'], name: 'کیت کمک‌های اولیه',
     desc: '۷۰ جون برج را فوراً برمی‌گرداند — با کلیک/کلید کوله مصرف می‌شود' },
 ];
 /* نگاشت کلیدهای فیزیکی به آیتم خرید (برای خرید سریع با کیبورد) */
@@ -114,7 +125,7 @@ function repaintCubeIcons(kind) {
 
 /* وضعیت لحظه‌ای آیتم برای تولتیپ (قیمت/سطح/مالکیت...) */
 function tileStatus(kind) {
-  /* (۱۰٫۰) وسایل بقی */
+  /* وسایل بقی */
   if (kind === 'flashlight') {
     return state.torch.owned
       ? 'خریده شد ✅ (کلید L روشن/خاموش) — باتری: ' + faNum(Math.round(state.torch.battery)) + '٪'
@@ -126,7 +137,8 @@ function tileStatus(kind) {
       + ' • قیمت: ' + faNum(g.price) + ' سکه';
   }
   if (kind === 'shotgun' || kind === 'mg') {
-    return WEAPONS[kind].owned ? 'خریده شد ✅' : 'قفل — بعد از خرید، کلید ' + faNum(kind === 'shotgun' ? 2 : 3);
+    if (!WEAPONS[kind].owned) return 'قفل — بعد از خرید، خودش در دستت می‌آید';
+    return state.weapon === kind ? 'همین الان در دستته ✅' : 'خریده شد — کلیک کن تا در دستت بیاید';
   }
   if (kind === 'repair') {
     return state.tower.hp >= state.tower.maxHp - 0.5
@@ -161,21 +173,23 @@ function positionTip(el) {
 }
 function hideTip() { $('bpTip').style.display = 'none'; }
 
-/* ساخت یک‌بارِ کاشی‌های پنل در شروع صفحه (۵٫۰: آیکونی) */
+/* ساخت یک‌بارِ تب‌ها و کاشی‌های پنل در شروع صفحه (۱۲٫۰: تب‌دار) */
 function buildPanelInit() {
+  const tabs = $('bpTabs');
+  BP_TABS.forEach(t => {
+    const b = document.createElement('div');
+    b.className = 'bp-tab' + (t.id === BP_TAB ? ' on' : '');
+    b.dataset.tab = t.id;
+    b.innerHTML = '<span class="bp-tab-ic">' + t.ic + '</span><span>' + t.label + '</span>';
+    b.addEventListener('click', () => setBPTab(t.id));
+    tabs.appendChild(b);
+  });
   const list = $('bpList');
   BUILD_DEFS.forEach((d) => {
-    if (d.grp) {                              // عنوان گروه
-      const g = document.createElement('div');
-      g.className = 'bp-grp';
-      g.textContent = d.grp;
-      list.appendChild(g);
-      return;
-    }
     const el = document.createElement('div');
     el.className = 'bp-tile';
     el.id = 'bp-' + d.kind;
-    /* آیکون Canvas با اسپرایت مکعب پیکسل‌آرت (۸٫۰) */
+    /* آیکون Canvas با اسپرایت کاشی‌های تصویر مرجع */
     const cv = document.createElement('canvas');
     cv.className = 'bp-ic';
     paintIcon(d.kind, cv);
@@ -199,7 +213,7 @@ function buildPanelInit() {
     price.className = 'bp-price'; price.id = 'bp-' + d.kind + '-cost';
     el.appendChild(price);
 
-    el.addEventListener('click', () => buy(d.kind));   /* (۱۰٫۰) مسیر یکسان خرید: قفل آخرین شب + سیو */
+    el.addEventListener('click', () => buy(d.kind));   /* مسیر یکسان خرید: قفل آخرین شب + سیو */
     el.addEventListener('mouseenter', () => showTip(d, el));
     el.addEventListener('mouseleave', hideTip);
     list.appendChild(el);
@@ -224,20 +238,23 @@ function toggleBuildPanel() {
   setBuildPanel(!$('buildPanel').classList.contains('collapsed'));
 }
 
-/* به‌روزرسانی وضعیت کاشی‌های پنل (قیمت/سطح/قابلیت خرید — ۵٫۰ آیکونی) */
+/* به‌روزرسانی وضعیت کاشی‌های پنل (۱۲٫۰: تب‌دار + سلاحِ در دست) */
 function refreshBuildPanel() {
   for (const d of BUILD_DEFS) {
-    if (!d.kind) continue;
     const item = $('bp-' + d.kind);
     if (!item) continue;
     const cost = $('bp-' + d.kind + '-cost');
     item.classList.remove('deny');
+    /* فقط کاشی‌های تبِ فعال دیده شوند */
+    item.style.display = (d.tab === BP_TAB) ? '' : 'none';
 
-    /* --- سلاح‌های یک‌بار خرید --- */
+    /* --- سلاح‌های یک‌بار خرید (۱۲٫۰: بعد از خرید = انتخاب/در دست) --- */
     if (d.kind === 'shotgun' || d.kind === 'mg') {
       const owned = WEAPONS[d.kind].owned;
-      item.classList.toggle('max', owned);
-      cost.textContent = owned ? '✅' : faNum(UPGRADES[d.kind].price);
+      const armed = owned && state.weapon === d.kind;
+      item.classList.toggle('armed', armed);
+      item.classList.toggle('max', owned && !armed);
+      cost.textContent = armed ? 'در دست' : (owned ? 'انتخاب' : faNum(UPGRADES[d.kind].price));
       item.classList.toggle('poor', !owned && state.coins < UPGRADES[d.kind].price);
       continue;
     }
@@ -251,7 +268,7 @@ function refreshBuildPanel() {
       continue;
     }
 
-    /* --- برجک‌های دفاعی: خرید → حالت نصب (۴٫۰) --- */
+    /* --- برجک‌های دفاعی: خرید → حالت نصب --- */
     if (d.kind === 'gatling' || d.kind === 'sniper' || d.kind === 'frost') {
       const def = TURRETS[d.kind];
       const maxed = state.turrets.length >= MAX_TURRETS;
@@ -263,7 +280,7 @@ function refreshBuildPanel() {
       continue;
     }
 
-    /* --- (۱۰٫۰) وسایل بقی: چراغ‌قوه یک‌بار خرید؛ بقیه تکراری‌اند --- */
+    /* --- وسایل بقی: چراغ‌قوه یک‌بار خرید؛ بقیه تکراری‌اند --- */
     if (d.kind === 'flashlight' || d.kind === 'battery' || d.kind === 'canned' || d.kind === 'medkit') {
       const g = GEAR[d.kind];
       const owned = d.kind === 'flashlight' && state.torch.owned;
@@ -285,7 +302,7 @@ function refreshBuildPanel() {
   }
 }
 
-/* به‌روزرسانی HUD (نوار جون، سکه، موج + باقی‌مانده‌ی موج) + نوار سلاح + پنل ساخت */
+/* به‌روزرسانی HUD (نوار جون، سکه، موج، سلاحِ در دست) + پنل ساخت */
 function updateHUD() {
   const t = state.tower, ratio = t.hp / t.maxHp;
   const fill = $('healthFill');
@@ -293,7 +310,10 @@ function updateHUD() {
   fill.className = ratio > 0.5 ? '' : (ratio > 0.25 ? 'mid' : 'low');
   $('healthText').textContent = faNum(Math.ceil(t.hp)) + '/' + faNum(t.maxHp);
   $('coinText').textContent = faNum(state.coins);
-  /* (۱۰٫۰) نمایش فصل + شماره‌ی موج درون‌فصلی */
+  /* (۱۲٫۰) سلاحِ در دست — نوار سلاح پایین حذف شد */
+  const wEl = $('weaponText');
+  if (wEl) wEl.textContent = WEAPONS[state.weapon] ? WEAPONS[state.weapon].name : 'تپانچه';
+  /* فصل + شماره‌ی موج درون‌فصلی */
   const wl = waveLabel();
   if (state.mode === 'playing') {
     const rem = state.spawn.queue.length + state.zombies.filter(z => !z.dead).length;
@@ -303,22 +323,12 @@ function updateHUD() {
   } else {
     $('waveText').textContent = wl;
   }
-  refreshWeaponBar();
   refreshBuildPanel();
-  refreshGearHUD();                            // (۱۰٫۰) چراغ‌قوه/باتری
+  refreshGearHUD();                            // چراغ‌قوه/باتری
 }
 
-/* نوار سلاح: هایلایتِ سلاح فعال + قفل/قیمتِ سلاح‌های نخریده */
-function refreshWeaponBar() {
-  document.querySelectorAll('#weaponBar .wslot').forEach(el => {
-    const id = el.dataset.w;
-    el.classList.toggle('active', state.weapon === id && WEAPONS[id].owned);
-    const locked = !WEAPONS[id].owned;
-    el.classList.toggle('locked', locked);
-    const info = el.querySelector('.wlockinfo');
-    if (info) info.style.display = locked ? 'flex' : 'none';
-  });
-}
+/* (۱۲٫۰) نوار سلاح حذف شد — این تابع برای سازگاری باقی مانده است */
+function refreshWeaponBar() {}
 
 /* نوار جون پادشاه زامبی‌ها (فقط وقتی زنده است نمایش داده می‌شود) */
 let bossBarVisible = false;
@@ -342,67 +352,71 @@ function frame(now) {
   last = now;
   animTime += dt;                                // زمان نمایشی همیشه جلو می‌رود
 
-  /* اسلوموشن سینمایی (۳٫۰): زمان بازی کند می‌شود ولی رندر عادی می‌ماند */
-  let dtG = dt;
-  if (state.slowmo > 0) {
-    dtG = dt * 0.3;
-    state.slowmo = Math.max(0, state.slowmo - dt);
+  /* (۱۲٫۰) حلقه‌ی ضدّهنگ: هر خطای لحظه‌ای (مثلاً وسط رگبار شلیک)
+     دیگر کل بازی را فریز نمی‌کند — فریم رد می‌شود و بازی ادامه می‌یابد */
+  try {
+    /* اسلوموشن سینمایی (۳٫۰): زمان بازی کند می‌شود ولی رندر عادی می‌ماند */
+    let dtG = dt;
+    if (state.slowmo > 0) {
+      dtG = dt * 0.3;
+      state.slowmo = Math.max(0, state.slowmo - dt);
+    }
+
+    if (state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day') update(dtG);
+    else if (state.mode === 'cutscene') updateCutscene(dtG);   // رویداد داستانی (۷٫۰)
+    else if (state.mode === 'defeatcine') updateDefeatCine(dtG);  // (۱۲٫۰) سینماییِ سقوط برج
+    else if (state.mode === 'transition') updateTransition(dtG);   // (۱۰٫۰) انتقال بین فصل‌ها
+    else if (state.mode === 'intro') updateIntro(dtG);             // (۱۰٫۰) کات‌سین افتتاحیه
+    else if (state.mode === 'victorycine') updateVictoryCine(dtG); // (۱۰٫۰) صحنه‌ی پیروزی
+    else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
+    else if (state.mode === 'start') updateMenuScene(dtG);
+    /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */
+
+    /* جلوه‌های محیطی (شهاب و رعدوبرق) در همه‌ی حالت‌ها جریان دارند */
+    updateShootingStar(dt);
+    updateLightning(dt);
+    render();
+  } catch (e) {
+    /* فریمِ خطادار رد می‌شود — بازی زنده می‌ماند */
   }
-
-  if (state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day') update(dtG);
-  else if (state.mode === 'cutscene') updateCutscene(dtG);   // رویداد داستانی (۷٫۰)
-  else if (state.mode === 'transition') updateTransition(dtG);   // (۱۰٫۰) انتقال بین فصل‌ها
-  else if (state.mode === 'intro') updateIntro(dtG);             // (۱۰٫۰) کات‌سین افتتاحیه
-  else if (state.mode === 'victorycine') updateVictoryCine(dtG); // (۱۰٫۰) صحنه‌ی پیروزی
-  else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
-  else if (state.mode === 'start') updateMenuScene(dtG);
-  /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */
-
-  /* جلوه‌های محیطی (شهاب و رعدوبرق) در همه‌ی حالت‌ها جریان دارند */
-  updateShootingStar(dt);
-  updateLightning(dt);
-  render();
+  /* (۱۲٫۰) موسیقی در همه‌ی حالت‌ها به‌روز می‌شود: منو/توقف (سکوت)/سینمایی/باخت */
+  try { MUSIC.update(); } catch (e) {}
   requestAnimationFrame(frame);
 }
 
 function init() {
   /* اتصال دکمه‌های منو و اورلی‌ها */
-  $('btnStart').addEventListener('click', startNewGame);   // (۱۰٫۰) تأیید پاک‌کردن سیو + کات‌سین افتتاحیه
+  $('btnStart').addEventListener('click', startNewGame);   // تأیید پاک‌کردن سیو + کات‌سین افتتاحیه
   $('btnHowto').addEventListener('click', () => { SFX.click(); showScreen('howtoScreen'); });
   $('closeHowto').addEventListener('click', () => { SFX.click(); hideScreen('howtoScreen'); });
-  $('btnContinue').addEventListener('click', continueGame);           // (۱۰٫۰)
+  $('btnContinue').addEventListener('click', continueGame);
   $('btnSettings').addEventListener('click', () => { SFX.click(); showScreen('settingsScreen'); });
   $('closeSettings').addEventListener('click', () => { SFX.click(); hideScreen('settingsScreen'); });
   $('btnAbout').addEventListener('click', () => { SFX.click(); showScreen('aboutScreen'); });
   $('closeAbout').addEventListener('click', () => { SFX.click(); hideScreen('aboutScreen'); });
   $('btnWipe').addEventListener('click', () => askConfirm('همه‌ی پیشرفتت پاک بشه؟', wipeSaveAndUI));
   $('cfNo').addEventListener('click', () => { SFX.click(); hideScreen('confirmBox'); });
-  $('btnFlash').addEventListener('click', () => toggleFlashlight());  // (۱۰٫۰)
+  $('btnFlash').addEventListener('click', () => toggleFlashlight());
   $('btnMute0').addEventListener('click', toggleSound);
   $('btnMute').addEventListener('click', toggleSound);
-  $('btnMute2').addEventListener('click', toggleSound);
   $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
   $('btnPause').addEventListener('click', () => {
     if (state.mode === 'paused') resumeGame(); else pauseGame();
   });
   $('btnResume').addEventListener('click', resumeGame);
   $('btnRestart0').addEventListener('click', startGame);
-  /* (۱۰٫۰) باخت: «تلاش دوباره» از آخرین سیو (اگر بود) وگرنه شروع تازه */
-  $('btnRestart1').addEventListener('click', retryFromSave);
+  /* (۱۲٫۰) باخت: «ادامه از آخرین روز» (از آخرین سیو) و «شروع از اول» */
+  $('btnRetryDay').addEventListener('click', retryFromSave);
+  $('btnRestart1').addEventListener('click', startGame);
   $('btnRestart2').addEventListener('click', startGame);
 
-  /* کلیک روی اسلات‌های نوار سلاح */
-  document.querySelectorAll('#weaponBar .wslot').forEach(el => {
-    el.addEventListener('click', () => selectWeapon(el.dataset.w));
-  });
-
-  buildPanelInit();    // پنل ساخت‌وساز آیکونیِ کنار نقشه
-  initBackpackUI();   // (۱۰٫۰) کوله‌پشتی ۶ جا
-  initPeddlerUI();    // (۱۰٫۰) پنل دستفروش مرموز
-  initSettingsUI();   // (۱۰٫۰) تنظیمات + لود SETT
-  refreshMenuContinue();   // (۱۰٫۰) فعال/غیرفعال‌کردن «ادامه‌ی بازی»
+  buildPanelInit();    // پنل ساخت‌وساز تب‌دار (۱۲٫۰)
+  initBackpackUI();   // کوله‌پشتی ۶ جا
+  initPeddlerUI();    // پنل دستفروش مرموز
+  initSettingsUI();   // تنظیمات + لود SETT
+  refreshMenuContinue();   // فعال/غیرفعال‌کردن «ادامه‌ی بازی»
   initMenuZ();         // زامبی‌های تزئینیِ صحنه‌ی منو
-  $('wrap').classList.add('menu-mode');   // در منو، HUD/پنل‌ها مخفی‌اند (۵٫۰)
+  $('wrap').classList.add('menu-mode');   // در منو، HUD/پنل‌ها مخفی‌اند
   updateHUD();
   requestAnimationFrame(frame);
 }
@@ -482,15 +496,30 @@ window.GAME = {
     get Dark() { return Dark; },
     get CHT() { return curCh(); },
   },
-  /* ---- (۱۱٫۰) رابط تست/دیباگ نسخه‌ی صدا/موسیقی/گفتگو/موبایل ---- */
+  /* ---- (۱۱٫۰/۱۲٫۰) رابط تست/دیباگ صدا/موسیقی/گفتگو/موبایل ---- */
   v11: {
     VOICE, MUSIC, DLG, PERF: (typeof PERF !== 'undefined' ? PERF : null),
     INTRO_DLGS: (typeof INTRO_DLGS !== 'undefined' ? INTRO_DLGS : null),
     TR_DLGS: (typeof TR_DLGS !== 'undefined' ? TR_DLGS : null),
-    say(id) { return VOICE.speak(id, 1); },
+    say(text, who) { return VOICE.speak(String(text), who || 'n'); },
     saveAndExit, exitToMenu,
     isTouch: (typeof IS_TOUCH !== 'undefined' ? IS_TOUCH : false),
     setPerfLow(v) { if (typeof PERF !== 'undefined') { PERF.low = !!v; document.body.classList.toggle('perf-low', !!v); } },
+  },
+  /* ---- (۱۲٫۰) رابط تست کات‌سین باخت + تب‌های پنل ---- */
+  v12: {
+    DF: () => DF, setDFT(t) { if (DF) { DF.t = 0; } },
+    defeatGoto(t) {                     /* پرش زمانی برای تست فریم‌های سقوط */
+      if (!DF) return;
+      DF._paused = false;
+      let guard = 0;
+      while (DF && DF.t < t - 1 / 30 && guard++ < 900) updateDefeatCine(1 / 30);
+      if (DF) DF._paused = true;
+    },
+    defeatResume() { if (DF) DF._paused = false; },
+    startDefeatCine, finishDefeatCine, skipDefeatCine, defeatHardReset,
+    BP_TABS, setBPTab, get tab() { return BP_TAB; },
+    retryFromSave,
   },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },
@@ -500,6 +529,7 @@ window.GAME = {
     if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
     if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
     if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
+    if (state.mode === 'defeatcine') { skipDefeatCine(); hideOverlays(); }   /* (۱۲٫۰) */
     state.zombies = []; state.bullets = []; state.coinsArr = [];
     state.wave = n - 1;
     state.chapter = waveChapter(n);           /* (۱۰٫۰) فصل هماهنگ شود */
@@ -515,6 +545,7 @@ window.GAME = {
     if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
     if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
     if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
+    if (state.mode === 'defeatcine') { skipDefeatCine(); hideOverlays(); }   /* (۱۲٫۰) */
     state.wave = FINAL_WAVE;                             /* (۱۰٫۰) شبیه‌سازی برد = پایانِ آخرین شب */
     state.chapter = 4;
     state.towerVariant = 3;

@@ -38,14 +38,14 @@ const CHAPTERS = [
     unlock: { fast: 3, tank: 6 },
     blackout: null,
     theme: {
-      sky: [['#05091a', '#5aa9e0'], ['#0d1734', '#93cdf0'], ['#182550', '#c9e6f6'], ['#233865', '#e9f3fa']],
+      sky: [['#05091a', '#41a8ef'], ['#0d1734', '#6fc8f8'], ['#182550', '#b8e8fd'], ['#233865', '#e2f4ff']],
       moon: { x: 176, y: 88, r: 37 },
       skyline: 'city', grade: 'cold',
       ground: {
-        h1: ['#16244a', '#8fae6e'], h1c: ['#2c4272', '#b7d193'],
-        h2: ['#101d3d', '#7a9a5e'], h2c: ['#263a63', '#a5c180'],
-        soil: ['#1e2815', '#587a3d'], soilD: ['#0c110a', '#2c3f21'],
-        grass: ['#273418', '#6f964b'], blade: ['#33451f', '#82b25c'],
+        h1: ['#16244a', '#82c163'], h1c: ['#2c4272', '#abd97e'],
+        h2: ['#101d3d', '#6fb556'], h2c: ['#263a63', '#9ccf74'],
+        soil: ['#1e2815', '#568c3e'], soilD: ['#0c110a', '#2a4a22'],
+        grass: ['#273418', '#68ac4c'], blade: ['#33451f', '#7cc266'],
       },
       fog: 0, snow: false, ash: false, emberEyes: false, deadTrees: false,
       lightning: [13, 30], darkBase: 0, props: 'village',
@@ -58,7 +58,7 @@ const CHAPTERS = [
     unlock: { fast: 1, tank: 3 },
     blackout: { min: 1, max: 2 },
     theme: {
-      sky: [['#070d16', '#6e8ca0'], ['#10202e', '#9db4c4'], ['#1a3441', '#c2d2da'], ['#24424a', '#dde8ec']],
+      sky: [['#070d16', '#77a3bd'], ['#10202e', '#a5c2d4'], ['#1a3441', '#c8dae4'], ['#24424a', '#e0ecf2']],
       smoke: { c: '110,130,145', a: [0.26, 0.12] },
       moon: { x: 760, y: 70, r: 26, dim: 0.75 },
       skyline: 'warehouse', grade: 'cold',
@@ -79,7 +79,7 @@ const CHAPTERS = [
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 0, max: 1 },
     theme: {
-      sky: [['#170b1c', '#7a6a58'], ['#241028', '#96816a'], ['#3a1626', '#b39a7d'], ['#4a1c28', '#cdb08c']],
+      sky: [['#170b1c', '#8a7560'], ['#241028', '#a58b70'], ['#3a1626', '#c2a784'], ['#4a1c28', '#d8bc95']],
       smoke: { c: '150,85,55', a: [0.30, 0.15] },
       moon: { x: 806, y: 96, r: 44, blood: true },
       skyline: 'ruin', grade: 'ember',
@@ -101,7 +101,7 @@ const CHAPTERS = [
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 1, max: 2 },
     theme: {
-      sky: [['#0a1020', '#8fa6bd'], ['#152238', '#b6c7d8'], ['#20304a', '#d4e0ea'], ['#2c3f5c', '#eef4f8']],
+      sky: [['#0a1020', '#96b6d4'], ['#152238', '#bcd2e6'], ['#20304a', '#d8e6f2'], ['#2c3f5c', '#f0f6fc']],
       smoke: { c: '90,105,130', a: [0.20, 0.10] },
       moon: { x: 250, y: 64, r: 30, dim: 0.6 },
       skyline: 'mountain', grade: 'frost',
@@ -182,6 +182,7 @@ function startGame() {
   cutsceneHardReset();                    // کات‌سین معلق نباشد (۷٫۰)
   transitionHardReset();                  // انتقال فصل معلق نباشد (۱۰٫۰)
   introHardReset();                       // کات‌سین افتتاحیه معلق نباشد (۱۰٫۰)
+  defeatHardReset();                      // (۱۲٫۰) سینماییِ باخت معلق نباشد
   wipeSave();                             // بازی تازه = سیو تازه
   WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
   state.zombies = []; state.bullets = []; state.coinsArr = [];
@@ -416,7 +417,7 @@ function collectSave() {
 }
 
 function saveGame() {
-  if (state.mode === 'gameover' || state.mode === 'victory') return;
+  if (state.mode === 'gameover' || state.mode === 'victory' || state.mode === 'defeatcine') return;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(collectSave())); } catch (e) {}
   refreshMenuContinue();
 }
@@ -433,7 +434,9 @@ function loadSaveData() {
   } catch (e) { return null; }
 }
 
-/* اعمال سیو روی state (بعد از ریست کامل) — مقاوم در برابر داده‌های ناقص */
+/* اعمال سیو روی state (بعد از ریست کامل) — مقاوم در برابر داده‌های ناقص
+   (۱۲٫۰) در پایان، سیو دوباره نوشته می‌شود تا اگر ریستِ داخلی چیزی پاک
+   کرد، «ادامه‌ی بازی» هرگز بی‌سیو نماند (رفع باگ دکمه‌ی خاموش‌مانده) */
 function applySave(d) {
   startGame();
   state.chapter = clamp(d.chapter | 0, 1, 4);
@@ -460,7 +463,8 @@ function applySave(d) {
   state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
   state.intermission = 0;
   state.dayness = 1; state.dayTarget = 1;
-  updateHUD(); refreshBackpack(); refreshGearHUD(); refreshWeaponBar();
+  updateHUD(); refreshBackpack(); refreshGearHUD();
+  saveGame();                        // (۱۲٫۰) سیو بلافاصله بازنویسی شود
 }
 
 function wipeSave() {
@@ -516,6 +520,7 @@ function exitToMenu() {
   cutsceneHardReset();
   transitionHardReset();
   introHardReset();
+  defeatHardReset();                      // (۱۲٫۰)
   hideOverlays();
   hideDayPanel();
   hidePeddlerPanel();

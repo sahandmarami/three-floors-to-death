@@ -188,8 +188,13 @@ function initBackpackUI() {
   refreshBackpack();
 }
 
-/* به‌روزرسانی جاخالی‌ها (آیکون + حالت) */
+/* به‌روزرسانی جاخالی‌ها (آیکون + حالت) — (۱۲٫۰) کوله‌ی خالی = فقط یک قرص کوچک */
 function refreshBackpack() {
+  const any = state.backpack.some(s => s);
+  const bar = $('backpackBar');
+  if (bar) bar.classList.toggle('compact', !any);
+  const cap = $('bpkCap');
+  if (cap) cap.textContent = any ? '🎒 کوله' : '🎒 کوله خالی — خرید از تب «بقا»';
   for (let i = 0; i < 6; i++) {
     const el = $('bpk-' + i);
     if (!el) continue;
@@ -455,15 +460,28 @@ const Dark = {
     }
   },
 
-  /* سوراخ کردن تاریکی با یک دایره‌ی نور نرم (روی بوم جدا — تا صحنه پاک نشود) */
-  punch(c, x, y, r, hard) {
-    if (r <= 5) return;
-    const g = c.createRadialGradient(x, y, r * 0.14, x, y, r);
-    g.addColorStop(0, 'rgba(0,0,0,' + (hard ? 0.98 : 0.85) + ')');
-    g.addColorStop(0.62, 'rgba(0,0,0,' + (hard ? 0.6 : 0.42) + ')');
+  /* سوراخ کردن تاریکی با یک دایره‌ی نور نرم (روی بوم جدا — تا صحنه پاک نشود)
+     (۱۲٫۰) کارایی: اسپرایتِ گرادیان یک‌بار ساخته می‌شود و بعد فقط
+     drawImage مقیاس‌شده — دیگر هر فریم createRadialGradient نمی‌سازیم */
+  _sprite() {
+    if (this._sp) return this._sp;
+    const s = document.createElement('canvas');
+    s.width = 128; s.height = 128;
+    const c = s.getContext('2d');
+    const g = c.createRadialGradient(64, 64, 9, 64, 64, 64);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(0.62, 'rgba(0,0,0,0.5)');
     g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g;
-    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    c.fillRect(0, 0, 128, 128);
+    this._sp = s;
+    return s;
+  },
+  punch(c, x, y, r, hard) {
+    if (r <= 5) return;
+    c.globalAlpha = hard ? 0.98 : 0.85;
+    c.drawImage(this._sprite(), x - r, y - r, r * 2, r * 2);
+    c.globalAlpha = 1;
   },
 
   render() {
@@ -551,8 +569,8 @@ UPDATE_HOOKS.push(function survivalUpdate(dt) {
           B.on = true;
           B.until = B.waveT + ev.dur;
           SFX.powerDown();
-          try { bark('bo1', '🔌 [تو]: برق رفت!',
-            state.torch.owned ? 'چراغ‌قوه رو روشن کن — کلید L!' : 'چراغ‌قوه نداری؟!', 2.6); } catch (e) {}
+          try { bark('p', 'وای... برق رفت! چراغ‌قوه رو روشن کن!', '🔌 برق رفت!',
+            state.torch.owned ? 'چراغ‌قوه رو روشن کن — کلید L!' : 'چراغ‌قوه نداری؟! — از تب «بقا» بخر', 2.6); } catch (e) {}
           Dark.level = Math.max(Dark.level, 0.6);   // با ضربه تیره شود
           break;
         }
@@ -583,7 +601,7 @@ function peddlerRoll(force) {
     state.peddler.stock = pickRareStock();
     setAnnounce('🕳 دستفروش مرموز رسید...', 'کالای کمیاب دارد — ولی ۳۰٪ شانس تقلبی بودن!', 2.8);
     SFX.peddler();
-    try { bark('pd1', '🕳 دستفروش مرموز رسید...', '«کالای کمیاب دارم... فقط، برای تو.» — ۳۰٪ شانس تقلبی!', 4); } catch (e) {}
+    try { bark('d', 'کالای کمیاب دارم... فقط، برای تو.', '🕳 دستفروش مرموز رسید...', 'کالای کمیاب — ۳۰٪ شانس تقلبی بودن!', 4); } catch (e) {}
     renderPeddlerStock();
   } else {
     hidePeddlerPanel();

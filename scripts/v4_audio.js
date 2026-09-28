@@ -1,85 +1,123 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۱٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
+   سه طبقه تا بقا — نسخه‌ی ۱۲٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
    ==================================================================
-   - VOICE: پخش کلیپ‌های گفتارِ جاسازی‌شده (voices_data.js — espeak-ng
-     فارسی + پس‌پردازش ffmpeg) با ۶ صدای متمایز: راوی/ارشان/بازیکن/
-     رادیو/غول/دستفروش. حین گفتار موسیقی آرام می‌شود (duck).
-   - MUSIC: آهنگسازِ الگویی با Web Audio — پنج قطعه‌ی واقعی (منو/
-     روز/شبِ نبرد/باس/پیروزی) با ملودی، بیس، درام و پد؛ بین حالت‌ها
-     با کراس‌فید عوض می‌شود (۱۱٫۰: «به بازی آهنگ دادن»).
-   - DLG: سیستم گفتگوی داستانی — پرتره‌ی نقاشی‌شده + حباب گفتار +
-     ماشین‌نویسِ همگام با صدا + کلیک برای ادامه (افتتاحیه/انتقال‌ها/
-     پیروزی). bark(): صدای کوتاه حین گیم‌پلی بدون بلوک‌کردن ورودی.
+   - VOICE (۱۲٫۰ بازطراحی کامل — جایگزین کلیپ‌های رباتیِ espeak):
+     · اگر مرورگر/گوشی «صدای فارسی» داشته باشد (اندروید/کروم معمول):
+       همان لحظه همان متنِ محاوره‌ای با صدای طبیعی خوانده می‌شود.
+     · وگرنه: «صدای شخصیت» — بلیپ‌های کوتاهِ نرمِ هم‌زمان با ماشین‌نویس
+       (سبک بازی‌های داستانی؛ هر شخصیت زیر و بمِ خودش را دارد).
+     · بدون هیچ فایل صوتی جاسازی‌شده — فایل بازی ~۷۰۰KB سبک‌تر شد.
+   - MUSIC: آهنگساز الگویی با Web Audio (۵ قطعه) — ۱۲٫۰:
+     · رفع «انباشت نُت» بعد از لگ: زمان‌بند جاافتاده را همگام می‌کند.
+     · کراس‌فید نرم‌تر (۱٫۱s خاموش + ۱٫۶s روشن) — تعویض آهنگ نرم می‌شود.
+     · حین «توقف» موسیقی و امبینت کامل خاموش می‌شود.
+   - DLG: سیستم گفتگو — پرتره + ماشین‌نویس همگام با صدا + کلیک ادامه.
+     (۱۲٫۰: رفع باگ متنِ سیاهِ نامرئی — متن همیشه روشن و خوانا)
    ================================================================== */
 
-/* ---------------------- ۱۰-۱) پخش گفتار ---------------------- */
+/* ---------------------- ۱۰-۱) صدای گفتار ---------------------- */
 const VOICE = {
-  bufs: {},            // AudioBuffer های دیکد‌شده
-  cur: null,           // سورس در حال پخش
-  gain: null,          // گین مستقل (به master وصل؛ از SETT.vol تبعیت می‌کند)
-  _lock: false,
+  faVoice: null, _voicesBound: false,
+  mode: 'off',        // 'tts' | 'blip' | 'off'  (وضعیت خطِ فعلی)
+  speaking: false,    // همین الان دارد حرف می‌زند؟
+  dur: 0,             // تخمین مدت خط (ثانیه)
+  _safety: null,      // تایمر مهلت ایمنی (رویدادهای onend کروم گاهی نمی‌آیند)
+  _blipT: 0,          // گیت زمانی بلیپ‌ها
 
-  _ensure() {
-    if (!Snd.ready || !Snd.ctx) return false;
-    if (!this.gain) {
-      this.gain = Snd.ctx.createGain();
-      this.gain.gain.value = 1;
-      this.gain.connect(Snd.master);
-    }
-    return true;
+  /* پروفایل صوتی شخصیت‌ها: p=پیچ، r=سرعت، f=فرکانس پایه‌ی بلیپ، w=موج */
+  profile(who) {
+    return {
+      n: { p: 0.92, r: 0.95, f: 262, w: 'sine' },      // راوی — گرم و آرام
+      a: { p: 1.3,  r: 1.12, f: 415, w: 'triangle' },  // ارشان — تیز و شبدیز
+      p: { p: 1.0,  r: 1.0,  f: 330, w: 'triangle' },  // بازیکن
+      r: { p: 0.88, r: 1.05, f: 208, w: 'square' },    // رادیو — فلزی
+      b: { p: 0.45, r: 0.78, f: 131, w: 'sawtooth' },  // نگهبان — بم و غرم‌ود
+      d: { p: 1.18, r: 1.06, f: 294, w: 'triangle' },  // دستفروش
+    }[who] || { p: 1, r: 1, f: 320, w: 'triangle' };
   },
 
-  /* دیکد همه‌ی کلیپ‌ها (بعد از اولین ژست کاربر) */
-  async preloadAll() {
-    if (this._lock) return;
-    if (!Snd.ready || !Snd.ctx || typeof VOICE_CLIPS === 'undefined') { setTimeout(() => this.preloadAll(), 900); return; }
-    this._lock = true;
-    const jobs = [];
-    for (const id in VOICE_CLIPS) {
-      if (this.bufs[id]) continue;
-      jobs.push(fetch(VOICE_CLIPS[id])
-        .then(r => r.arrayBuffer())
-        .then(ab => new Promise(res => Snd.ctx.decodeAudioData(ab, res, () => res(null))))
-        .then(buf => { if (buf) this.bufs[id] = buf; })
-        .catch(() => {}));
-    }
-    await Promise.all(jobs);
-    this._lock = false;
+  /* پیدا کردن صدای فارسی سیستم (اندروید/کروم معمولا دارد) */
+  initVoices() {
+    if (this._voicesBound) return this.faVoice;
+    this._voicesBound = true;
+    try {
+      const ss = window.speechSynthesis;
+      if (!ss) return null;
+      const pick = () => {
+        const vs = ss.getVoices() || [];
+        this.faVoice = vs.find(v => (v.lang || '').toLowerCase().startsWith('fa')) || null;
+        return this.faVoice;
+      };
+      pick();
+      if (!this.faVoice && typeof ss.onvoiceschanged !== 'undefined') {
+        ss.addEventListener('voiceschanged', pick, { once: false });
+      }
+    } catch (e) { this.faVoice = null; }
+    return this.faVoice;
   },
 
-  /* پخش یک کلیپ — خروجی: مدت (ثانیه) یا ۰ */
-  speak(id, vol = 1) {
-    if (typeof VOICE_META === 'undefined' || !VOICE_META[id]) return 0;
-    const meta = VOICE_META[id];
+  /* پخش یک خط — خروجی: تخمین مدت (ثانیه) */
+  speak(text, who) {
     this.stop();
-    const dur = meta.dur || 2;
-    MUSIC.duck(dur + 0.6, 0.42);                       // موسیقی کنار برود
-    if (this.bufs[id] && this._ensure()) {
+    if (!text) return 0;
+    const pr = this.profile(who);
+    const words = String(text).trim().split(/\s+/).length;
+    this.dur = clamp(0.65 + words * (0.46 / pr.r), 1.1, 7.5);
+    const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
+    /* صدای طبیعی فارسی سیستم */
+    if (!muted && this.initVoices() && window.speechSynthesis) {
       try {
-        const src = Snd.ctx.createBufferSource();
-        src.buffer = this.bufs[id];
-        const g = Snd.ctx.createGain();
-        g.gain.value = vol * 0.98;
-        src.connect(g); g.connect(this.gain);
-        src.start();
-        this.cur = src;
-        src.onended = () => { if (this.cur === src) this.cur = null; MUSIC.duckClear(); };
-      } catch (e) {}
+        const u = new SpeechSynthesisUtterance(text);
+        u.voice = this.faVoice;
+        u.lang = this.faVoice.lang || 'fa-IR';
+        u.rate = pr.r; u.pitch = pr.p;
+        u.volume = clamp((typeof SETT !== 'undefined' ? SETT.vol : 55) / 100, 0, 1);
+        const fin = () => { this.speaking = false; clearTimeout(this._safety); };
+        u.onend = fin; u.onerror = fin;
+        speechSynthesis.speak(u);
+        this.mode = 'tts';
+        this.speaking = true;
+        this._safety = setTimeout(fin, (this.dur + 2.4) * 1000);
+        return this.dur;
+      } catch (e) { /* می‌رویم سراغ بلیپ */ }
     }
-    return dur;
+    /* صدای شخصیت: بلیپ‌ها با ماشین‌نویس (DLG.blip صدا می‌زند) */
+    this.mode = muted ? 'off' : 'blip';
+    this.speaking = !muted;
+    return this.dur;
   },
+
+  /* بلیپِ یک «هجا» — از DLG.update با هر حرفِ تازه صدا می‌شود */
+  blip(who) {
+    if (this.mode !== 'blip' || !Snd.ready || Snd.muted) return;
+    const t = performance.now();
+    if (t - this._blipT < 64) return;             // حداکثر ~۱۵ بلیپ در ثانیه
+    this._blipT = t;
+    const pr = this.profile(who);
+    const f = pr.f * rand(0.9, 1.14);
+    try {
+      Snd.tone({ type: pr.w, f0: f, f1: f * 0.82, dur: 0.05, vol: 0.06 });
+    } catch (e) {}
+  },
+  /* متن تمام شد → بلیپ‌ها هم تمام */
+  finishBlips() { if (this.mode === 'blip') this.speaking = false; },
 
   stop() {
-    if (this.cur) { try { this.cur.onended = null; this.cur.stop(); } catch (e) {} this.cur = null; MUSIC.duckClear(); }
+    clearTimeout(this._safety);
+    this.speaking = false;
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
   },
 };
+VOICE.initVoices();
 
 /* ---------------------- ۱۰-۲) موسیقی الگویی ---------------------- */
 /* آهنگساز کوچک روی Web Audio: هر قطعه = پیشروی آکورد + بیس + درام +
-   آرپژ + ملودی. زمان‌بندی با lookahead ۲۵۰ms تا فریم‌دراپ صدا را نگیرد. */
+   آرپژ + ملودی. زمان‌بندی با lookahead ۲۸۰ms.
+   (۱۲٫۰) رفع انباشت نُت: اگر زمان‌بند جا بیفتد (لگ/تب فعال/مکث)،
+   به «الان» همگام می‌شود و نُت‌های عقب‌مانده را با هم نمی‌ریزد. */
 const MUSIC = {
   track: null, _want: null, gain: null, duckG: null,
-  bpm: 120, step: 0, nextT: 0, timer: null, _fadeT: null,
+  bpm: 120, step: 0, nextT: 0, timer: null, _fadeT: null, _lastAmb: 1,
 
   _ensure() {
     if (!Snd.ready || !Snd.ctx) return false;
@@ -97,7 +135,6 @@ const MUSIC = {
     try {
       const o = Snd.ctx.createOscillator(), g = Snd.ctx.createGain();
       o.type = type || 'sine'; o.frequency.value = f;
-      let dest = g;
       if (cut) { const fl = Snd.ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = cut; o.connect(fl); fl.connect(g); }
       else o.connect(g);
       g.gain.setValueAtTime(0.0001, t);
@@ -138,10 +175,7 @@ const MUSIC = {
   pluck(t, m, dur, vol) { this.osc(t, this.nf(m), dur, vol, 'triangle', 2600); this.osc(t, this.nf(m) * 2, dur * 0.6, vol * 0.3, 'sine', 4000); },
   bass(t, m, dur, vol) { this.osc(t, this.nf(m), dur, vol, 'sawtooth', 300); this.osc(t, this.nf(m), dur, vol * 0.6, 'sine'); },
 
-  /* ---------- قطعه‌ها: ۴ میزان × ۱۶ گام = حلقه‌ی ۶۴گامی ----------
-     chords: آکورد هر میزان • bassPat: [گام، نیم‌پرده نسبت به ریشه]
-     drums: گام‌های kick/snare/hat • arp: نت‌های شانزدهم
-     mel: [میزان، گام، نُت، مدت‌گام، حجم] */
+  /* ---------- قطعه‌ها: ۴ میزان × ۱۶ گام = حلقه‌ی ۶۴گامی ---------- */
   TRACKS: {
     menu: {
       bpm: 72, vol: 0.9,
@@ -203,19 +237,19 @@ const MUSIC = {
     },
   },
 
-  /* ---------- تغییر قطعه با کراس‌فید ---------- */
+  /* ---------- تغییر قطعه با کراس‌فید نرم (۱۲٫۰) ---------- */
   set(name) {
-    if (this.track === name || this._want === name) return;   // در حال رفتن به همان قطعه — تایمر ری‌ست نشود
+    if (this.track === name || this._want === name) return;   // در حال رفتن به همان قطعه
     this._want = name;
-    if (!this._ensure()) { this.track = name; return; }   // صدا هنوز نیست — فقط ثبت
+    if (!this._ensure()) { this.track = name; return; }       // صدا هنوز نیست — فقط ثبت
     const t = Snd.ctx.currentTime;
     try {
       this.gain.gain.cancelScheduledValues(t);
       this.gain.gain.setValueAtTime(Math.max(0.0001, this.gain.gain.value), t);
-      this.gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+      this.gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
     } catch (e) {}
     clearTimeout(this._fadeT);
-    this._fadeT = setTimeout(() => { this._start(name); }, 820);
+    this._fadeT = setTimeout(() => { this._start(name); }, 1120);
   },
   _start(name) {
     this.track = (this.TRACKS[name] ? name : this._want) || 'menu';
@@ -228,9 +262,27 @@ const MUSIC = {
       const t = Snd.ctx.currentTime;
       this.gain.gain.cancelScheduledValues(t);
       this.gain.gain.setValueAtTime(0.0001, t);
-      this.gain.gain.exponentialRampToValueAtTime(0.9 * (T.vol || 1), t + 1.4);
+      this.gain.gain.exponentialRampToValueAtTime(0.9 * (T.vol || 1), t + 1.6);
     } catch (e) {}
     if (!this.timer) this.timer = setInterval(() => this._tick(), 70);
+  },
+  /* محو کامل و توقف (صفحه‌ی باخت) */
+  fadeStop() {
+    if (!this.track && !this.timer) return;
+    this._want = null;
+    this.track = null;
+    if (this.gain && Snd.ctx) {
+      try {
+        const t = Snd.ctx.currentTime;
+        this.gain.gain.cancelScheduledValues(t);
+        this.gain.gain.setValueAtTime(Math.max(0.0001, this.gain.gain.value), t);
+        this.gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+      } catch (e) {}
+    }
+    clearTimeout(this._fadeT);
+    this._fadeT = setTimeout(() => {
+      if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    }, 1250);
   },
   stop() {
     clearTimeout(this._fadeT); clearTimeout(this._duckT);
@@ -238,7 +290,7 @@ const MUSIC = {
     if (this.gain && Snd.ctx) { try { this.gain.gain.value = 0.0001; } catch (e) {} }
     this.track = null; this._want = null;
   },
-  /* موسیقی حین گفتار/توقف آرام شود */
+  /* موسیقی حین گفتار آرام شود */
   duck(dur, level) {
     if (!this.gain || !Snd.ctx) return;
     clearTimeout(this._duckT);
@@ -259,33 +311,38 @@ const MUSIC = {
     } catch (e) {}
   },
 
-  /* زمان‌بند: گام‌های آینده را می‌سازد */
+  /* زمان‌بند: گام‌های آینده را می‌سازد — (۱۲٫۰) ضد انباشت */
   _tick() {
     if (!Snd.ready || !Snd.ctx || !this.track) return;
     const T = this.TRACKS[this.track];
     if (!T) return;
     const spb = 60 / T.bpm / 4;                       // طول یک گام ۱۶م
     const now = Snd.ctx.currentTime;
-    while (this.nextT < now + 0.28) {
+    /* اگر زمان‌بند جا افتاد (لگ فریم/تب مخفی)، عقب نمی‌ماند و انباشت نمی‌کند */
+    if (this.nextT < now - 0.12) this.nextT = now + 0.05;
+    let guard = 0;
+    while (this.nextT < now + 0.28 && guard++ < 22) {
       const t = this.nextT, s = this.step % 64, bar = (s / 16) | 0, st = s % 16;
-      /* پد: ابتدای هر میزان */
-      if (st === 0) this.pad(t, T.chords[bar], spb * 16 * 0.98, T.padVol);
-      /* بیس */
-      for (const [gs, off, len] of T.bassPat) if (gs === st) this.bass(t, T.roots[bar] + off, spb * len * 0.95, 0.16);
-      /* درام */
-      if (T.drums.kick && T.drums.kick.includes(st)) this.kick(t, 0.5);
-      if (T.drums.snare && T.drums.snare.includes(st)) this.snare(t, 0.2);
-      if (T.drums.hat && T.drums.hat.includes(st)) this.nz(t, 0.03, 0.05 + (st % 4 ? 0 : 0.03), 8000);
-      /* آرپژ */
-      if (T.arp && T.arp.steps.includes(st)) {
-        const ch = T.chords[bar];
-        this.osc(t, this.nf(ch[(st / 2 + bar) % ch.length] + 12), spb * 1.8, T.arp.vol, 'square', 3200);
-      }
-      /* فزع‌آوات باس */
-      if (T.stab && st === 6) for (const m of T.stab[0]) this.osc(t, this.nf(m), spb * 3, 0.07, 'sawtooth', 2200);
-      /* ملودی */
-      for (const [mb, ms, note, len, vol] of T.mel) if (mb === bar && ms === st) {
-        if (T.melInst === 'pluck') this.pluck(t, note, spb * len, vol);
+      if (t >= now - 0.02) {
+        /* پد: ابتدای هر میزان */
+        if (st === 0) this.pad(t, T.chords[bar], spb * 16 * 0.98, T.padVol);
+        /* بیس */
+        for (const [gs, off, len] of T.bassPat) if (gs === st) this.bass(t, T.roots[bar] + off, spb * len * 0.95, 0.16);
+        /* درام */
+        if (T.drums.kick && T.drums.kick.includes(st)) this.kick(t, 0.5);
+        if (T.drums.snare && T.drums.snare.includes(st)) this.snare(t, 0.2);
+        if (T.drums.hat && T.drums.hat.includes(st)) this.nz(t, 0.03, 0.05 + (st % 4 ? 0 : 0.03), 8000);
+        /* آرپژ */
+        if (T.arp && T.arp.steps.includes(st)) {
+          const ch = T.chords[bar];
+          this.osc(t, this.nf(ch[(st / 2 + bar) % ch.length] + 12), spb * 1.8, T.arp.vol, 'square', 3200);
+        }
+        /* فزع‌آوات باس */
+        if (T.stab && st === 6) for (const m of T.stab[0]) this.osc(t, this.nf(m), spb * 3, 0.07, 'sawtooth', 2200);
+        /* ملودی */
+        for (const [mb, ms, note, len, vol] of T.mel) if (mb === bar && ms === st) {
+          if (T.melInst === 'pluck') this.pluck(t, note, spb * len, vol);
+        }
       }
       this.step++;
       this.nextT += spb;
@@ -302,24 +359,35 @@ const MUSIC = {
     else if (m === 'playing') want = state.wave >= FINAL_WAVE ? 'boss' : 'night';
     else if (m === 'transition' || m === 'cutscene') want = 'night';
     else if (m === 'victorycine' || m === 'victory') want = 'victory';
+    else if (m === 'defeatcine' || m === 'gameover') want = null;    // سکوت سینمایی (۱۲٫۰)
     else if (m === 'paused') want = this.track || 'menu';
-    if (this.track !== want || this._want !== want) this.set(want);
-    /* توقف = موسیقی نیم‌حجم */
+    if (want === null) this.fadeStop();
+    else if (this.track !== want || this._want !== want) this.set(want);
+    /* (۱۲٫۰) توقف = موسیقی کاملاً خاموش */
     if (this.gain && Snd.ctx) {
       try {
-        const target = (m === 'paused') ? 0.35 : (this.TRACKS[this.track] ? 0.9 * this.TRACKS[this.track].vol : 0.9);
+        const target = (m === 'paused') ? 0.0001
+          : (this.TRACKS[this.track] ? 0.9 * this.TRACKS[this.track].vol : 0.9);
         const cur = this.gain.gain.value;
         if (Math.abs(cur - target) > 0.05) this.gain.gain.setTargetAtTime(target, Snd.ctx.currentTime, 0.4);
       } catch (e) {}
+    }
+    /* (۱۲٫۰) امبینتِ پد/باد هم حین توقف خاموش شود */
+    if (Snd.musicGain && Snd.ctx && Snd.musicOn !== false) {
+      const amb = (m === 'paused') ? 0.0001 : 1;
+      if (this._lastAmb !== amb) {
+        this._lastAmb = amb;
+        try { Snd.musicGain.gain.setTargetAtTime(amb, Snd.ctx.currentTime, 0.3); } catch (e) {}
+      }
     }
   },
 };
 
 /* ---------------------- ۱۰-۳) سیستم گفتگو ---------------------- */
-/* خط‌ها: {who:'n|a|p|r|b|d', text, voice} — پرتره + ماشین‌نویسِ همگام با
-   صدا + کلیک/Space برای ادامه. فقط در حالت‌های غیرقابل‌بازی (سینمایی). */
+/* خط‌ها: {who:'n|a|p|r|b|d', text} — پرتره + ماشین‌نویسِ همگام با صدا +
+   کلیک/Space برای ادامه. فقط در حالت‌های غیرقابل‌بازی (سینمایی). */
 const DLG_WHO = {
-  n: { name: 'راوی',        color: '#e8d9b0' },
+  n: { name: 'راوی',        color: '#ffd9a0' },
   a: { name: 'ارشان',       color: '#ffb03c' },
   p: { name: 'تو',          color: '#8fd6ff' },
   r: { name: '📻 رادیو',    color: '#a8e4a0' },
@@ -341,12 +409,12 @@ const DLG = {
   _line() {
     const L = this.lines[this.idx];
     this.chars = 0; this.t = 0; this.lineT = 0; this.holdT = 0;
-    this.voiceDur = L.voice ? VOICE.speak(L.voice, 1) : 0;
+    this.voiceDur = VOICE.speak(L.text, L.who);
     const w = DLG_WHO[L.who] || DLG_WHO.n;
     $('dlgWho').textContent = w.name;
     $('dlgWho').style.color = w.color;
     $('dlgText').textContent = '';
-    $('dlgText').style.color = 'rgba(0,0,0,0.92)';
+    $('dlgText').style.color = '';              /* (۱۲٫۰) رنگ از CSS روشن — متن سیاهِ نامرئی رفع شد */
     $('dlgPortrait').style.outlineColor = w.color;
     $('dlgPortrait').style.boxShadow = '0 0 14px ' + w.color + '55, inset 0 0 22px rgba(0,0,0,0.4)';
   },
@@ -357,19 +425,24 @@ const DLG = {
     this.t += dt;
     /* سرعت ماشین‌نویس: متن همزمان با صدا تمام شود */
     const vDur = this.voiceDur || Math.max(1.2, full / 26);
-    const cps = full / Math.max(0.8, vDur * 0.82);
+    const cps = full / Math.max(0.9, vDur * 0.9);
     if (this.chars < full) {
       this.lineT += dt * cps;
       const nc = Math.min(full, Math.floor(this.lineT));
-      if (nc !== this.chars) { this.chars = nc; $('dlgText').textContent = L.text.slice(0, nc); }
+      if (nc !== this.chars) {
+        this.chars = nc;
+        $('dlgText').textContent = L.text.slice(0, nc);
+        if (VOICE.mode === 'blip') VOICE.blip(L.who);       /* صدای شخصیت */
+      }
     } else {
-      /* بعد از پایان صدا کمی مکث، بعد خط بعد */
+      if (VOICE.mode === 'blip') VOICE.finishBlips();
       this.holdT += dt;
-      const wait = this.voiceDur ? this.voiceDur - this.t + 0.55 : 0.75;
-      if (this.holdT > 0.1 && this.t > vDur + 0.55) this._next();
+      /* بعد از پایان صدا کمی مکث، بعد خط بعد */
+      if (!VOICE.speaking && this.holdT > 0.12 && this.t > vDur * 0.55) this._next();
+      else if (this.t > vDur + 2.4) this._next();           /* مهلت ایمنی */
     }
     /* پرتره‌ی سخنگو (با دهانِ متحرک حین صدا) */
-    drawPortrait($('dlgPortrait'), L.who, this.voiceDur && this.t < this.voiceDur, this.t);
+    drawPortrait($('dlgPortrait'), L.who, VOICE.speaking || this.chars < full, this.t);
   },
   _next() {
     this.idx++;
@@ -390,16 +463,18 @@ const DLG = {
       this.chars = L.text.length;
       this.lineT = this.chars;
       $('dlgText').textContent = L.text;
+      if (VOICE.mode === 'blip') VOICE.finishBlips();
     } else this._next();
     return true;
   },
   skip() { if (this.active) { this.doneFired = true; this._finish(); } },
 };
 
-/* صدای کوتاه حین گیم‌پلی (بدون بلوک ورودی): صدا + زیرنویس اعلان */
-function bark(voiceId, title, sub, dur) {
-  const d = VOICE.speak(voiceId, 1);
-  setAnnounce(title, sub || '', dur || Math.max(1.6, d + 0.3));
+/* صدای کوتاه حین گیم‌پلی (بدون بلوک ورودی): صدا + زیرنویس اعلان
+   (۱۲٫۰) bark(who, text, title, sub, dur) — متن با صدای خود شخصیت خوانده می‌شود */
+function bark(who, text, title, sub, dur) {
+  const d = (who && text && !(typeof SETT !== 'undefined' && !SETT.sfx)) ? VOICE.speak(text, who) : 0;
+  setAnnounce(title || '', sub || '', dur || Math.max(1.8, d + 0.4));
   return d;
 }
 
@@ -524,15 +599,12 @@ window.addEventListener('keydown', (e) => {
 }, true);
 
 UPDATE_HOOKS.push(function audioUpdate(dt) {
-  /* پیش‌بارگذاری صداها بعد از اولین ژست */
-  if (Snd.ready && !VOICE._preloaded) { VOICE._preloaded = true; VOICE.preloadAll(); }
-  MUSIC.update();
-  /* DLG.update در جریان‌های صاحبِ خودش صدا زده می‌شود (افتتاحیه/انتقال/پیروزی)
-     تا پرش‌های گام‌به‌گام تست هم دقیق باشند */
+  /* (۱۲٫۰) MUSIC.update از خود حلقه‌ی اصلی هر فریم صدا زده می‌شود تا
+     در همه‌ی حالت‌ها (منو/توقف/سینمایی/باخت) رفتار درست داشته باشد */
 });
 
 /* دیباگ API */
 Object.assign((typeof GAME !== 'undefined' ? GAME : window), {
   VOICE, MUSIC, DLG,
-  say(id) { return VOICE.speak(id, 1); },
+  say(text, who) { return VOICE.speak(text, who || 'n'); },
 });

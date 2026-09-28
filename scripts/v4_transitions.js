@@ -20,22 +20,28 @@
 let TR = null;          // وضعیت انتقال فعال (null = انتقالی در جریان نیست)
 const PXM = 24;         // پیکسل به «متر» برای نمایش پیشرفت فرار
 
-/* (۱۱٫۰) گفتگوی صوتی فاز ۱ هر انتقال + صداهای فاز ۲/۳ */
+/* (۱۲٫۰) گفتگوی صوتی فاز ۱ هر انتقال + صداهای فاز ۲/۳ — متن محاوره‌ای */
 const TR_DLGS = {
-  1: [ { who: 'a', voice: 't1a1', text: 'برج داره فرو می‌ریزه! بپر! سریع!' } ],
-  2: [ { who: 'p', voice: 't2p1', text: 'همه چی سیاهه... نمی‌تونم چیزی ببینم.' },
-       { who: 'a', voice: 't2a1', text: 'چراغ‌قوه‌ت رو روشن کن! و موانع رو رد کن!' } ],
-  3: [ { who: 'a', voice: 't3a1', text: 'راه زمینی بسته‌ست! باید از روی دره بریم!' },
-       { who: 'p', voice: 't3p1', text: 'از بالای دره؟ تو دیوونه‌ای!' } ],
+  1: [ { who: 'a', text: 'برج داره فرو می‌ریزه! بپر! سریع!' } ],
+  2: [ { who: 'p', text: 'همه‌چی سیاهه... هیچی نمی‌تونم ببینم!' },
+       { who: 'a', text: 'چراغ‌قوه‌ت رو روشن کن! موانع رو هم رد کن!' } ],
+  3: [ { who: 'a', text: 'راه زمینی بسته‌ست! باید از بالای دره بریم!' },
+       { who: 'p', text: 'از بالای دره؟! تو دیوونه‌ای ارشان!' } ],
 };
 const TR_BARKS = {
-  1: { catch: 't1a2', start: 't1a3', outro: 't1a4' },
-  2: { catch: null,   start: 't2a2', outro: 't2a3' },
-  3: { catch: 't3a2', start: null,   outro: 't3a3' },
+  1: { catch: { who: 'a', text: 'گرفتمت! محکم خودت رو بگیر!' },
+       start: { who: 'a', text: 'فرمان با توئه! گاز بده!' },
+       outro: { who: 'n', text: 'به انبارهای مه‌گرفته رسیدید...' } },
+  2: { catch: null,
+       start: { who: 'a', text: 'بدو! رد شو!' },
+       outro: { who: 'n', text: 'از تونل تاریک بیرون اومدید...' } },
+  3: { catch: { who: 'a', text: 'بگیرش! زیپ رو بگیر!' },
+       start: null,
+       outro: { who: 'n', text: 'به برج مخابراتی رسیدید...' } },
 };
-/* صدای کوتاه + زیرنویس انتقال (بدون بلوک ورودی) */
-function transBark(voiceId, txt, dur) {
-  const d = (voiceId && VOICE.speak(voiceId, 1)) || 0;
+/* صدای کوتاه + زیرنویس انتقال (بدون بلوک ورودی) — ۱۲٫۰: متن با صدای شخصیت */
+function transBark(b, txt, dur) {
+  const d = (b && b.text && !(typeof SETT !== 'undefined' && !SETT.sfx)) ? VOICE.speak(b.text, b.who) : 0;
   setTransSub(txt || '', dur || Math.max(2.4, d + 0.4));
 }
 
@@ -401,7 +407,7 @@ function mgBegin() {
   DLG.skip();                        // (۱۱٫۰) گفتگوی فاز ۱ حتماً بسته شود
   MG.reset(MGCFG[TR.ch]);
   setTransSub(MGCFG[TR.ch].startSub, 3.2);
-  const b = TR_BARKS[TR.ch];         // (۱۱٫۰) صدای شروع مینی‌گیم
+  const b = TR_BARKS[TR.ch];         /* (۱۲٫۰) صدای شروع مینی‌گیم */
   if (b && b.start) transBark(b.start, MGCFG[TR.ch].startSub, 3.4);
 }
 
@@ -508,7 +514,7 @@ function mgOutro() {
   MG.obs = [];
   setTransSub(MGCFG[TR.ch].outroSub, 2.6);
   SFX.clear();
-  const b = TR_BARKS[TR.ch];         // (۱۱٫۰) صدای پایان فرار
+  const b = TR_BARKS[TR.ch];         /* (۱۲٫۰) صدای پایان فرار */
   if (b && b.outro) transBark(b.outro, MGCFG[TR.ch].outroSub, 3.2);
 }
 
