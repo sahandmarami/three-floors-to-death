@@ -202,8 +202,9 @@ function startGame() {
   hideOverlays();
   hideDayPanel();
   hidePeddlerPanel();                     // (۱۰٫۰)
+  if (typeof PED !== 'undefined') PED.reset();   // (۱۴٫۰) داستان دستفروع معلق نماند
   hideChapterCard();                      // (۱۰٫۰)
-  $('wrap').classList.remove('menu-mode', 'cs-mode', 'cine-mode');
+  $('wrap').classList.remove('menu-mode', 'cs-mode', 'cine-mode', 'dlg-on');
   $('lockBadge').classList.add('hidden'); // (۱۰٫۰)
   setBuildPanel(false, true);
   setPauseIcon(false);   // (۱۳٫۰) ریل چپ
@@ -245,6 +246,8 @@ function startWave(n) {
   }
   SFX.dusk();
   setBuildPanel(true, true);             // شب: پنل جمع
+  if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفماع باید رفته باشد
+  hidePeddlerPanel();
   $('bpHead').classList.remove('attention');
   updateHUD();
 }
@@ -294,11 +297,14 @@ function enterDay() {
   updateHUD(); refreshBackpack();
 }
 
-/* کلیک «شب شود» — با هشدار ویژه‌ی آخرین شب (۱۰٫۰) */
+/* کلیک «شب شود» — با هشدار ویژه‌ی آخرین شب (۱۰٫۰)
+   (۱۴٫۰) دستفروش مرموز هم همین‌جا بدرقه می‌شود — شب‌ها کنار برج نمی‌ماند */
 function startNight() {
   if (state.mode !== 'day' || state.goingNight) return;
   state.goingNight = true;
   hideDayPanel();
+  if (typeof PED !== 'undefined') PED.leave();
+  hidePeddlerPanel();
   state.dayTarget = 0;
   if (state.wave + 1 >= FINAL_WAVE) {
     showBossWarn();
@@ -583,7 +589,7 @@ function initSaveCodeUI() {
     SFX.click();
     $('scTitle').textContent = m === 'export' ? '📤 کد سیو' : '📥 بارگذاری کد سیو';
     $('scHint').textContent = m === 'export'
-      ? 'این کد را جایی امن ذخیره کن (یادداشت/پیام به خودت) — با «بارگذاری کد» پیشرفتت برمی‌گردد'
+      ? 'این کد پیشرفت توست — جایی امن ذخیره‌اش کن'
       : 'کد سیو را این‌جا بچسبان و «تأیید» را بزن';
     $('scText').value = m === 'export' ? (exportSaveCode() || '— سیوی برای ساختن کد نیست؛ اول بازی را شروع کن —') : '';
     $('scText').readOnly = (m === 'export');
@@ -651,6 +657,7 @@ function exitToMenu() {
   hideOverlays();
   hideDayPanel();
   hidePeddlerPanel();
+  if (typeof PED !== 'undefined') PED.reset();   // (۱۴٫۰)
   hideChapterCard();
   hideAnnounce();
   $('skipCs').classList.add('hidden');
@@ -666,7 +673,7 @@ function exitToMenu() {
   $('lockBadge').classList.add('hidden');
   setPauseIcon(false);   // (۱۳٫۰) ریل چپ
   $('wrap').classList.add('menu-mode');
-  $('wrap').classList.remove('cs-mode', 'cine-mode');
+  $('wrap').classList.remove('cs-mode', 'cine-mode', 'dlg-on');
   initMenuZ();                       // صحنه‌ی زنده‌ی منو
   refreshMenuContinue();
   showScreen('startScreen');

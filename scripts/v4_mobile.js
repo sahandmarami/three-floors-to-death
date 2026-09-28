@@ -13,6 +13,37 @@
 const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
                  (matchMedia && matchMedia('(pointer:coarse)').matches);
 
+/* ---------------------- ۱۱-۰) (۱۴٫۰) اندازه‌ی قاب بازی ----------------------
+   کل بازی (۹۶۰×۵۶۰) بدون برش در صفحه جا شود — با JS چون:
+   • 100vh در گوشی نوار آدرس را هم حساب می‌کند (پایین بریده می‌شد)
+   • مرورگرهای درون‌اپ گاهی vw/vh را اشتباه گزارش می‌کنند («صفحه نصفه»)
+   • تغییر جهت/چرخش/بازآمدن نوار آدرس → بازسازی فوری */
+function fitWrap() {
+  const el = document.getElementById('wrap');
+  if (!el) return;
+  const vv = window.visualViewport;
+  let aw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 960;
+  let ah = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 560;
+  /* حاشیه‌ی امن: حداقل ۶px از هر طرف */
+  aw = Math.max(200, aw - 12);
+  ah = Math.max(140, ah - 12);
+  const s = Math.min(aw / 960, ah / 560);
+  const w = Math.round(960 * s), h = Math.round(560 * s);
+  if (Math.abs(el.offsetWidth - w) > 1 || Math.abs(el.offsetHeight - h) > 1) {
+    el.style.width = w + 'px';
+    el.style.height = h + 'px';
+    el.style.aspectRatio = 'auto';
+  }
+}
+window.addEventListener('resize', fitWrap, { passive: true });
+window.addEventListener('orientationchange', () => setTimeout(fitWrap, 250));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', fitWrap);
+  window.visualViewport.addEventListener('scroll', fitWrap);
+}
+window.addEventListener('load', fitWrap);
+fitWrap();
+
 /* ---------------------- ۱۱-۱) کیفیت خودکار ---------------------- */
 const PERF = {
   low: false, fps: 60, _acc: 0, _n: 0, _lowT: 0,
@@ -41,6 +72,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ---------------------- ۱۱-۲) کلاس لمس + ورودی‌های لمسی ---------------------- */
+/* (۱۴٫۰) راهنمای چرخش برای همه (نه فقط لمس): پنجره/گوشیِ عمودی → راهنمای
+   تمام‌صفحه؛ تابع برای تست هم روی window قابل دسترس است */
+function orientHint() {
+  const portrait = window.innerHeight > window.innerWidth;
+  const w = $('wrap'), hint = $('rotateHint');
+  if (w) w.classList.toggle('portrait', portrait);
+  if (hint) hint.classList.toggle('hidden', !portrait);
+}
+window.ttbOrient = orientHint;
+window.addEventListener('resize', orientHint);
+window.addEventListener('orientationchange', () => setTimeout(orientHint, 250));
+orientHint();
+
 if (IS_TOUCH) {
   document.documentElement.classList.add('touch-html');
   window.addEventListener('load', () => {
@@ -51,15 +95,6 @@ if (IS_TOUCH) {
   document.addEventListener('contextmenu', e => { if (e.target && e.target.id === 'game') e.preventDefault(); });
   document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
   document.addEventListener('touchmove', e => { if (e.target && e.target.id === 'game') e.preventDefault(); }, { passive: false });
-  /* اگر صفحه عمودی شد، راهنمای چرخش خودکار می‌آید (توسط JS — چون .hidden!important است) */
-  const orient = () => {
-    const w = $('wrap'), hint = $('rotateHint');
-    if (w) w.classList.toggle('portrait', window.innerHeight > window.innerWidth);
-    if (hint) hint.classList.toggle('hidden', !(window.innerHeight > window.innerWidth));
-  };
-  window.addEventListener('resize', orient);
-  window.addEventListener('orientationchange', () => setTimeout(orient, 250));
-  orient();
 }
 
 /* دکمه‌ی تمام‌صفحه — فقط روی لمس (دسکتاپ F11 دارد) */

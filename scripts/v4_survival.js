@@ -1,14 +1,15 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۶: کوله‌پشتی، وسایل بقی،
-   چراغ‌قوه و تاریکی، قطع برق تصادفی و دستفروش مرموز (دزد شبانه)
+   سه طبقه تا بقا — نسخه‌ی ۱۴٫۰ — بخش ۶: کوله‌پشتی، وسایل بقی،
+   چراغ‌قوه و تاریکی، قطع برق تصادفی و دستفروش مرموز (استوری‌مود)
    ==================================================================
    - فروشگاه بخش تازه «وسایل بقی» دارد: چراغ‌قوه، باتری، کنسرو (شفای
      تدریجی) و کیت کمک‌های اولیه (شفای فوری) — همه داخل کوله‌پشتی
      ۶ جایی می‌روند و با کلیک یا کلیدهای Q..U مصرف می‌شوند
    - چراغ‌قوه باتری محدود دارد (کلید L)؛ در مهِ انبارها و لحظه‌های
      قطع برق وسط موج، دید به دایره‌ی نور دور بازیکن محدود می‌شود
-   - دستفروش مرموز: هر چند روز یک‌بار با شانس ۴۰٪ کنار فروشگاه می‌آید
-     و ۱-۲ آیتم کمیاب می‌فروشد؛ ۳۰٪ مواقع کالا تقلبی درمی‌آید!
+   - دستفروش مرموز (۱۴٫۰ استوری‌مود): هر چند روز یک‌بار با شانس ۴۰٪
+     از چپ می‌آید، پایین برج با تو حرف می‌زند (پرتره + صدا)، کالای
+     کمیاب می‌فروشد (۳۰٪ تقلبی!) و «شب شود» که زده شود بدرقه می‌شود.
    ================================================================== */
 
 /* ---------------------- ۶-۱) وسایل بقی و آیتم‌های کمیاب ---------------------- */
@@ -254,10 +255,15 @@ function icoStar(c, x, y, r) {
 }
 
 function paintGearIcon(kind, cv) {
-  cv.width = 80; cv.height = 80;
+  const S0 = cv.width || 80, S1 = cv.height || 80;
+  cv.width = S0; cv.height = S1;
   const c = cv.getContext('2d');
-  c.clearRect(0, 0, 80, 80);
+  c.clearRect(0, 0, S0, S1);
   if (!kind) return;
+  /* (۱۴٫۰) مقیاس‌پذیر: کاشی‌های ۸۰px کوله/دستفروش بدون تغییر می‌مانند،
+     بوم ۸۸px پنل ساخت‌وساز هم بدون برش رسم می‌شود */
+  c.save();
+  c.scale(S0 / 80, S1 / 80);
   const col = GEAR_ICON_COLORS[kind] || '#ffd873';
   /* زمینه‌ی کاشی */
   icoRR(c, 4, 4, 72, 72, 11);
@@ -380,6 +386,7 @@ function paintGearIcon(kind, cv) {
   /* لبه‌ی قاب */
   c.strokeStyle = 'rgba(120,170,230,.3)'; c.lineWidth = 2;
   icoRR(c, 5, 5, 70, 70, 10); c.stroke();
+  c.restore();                                 /* (۱۴٫۰) پایان مقیاس */
 }
 function circle2(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
 
@@ -541,6 +548,13 @@ function drawDarkEyes() {
 /* ---------------------- ۶-۷) هوک به‌روزرسانی این بخش ---------------------- */
 UPDATE_HOOKS.push(function survivalUpdate(dt) {
   Dark.update(dt);
+  PED.update(dt);                              /* (۱۴٫۰) دستفروش استوری‌مود */
+
+  /* (۱۴٫۰) گفتگو در روز/وقفه (داستان دستفروش) — بقیه‌ی حالت‌ها خودشان
+     DLG.update را صدا می‌زنند (افتتاحیه/انتقال/پیروزی) */
+  if (state.mode === 'day' || state.mode === 'intermission') {
+    try { DLG.update(dt); } catch (e) {}
+  }
 
   /* نوار باتری هر ~۰٫۴ ثانیه تازه شود (مصرف پیوسته است) */
   survivalUpdate._t = (survivalUpdate._t || 0) + dt;
@@ -583,26 +597,164 @@ UPDATE_HOOKS.push(function survivalUpdate(dt) {
   }
 });
 
-/* ---------------------- ۶-۸) دستفروش مرموز (دزد شبانه) ---------------------- */
+/* ---------------------- ۶-۸) دستفروش مرموز (استوری‌مود ۱۴٫۰) ----------------------
+   هر چند روز یک‌بار (فقط در روز): از لبه‌ی چپ صحنه می‌آید، تا «پایین برج»
+   راه می‌رود، با بازیکن گفتگو می‌کند (پرتره + صدای مرموزش)، بعد قفسه‌ی
+   کالایش باز می‌شود؛ و به محضِ «شب شود» بدرقه می‌شود — دیگر شب‌ها کنار
+   برج نمی‌ماند. ۳۰٪ مواقع کالایش تقلبی درمی‌آید! */
+const PED = {
+  active: false, phase: 'idle', x: -46, dir: 1, t: 0, walkT: 0,
+
+  /* آمدن: از چپِ صحنه تا پایین برج */
+  enter() {
+    this.active = true;
+    this.phase = 'enter';
+    this.x = -46; this.dir = 1; this.t = 0; this.walkT = 0;
+    state.peddler.here = true;
+    hidePeddlerPanel();
+    SFX.peddler();
+  },
+  /* رسید پایین برج → گفتگوی استوری */
+  talk() {
+    this.phase = 'talk';
+    try {
+      DLG.start([
+        { who: 'd', v: 'pd1a', text: 'شب نزدیک است... و من کالایی کمیاب دارم؛ فقط برای تو.' },
+        { who: 'p', v: 'pd1b', text: 'کالای کمیاب؟ از کجا معلوم تقلبی نباشد؟' },
+        { who: 'd', v: 'pd1c', text: 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
+      ], () => { if (PED.phase === 'talk') PED.openShop(); });
+    } catch (e) { this.openShop(); }
+  },
+  /* پایان گفتگو → قفسه‌ی کالا */
+  openShop() {
+    this.phase = 'stay';
+    renderPeddlerStock();
+  },
+  /* شب شد → خداحافظی و رفتن */
+  leave(farewell) {
+    if (!this.active) return;
+    if (this.phase !== 'leave') {
+      this.phase = 'leave';
+      this.dir = -1;
+      try { DLG.skip(); } catch (e) {}
+      hidePeddlerPanel();
+      state.peddler.here = false;
+      if (farewell !== false) {
+        try { VOICE.speak('غروب شد... باید رفت. شاید باز هم یکدیگر را ببینیم.', 'd', 'pd1l'); } catch (e) {}
+      }
+    }
+  },
+  reset() {
+    this.active = false; this.phase = 'idle'; this.x = -46; this.t = 0;
+  },
+
+  update(dt) {
+    if (!this.active) return;
+    this.t += dt;
+    const TARGET = TOWER.x - 84;                 /* پایین برج، کمی جلوتر */
+    if (this.phase === 'enter') {
+      this.walkT += dt;
+      this.x += 118 * dt;
+      if (this.x >= TARGET) { this.x = TARGET; this.talk(); }
+    } else if (this.phase === 'leave') {
+      this.walkT += dt;
+      this.x -= 150 * dt;
+      if (this.x < -60) this.reset();
+    }
+  },
+
+  render() {
+    if (!this.active) return;
+    if (state.mode !== 'day' && state.mode !== 'intermission') return;
+    drawPeddlerFig(this.x, GROUND_Y + 10, this.phase, this.walkT, this.t);
+  },
+};
+
+/* رسم دستفروش در صحنه: شنل بلند تیره + کلاهِ نوک‌تیز + چشم‌های بنفشِ
+   درخشان + فانوسِ نوسانی که زمین را روشن می‌کند */
+function drawPeddlerFig(x, y, phase, walkT, t) {
+  const moving = phase === 'enter' || phase === 'leave';
+  const bob = moving ? Math.abs(Math.sin(walkT * 6)) * 2.2 : Math.sin(t * 1.8) * 1.1;
+  const lean = moving ? (phase === 'enter' ? 0.07 : -0.07) : 0;
+  ctx.save();
+  ctx.translate(x, y);
+  /* سایه روی زمین */
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 15, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(0, -bob);
+  ctx.rotate(lean);
+  /* پاها (فقط موقع راه‌رفتن جابه‌جا می‌شوند) */
+  ctx.strokeStyle = '#15101f'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  const step = moving ? Math.sin(walkT * 6) * 6 : 0;
+  ctx.beginPath();
+  ctx.moveTo(-4, -14); ctx.lineTo(-5 + step, -1);
+  ctx.moveTo(4, -14); ctx.lineTo(5 - step, -1);
+  ctx.stroke();
+  /* شنل بلند — نرمِ موج‌دار */
+  const sway = Math.sin((moving ? walkT : t) * 2.2) * 3;
+  ctx.fillStyle = '#221839';
+  ctx.beginPath();
+  ctx.moveTo(-13, -46);
+  ctx.quadraticCurveTo(-17 + sway, -26, -14, -12);
+  ctx.lineTo(14, -12);
+  ctx.quadraticCurveTo(17 + sway, -26, 13, -46);
+  ctx.quadraticCurveTo(0, -52, -13, -46);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(90,64,140,0.35)';
+  ctx.fillRect(-14, -18, 28, 3);                 /* کمربندِ براق */
+  /* کلاهِ نوک‌تیزِ روی سرِ در سایه */
+  ctx.fillStyle = '#2e2348';
+  ctx.beginPath();
+  ctx.moveTo(-11, -46); ctx.quadraticCurveTo(-2, -62, 3, -60);
+  ctx.quadraticCurveTo(12, -58, 11, -46);
+  ctx.quadraticCurveTo(0, -50, -11, -46);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-2, -61); ctx.lineTo(2, -72); ctx.lineTo(6, -59);
+  ctx.closePath(); ctx.fill();
+  /* صورتِ تاریک + چشم‌های بنفش درخشان */
+  ctx.fillStyle = '#0d0918';
+  ctx.beginPath(); ctx.ellipse(0, -50, 8.5, 7, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save();
+  ctx.shadowColor = '#c08aff'; ctx.shadowBlur = 8;
+  ctx.fillStyle = '#d8b0ff';
+  circle2(ctx, -3.4, -50, 1.7); circle2(ctx, 3.4, -50, 1.7);
+  ctx.restore();
+  /* فانوسِ نوسانی در دست */
+  const lx = 16, ly = -34 + Math.sin((moving ? walkT : t) * 2.6) * 3;
+  ctx.strokeStyle = '#4a3a24'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(10, -40); ctx.lineTo(lx, ly - 6); ctx.stroke();
+  ctx.save();
+  ctx.shadowColor = '#ffd873'; ctx.shadowBlur = 14;
+  ctx.fillStyle = '#c9a24e';
+  ctx.fillRect(lx - 4, ly - 6, 8, 11);
+  ctx.fillStyle = 'rgba(255,232,150,0.95)';
+  ctx.fillRect(lx - 2.4, ly - 4, 4.8, 7);
+  ctx.restore();
+  /* هاله‌ی نورِ فانوس روی زمین */
+  const g2 = ctx.createRadialGradient(lx, ly, 3, lx, ly + 8, 34);
+  g2.addColorStop(0, 'rgba(255,216,115,0.30)');
+  g2.addColorStop(1, 'rgba(255,216,115,0)');
+  ctx.fillStyle = g2;
+  ctx.beginPath(); ctx.arc(lx, ly + 8, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
 /* هر روز (فقط در حالت day) صدا زده می‌شود: بعد از ۲ روزِ خالی، شانس ۴۰٪ */
 function peddlerRoll(force) {
   if (force) {                                   // برای تست/API
     state.peddler.here = true;
     state.peddler.cd = 2;
     state.peddler.stock = pickRareStock();
-    renderPeddlerStock();
+    PED.enter();
     return;
   }
   state.peddler.here = false;
+  PED.reset();
   if (state.peddler.cd > 0) { state.peddler.cd--; hidePeddlerPanel(); return; }
   if (Math.random() < 0.4) {
-    state.peddler.here = true;
     state.peddler.cd = 2;                        // دو روز بعد دوباره شانس
     state.peddler.stock = pickRareStock();
-    setAnnounce('🕳 دستفروش مرموز رسید...', 'کالای کمیاب دارد — ولی ۳۰٪ شانس تقلبی بودن!', 2.8);
-    SFX.peddler();
-    try { bark('spd1', 'd', 'کالای کمیاب دارم... فقط، برای تو.', '🕳 دستفروش مرموز رسید...', 'کالای کمیاب — ۳۰٪ شانس تقلبی بودن!', 4); } catch (e) {}
-    renderPeddlerStock();
+    PED.enter();                                 // (۱۴٫۰) استوری: می‌آید، حرف می‌زند، می‌فروشد
   } else {
     hidePeddlerPanel();
   }

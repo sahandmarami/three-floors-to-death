@@ -267,8 +267,9 @@ function makeMenuZombie(type, x) {
 }
 function initMenuZ() {
   menuZ.length = 0;
-  const types = ['normal', 'fast', 'tank', 'normal', 'fast'];
-  const xs = [-60, W + 80, -260, W + 300, -430];
+  /* (۱۴٫۰) منوی آرام‌تر: فقط ۲ زامبیِ دور و کُند — پس‌زمینه دیگر شلوغ نیست */
+  const types = ['normal', 'tank'];
+  const xs = [-200, W + 260];
   for (let i = 0; i < types.length; i++) menuZ.push(makeMenuZombie(types[i], xs[i]));
 }
 function updateMenuScene(dt) {
@@ -1941,6 +1942,7 @@ function render() {
   drawTrap();
   drawTower();
   drawChapterProps();                          // (۱۰٫۰) اسباب‌متعلقات فصل (جعبه/کیسه‌شن/برف) + صحنه‌های انتقال
+  if (typeof PED !== 'undefined') PED.render(); // (۱۴٫۰) دستفروش مرموز — پایین برج، جلوی صحنه
   if (CS) drawRubble(CS.draw.rubble);        // توده‌ی آوار زیر برج حین کات‌سین (۷٫۰)
   /* زامبی‌ها و برجک‌ها بر اساس عمق (y) با هم مرتب می‌شوند تا ردیف‌های عقب
      پشت سر جلو دیده شوند و برجک‌ها هم در جای درستِ خودشان بایستند (۴٫۰) */

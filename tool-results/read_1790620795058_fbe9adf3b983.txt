@@ -1,0 +1,721 @@
+     1→<!DOCTYPE html>
+     2→<html lang="fa" dir="rtl">
+     3→<head>
+     4→<meta charset="UTF-8">
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+     6→<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۳٫۰: گفتگوهای صوتی با صدای نورال فارسی، ریل کنترل گوشه‌ی چپ، نوار ارتقای خوانا، سیستم سیو اطمینانی با کد سیو، بهینه برای موبایل و اندروید">
+     7→<title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
+     8→<style>
+     9→/* ==================================================================
+    10→   سه طبقه تا بقا — نسخه‌ی ۱۳٫۰ — استایل‌های صفحه
+    11→   صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
+    12→   بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
+    13→            ۳) نوار باس و اعلان  ۴) پنل ساخت‌وساز تب‌دار کنار نقشه
+    14→            ۵) پنل روز و کوله‌پشتی  ۶) اورلی‌ها و پنل‌ها
+    15→            ۷) منوی اصلی مینیمال   ۸) راهنما
+    16→   تازه‌های ۱۳٫۰:
+    17→     - نوار سلاح پایین حذف شد — انتخاب سلاح از خود پنل ساخت‌وساز
+    18→     - پنل ساخت‌وساز تب‌دار شد (ارتقاء/سلاح‌ها/برجک‌ها/بقا) — تمیز و کامل
+    19→       قابل‌دیدن؛ چراغ‌قوه و باتری هم همیشه دیده می‌شوند
+    20→     - رنگ‌بندی پررنگ‌تر و کادرهای جدید (قاب طلایی/فیروزه‌ای)
+    21→   ================================================================== */
+    22→
+    23→/* ---------- ۱) ریست و قاب کلی ---------- */
+    24→*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+    25→html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e8ecf5;
+    26→  font-family:Tahoma,'Segoe UI','Noto Naskh Arabic','Noto Sans Arabic',Arial,sans-serif}
+    27→body{display:flex;align-items:center;justify-content:center}
+    28→
+    29→/* قاب بازی: نسبت تصویر ۹۶۰×۵۶۰ حفظ می‌شود و در هر صفحه‌ای جای می‌گیرد */
+    30→#wrap{position:relative;width:min(97vw,calc(97vh*960/560));aspect-ratio:960/560;
+    31→  border-radius:12px;overflow:hidden;
+    32→  box-shadow:0 12px 70px rgba(0,0,0,.75),0 0 0 1px #24345e,0 0 0 3px rgba(255,209,102,.12)}
+    33→#game{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+    34→
+    35→/* ---------- (۱۲٫۰) جعبه‌ی گفتگوی داستانی: پرتره + حباب ---------- */
+    36→#dlgBox{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:30;
+    37→  display:flex;align-items:flex-end;gap:10px;direction:rtl;max-width:88%;pointer-events:none}
+    38→#dlgPortrait{width:92px;height:92px;border-radius:14px;background:rgba(10,14,26,.92);
+    39→  border:2px solid #e8b54a;flex:none;margin-bottom:5px;transition:box-shadow .3s}
+    40→#dlgTextWrap{position:relative;background:linear-gradient(180deg,rgba(24,34,62,.96),rgba(10,16,34,.96));
+    41→  border:1.5px solid #4d6aa8;border-radius:14px 14px 4px 14px;padding:9px 16px 11px;min-width:320px;max-width:600px;
+    42→  box-shadow:0 10px 34px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07);backdrop-filter:blur(3px)}
+    43→#dlgWho{font-size:12px;font-weight:bold;letter-spacing:.5px;margin-bottom:3px}
+    44→#dlgText{font-size:15.5px;line-height:1.85;min-height:28px;color:#fdf7e3;font-weight:bold;
+    45→  text-shadow:0 1px 2px rgba(0,0,0,.8)}
+    46→#dlgText::after{content:'\258C';color:#ffd873;animation:dlgCaret 1s steps(2) infinite;margin-inline-start:2px}
+    47→@keyframes dlgCaret{50%{opacity:0}}
+    48→#dlgHint{font-size:9px;color:#9fb2dd;margin-top:4px;text-align:left}
+    49→#dlgBox.hidden{display:none}
+    50→
+    51→/* ---------- (۱۱٫۰) چرخاندن گوشی در حالت عمودی ---------- */
+    52→#rotateHint{position:absolute;inset:0;z-index:99;background:rgba(6,9,18,.96);
+    53→  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    54→  font-size:44px;font-weight:bold;color:#ffd873;text-align:center;padding:20px;pointer-events:none}
+    55→#rotateHint div{font-size:15px;color:#c3cdea;font-weight:normal;line-height:1.9}
+    56→#rotateHint.hidden{display:none}
+    57→/* (۱۱٫۰) نمایش rotateHint با JS مدیریت می‌شود (v4_mobile — orient) */
+    58→
+    59→/* ---------- (۱۲٫۰) لمس: دکمه‌های بزرگ‌تر و مناسب انگشت ---------- */
+    60→#wrap.touch .hud-btn{padding:9px 15px;font-size:14px;min-height:40px}
+    61→#wrap.touch .bp-tile{min-height:64px}
+    62→#wrap.touch #buildPanel{width:198px;top:56px}
+    63→#wrap.touch #hud{padding:6px 8px}
+    64→#wrap.touch .bp-tab{min-height:38px;font-size:11.5px}
+    65→#wrap.touch #dlgText{font-size:16.5px}
+    66→#wrap.touch #dlgTextWrap{min-width:250px}
+    67→#wrap.touch #bpTip{display:none!important}
+    68→#wrap.touch .overlay .btn-main,#wrap.touch .overlay .btn-sec{min-height:46px;font-size:15px}
+    69→
+    70→/* ---------- ۲) HUD بالای صفحه (۱۳٫۰: فقط وضعیت — بدون چیپ سلاح) ----------
+    71→   دکمه‌های توقف/صدا/چراغ به «ریل چپ» گوشه‌ی تصویر منتقل شدند تا با
+    72→   چیپ‌های وضعیت قاطی نشوند و بالای پنل ساخت‌وساز چیزی ننشیند. */
+    73→#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    74→  align-items:flex-start;padding:8px 12px;gap:10px;pointer-events:none;z-index:5}
+    75→.hud-group{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;min-width:0}
+    76→.hud-item{display:flex;align-items:center;gap:6px;background:linear-gradient(180deg,rgba(20,32,66,.86),rgba(10,17,38,.86));
+    77→  border:1px solid #3d548c;border-radius:10px;padding:4px 10px;font-size:12.5px;font-weight:bold;
+    78→  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 10px rgba(0,0,0,.4);
+    79→  backdrop-filter:blur(4px);white-space:nowrap;color:#eef2ff;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+    80→#healthBar{width:128px;height:13px;background:#160c0c;border:1px solid #55302f;border-radius:7px;overflow:hidden}
+    81→#healthFill{height:100%;width:100%;border-radius:7px;transition:width .18s ease;
+    82→  background:linear-gradient(90deg,#2ee06b,#8cff9a);box-shadow:0 0 8px rgba(72,224,120,.5)}
+    83→#healthFill.mid{background:linear-gradient(90deg,#f0b53a,#f7d968);box-shadow:0 0 8px rgba(240,181,58,.5)}
+    84→#healthFill.low{background:linear-gradient(90deg,#ef4d38,#ff8a72);box-shadow:0 0 8px rgba(239,77,56,.55)}
+    85→#coinItem{color:#ffd873}
+    86→/* پالس وقتی سکه‌ای جمع می‌شود */
+    87→@keyframes coinPulse{0%{transform:scale(1)}40%{transform:scale(1.28)}100%{transform:scale(1)}}
+    88→#coinItem.pulse{animation:coinPulse .28s ease}
+    89→/* (۱۳٫۰) در صفحه‌های باریک چیپ‌ها جمع‌وجور می‌شوند — هیچ‌وقت نمی‌شکنند/دور
+    90→   نمی‌ریزند تا چیزی بالای پنل ساخت‌وساز نیفتد */
+    91→@media (max-width:820px){
+    92→  #healthBar{width:92px}
+    93→  .hud-item{font-size:11px;padding:4px 8px;gap:4px}
+    94→  #hud{padding:6px 8px}
+    95→}
+    96→
+    97→/* ---------- (۱۳٫۰) ریل کنترل گوشه‌ی چپ تصویر ----------
+    98→   توقف / صدا / چراغ‌قوه — ستون عمودی چسبیده به لبه‌ی چپ، وسط ارتفاع؛
+    99→   دور از چیپ‌های وضعیت (بالا) و کوله‌پشتی (پایین) و پنل ساخت‌وساز (راست). */
+   100→#ctlRail{position:absolute;left:8px;top:50%;transform:translateY(-50%);z-index:6;
+   101→  display:flex;flex-direction:column;gap:7px;align-items:center}
+   102→.ctl-btn{pointer-events:auto;cursor:pointer;width:42px;height:42px;border-radius:13px;
+   103→  font-family:inherit;font-size:17px;color:#e8ecf5;line-height:1;
+   104→  background:linear-gradient(180deg,rgba(20,32,66,.88),rgba(10,17,38,.88));
+   105→  border:1px solid #3d548c;
+   106→  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 10px rgba(0,0,0,.4);
+   107→  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+   108→  backdrop-filter:blur(4px);
+   109→  transition:background .15s,transform .15s,border-color .15s}
+   110→.ctl-btn:hover{background:linear-gradient(180deg,rgba(42,63,116,.95),rgba(26,37,70,.95));
+   111→  border-color:#e8b54a;transform:translateX(2px)}
+   112→.ctl-btn:active{transform:scale(.94)}
+   113→/* باتری چراغ‌قوه: نوار کوچک زیر آیکون */
+   114→.ctl-batt{display:block;width:26px;height:5px;background:#101a2e;border:1px solid #33477c;
+   115→  border-radius:3px;overflow:hidden}
+   116→.ctl-batt i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#37d067,#7be38a);
+   117→  transition:width .3s ease}
+   118→#ctlFlash.nolight{opacity:.55;filter:saturate(.35)}
+   119→#ctlFlash.dead .ctl-batt i{background:linear-gradient(90deg,#e04b3a,#f37a6a)}
+   120→#wrap.touch .ctl-btn{width:48px;height:48px;font-size:19px}
+   121→#wrap.menu-mode #ctlRail,#wrap.cine-mode #ctlRail,#wrap.cs-mode #ctlRail{display:none!important}
+   122→
+   123→/* ---------- ۳) نوار جون باس + اعلان مرکزی ---------- */
+   124→#bossBar{position:absolute;top:48px;left:50%;transform:translateX(-50%);width:310px;z-index:5;
+   125→  display:none;text-align:center;pointer-events:none}
+   126→#bossBar .bname{font-size:12px;color:#ffb3ab;font-weight:bold;text-shadow:0 1px 4px #000,0 0 12px rgba(232,86,63,.5)}
+   127→#bossBar .btrack{height:12px;background:#160c0c;border:1px solid #6e3230;border-radius:6px;overflow:hidden;margin-top:3px}
+   128→#bossBar .bfill{height:100%;width:100%;transition:width .15s linear;
+   129→  background:linear-gradient(90deg,#b52c1e,#ff5c40);box-shadow:0 0 9px rgba(232,86,63,.6)}
+   130→
+   131→#announce{position:absolute;top:24%;left:0;right:0;text-align:center;pointer-events:none;z-index:4;
+   132→  opacity:0;transition:opacity .25s ease}
+   133→#announce .big{font-size:30px;font-weight:900;color:#ffd873;
+   134→  text-shadow:0 3px 12px rgba(0,0,0,.9),0 0 30px rgba(255,190,60,.4)}
+   135→#announce .sub{font-size:13.5px;color:#dbe5fa;margin-top:7px;font-weight:bold;
+   136→  text-shadow:0 2px 8px rgba(0,0,0,.85)}
+   137→/* ورود ضربه‌ای اعلان‌ها (۳٫۰) */
+   138→#announce.pop .big{animation:annPop .5s cubic-bezier(.2,1.7,.5,1) both}
+   139→@keyframes annPop{0%{transform:scale(.4) translateY(10px);opacity:0}100%{transform:scale(1);opacity:1}}
+   140→
+   141→/* ---------- ۴) پنل ساخت‌وساز تب‌دار کنار نقشه (۱۲٫۰) ----------
+   142→   به‌جای فهرست بلندِ همه‌ی آیتم‌ها (که از صفحه بیرون می‌زد و
+   143→   چراغ‌قوه دیده نمی‌شد)، چهار تب: ارتقاء / سلاح‌ها / برجک‌ها / بقا.
+   144→   در شب خودکار «جمع» می‌شود تا شلیک آزاد بماند. */
+   145→#buildPanel{position:absolute;top:60px;right:10px;width:208px;z-index:5;
+   146→  background:linear-gradient(180deg,rgba(16,26,54,.92),rgba(9,15,34,.92));border:1px solid #384f86;
+   147→  border-radius:13px;backdrop-filter:blur(5px);overflow:visible;
+   148→  box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+   149→/* حالت جمع‌شده: فقط سربرگ به‌صورت یک قرص کوچک در آسمان */
+   150→#buildPanel.collapsed{width:auto}
+   151→#buildPanel.collapsed .bp-head{border-radius:13px;padding:7px 13px;font-size:12px;
+   152→  background:rgba(13,21,44,.92)}
+   153→#buildPanel.collapsed .bp-tabs{display:none}
+   154→#buildPanel:not(.collapsed) #bpList{animation:bpOpen .18s ease}
+   155→@keyframes bpOpen{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+   156→.bp-head{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:11.5px;font-weight:bold;
+   157→  color:#ffd873;background:linear-gradient(180deg,rgba(26,38,74,.95),rgba(15,24,50,.95));cursor:pointer;
+   158→  border-bottom:1px solid #2c3f70;border-radius:13px 13px 0 0}
+   159→.bp-head .bp-chev{margin-inline-start:auto;font-size:10px;color:#9fb2dd}
+   160→/* جلب توجه پنل در روزِ بین موج‌ها */
+   161→@keyframes attentionPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,216,115,.55)}50%{box-shadow:0 0 0 9px rgba(255,216,115,0)}}
+   162→.bp-head.attention{animation:attentionPulse 1.2s infinite;color:#ffd873}
+   163→/* نوار تب‌ها (۱۲٫۰) — چهار قرص؛ تب فعال طلایی */
+   164→.bp-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:6px 6px 2px}
+   165→.bp-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+   166→  min-height:34px;background:rgba(13,22,46,.9);border:1px solid #2c3f70;border-radius:9px;
+   167→  cursor:pointer;pointer-events:auto;font-size:9.5px;font-weight:bold;color:#9fb2dd;
+   168→  padding:3px 1px;transition:background .15s,color .15s,border-color .15s,transform .1s;
+   169→  text-shadow:0 1px 2px rgba(0,0,0,.6)}
+   170→.bp-tab .bp-tab-ic{font-size:13px;line-height:1.2}
+   171→.bp-tab:hover{border-color:#4d6aa8;color:#dbe5fa}
+   172→.bp-tab.on{background:linear-gradient(180deg,#ffd873,#eda93c);border-color:#ffd873;color:#1a1206;
+   173→  text-shadow:none;box-shadow:0 0 12px rgba(255,216,115,.35)}
+   174→#buildPanel.collapsed #bpList{display:none}
+   175→#bpList{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:6px}
+   176→/* کاشی آیتم — پررنگ‌تر (۱۲٫۰) */
+   177→.bp-tile{position:relative;height:74px;background:linear-gradient(180deg,rgba(26,40,80,.92),rgba(12,20,44,.92));
+   178→  border:1.5px solid #33518f;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+   179→  gap:3px;cursor:pointer;pointer-events:auto;
+   180→  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+   181→  transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
+   182→.bp-tile:hover{border-color:#e8b54a;background:rgba(34,52,100,.95);transform:translateY(-2px);z-index:2;
+   183→  box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 12px rgba(232,181,74,.2)}
+   184→.bp-tile .bp-ic{width:44px;height:44px;display:block}
+   185→/* قیمت: نوار تیره‌ی گرد با نقطه‌ی سکه‌ی طلایی */
+   186→.bp-tile .bp-price{font-size:10px;font-weight:bold;color:#ffd873;line-height:1;min-height:14px;
+   187→  display:inline-flex;align-items:center;gap:3px;padding:1.5px 7px 1.5px 5px;
+   188→  background:rgba(4,8,18,.9);border:1px solid #4a3d1e;border-radius:999px}
+   189→.bp-tile .bp-price::before{content:'';width:7px;height:7px;border-radius:50%;flex:none;
+   190→  background:radial-gradient(circle at 35% 30%,#ffe9a8,#f5c542 55%,#b98a1e);
+   191→  box-shadow:0 0 5px rgba(245,197,66,.7)}
+   192→.bp-key{position:absolute;top:2px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
+   193→  border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
+   194→/* (۱۳٫۰) نوار سطح ارتقا: تعریف قدیمیِ نقطه‌های ۴px حذف شد — تعریف جدیدِ درخشان در بخش پنل */
+   195→/* سلاحِ فعالِ در دست (۱۲٫۰): قاب طلایی + نشان */
+   196→.bp-tile.armed{border-color:#ffd873;background:rgba(45,58,100,.95);
+   197→  box-shadow:0 0 14px rgba(255,216,115,.4),inset 0 1px 0 rgba(255,255,255,.1)}
+   198→.bp-tile.armed::after{content:'✓ در دست';position:absolute;bottom:2.5px;left:50%;transform:translateX(-50%);
+   199→  font-size:8px;font-weight:900;color:#ffd873;text-shadow:0 1px 2px #000;white-space:nowrap}
+   200→/* حالت‌ها: گران / حداکثر / در حال نصب */
+   201→.bp-tile.poor .bp-price{color:#e06a5a}
+   202→.bp-tile.poor .bp-ic{filter:saturate(.5) brightness(.72)}
+   203→.bp-tile.max{opacity:.82}
+   204→.bp-tile.max .bp-price{color:#7be389}
+   205→.bp-tile.placing{border-color:#ffd873;background:rgba(45,58,100,.95);animation:bpPulse 1s infinite}
+   206→@keyframes bpPulse{0%,100%{box-shadow:0 0 6px rgba(255,216,115,.25)}50%{box-shadow:0 0 14px rgba(255,216,115,.5)}}
+   207→/* لرزش کاشی وقتی سکه کافی نیست */
+   208→@keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+   209→.bp-tile.deny{animation:bpDeny .3s;border-color:#e04b3a}
+   210→/* تولتیپ آیتم‌ها: نام + توضیح + وضعیت (جای متنِ حذف‌شده‌ی کاشی‌ها) */
+   211→#bpTip{position:absolute;z-index:8;width:172px;background:rgba(10,16,36,.97);border:1px solid #4d6aa8;
+   212→  border-radius:10px;padding:8px 10px;font-size:11px;color:#cdd8f2;pointer-events:none;
+   213→  display:none;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.55);text-align:right;line-height:1.55}
+   214→#bpTip b{display:block;color:#ffd873;font-size:12px;margin-bottom:2px}
+   215→#bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
+   216→
+   217→/* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب ----------
+   218→   (۶٫۰) دکمه به بالای صفحه (زیر HUD) منتقل شد تا کف نقشه برای
+   219→   دیدن و نصب برجک کاملاً آزاد بماند. */
+   220→#dayPanel{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:6;
+   221→  display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+   222→#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:15.5px;font-weight:bold;
+   223→  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:999px;
+   224→  padding:10px 34px;box-shadow:0 4px 22px rgba(240,180,60,.4);
+   225→  transition:transform .15s,filter .15s;animation:nightGlow 1.6s ease-in-out infinite}
+   226→#btnNight:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.07)}
+   227→@keyframes nightGlow{0%,100%{box-shadow:0 4px 18px rgba(240,180,60,.32)}50%{box-shadow:0 4px 30px rgba(240,180,60,.62)}}
+   228→#dpHint{font-size:10.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.72);
+   229→  border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92}
+   230→
+   231→/* ---------- ۵٫۶) کات‌سین داستانی (۷٫۰) ----------
+   232→   حین کات‌سین، پنل روز/پنل ساخت‌وساز مخفی می‌شوند تا صحنه سینمایی
+   233→   تمیز بماند؛ HUD بالا می‌ماند تا بازیکن ببیند جون و سکه‌اش حفظ شده است. */
+   234→#wrap.cs-mode #buildPanel,
+   235→#wrap.cs-mode #dayPanel {display:none!important}
+   236→/* دکمه‌ی «رد کردن» گوشه‌ی صفحه (روی نوار سیاه سینمایی می‌نشیند) */
+   237→#skipCs{position:absolute;bottom:9px;left:16px;z-index:9;pointer-events:auto;cursor:pointer;
+   238→  font-family:inherit;font-size:12.5px;font-weight:bold;color:#c3cdea;
+   239→  background:rgba(8,14,30,.78);border:1px solid #33477c;border-radius:999px;padding:7px 18px;
+   240→  backdrop-filter:blur(4px);transition:color .15s,border-color .15s,transform .15s,background .15s}
+   241→#skipCs:hover{color:#ffd873;border-color:#ffd873;background:rgba(20,30,60,.92);transform:translateY(-1px)}
+   242→
+   243→/* ---------- ۶) اورلی‌ها و پنل‌ها (۱۲٫۰: کادرهای پررنگ‌تر) ---------- */
+   244→.overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+   245→  background:rgba(4,7,18,.72);backdrop-filter:blur(5px)}
+   246→.hidden{display:none!important}
+   247→.panel{background:linear-gradient(180deg,#1a2648,#0c1329);border:1px solid #4d6aa8;border-radius:16px;
+   248→  padding:24px 30px;text-align:center;max-width:560px;width:88%;max-height:92%;overflow-y:auto;
+   249→  box-shadow:0 18px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08)}
+   250→.panel h1{font-size:28px;margin-bottom:8px;color:#ffd873;text-shadow:0 2px 12px rgba(255,190,60,.3)}
+   251→.panel h2{font-size:20px;margin-bottom:4px;color:#ffd873}
+   252→.subtitle{color:#b7c5e6;font-size:14px;margin-bottom:4px}
+   253→.howto{display:flex;flex-direction:column;gap:7px;background:rgba(255,255,255,.05);
+   254→  border:1px solid #33518f;border-radius:10px;padding:12px 15px;margin:14px 0;font-size:12.5px;
+   255→  color:#cdd8f2;text-align:right;line-height:1.65}
+   256→.btn-main{cursor:pointer;font-family:inherit;font-size:16.5px;font-weight:bold;color:#141a2e;
+   257→  background:linear-gradient(180deg,#ffd873,#eda93c);border:none;border-radius:11px;padding:12px 36px;
+   258→  transition:transform .15s,filter .15s;box-shadow:0 5px 22px rgba(240,180,60,.4),inset 0 1px 0 rgba(255,255,255,.5)}
+   259→.btn-main:hover{transform:translateY(-2px);filter:brightness(1.07)}
+   260→.btn-sec{cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:bold;color:#dbe5fa;
+   261→  background:linear-gradient(180deg,#243358,#1a2546);border:1px solid #3d548c;border-radius:10px;
+   262→  padding:10px 22px;transition:.15s;margin-right:8px;
+   263→  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+   264→.btn-sec:hover{background:linear-gradient(180deg,#31456e,#243358);color:#fff;border-color:#e8b54a}
+   265→.btn-row{display:flex;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;gap:6px}
+   266→.hint{color:#8fa3cf;font-size:11.5px;margin-top:14px}
+   267→.stat-line{color:#b7c5e6;font-size:13px;margin-top:4px}
+   268→.stat-line b{color:#ffd873}
+   269→.icon-btn{cursor:pointer;font-family:inherit;font-size:17px;width:46px;height:46px;border-radius:12px;
+   270→  background:linear-gradient(180deg,#243358,#1a2546);border:1px solid #3d548c;color:#e8ecf5;
+   271→  transition:background .15s,transform .15s}
+   272→.icon-btn:hover{background:#31456e;transform:translateY(-1px)}
+   273→
+   274→/* ---------- ۷) منوی اصلی: مینیمال و تمیز روی صحنه‌ی زنده (۵٫۰) ----------
+   275→   فقط عنوان + یک جمله + دکمه‌ها؛ صحنه‌ی زنده‌ی بازی خودش تزئین است.
+   276→   در حالت منو، HUD/نوار سلاح/پنل ساخت‌وساز هم مخفی می‌شوند (ضد شلوغی). */
+   277→#wrap.menu-mode #hud, #wrap.menu-mode #buildPanel,
+   278→#wrap.menu-mode #bossBar {display:none!important}
+   279→#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.86),rgba(4,7,18,.52) 38%,rgba(4,7,18,.03) 60%,rgba(4,7,18,.42) 100%);
+   280→  backdrop-filter:none;pointer-events:none;align-items:flex-start}
+   281→#menuHero{pointer-events:none;text-align:center;max-width:660px;padding:38px 18px 0}
+   282→#menuHero button{pointer-events:auto}
+   283→.game-title{font-size:54px;font-weight:900;margin:0;letter-spacing:.5px;color:#ffd873;
+   284→  background:linear-gradient(180deg,#fff8dc 5%,#ffd873 45%,#e8961e 95%);
+   285→  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+   286→  filter:drop-shadow(0 4px 16px rgba(255,180,60,.5));animation:titleFloat 3.4s ease-in-out infinite}
+   287→@keyframes titleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+   288→.tagline{color:#d5e0f5;font-size:16px;margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+   289→.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+   290→.btn-big{font-size:20px;padding:15px 52px}
+   291→.ver{margin-top:16px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+   292→
+   293→/* ---------- ۸) راهنمای بازی ---------- */
+   294→.howto-panel{max-width:620px;text-align:center}
+   295→.sec-t{color:#ffd873;font-size:16px;margin:14px 0 8px;text-align:right}
+   296→.foes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 4px}
+   297→.foe{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.04);border:1px solid #26355c;
+   298→  border-radius:10px;padding:8px 12px;font-size:12.5px;text-align:right}
+   299→.foe .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex-shrink:0;box-shadow:0 0 9px var(--c)}
+   300→.foe b{color:#e8ecf5;font-size:12.5px}
+   301→.foe i{color:#8fa3cf;font-style:normal;font-size:11px;display:block;margin-top:1px}
+   302→/* ==================================================================
+   303→   نسخه‌ی ۱۳٫۰ — صدای نورال فارسی + ریل چپ + نوار ارتقا + سیو اطمینانی
+   304→   ================================================================== */
+   305→
+   306→/* --- کوله‌پشتی (۶ جا) پایین‌چپ — (۱۲٫۰) وقتی خالی است فقط یک قرص کوچک --- */
+   307→#backpackBar{position:absolute;bottom:6px;left:10px;z-index:5;display:flex;gap:5px;align-items:center;
+   308→  opacity:.92;transition:opacity .2s;pointer-events:none}
+   309→#backpackBar:hover{opacity:1}
+   310→.bpk-cap{font-size:9.5px;font-weight:bold;color:#9fb2dd;background:linear-gradient(180deg,rgba(20,32,66,.9),rgba(10,17,38,.9));
+   311→  border:1px solid #3d548c;border-radius:8px;padding:4px 8px;pointer-events:none;
+   312→  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+   313→/* حالت خالی: جاخالی‌های خالیِ چسبیده رسم نمی‌شوند (ضدشلوغی ۱۲٫۰) */
+   314→#backpackBar.compact #bpkSlots{display:none}
+   315→#backpackBar.compact .bpk-cap{color:#ffd873;border-color:#e8b54a}
+   316→#bpkSlots{display:flex;gap:4px}
+   317→.bpk-slot{position:relative;width:46px;height:46px;background:linear-gradient(180deg,rgba(26,40,80,.9),rgba(10,17,38,.9));border:1.5px solid #33518f;
+   318→  border-radius:9px;cursor:pointer;pointer-events:auto;display:flex;align-items:center;justify-content:center;
+   319→  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+   320→  transition:border-color .15s,transform .15s,box-shadow .15s}
+   321→.bpk-slot:hover{border-color:#e8b54a;transform:translateY(-2px)}
+   322→.bpk-slot canvas{width:40px;height:40px;display:block}
+   323→.bpk-slot.empty{border-style:dashed;opacity:.6}
+   324→.bpk-slot.empty::after{content:'+';font-size:16px;color:#4d6aa8;font-weight:900}
+   325→.bpk-slot .bpk-key{position:absolute;top:1px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
+   326→  border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
+   327→.bpk-slot.ready{border-color:#5fae6a}
+   328→@keyframes bpkReady{0%,100%{box-shadow:0 0 4px rgba(123,227,137,.25)}50%{box-shadow:0 0 12px rgba(123,227,137,.55)}}
+   329→.bpk-slot.ready{animation:bpkReady 1.7s infinite}
+   330→@keyframes bpkDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+   331→.bpk-slot.deny{animation:bpkDeny .3s;border-color:#e04b3a}
+   332→
+   333→/* --- پنل دستفروش مرموز (چپ نقشه، فقط روزها) --- */
+   334→#peddlerPanel{position:absolute;top:60px;left:10px;width:178px;z-index:6;background:rgba(13,10,26,.92);
+   335→  border:1px solid #4a3a6a;border-radius:12px;padding:8px;backdrop-filter:blur(4px);
+   336→  box-shadow:0 10px 34px rgba(0,0,0,.5);animation:pdIn .4s ease}
+   337→@keyframes pdIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+   338→#peddlerPanel .pd-head{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:bold;color:#d8c9ff}
+   339→#peddlerPanel .pd-face{width:46px;height:46px;border-radius:9px;background:#0a0818;border:1px solid #4a3a6a;flex:none}
+   340→#peddlerPanel .pd-note{font-size:9.5px;color:#9f8fd0;margin:5px 2px 1px;font-style:italic}
+   341→.pd-item{display:flex;align-items:center;gap:7px;background:rgba(30,22,52,.85);border:1px solid #56427c;
+   342→  border-radius:9px;padding:5px 7px;margin-top:6px;cursor:pointer;transition:border-color .15s,transform .15s}
+   343→.pd-item:hover{border-color:#ffd873;transform:translateY(-1px)}
+   344→.pd-item canvas{width:34px;height:34px;flex:none}
+   345→.pd-item .pd-name{font-size:10.5px;font-weight:bold;color:#e8ecf5;line-height:1.5}
+   346→.pd-item .pd-sub{font-size:8.5px;color:#9f8fd0;display:block}
+   347→.pd-item .pd-price{margin-inline-start:auto;font-size:10px;font-weight:bold;color:#ffd873;white-space:nowrap}
+   348→.pd-item.poor{opacity:.6}.pd-item.poor .pd-price{color:#e06a5a}
+   349→#peddlerPanel.scammed{animation:pdScam .7s}
+   350→@keyframes pdScam{0%,100%{transform:translateX(0);border-color:#4a3a6a}
+   351→  20%,60%{transform:translateX(-6px);border-color:#e04b3a}
+   352→  40%,80%{transform:translateX(6px);border-color:#e04b3a}}
+   353→
+   354→/* --- نشان قفل فروشگاه در آخرین شب --- */
+   355→#lockBadge{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:6;
+   356→  font-size:11.5px;font-weight:bold;color:#ffb3ab;background:rgba(30,6,10,.88);border:1px solid #7c2d2e;
+   357→  border-radius:999px;padding:5px 15px;backdrop-filter:blur(3px);animation:lockPulse 1.6s infinite}
+   358→@keyframes lockPulse{0%,100%{box-shadow:0 0 4px rgba(224,75,58,.2)}50%{box-shadow:0 0 14px rgba(224,75,58,.5)}}
+   359→
+   360→/* --- هشدار تمام‌صفحه «آخرین شب» --- */
+   361→#bossWarn{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;
+   362→  justify-content:center;background:radial-gradient(ellipse at center,rgba(70,6,10,.45),rgba(8,1,2,.94));
+   363→  pointer-events:none;opacity:0;transition:opacity .55s}
+   364→#bossWarn.show{opacity:1}
+   365→#bossWarn .bw-big{font-size:46px;font-weight:900;color:#ff4b3e;letter-spacing:2px;
+   366→  text-shadow:0 4px 26px rgba(255,40,30,.55);animation:bwPulse 1.15s infinite}
+   367→@keyframes bwPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:.85}}
+   368→#bossWarn .bw-sub{font-size:15px;font-weight:bold;color:#f3d9d5;margin-top:14px;text-shadow:0 2px 8px #000}
+   369→#bossWarn .bw-sub2{font-size:12.5px;color:#d8a49c;margin-top:7px;text-shadow:0 2px 8px #000}
+   370→
+   371→/* --- کارت فصل جدید --- */
+   372→#chapterCard{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;
+   373→  justify-content:center;background:rgba(2,4,10,.9);opacity:0;transition:opacity .6s;pointer-events:none}
+   374→#chapterCard.show{opacity:1}
+   375→#chapterCard #ccNum{font-size:15px;font-weight:bold;color:#8fd6ff;letter-spacing:4px;margin-bottom:8px}
+   376→#chapterCard #ccName{font-size:42px;font-weight:900;color:#ffd873;
+   377→  background:linear-gradient(180deg,#fff8dc 5%,#ffd873 45%,#e8961e 95%);
+   378→  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+   379→  filter:drop-shadow(0 4px 18px rgba(255,180,60,.45))}
+   380→#chapterCard #ccSub{font-size:16px;color:#c3cdea;margin-top:10px;text-shadow:0 2px 8px #000}
+   381→
+   382→/* --- پوشش محو نرم --- */
+   383→#fadeDiv{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .5s ease;
+   384→  pointer-events:none;z-index:30}
+   385→#fadeDiv.on{opacity:1;pointer-events:auto}
+   386→
+   387→/* --- حالت سینمایی کامل (افتتاحیه/انتقال‌ها): همه‌ی UI مخفی --- */
+   388→#wrap.cine-mode #hud, #wrap.cine-mode #buildPanel,
+   389→#wrap.cine-mode #dayPanel, #wrap.cine-mode #backpackBar, #wrap.cine-mode #peddlerPanel,
+   390→#wrap.cine-mode #bossBar, #wrap.cine-mode #lockBadge {display:none!important}
+   391→/* در منو هم کوله/دستفروش/قفل مخفی باشند */
+   392→#wrap.menu-mode #backpackBar, #wrap.menu-mode #peddlerPanel, #wrap.menu-mode #lockBadge,
+   393→#wrap.menu-mode #bossWarn, #wrap.menu-mode #chapterCard {display:none!important}
+   394→
+   395→/* --- تنظیمات: ردیف‌ها و کلیدهای روشن/خاموش --- */
+   396→.set-row{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.05);
+   397→  border:1px solid #33518f;border-radius:10px;padding:9px 14px;margin:7px 0;font-size:13px;color:#cdd8f2}
+   398→.switch{position:relative;display:inline-block;width:46px;height:23px;flex:none;cursor:pointer}
+   399→.switch input{opacity:0;width:0;height:0}
+   400→.switch span{position:absolute;inset:0;background:#1a2546;border:1px solid #33477c;border-radius:999px;transition:.2s}
+   401→.switch span::after{content:'';position:absolute;top:2.5px;right:3px;width:16px;height:16px;border-radius:50%;
+   402→  background:#8fa3cf;transition:.2s}
+   403→.switch input:checked + span{background:#2d5a35;border-color:#4a9a56}
+   404→.switch input:checked + span::after{background:#7be38a;transform:translateX(-21px)}
+   405→.vol{width:150px;accent-color:#f0b53c}
+   406→
+   407→/* --- منوی ۵ دکمه‌ای عمودی + نبض لوگو --- */
+   408→.menu-btns{flex-direction:column;gap:9px;margin-top:20px}
+   409→.mbtn{min-width:264px}
+   410→.btn-sec:disabled{opacity:.45;cursor:not-allowed;transform:none}
+   411→.game-title{animation:titleFloat 3.4s ease-in-out infinite, logoPulse 2.8s ease-in-out infinite}
+   412→@keyframes logoPulse{0%,100%{filter:drop-shadow(0 4px 16px rgba(255,180,60,.5))}
+   413→  50%{filter:drop-shadow(0 4px 30px rgba(255,180,60,.85))}}
+   414→
+   415→/* --- (۱۳٫۰) منوی تمیز: دکمه‌های کوچک زیر دکمه‌های اصلی --- */
+   416→.menu-mini{display:flex;justify-content:center;gap:8px;margin-top:13px;flex-wrap:wrap}
+   417→.mini-btn{cursor:pointer;font-family:inherit;font-size:12px;font-weight:bold;color:#cdd8f2;
+   418→  background:linear-gradient(180deg,rgba(26,38,74,.9),rgba(15,24,50,.9));border:1px solid #33518f;
+   419→  border-radius:999px;padding:8px 18px;transition:.15s;backdrop-filter:blur(4px);
+   420→  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 10px rgba(0,0,0,.35)}
+   421→.mini-btn:hover{color:#ffd873;border-color:#e8b54a;background:rgba(34,52,100,.95);transform:translateY(-1px)}
+   422→#wrap.touch .mini-btn{padding:10px 20px;font-size:13px}
+   423→/* هشدار ذخیره‌سازی خراب */
+   424→#storageWarn{display:inline-block;margin-top:10px;font-size:11px;font-weight:bold;color:#ffb3ab;
+   425→  background:rgba(30,6,10,.85);border:1px solid #7c2d2e;border-radius:999px;padding:6px 16px;
+   426→  text-shadow:0 1px 3px #000}
+   427→
+   428→/* --- (۱۳٫۰) اعلان کوچک «ذخیره شد» --- */
+   429→#saveToast{position:absolute;bottom:14px;right:14px;z-index:7;pointer-events:none;
+   430→  font-size:11.5px;font-weight:bold;color:#1a1206;background:linear-gradient(180deg,#ffe9a8,#f0b53c);
+   431→  border-radius:999px;padding:7px 18px;box-shadow:0 4px 18px rgba(240,180,60,.45);
+   432→  opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s}
+   433→#saveToast.show{opacity:1;transform:none}
+   434→
+   435→/* --- (۱۳٫۰) نوار سطح ارتقا زیر کاشی‌ها — جای نقطه‌های نامرئی --- */
+   436→.bp-tile{height:88px}
+   437→.bp-tile .bp-lv{display:flex;gap:2px;width:84%;height:8px;margin-top:1px;padding:1px;
+   438→  background:rgba(4,8,18,.9);border:1px solid #26355c;border-radius:5px;position:relative}
+   439→.bp-tile .bp-lv::before{content:'سطح';position:absolute;top:-4.5px;right:4px;font-size:7.5px;font-weight:900;
+   440→  color:#ffd873;background:#0b1330;padding:0 4px;border-radius:4px;line-height:1.3;
+   441→  border:1px solid #3a3d20;text-shadow:0 1px 1px #000}
+   442→.bp-tile .bp-lv i{flex:1;border-radius:3px;background:#1e2c52;
+   443→  box-shadow:inset 0 1px 0 rgba(0,0,0,.45);transition:background .25s}
+   444→.bp-tile .bp-lv i.on{background:linear-gradient(180deg,#ffe9a8,#f0b53c);
+   445→  box-shadow:0 0 7px rgba(255,216,115,.65),inset 0 1px 0 rgba(255,255,255,.5)}
+   446→
+   447→/* --- (۱۳٫۰) صفحه‌ی کد سیو --- */
+   448→#scText{width:100%;min-height:88px;resize:vertical;direction:ltr;text-align:left;
+   449→  font-family:Consolas,monospace;font-size:10px;line-height:1.5;color:#cdd8f2;
+   450→  background:#0a1128;border:1px solid #33518f;border-radius:9px;padding:8px 10px;margin-top:10px}
+   451→
+   452→</style>
+   453→</head>
+   454→<body>
+   455→<div id="wrap">
+   456→
+   457→  <!-- بوم اصلی؛ همه‌چیز داخل بازی با Canvas API رسم می‌شود (بدون تصویر خارجی) -->
+   458→  <canvas id="game" width="960" height="560"></canvas>
+   459→
+   460→  <!-- ============ HUD بالای صفحه: فقط وضعیت — جون برج، سکه، موج ============
+   461→       (۱۳٫۰) دکمه‌ها به ریل چپ رفتند؛ چیپ سلاح حذف شد (بالای پنل نمی‌نشیند) -->
+   462→  <div id="hud">
+   463→    <div class="hud-group">
+   464→      <div class="hud-item" title="جون برج">❤️
+   465→        <div id="healthBar"><div id="healthFill"></div></div>
+   466→        <span id="healthText">۱۰۰/۱۰۰</span>
+   467→      </div>
+   468→      <div class="hud-item" id="coinItem" title="سکه‌ها">💰 <span id="coinText">۰</span></div>
+   469→      <div class="hud-item" title="موج فعلی">💀 <span id="waveText">موج ۱/۱۰</span></div>
+   470→    </div>
+   471→  </div>
+   472→
+   473→  <!-- ============ (۱۳٫۰) ریل کنترل گوشه‌ی چپ تصویر: توقف / صدا / چراغ‌قوه ============ -->
+   474→  <div id="ctlRail">
+   475→    <button class="ctl-btn" id="ctlPause" title="توقف / ادامه (P)">⏸</button>
+   476→    <button class="ctl-btn" id="ctlMute" title="قطع/وصل صدا (M)">🔊</button>
+   477→    <button class="ctl-btn" id="ctlFlash" title="چراغ‌قوه (L)">🔦<span class="ctl-batt"><i id="ctlBattFill"></i></span></button>
+   478→  </div>
+   479→
+   480→  <!-- ============ نوار جون باس (فقط موقع حضور پادشاه زامبی‌ها) ============ -->
+   481→  <div id="bossBar">
+   482→    <div class="bname">🌑 نگهبانِ آخرین شب</div>
+   483→    <div class="btrack"><div class="bfill" id="bossFill"></div></div>
+   484→  </div>
+   485→
+   486→  <!-- ============ اعلان مرکزی (موج بعدی / آغاز موج / کمبو / باس) ============ -->
+   487→  <div id="announce">
+   488→    <div class="big" id="announceBig"></div>
+   489→    <div class="sub" id="announceSub"></div>
+   490→  </div>
+   491→
+   492→  <!-- (۱۲٫۰) نوار سلاح پایین حذف شد — انتخاب سلاح از تب «سلاح‌ها»ی پنل ساخت‌وساز یا کلید ۱/۲/۳ -->
+   493→
+   494→  <!-- ============ پنل ساخت‌وساز تب‌دار (۱۲٫۰) ============
+   495→       چهار تب: ارتقاء / سلاح‌ها / برجک‌ها / بقا — کاشی‌ها در JS ساخته می‌شوند. -->
+   496→  <div id="buildPanel">
+   497→    <div class="bp-head" id="bpHead" title="خرید وسط بازی هم مجاز است — کلید B جمع/باز">
+   498→      🛠 ساخت‌وساز <span class="bp-chev" id="bpChev">▾</span>
+   499→    </div>
+   500→    <div class="bp-tabs" id="bpTabs"></div>
+   501→    <div id="bpList"></div>
+   502→  </div>
+   503→  <div id="bpTip"></div>
+   504→
+   505→  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============
+   506→       (۶٫۰) بالای صفحه، زیر HUD — کف نقشه آزاد می‌ماند -->
+   507→  <div id="dayPanel" class="hidden">
+   508→    <button id="btnNight">🌙 شب شود</button>
+   509→    <span id="dpHint">زامبی نمی‌آید — ارتقا بخر و برجک بگذار</span>
+   510→  </div>
+   511→
+   512→  <!-- ============ (۱۰٫۰) پنل دستفروش مرموز — کنار فروشگاه، فقط بعضی روزها ============ -->
+   513→  <div id="peddlerPanel" class="hidden">
+   514→    <div class="pd-head"><canvas class="pd-face" id="pdFace" width="92" height="92"></canvas>
+   515→      <span>دستفروشِ<br>مرموز</span></div>
+   516→    <div class="pd-note">«فقط امروز این‌جام...»</div>
+   517→    <div id="pdStock"></div>
+   518→  </div>
+   519→
+   520→  <!-- ============ (۱۲٫۰) کوله‌پشتی: ۶ جا برای وسایل بقا (کلیک یا Q..U) ============
+   521→       وقتی خالی است فقط یک قرص کوچک نشان داده می‌شود (ضدشلوغی) -->
+   522→  <div id="backpackBar">
+   523→    <span class="bpk-cap" id="bpkCap">🎒 کوله خالی — خرید از تب «بقا»</span>
+   524→    <div id="bpkSlots"></div>
+   525→  </div>
+   526→
+   527→  <!-- ============ (۱۳٫۰) اعلان کوچک «ذخیره شد» — پایین‌راست ============ -->
+   528→  <div id="saveToast">💾 ذخیره شد</div>
+   529→
+   530→  <!-- ============ (۱۰٫۰) نشان قفل فروشگاه در «آخرین شب» ============ -->
+   531→  <div id="lockBadge" class="hidden">🔒 آخرین شب — فروشگاه قفل است</div>
+   532→
+   533→  <!-- ============ (۱۰٫۰) هشدار ورود به آخرین شب ============ -->
+   534→  <div id="bossWarn">
+   535→    <div class="bw-big">آخـریـن شـب</div>
+   536→    <div class="bw-sub">فروشگاه قفل شد — فقط خودت، برجت و کوله‌پشتیت</div>
+   537→    <div class="bw-sub2">... و برق هم قطع است 🔦</div>
+   538→  </div>
+   539→
+   540→  <!-- ============ (۱۰٫۰) کارت فصل جدید ============ -->
+   541→  <div id="chapterCard">
+   542→    <div id="ccNum">فصل اول</div>
+   543→    <div id="ccName">محله‌ی قدیمی</div>
+   544→    <div id="ccSub">شب‌های آجری</div>
+   545→  </div>
+   546→
+   547→  <!-- ============ (۱۱٫۰) جعبه‌ی گفتگوی داستانی: پرتره + حباب متن ============ -->
+   548→  <div id="dlgBox" class="hidden">
+   549→    <div id="dlgTextWrap">
+   550→      <div id="dlgWho">ارشان</div>
+   551→      <div id="dlgText"></div>
+   552→      <div id="dlgHint">کلیک / Space = ادامه</div>
+   553→    </div>
+   554→    <canvas id="dlgPortrait" width="96" height="96"></canvas>
+   555→  </div>
+   556→
+   557→  <!-- ============ (۱۱٫۰) راهنمای چرخاندن گوشی (حالت عمودی) ============ -->
+   558→  <div id="rotateHint" class="hidden">🔄<div>برای بازی، گوشی را <b>افقی</b> بچرخان</div></div>
+   559→  <!-- ============ دکمه‌ی «رد کردن» کات‌سین داستانی (۷٫۰) — ۱۰٫۰: افتتاحیه/انتقال‌ها هم ============ -->
+   560→  <button id="skipCs" class="hidden">⏭ رد کردن</button>
+   561→
+   562→  <!-- ============ (۱۰٫۰) پوشش محو نرم بین حالت‌ها ============ -->
+   563→  <div id="fadeDiv"></div>
+   564→
+   565→  <!-- ============ منوی اصلی: تمیز و کم‌ازدحام روی صحنه‌ی زنده (۱۳٫۰) ============ -->
+   566→  <div class="overlay" id="startScreen">
+   567→    <div id="menuHero">
+   568→      <h1 class="game-title">سه طبقه تا بقا</h1>
+   569→      <p class="tagline">۳۳ شب تا پناهگاه</p>
+   570→      <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
+   571→      <div class="menu-btns">
+   572→        <button class="btn-main btn-big" id="btnStart">🎮 بازی جدید</button>
+   573→        <button class="btn-sec mbtn" id="btnContinue" disabled>▶ ادامه‌ی بازی</button>
+   574→      </div>
+   575→      <div class="menu-mini">
+   576→        <button class="mini-btn" id="btnHowto">📖 راهنما</button>
+   577→        <button class="mini-btn" id="btnSettings">⚙️ تنظیمات</button>
+   578→        <button class="mini-btn" id="btnAbout">ℹ️ درباره</button>
+   579→      </div>
+   580→      <p class="ver">نسخه ۱۳</p>
+   581→    </div>
+   582→  </div>
+   583→
+   584→  <!-- ============ راهنمای بازی ============ -->
+   585→  <div class="overlay hidden" id="howtoScreen">
+   586→    <div class="panel howto-panel">
+   587→      <h2>📖 راهنمای بازی</h2>
+   588→      <p class="subtitle">چهار فصل، سی‌وشب زنده‌ماندن و رسیدن به پناهگاه</p>
+   589→      <div class="howto">
+   590→        <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر — گلوله به <b>سر</b> زامبی بخورد، ضربه‌ی بحرانی می‌گیری</div>
+   591→        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» موج بعد را شروع کن</div>
+   592→        <div>🗺 <b>چهار فصل:</b> محله‌ی قدیمی → منطقه‌ی انبارها (مه‌گرفته) → پاسگاه نظامی (خرابه) → برج مخابراتی (برفی و بارونی)؛ هر فصل ۸ موج است و دشمن‌ها هر فصل سریع‌تر و چاق‌تر می‌شوند — جون، سکه، سلاح‌ها، ارتقاها و کوله‌پشتی‌ات بین فصل‌ها حفظ می‌شود</div>
+   593→        <div>🎬 <b>انتقال بین فصل‌ها:</b> برج می‌شکند و با ارشان فرار می‌کنی — اول صحنه‌ی سینمایی، بعد کنترل با تو (پرش: <b>↑ یا Space</b>، خم‌شدن زیر تیرآهن‌ها: <b>↓</b>، کم‌وزیاد کردن سرعت: <b>←/→</b>) و آخر دوباره صحنه‌ی سینمایی؛ توی هر فرار یک <b>آیتم مخفی</b> هم هست!</div>
+   594→        <div>🎒 <b>کوله‌پشتی (۶ جا):</b> «وسایل بقی» را از فروشگاه بخر و با کلیک روی جاخالی‌ها یا کلیدهای <b>Q W E R Y U</b> مصرف کن — کنسرو = شفای تدریجی، کیت = شفای فوری، باتری = شارژ چراغ‌قوه</div>
+   595→        <div>🔦 <b>چراغ‌قوه (کلید L):</b> در مهِ انبارها و لحظه‌های قطع برق فقط دایره‌ی نور دور خودت را می‌بینی — باتری‌اش تمام نشود! در «آخرین شب» تنها نورِ توست</div>
+   596→        <div>🕳 <b>دستفروش مرموز:</b> بعضی روزها کنار فروشگاه ظاهر می‌شود و چیزهای کمیاب و گران می‌فروشد... اما حواست باشد، ۳۰٪ مواقع کالایش <b>تقلبی</b> درمی‌آید!</div>
+   597→        <div>⌨ <b>۱/۲/۳:</b> تعویض سلاح (یا از تب «سلاح‌ها»ی پنل ساخت‌وساز) &nbsp;•&nbsp; <b>۴ تا ۹ و H:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰/G/F/T:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>J/K/C/V:</b> وسایل بقی &nbsp;•&nbsp; <b>B:</b> جمع/باز پنل &nbsp;•&nbsp; <b>L:</b> چراغ‌قوه &nbsp;•&nbsp; <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> صدا</div>
+   598→        <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
+   599→        <div>💾 <b>سیو خودکار:</b> بعد از پایان هر موج، بعد از هر خرید و موقع شروع هر فصل ذخیره می‌شود؛ وسط بازی هم «توقف ← ذخیره و خروج» داری. باخت که کردی، با «ادامه از آخرین روز» از صبحِ همان شب برمی‌گردی — از اولِ اول نه!</div>
+   600→        <div>🧱 <b>باخت:</b> زامبی‌ها از دیوار برج بالا می‌آیند، طبقه‌طبقه فروش می‌ریزند و بام روی زمین می‌کوبد — بعدش صفحه‌ی باخت با دو انتخاب: «ادامه از آخرین روز» یا «شروع از اول»</div>
+   601→        <div>🌑 <b>آخرین شب (موج آخر کل بازی):</b> فروشگاه قفل است، برق کاملاً قطع است و «نگهبان» با الگوی حمله‌ی خاص (پرتاب آوار + فراخوان زامبی + خشم) می‌آید؛ از پسش برآیی = پیروزی واقعی و رسیدن به پناهگاه</div>
+   602→        <div>🧟 زامبی‌ها برج را از هر دو طرف <b>محاصره</b> می‌کنند و پایه‌اش را گاز می‌گیرند؛ جون که تمام شود باختی!</div>
+   603→      </div>
+   604→      <h3 class="sec-t">🧟 دشمن‌ها</h3>
+   605→      <div class="foes">
+   606→        <div class="foe"><span class="dot" style="--c:#7fa657"></span><span><b>معمولی</b><i>آهسته ولی تعدادش زیاد است</i></span></div>
+   607→        <div class="foe"><span class="dot" style="--c:#c9a35a"></span><span><b>سریع</b><i>کم‌جون اما تیز می‌دود</i></span></div>
+   608→        <div class="foe"><span class="dot" style="--c:#8a8794"></span><span><b>تانک</b><i>زره‌پوش و کاسه‌ی سخت</i></span></div>
+   609→        <div class="foe"><span class="dot" style="--c:#9c3546"></span><span><b>نگهبانِ آخرین شب</b><i>موج ۳۳ — آوار پرت می‌کند و زامبی صدا می‌زند!</i></span></div>
+   610→      </div>
+   611→      <div class="btn-row"><button class="btn-sec" id="closeHowto">برگرد به منو</button></div>
+   612→    </div>
+   613→  </div>
+   614→
+   615→  <!-- ============ صفحه توقف (۱۲٫۰: بدون گزینه‌ی صدا — تنظیمات در منوی اصلی) ============ -->
+   616→  <div class="overlay hidden" id="pauseScreen">
+   617→    <div class="panel">
+   618→      <h2>⏸ توقف</h2>
+   619→      <p class="subtitle">نفسی تازه کن... زامبی‌ها منتظرت می‌مونن!</p>
+   620→      <div class="btn-row">
+   621→        <button class="btn-main" id="btnResume">▶ ادامه بازی</button>
+   622→        <button class="btn-sec" id="btnSaveExit">💾 ذخیره و خروج</button>
+   623→        <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
+   624→      </div>
+   625→      <p class="hint">تنظیمات صدا و موسیقی در «تنظیمات» منوی اصلی است</p>
+   626→    </div>
+   627→  </div>
+   628→
+   629→  <!-- ============ صفحه باخت (۱۲٫۰: سینماییِ سقوط برج قبلش پخش می‌شود) ============ -->
+   630→  <div class="overlay hidden" id="gameoverScreen">
+   631→    <div class="panel">
+   632→      <h1>💀 برج فرو ریخت!</h1>
+   633→      <p class="subtitle" id="goSubtitle">برج سقوط کرد...</p>
+   634→      <p class="stat-line" id="goStats"></p>
+   635→      <div class="btn-row">
+   636→        <button class="btn-main" id="btnRetryDay">🌅 ادامه از آخرین روز</button>
+   637→        <button class="btn-sec" id="btnRestart1">🔄 شروع از اول</button>
+   638→      </div>
+   639→      <p class="hint">«ادامه از آخرین روز» = از صبحِ همین شب، با همان سکه‌ها و ارتقاها</p>
+   640→    </div>
+   641→  </div>
+   642→
+   643→  <!-- ============ (۱۰٫۰) صفحه تنظیمات — ۱۳٫۰: کد سیو + ذخیره‌سازی اطمینانی ============ -->
+   644→  <div class="overlay hidden" id="settingsScreen">
+   645→    <div class="panel" style="max-width:430px">
+   646→      <h2>⚙️ تنظیمات</h2>
+   647→      <div class="set-row"><span>🔊 جلوه‌های صوتی</span>
+   648→        <label class="switch"><input type="checkbox" id="setSfx" checked><span></span></label></div>
+   649→      <div class="set-row"><span>🎵 موسیقی محیطی</span>
+   650→        <label class="switch"><input type="checkbox" id="setMusic" checked><span></span></label></div>
+   651→      <div class="set-row"><span>📳 لرزش صفحه</span>
+   652→        <label class="switch"><input type="checkbox" id="setShake" checked><span></span></label></div>
+   653→      <div class="set-row"><span>🔈 بلندی صدا</span>
+   654→        <input type="range" id="setVol" min="0" max="100" value="50" class="vol"></div>
+   655→      <div class="btn-row">
+   656→        <button class="btn-sec" id="btnSaveCode">📤 کد سیو</button>
+   657→        <button class="btn-sec" id="btnLoadCode">📥 بارگذاری کد</button>
+   658→        <button class="btn-sec" id="btnWipe">🗑 پاک‌کردن سیو</button>
+   659→      </div>
+   660→      <div class="btn-row">
+   661→        <button class="btn-main" id="closeSettings">برگرد</button>
+   662→      </div>
+   663→      <p class="hint">«کد سیو» پیشرفتت را به‌صورت متن نگه می‌دارد — حتی اگر مرورگر ذخیره نکند</p>
+   664→    </div>
+   665→  </div>
+   666→
+   667→  <!-- ============ (۱۳٫۰) صفحه‌ی کد سیو: گرفتن / بارگذاری ============ -->
+   668→  <div class="overlay hidden" id="saveCodeScreen">
+   669→    <div class="panel" style="max-width:460px">
+   670→      <h2 id="scTitle">📤 کد سیو</h2>
+   671→      <p class="subtitle" id="scHint">این کد را جایی امن ذخیره کن — با «بارگذاری کد» پیشرفتت برمی‌گردد</p>
+   672→      <textarea id="scText" placeholder="کد سیو را این‌جا بچسبان..."></textarea>
+   673→      <div class="btn-row">
+   674→        <button class="btn-sec" id="scCopy">📋 کپی</button>
+   675→        <button class="btn-main" id="scDone">تأیید و برگشت</button>
+   676→      </div>
+   677→    </div>
+   678→  </div>
+   679→
+   680→  <!-- ============ (۱۰٫۰) صفحه درباره‌ی بازی ============ -->
+   681→  <div class="overlay hidden" id="aboutScreen">
+   682→    <div class="panel" style="max-width:470px">
+   683→      <h2>ℹ️ درباره‌ی بازی</h2>
+   684→      <p class="subtitle">سه طبقه تا بقا — نسخه‌ی ۱۳٫۰</p>
+   685→      <div class="howto" style="text-align:right">
+   686→        <div>چند ماه پیش یه ویروس ناشناخته شهر رو خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتون دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیوی قدیمی خبر شنیدید برسید.</div>
+   687→        <div>۴ فصل، ۳۳ شب، ۳ صحنه‌ی فرار سینمایی-قابل‌بازی و یک «آخرین شب» با نگهبانِ آن.</div>
+   688→        <div>همه‌چیز با <b>HTML5 Canvas</b> و جاوااسکریپت خالص در <b>یک فایل واحد</b> ساخته شده — بدون هیچ فایل خارجی؛ آیکون‌های فروشگاه هم از تصویر خود شما برش خورده‌اند. 🧡</div>
+   689→        <div>(۱۳٫۰) گفتگوها با <b>صدای طبیعی فارسی</b> از پیش ساخته‌شده و داخل خود بازی جاسازی شده‌اند — روی هر گوشی پخش می‌شوند و متن هم هم‌زمان نمایش داده می‌شود.</div>
+   690→      </div>
+   691→      <div class="btn-row"><button class="btn-main" id="closeAbout">برگرد</button></div>
+   692→    </div>
+   693→  </div>
+   694→
+   695→  <!-- ============ (۱۰٫۰) جعبه‌ی تایید عمومی ============ -->
+   696→  <div class="overlay hidden" id="confirmBox">
+   697→    <div class="panel" style="max-width:380px">
+   698→      <p class="subtitle" id="cfMsg" style="font-size:14.5px;color:#e8ecf5">مطمئنی؟</p>
+   699→      <div class="btn-row">
+   700→        <button class="btn-sec" id="cfNo">نه</button>
+   701→        <button class="btn-main" id="cfYes">بله</button>
+   702→      </div>
+   703→    </div>
+   704→  </div>
+   705→
+   706→  <!-- ============ صفحه برد ============ -->
+   707→  <div class="overlay hidden" id="victoryScreen">
+   708→    <div class="panel">
+   709→      <h1>🏆 پیروزی!</h1>
+   710→      <p class="subtitle">از ۳۳ شب زنده موندی، نگهبانِ آخرین شب را هم از پا درآوردی — پناهگاه نزدیک است!</p>
+   711→      <p class="stat-line" id="vStats"></p>
+   712→      <div class="btn-row"><button class="btn-main" id="btnRestart2">🔄 بازی دوباره</button></div>
+   713→    </div>
+   714→  </div>
+   715→
+   716→</div>
+   717→
+   718→<!-- ============ (۱۲٫۰) روایت صوتی قدیمی narration.mp3 حذف شد —
+   719→     گفتگوها با صدای سیستمِ فارسی یا صدای شخصیت‌ها خوانده می‌شوند ============ -->
+   720→<script>
+   721→

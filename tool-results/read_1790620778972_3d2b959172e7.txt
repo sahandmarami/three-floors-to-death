@@ -1,0 +1,716 @@
+     1→     1→/* ==================================================================
+     2→     2→   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۶: کوله‌پشتی، وسایل بقی،
+     3→     3→   چراغ‌قوه و تاریکی، قطع برق تصادفی و دستفروش مرموز (دزد شبانه)
+     4→     4→   ==================================================================
+     5→     5→   - فروشگاه بخش تازه «وسایل بقی» دارد: چراغ‌قوه، باتری، کنسرو (شفای
+     6→     6→     تدریجی) و کیت کمک‌های اولیه (شفای فوری) — همه داخل کوله‌پشتی
+     7→     7→     ۶ جایی می‌روند و با کلیک یا کلیدهای Q..U مصرف می‌شوند
+     8→     8→   - چراغ‌قوه باتری محدود دارد (کلید L)؛ در مهِ انبارها و لحظه‌های
+     9→     9→     قطع برق وسط موج، دید به دایره‌ی نور دور بازیکن محدود می‌شود
+    10→    10→   - دستفروش مرموز: هر چند روز یک‌بار با شانس ۴۰٪ کنار فروشگاه می‌آید
+    11→    11→     و ۱-۲ آیتم کمیاب می‌فروشد؛ ۳۰٪ مواقع کالا تقلبی درمی‌آید!
+    12→    12→   ================================================================== */
+    13→    13→
+    14→    14→/* ---------------------- ۶-۱) وسایل بقی و آیتم‌های کمیاب ---------------------- */
+    15→    15→const GEAR = {
+    16→    16→  flashlight: { name: 'چراغ‌قوه',            price: 80, icon: 'flashlight', color: '#f5d76e',
+    17→    17→    desc: 'با کلید L روشن/خاموش می‌شود — دید در مه و قطع برق (باتری دارد)' },
+    18→    18→  battery:    { name: 'باتری',               price: 30, icon: 'battery',    color: '#7be389',
+    19→    19→    desc: '+۵۰٪ شارژ چراغ‌قوه — ذخیره در کوله، مصرف با کلیک' },
+    20→    20→  canned:     { name: 'کنسرو',               price: 25, icon: 'canned',     color: '#e8a13c',
+    21→    21→    desc: 'شفای تدریجی ۴۵ جون در ۱۲ ثانیه' },
+    22→    22→  medkit:     { name: 'کیت کمک‌های اولیه',   price: 45, icon: 'medkit',     color: '#ff8a8a',
+    23→    23→    desc: '۷۰ جون برج را فوراً برمی‌گرداند' },
+    24→    24→};
+    25→    25→
+    26→    26→/* آیتم‌های کمیاب دستفروش (فعال‌سازی دائمی بعد از مصرف) */
+    27→    27→const RARE = {
+    28→    28→  vest:     { name: 'جلیقه‌ی ضدّ دندان', price: 260, icon: 'vest',     color: '#8fd6ff',
+    29→    29→    desc: 'آسیب به برج ۲۵٪ کمتر می‌شود — دائمی' },
+    30→    30→  goldAmmo: { name: 'فشنگ‌های طلایی',   price: 320, icon: 'goldAmmo', color: '#ffd873',
+    31→    31→    desc: 'دمیج همه‌ی گلوله‌ها ۲۵٪ بیشتر — دائمی' },
+    32→    32→  helmet:   { name: 'کلاهخود فولادی',   price: 200, icon: 'helmet',   color: '#b8c4d4',
+    33→    33→    desc: '+۴۰ به حداکثر جون برج (و همین‌جا ترمیم) — دائمی' },
+    34→    34→};
+    35→    35→
+    36→    36→/* کلیدهای میان‌بر مصرف کوله‌پشتی (اسلات ۱ تا ۶) */
+    37→    37→const BPKEYS = { KeyQ: 1, KeyW: 2, KeyE: 3, KeyR: 4, KeyY: 5, KeyU: 6 };
+    38→    38→
+    39→    39→/* صداهای جدید این بخش */
+    40→    40→Object.assign(SFX, {
+    41→    41→  powerDown() { Snd.tone({ type: 'sawtooth', f0: 320, f1: 38, dur: 0.7, vol: 0.15 });
+    42→    42→                Snd.noise({ dur: 0.5, vol: 0.10, freq: 300 }); },
+    43→    43→  powerUp2()  { Snd.tone({ type: 'triangle', f0: 120, f1: 480, dur: 0.4, vol: 0.12 }); },
+    44→    44→  scam()      { [280, 220, 160].forEach((f, i) =>
+    45→    45→                Snd.tone({ type: 'sawtooth', f0: f, f1: f * 0.84, dur: 0.22, vol: 0.13, delay: i * 0.24 })); },
+    46→    46→  peddler()   { Snd.tone({ type: 'triangle', f0: 520, f1: 660, dur: 0.14, vol: 0.10 });
+    47→    47→                Snd.tone({ type: 'triangle', f0: 660, f1: 520, dur: 0.18, vol: 0.09, delay: 0.15 }); },
+    48→    48→});
+    49→    49→
+    50→    50→/* ---------------------- ۶-۲) مسیر یکسان خرید (buy) ---------------------- */
+    51→    51→/* همه‌ی خریدهای پنل/کیبورد از این‌جا رد می‌شوند:
+    52→    52→   ۱) در «آخرین شب» فروشگاه قفل است  ۲) وسایل بقی مسیر خودشان را دارند
+    53→    53→   ۳) بقیه = attemptBuy اصلی  ۴) بعد از هر خرید موفق، سیو خودکار */
+    54→    54→function buy(kind) {
+    55→    55→  /* قفل فروشگاه در موج آخر کل بازی (۱۰٫۰) */
+    56→    56→  if (state.wave >= FINAL_WAVE && state.mode === 'playing') {
+    57→    57→    SFX.deny();
+    58→    58→    setAnnounce('🔒 فروشگاه قفل است!', 'در «آخرین شب» فقط کوله‌پشتی و برجت کارت را می‌کنند', 1.8);
+    59→    59→    return;
+    60→    60→  }
+    61→    61→  if (GEAR[kind]) { buyGear(kind); return; }
+    62→    62→  const before = state.coins;
+    63→    63→  attemptBuy(kind);
+    64→    64→  if (state.coins !== before) saveGame();      // (۱۰٫۰) سیو بعد از خرید
+    65→    65→}
+    66→    66→
+    67→    67→/* خرید وسایل بقی: چراغ‌قوه یک‌بار؛ بقیه به کوله‌پشتی می‌روند */
+    68→    68→function buyGear(kind) {
+    69→    69→  if (!canPlay()) return;
+    70→    70→  const g = GEAR[kind];
+    71→    71→  if (kind === 'flashlight') {
+    72→    72→    if (state.torch.owned) return;
+    73→    73→    if (state.coins < g.price) { denyBPItem('flashlight'); return; }
+    74→    74→    state.coins -= g.price;
+    75→    75→    state.torch.owned = true;
+    76→    76→    state.torch.battery = 100;
+    77→    77→    state.torch.on = true;                     // روشن تحویل گرفته می‌شود
+    78→    78→    SFX.buy();
+    79→    79→    setAnnounce('🔦 چراغ‌قوه گرفتی!', 'کلید L روشن/خاموشش می‌کند — باتری: ۱۰۰٪', 2.4);
+    80→    80→    spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 16, '#f5d76e',
+    81→    81→      { speed: 150, life: 0.6, size: 2.4, grav: 250, up: true });
+    82→    82→    saveGame();
+    83→    83→    updateHUD(); refreshBuildPanel(); refreshGearHUD();
+    84→    84→    return;
+    85→    85→  }
+    86→    86→  if (state.coins < g.price) { denyBPItem(kind); return; }
+    87→    87→  if (!giveItem(kind)) return;                 // کوله پر بود → سکه کنار ماند
+    88→    88→  state.coins -= g.price;
+    89→    89→  SFX.buy();
+    90→    90→  addText(TOWER.x, TOWER_TOP_Y - 46, g.name + ' → کوله 🎒', '#9fe08a', 13);
+    91→    91→  saveGame();
+    92→    92→  updateHUD(); refreshBuildPanel(); refreshBackpack();
+    93→    93→}
+    94→    94→
+    95→    95→/* ---------------------- ۶-۳) کوله‌پشتی (۶ جا) ---------------------- */
+    96→    96→/* گذاشتن آیتم در اولین جای خالی */
+    97→    97→function giveItem(id) {
+    98→    98→  const i = state.backpack.findIndex(s => !s);
+    99→    99→  if (i < 0) {
+   100→   100→    setAnnounce('🎒 کوله‌پشتی پر است!', 'اول یکی را مصرف کن (کلیک روی جاخالی یا Q تا U)', 2);
+   101→   101→    SFX.deny();
+   102→   102→    return false;
+   103→   103→  }
+   104→   104→  state.backpack[i] = { id };
+   105→   105→  refreshBackpack();
+   106→   106→  return true;
+   107→   107→}
+   108→   108→
+   109→   109→/* مصرف آیتم اسلات i (کلیک یا کلید) */
+   110→   110→function useItem(i) {
+   111→   111→  if (!canPlay()) return;
+   112→   112→  if (i < 0 || i > 5) return;
+   113→   113→  const s = state.backpack[i];
+   114→   114→  if (!s) return;
+   115→   115→  const id = s.id;
+   116→   116→  if (id === 'battery') {
+   117→   117→    if (!state.torch.owned) {
+   118→   118→      setAnnounce('🔦 چراغ‌قوه نداری!', 'اول چراغ‌قوه را از فروشگاه بخر (کلید J)', 1.8);
+   119→   119→      SFX.deny();
+   120→   120→      return;
+   121→   121→    }
+   122→   122→    state.torch.battery = clamp(state.torch.battery + 50, 0, 100);
+   123→   123→    addText(TOWER.x, TOWER_TOP_Y - 46, '+۵۰٪ 🔦', '#7be389', 15);
+   124→   124→    SFX.power();
+   125→   125→    refreshGearHUD();
+   126→   126→  } else if (id === 'canned') {
+   127→   127→    state.regen += 45;                         // ۳٫۷۵ جون در ثانیه × ۱۲ ثانیه
+   128→   128→    addText(TOWER.x, TOWER_TOP_Y - 46, 'شفای تدریجی 🥫', '#e8a13c', 15);
+   129→   129→    SFX.power();
+   130→   130→  } else if (id === 'medkit') {
+   131→   131→    healTower(70);
+   132→   132→    SFX.power();
+   133→   133→  } else if (RARE[id]) {
+   134→   134→    if (state.buffs[id]) {
+   135→   135→      setAnnounce('✅ ' + RARE[id].name + ' از قبل فعال است', 'برای بعد نگهش دار', 1.8);
+   136→   136→      SFX.deny();
+   137→   137→      return;                                  // مصرف نشود
+   138→   138→    }
+   139→   139→    state.buffs[id] = true;
+   140→   140→    if (id === 'helmet') { state.tower.maxHp += 40; state.tower.hp += 40; }
+   141→   141→    setAnnounce('⚡ ' + RARE[id].name + ' فعال شد!', RARE[id].desc, 2.4);
+   142→   142→    SFX.power();
+   143→   143→    spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 18, RARE[id].color,
+   144→   144→      { speed: 170, life: 0.6, size: 2.6, grav: 200, up: true });
+   145→   145→    updateHUD();
+   146→   146→  }
+   147→   147→  state.backpack[i] = null;
+   148→   148→  spawnParticles(TOWER.x, TOWER_TOP_Y - 26, 10, '#7be389',
+   149→   149→    { speed: 130, life: 0.5, size: 2.2, grav: 220, up: true });
+   150→   150→  refreshBackpack();
+   151→   151→}
+   152→   152→
+   153→   153→/* ترمیم جون برج (کیت/قدرت‌ها) */
+   154→   154→function healTower(n) {
+   155→   155→  const heal = Math.min(n, state.tower.maxHp - state.tower.hp);
+   156→   156→  if (heal <= 0) {
+   157→   157→    setAnnounce('❤️ برج سرِ سلامتی است', 'فعلاً لازم نیست', 1.4);
+   158→   158→    return;
+   159→   159→  }
+   160→   160→  state.tower.hp += heal;
+   161→   161→  addText(TOWER.x, TOWER_TOP_Y - 44, '+' + faNum(Math.round(heal)) + ' ❤️', '#7be389', 16);
+   162→   162→  spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 12, '#7be389',
+   163→   163→    { speed: 140, life: 0.55, size: 2.4, grav: 240, up: true });
+   164→   164→  updateHUD();
+   165→   165→}
+   166→   166→
+   167→   167→/* ساخت کوله‌پشتی HTML (یک بار در شروع صفحه) */
+   168→   168→function initBackpackUI() {
+   169→   169→  const wrap = $('bpkSlots');
+   170→   170→  wrap.innerHTML = '';
+   171→   171→  const keys = ['Q', 'W', 'E', 'R', 'Y', 'U'];
+   172→   172→  for (let i = 0; i < 6; i++) {
+   173→   173→    const el = document.createElement('div');
+   174→   174→    el.className = 'bpk-slot empty';
+   175→   175→    el.id = 'bpk-' + i;
+   176→   176→    const cv = document.createElement('canvas');
+   177→   177→    cv.width = 80; cv.height = 80;
+   178→   178→    el.appendChild(cv);
+   179→   179→    const k = document.createElement('span');
+   180→   180→    k.className = 'bpk-key';
+   181→   181→    k.textContent = keys[i];
+   182→   182→    el.appendChild(k);
+   183→   183→    el.addEventListener('click', () => useItem(i));
+   184→   184→    el.addEventListener('mouseenter', () => showBpkTip(i, el));
+   185→   185→    el.addEventListener('mouseleave', hideTip);
+   186→   186→    wrap.appendChild(el);
+   187→   187→  }
+   188→   188→  refreshBackpack();
+   189→   189→}
+   190→   190→
+   191→   191→/* به‌روزرسانی جاخالی‌ها (آیکون + حالت) — (۱۲٫۰) کوله‌ی خالی = فقط یک قرص کوچک */
+   192→   192→function refreshBackpack() {
+   193→   193→  const any = state.backpack.some(s => s);
+   194→   194→  const bar = $('backpackBar');
+   195→   195→  if (bar) bar.classList.toggle('compact', !any);
+   196→   196→  const cap = $('bpkCap');
+   197→   197→  if (cap) cap.textContent = any ? '🎒 کوله' : '🎒 کوله خالی — خرید از تب «بقا»';
+   198→   198→  for (let i = 0; i < 6; i++) {
+   199→   199→    const el = $('bpk-' + i);
+   200→   200→    if (!el) continue;
+   201→   201→    const s = state.backpack[i];
+   202→   202→    const cv = el.querySelector('canvas');
+   203→   203→    el.classList.toggle('empty', !s);
+   204→   204→    const usable = !!s && (GEAR[s.id] || (RARE[s.id] && !state.buffs[s.id]));
+   205→   205→    el.classList.toggle('ready', usable);
+   206→   206→    paintGearIcon(s ? s.id : null, cv);
+   207→   207→  }
+   208→   208→}
+   209→   209→
+   210→   210→/* تولتیپ مخصوص کوله (سمت راست جاخالی باز می‌شود) */
+   211→   211→function bpkStatus(id) {
+   212→   212→  if (id === 'battery') return 'کلیک/کلید = شارژ ۵۰٪ چراغ‌قوه';
+   213→   213→  if (id === 'canned') return 'کلیک/کلید = شفای تدریجی ۴۵ جون';
+   214→   214→  if (id === 'medkit') return 'کلیک/کلید = شفای فوری ۷۰ جون';
+   215→   215→  if (RARE[id]) return state.buffs[id] ? 'از قبل فعال است — نگهش دار' : 'کلیک/کلید = فعال‌سازی دائمی';
+   216→   216→  return '';
+   217→   217→}
+   218→   218→function showBpkTip(i, el) {
+   219→   219→  const s = state.backpack[i];
+   220→   220→  if (!s) return;
+   221→   221→  const def = GEAR[s.id] || RARE[s.id];
+   222→   222→  if (!def) return;
+   223→   223→  const tip = $('bpTip');
+   224→   224→  tip.innerHTML = '<b>' + def.name + '</b><span>' + def.desc + '</span>' +
+   225→   225→    '<span class="t-status">' + bpkStatus(s.id) + '</span>';
+   226→   226→  tip.style.display = 'block';
+   227→   227→  /* کوله سمت چپ صفحه است → تولتیپ سمت راستِ جاخالی باز شود */
+   228→   228→  const wrapR = $('wrap').getBoundingClientRect();
+   229→   229→  const r = el.getBoundingClientRect();
+   230→   230→  tip.style.left = Math.min(W - tip.offsetWidth - 6, r.right - wrapR.left + 8) + 'px';
+   231→   231→  tip.style.top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6) + 'px';
+   232→   232→}
+   233→   233→
+   234→   234→/* ---------------------- ۶-۴) آیکون‌های Canvas وسایل ---------------------- */
+   235→   235→/* هم‌سبک کاشی‌های فروشگاهِ تصویر مرجع: قاب تیره‌ی گرد + گرادیان +
+   236→   236→   هاله‌ی رنگی + نماد برجسته + ذرات ستاره‌ای (بدون فایل خارجی) */
+   237→   237→const GEAR_ICON_COLORS = {
+   238→   238→  flashlight: '#f5d76e', battery: '#7be389', canned: '#e8a13c', medkit: '#ff8a8a',
+   239→   239→  vest: '#8fd6ff', goldAmmo: '#ffd873', helmet: '#b8c4d4',
+   240→   240→};
+   241→   241→
+   242→   242→function icoRR(c, x, y, w, h, r) {
+   243→   243→  c.beginPath();
+   244→   244→  if (c.roundRect) c.roundRect(x, y, w, h, r);
+   245→   245→  else c.rect(x, y, w, h);
+   246→   246→}
+   247→   247→function icoStar(c, x, y, r) {
+   248→   248→  c.beginPath();
+   249→   249→  c.moveTo(x - r, y); c.lineTo(x, y - r * 0.35); c.lineTo(x + r, y);
+   250→   250→  c.lineTo(x, y + r * 0.35); c.closePath(); c.fill();
+   251→   251→  c.beginPath();
+   252→   252→  c.moveTo(x, y - r); c.lineTo(x + r * 0.35, y); c.lineTo(x, y + r);
+   253→   253→  c.lineTo(x - r * 0.35, y); c.closePath(); c.fill();
+   254→   254→}
+   255→   255→
+   256→   256→function paintGearIcon(kind, cv) {
+   257→   257→  cv.width = 80; cv.height = 80;
+   258→   258→  const c = cv.getContext('2d');
+   259→   259→  c.clearRect(0, 0, 80, 80);
+   260→   260→  if (!kind) return;
+   261→   261→  const col = GEAR_ICON_COLORS[kind] || '#ffd873';
+   262→   262→  /* زمینه‌ی کاشی */
+   263→   263→  icoRR(c, 4, 4, 72, 72, 11);
+   264→   264→  c.save(); c.clip();
+   265→   265→  const bg = c.createRadialGradient(40, 28, 8, 40, 46, 60);
+   266→   266→  bg.addColorStop(0, 'rgba(56,76,128,0.95)');
+   267→   267→  bg.addColorStop(0.6, 'rgba(22,32,64,0.97)');
+   268→   268→  bg.addColorStop(1, 'rgba(8,13,30,0.99)');
+   269→   269→  c.fillStyle = bg; c.fillRect(0, 0, 80, 80);
+   270→   270→  const halo = c.createRadialGradient(40, 42, 4, 40, 42, 34);
+   271→   271→  halo.addColorStop(0, hexA(col, 0.28)); halo.addColorStop(1, hexA(col, 0));
+   272→   272→  c.fillStyle = halo; c.fillRect(0, 0, 80, 80);
+   273→   273→  /* سایه‌ی زیر نماد */
+   274→   274→  c.fillStyle = 'rgba(0,0,0,0.35)';
+   275→   275→  c.beginPath(); c.ellipse(40, 61, 17, 4.5, 0, 0, Math.PI * 2); c.fill();
+   276→   276→
+   277→   277→  c.save(); c.translate(40, 40);
+   278→   278→  c.lineCap = 'round'; c.lineJoin = 'round';
+   279→   279→  switch (kind) {
+   280→   280→    case 'flashlight': {
+   281→   281→      c.rotate(-0.5);
+   282→   282→      c.fillStyle = '#3a4250'; icoRR(c, -17, -6, 22, 12, 3); c.fill();   // بدنه
+   283→   283→      c.fillStyle = '#2c3440'; c.fillRect(-17, -6, 4, 12);               // سرِ عقبی
+   284→   284→      c.fillStyle = col;       c.fillRect(5, -7.5, 7, 15);               // کله‌ی روشن
+   285→   285→      c.fillStyle = 'rgba(255,244,200,0.95)'; c.fillRect(12, -5.5, 3, 11); // شیشه
+   286→   286→      const beam = c.createLinearGradient(15, 0, 33, 0);                 // مخروط نور
+   287→   287→      beam.addColorStop(0, 'rgba(255,238,170,0.55)'); beam.addColorStop(1, 'rgba(255,238,170,0)');
+   288→   288→      c.fillStyle = beam;
+   289→   289→      c.beginPath(); c.moveTo(15, -6); c.lineTo(33, -13); c.lineTo(33, 13); c.lineTo(15, 6);
+   290→   290→      c.closePath(); c.fill();
+   291→   291→      c.strokeStyle = 'rgba(0,0,0,0.4)'; c.lineWidth = 1.4;
+   292→   292→      icoRR(c, -17, -6, 22, 12, 3); c.stroke();
+   293→   293→      break;
+   294→   294→    }
+   295→   295→    case 'battery': {
+   296→   296→      c.fillStyle = '#2c3440'; c.fillRect(-4, -16, 8, 4);                // نوک
+   297→   297→      c.fillStyle = '#39424f'; icoRR(c, -8, -12, 16, 26, 4); c.fill();   // بدنه
+   298→   298→      const inG = c.createLinearGradient(-8, 0, 8, 0);
+   299→   299→      inG.addColorStop(0, col); inG.addColorStop(0.5, '#a5e8b0'); inG.addColorStop(1, '#4a9a5c');
+   300→   300→      c.fillStyle = inG; icoRR(c, -5, -9, 10, 20, 3); c.fill();          // پوسته‌ی سبز
+   301→   301→      c.fillStyle = '#12301c';                                           // نشانِ برق
+   302→   302→      c.beginPath();
+   303→   303→      c.moveTo(2, -6); c.lineTo(-3, 1); c.lineTo(0, 1); c.lineTo(-2, 6);
+   304→   304→      c.lineTo(3, -1); c.lineTo(0, -1); c.closePath(); c.fill();
+   305→   305→      break;
+   306→   306→    }
+   307→   307→    case 'canned': {
+   308→   308→      c.fillStyle = '#8a97a8';                                            // بدنه‌ی حلب
+   309→   309→      icoRR(c, -11, -12, 22, 25, 3); c.fill();
+   310→   310→      c.fillStyle = col;                                                  // نوار برچسب
+   311→   311→      c.fillRect(-11, -6, 22, 11);
+   312→   312→      c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(-11, -6, 22, 1.5); c.fillRect(-11, 3.5, 22, 1.5);
+   313→   313→      c.fillStyle = '#c9d4e2';                                            // درِ بیضی
+   314→   314→      c.beginPath(); c.ellipse(0, -12, 11, 3.6, 0, 0, Math.PI * 2); c.fill();
+   315→   315→      c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1.3;
+   316→   316→      c.beginPath(); c.ellipse(0, -12, 11, 3.6, 0, 0, Math.PI * 2); c.stroke();
+   317→   317→      c.fillStyle = '#fff8e8';                                            // ماهی روی برچسب
+   318→   318→      c.beginPath(); c.ellipse(-2, -0.5, 5.5, 3, -0.3, 0, Math.PI * 2); c.fill();
+   319→   319→      c.fillStyle = col;
+   320→   320→      c.beginPath(); c.moveTo(2.5, -2.5); c.lineTo(6.5, -0.5); c.lineTo(2.5, 1.5); c.closePath(); c.fill();
+   321→   321→      break;
+   322→   322→    }
+   323→   323→    case 'medkit': {
+   324→   324→      c.fillStyle = '#e8eef5'; icoRR(c, -13, -9, 26, 19, 4); c.fill();   // جعبه‌ی سفید
+   325→   325→      c.fillStyle = col; c.fillRect(-13, -9, 26, 5);                     // نوار بالایی
+   326→   326→      c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 1.4;
+   327→   327→      icoRR(c, -13, -9, 26, 19, 4); c.stroke();
+   328→   328→      c.fillStyle = '#e04b3a';                                           // صلیب قرمز
+   329→   329→      c.fillRect(-2.6, -4, 5.2, 12); c.fillRect(-7, 1, 14, 5.2);
+   330→   330→      c.fillStyle = '#c9d4e2'; c.fillRect(-9, -6.5, 6, 3);               // قفل‌گاه
+   331→   331→      break;
+   332→   332→    }
+   333→   333→    case 'vest': {
+   334→   334→      c.fillStyle = col;                                                  // تنه‌ی جلیقه
+   335→   335→      c.beginPath();
+   336→   336→      c.moveTo(-12, -10); c.lineTo(-5, -10); c.lineTo(-4, -5);
+   337→   337→      c.lineTo(4, -5); c.lineTo(5, -10); c.lineTo(12, -10);
+   338→   338→      c.lineTo(11, 12); c.lineTo(-11, 12); c.closePath(); c.fill();
+   339→   339→      c.fillStyle = '#4a7a9a';                                            // نوارهای زرهی
+   340→   340→      c.fillRect(-12, -10, 24, 4); c.fillRect(-11, 8, 22, 4);
+   341→   341→      c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1.3;
+   342→   342→      c.beginPath();
+   343→   343→      c.moveTo(-12, -10); c.lineTo(-5, -10); c.lineTo(-4, -5);
+   344→   344→      c.lineTo(4, -5); c.lineTo(5, -10); c.lineTo(12, -10);
+   345→   345→      c.lineTo(11, 12); c.lineTo(-11, 12); c.closePath(); c.stroke();
+   346→   346→      c.fillStyle = '#2c4a60';                                            // گره‌های شانه
+   347→   347→      circle2(c, -8, -7, 1.6); circle2(c, 8, -7, 1.6);
+   348→   348→      break;
+   349→   349→    }
+   350→   350→    case 'goldAmmo': {
+   351→   351→      for (const [dx, dy, a] of [[-7, 3, -0.35], [0, 0, -0.1], [7, -3, 0.15]]) {
+   352→   352→        c.save(); c.translate(dx, dy); c.rotate(a);
+   353→   353→        c.fillStyle = col; icoRR(c, -2.6, -13, 5.2, 17, 2.6); c.fill();  // غلاف طلایی
+   354→   354→        c.fillStyle = '#e8a13c'; c.beginPath();                          // نوکِ برنجی
+   355→   355→        c.moveTo(-2.6, -13); c.quadraticCurveTo(0, -18, 2.6, -13); c.closePath(); c.fill();
+   356→   356→        c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(-1.8, -11, 1.4, 13); // برق طولی
+   357→   357→        c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 1;
+   358→   358→        icoRR(c, -2.6, -13, 5.2, 17, 2.6); c.stroke();
+   359→   359→        c.restore();
+   360→   360→      }
+   361→   361→      break;
+   362→   362→    }
+   363→   363→    case 'helmet': {
+   364→   364→      c.fillStyle = col;                                                  // گنبد فولادی
+   365→   365→      c.beginPath(); c.arc(0, 3, 13, Math.PI, 0); c.closePath(); c.fill();
+   366→   366→      c.fillStyle = '#8e9dac'; c.fillRect(-15, 2, 30, 4);                // لبه‌ی جلو
+   367→   367→      c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1.3;
+   368→   368→      c.beginPath(); c.arc(0, 3, 13, Math.PI, 0); c.stroke();
+   369→   369→      c.fillStyle = 'rgba(255,255,255,0.5)';                             // برقِ گنبد
+   370→   370→      c.beginPath(); c.ellipse(-4, -4, 4.5, 2.5, -0.6, 0, Math.PI * 2); c.fill();
+   371→   371→      c.fillStyle = '#6a788c'; c.fillRect(-10, 6, 20, 3);                // نوار پایین
+   372→   372→      break;
+   373→   373→    }
+   374→   374→  }
+   375→   375→  c.restore();
+   376→   376→  /* ذرات ستاره‌ای مثل کاشی‌های فروشگاه مرجع */
+   377→   377→  c.fillStyle = 'rgba(255,255,255,0.85)';
+   378→   378→  icoStar(c, 20, 19, 3.2); icoStar(c, 61, 57, 2.6); icoStar(c, 59, 22, 1.9);
+   379→   379→  c.restore();
+   380→   380→  /* لبه‌ی قاب */
+   381→   381→  c.strokeStyle = 'rgba(120,170,230,.3)'; c.lineWidth = 2;
+   382→   382→  icoRR(c, 5, 5, 70, 70, 10); c.stroke();
+   383→   383→}
+   384→   384→function circle2(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+   385→   385→
+   386→   386→/* ---------------------- ۶-۵) چراغ‌قوه ---------------------- */
+   387→   387→function toggleFlashlight() {
+   388→   388→  if (!state.torch.owned) {
+   389→   389→    if (canPlay()) setAnnounce('🔦 چراغ‌قوه نداری!', 'از پنل ساخت‌وساز بخرش (کلید J)', 1.8);
+   390→   390→    SFX.deny();
+   391→   391→    return;
+   392→   392→  }
+   393→   393→  if (!state.torch.on && state.torch.battery <= 0) {
+   394→   394→    setAnnounce('🔋 باتری تمام است!', 'باتری تازه از فروشگاه (کلید K) یا کوله‌پشتی', 1.8);
+   395→   395→    SFX.deny();
+   396→   396→    return;
+   397→   397→  }
+   398→   398→  state.torch.on = !state.torch.on;
+   399→   399→  SFX.click();
+   400→   400→  refreshGearHUD();
+   401→   401→}
+   402→   402→
+   403→   403→/* HUD چراغ‌قوه: دکمه + نوار باتری */
+   404→   404→function refreshGearHUD() {
+   405→   405→  const btn = $('ctlFlash');
+   406→   406→  if (!btn) return;
+   407→   407→  btn.classList.toggle('nolight', !state.torch.owned || !state.torch.on);
+   408→   408→  btn.classList.toggle('dead', state.torch.owned && state.torch.battery <= 0);
+   409→   409→  $('ctlBattFill').style.width = clamp(state.torch.battery, 0, 100) + '%';
+   410→   410→}
+   411→   411→
+   412→   412→/* ---------------------- ۶-۶) تاریکی و دایره‌ی نور ---------------------- */
+   413→   413→/* لایه‌ی تاریکی: مهِ فصل ۲، قطع برق تصادفی و «آخرین شب».
+   414→   414→   نورها: محیطِ مهتابی + چراغ‌قوه‌ی بازیکن + دهانه‌ی اسلحه + برجک‌ها */
+   415→   415→const Dark = {
+   416→   416→  level: 0, target: 0,
+   417→   417→
+   418→   418→  /* شعاع نور محیطی (مهتاب/مه) — در قطع برق کامل کوچک می‌شود */
+   419→   419→  ambientR() {
+   420→   420→    if (this.level > 0.85) return 44;
+   421→   421→    return 128 + 132 * curCh().theme.darkBase;
+   422→   422→  },
+   423→   423→  /* شعاع چراغ‌قوه — تابع باتری + لرزش نور */
+   424→   424→  flashR() {
+   425→   425→    if (!state.torch.owned || !state.torch.on || state.torch.battery <= 0) return 0;
+   426→   426→    const r = 138 + 92 * (state.torch.battery / 100);
+   427→   427→    const flick = 0.93 + 0.07 * Math.sin(animTime * 17) + (Math.random() < 0.03 ? -0.16 : 0);
+   428→   428→    return Math.max(24, r * flick);
+   429→   429→  },
+   430→   430→  /* مرکز نور: بازیکن روی برج (کمی به سمت هدفش) */
+   431→   431→  lightXY() {
+   432→   432→    return {
+   433→   433→      x: TOWER.x + Math.cos(state.aimAngle) * 22,
+   434→   434→      y: TOWER_TOP_Y - 12 + Math.sin(state.aimAngle) * 16,
+   435→   435→    };
+   436→   436→  },
+   437→   437→
+   438→   438→  update(dt) {
+   439→   439→    /* هدف تاریکی لحظه‌ای: قطع برق > آخرین شب > مهِ فصل — روز/منو = صفر */
+   440→   440→    let t = curCh().theme.darkBase * (1 - state.dayness);
+   441→   441→    if (state.blackout.on) t = 1;
+   442→   442→    if (state.wave >= FINAL_WAVE && state.mode === 'playing') t = 1;
+   443→   443→    if (!(state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission')) t = 0;
+   444→   444→    this.target = t;
+   445→   445→    this.level += (this.target - this.level) * Math.min(1, dt * 2.4);
+   446→   446→
+   447→   447→    /* مصرف باتری وقتی چراغ در تاریکی روشن است */
+   448→   448→    if (state.torch.on && this.level > 0.25 && state.torch.battery > 0) {
+   449→   449→      state.torch.battery = Math.max(0, state.torch.battery - dt * 1.5);
+   450→   450→      if (state.torch.battery <= 0) {
+   451→   451→        setAnnounce('🔋 باتری چراغ‌قوه تمام شد!', 'از کوله باتری مصرف کن یا K بخر', 2.2);
+   452→   452→        SFX.deny();
+   453→   453→        refreshGearHUD();
+   454→   454→      }
+   455→   455→    }
+   456→   456→    /* ضربان قلب در تاریکیِ بی‌نور */
+   457→   457→    if (this.level > 0.8 && this.flashR() <= 0 && state.mode === 'playing') {
+   458→   458→      state.heartT -= dt;
+   459→   459→      if (state.heartT <= 0) { state.heartT = 1.25; SFX.heartbeat(); }
+   460→   460→    }
+   461→   461→  },
+   462→   462→
+   463→   463→  /* سوراخ کردن تاریکی با یک دایره‌ی نور نرم (روی بوم جدا — تا صحنه پاک نشود)
+   464→   464→     (۱۲٫۰) کارایی: اسپرایتِ گرادیان یک‌بار ساخته می‌شود و بعد فقط
+   465→   465→     drawImage مقیاس‌شده — دیگر هر فریم createRadialGradient نمی‌سازیم */
+   466→   466→  _sprite() {
+   467→   467→    if (this._sp) return this._sp;
+   468→   468→    const s = document.createElement('canvas');
+   469→   469→    s.width = 128; s.height = 128;
+   470→   470→    const c = s.getContext('2d');
+   471→   471→    const g = c.createRadialGradient(64, 64, 9, 64, 64, 64);
+   472→   472→    g.addColorStop(0, 'rgba(0,0,0,1)');
+   473→   473→    g.addColorStop(0.62, 'rgba(0,0,0,0.5)');
+   474→   474→    g.addColorStop(1, 'rgba(0,0,0,0)');
+   475→   475→    c.fillStyle = g;
+   476→   476→    c.fillRect(0, 0, 128, 128);
+   477→   477→    this._sp = s;
+   478→   478→    return s;
+   479→   479→  },
+   480→   480→  punch(c, x, y, r, hard) {
+   481→   481→    if (r <= 5) return;
+   482→   482→    c.globalAlpha = hard ? 0.98 : 0.85;
+   483→   483→    c.drawImage(this._sprite(), x - r, y - r, r * 2, r * 2);
+   484→   484→    c.globalAlpha = 1;
+   485→   485→  },
+   486→   486→
+   487→   487→  render() {
+   488→   488→    if (this.level <= 0.04) return;
+   489→   489→    if (!(state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission')) return;
+   490→   490→    const a = clamp(this.level, 0, 1) * 0.94;
+   491→   491→    /* بوم جدا برای لایه‌ی تاریکی: سوراخ‌ها (نورها) این‌جا زده می‌شوند و بعد
+   492→   492→       کل لایه روی صحنه می‌نشیند — destination-out مستقیم روی بوم اصلی، خودِ
+   493→   493→       صحنه را هم پاک می‌کرد (باگ ۱۰٫۰) */
+   494→   494→    if (!this.cv) { this.cv = document.createElement('canvas'); this.cv.width = W; this.cv.height = H; }
+   495→   495→    const c = this.cv.getContext('2d');
+   496→   496→    c.setTransform(1, 0, 0, 1, 0, 0);
+   497→   497→    c.clearRect(0, 0, W, H);
+   498→   498→    c.fillStyle = 'rgba(3,6,15,' + a.toFixed(3) + ')';
+   499→   499→    c.fillRect(0, 0, W, H);
+   500→   500→    c.globalCompositeOperation = 'destination-out';
+   501→   501→    const L = this.lightXY();
+   502→   502→    this.punch(c, L.x, L.y, Math.max(this.ambientR(), this.flashR() + 26), false);  // نور محیطی
+   503→   503→    if (this.flashR() > 0) this.punch(c, L.x, L.y, this.flashR(), true);            // چراغ‌قوه
+   504→   504→    /* نورهای موقت: دهانه‌ی اسلحه و شلیک برجک‌ها */
+   505→   505→    if (state.muzzleGlow > 0) {
+   506→   506→      const m = gunMuzzle(WEAPONS[state.weapon].barrel);
+   507→   507→      this.punch(c, m.x, m.y, 84, true);
+   508→   508→    }
+   509→   509→    for (const t of state.turrets) {
+   510→   510→      if (t.flash > 0) this.punch(c, t.x, t.y - 12, 54, true);
+   511→   511→    }
+   512→   512→    /* نور گرمِ درِ برج در شب تاریک */
+   513→   513→    if (state.dayness < 0.5) this.punch(c, TOWER.x, GROUND_Y - 14, 42, false);
+   514→   514→    /* سیلوئت نگهبان در «آخرین شب» — تا در تاریکی هم قابل ردیابی باشد */
+   515→   515→    const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
+   516→   516→    if (boss) this.punch(c, boss.x, boss.y - 42, 76, true);
+   517→   517→    c.globalCompositeOperation = 'source-over';
+   518→   518→    ctx.drawImage(this.cv, 0, 0);
+   519→   519→  },
+   520→   520→};
+   521→   521→
+   522→   522→/* چشم‌های زامبی‌ها روی تاریکی (وقتی هیچ نوری نیست، بازهم دیده می‌شوند) */
+   523→   523→function drawDarkEyes() {
+   524→   524→  if (Dark.level < 0.55 || state.mode !== 'playing') return;
+   525→   525→  const a = clamp((Dark.level - 0.55) / 0.45, 0, 1);
+   526→   526→  ctx.save();
+   527→   527→  ctx.globalAlpha = a;
+   528→   528→  for (const z of state.zombies) {
+   529→   529→    if (z.dead) continue;
+   530→   530→    const s = (z.radius / 15) * (z.depth || 1);
+   531→   531→    const ex = z.x + z.dir * 4 * s, ey = z.y - 37 * s;
+   532→   532→    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
+   533→   533→    ctx.shadowBlur = 7 * s;
+   534→   534→    ctx.fillStyle = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
+   535→   535→    circle(ex, ey, 1.8 * s);
+   536→   536→    circle(ex + z.dir * 3.4 * s, ey - 0.6 * s, 1.8 * s);
+   537→   537→  }
+   538→   538→  ctx.restore();
+   539→   539→}
+   540→   540→
+   541→   541→/* ---------------------- ۶-۷) هوک به‌روزرسانی این بخش ---------------------- */
+   542→   542→UPDATE_HOOKS.push(function survivalUpdate(dt) {
+   543→   543→  Dark.update(dt);
+   544→   544→
+   545→   545→  /* نوار باتری هر ~۰٫۴ ثانیه تازه شود (مصرف پیوسته است) */
+   546→   546→  survivalUpdate._t = (survivalUpdate._t || 0) + dt;
+   547→   547→  if (survivalUpdate._t > 0.4) { survivalUpdate._t = 0; refreshGearHUD(); }
+   548→   548→
+   549→   549→  /* شفای تدریجی کنسرو (۳٫۷۵ جون در ثانیه) */
+   550→   550→  if (state.regen > 0 && state.tower.hp < state.tower.maxHp && canPlay()) {
+   551→   551→    const heal = Math.min(state.regen, dt * 3.75, state.tower.maxHp - state.tower.hp);
+   552→   552→    state.tower.hp += heal;
+   553→   553→    state.regen -= heal;
+   554→   554→    if (Math.random() < dt * 3) {
+   555→   555→      spawnParticles(TOWER.x + rand(-22, 22), TOWER_TOP_Y - rand(8, 42), 1, '#e8a13c',
+   556→   556→        { speed: 34, life: 0.7, size: 2, grav: -55 });
+   557→   557→    }
+   558→   558→    if (state.regen <= 0.01) state.regen = 0;
+   559→   559→  }
+   560→   560→
+   561→   561→  /* قطع برق زمان‌بندی‌شده‌ی وسط موج (فصل ۲ به بعد) */
+   562→   562→  const B = state.blackout;
+   563→   563→  if (state.mode === 'playing') {
+   564→   564→    B.waveT += dt;
+   565→   565→    if (!B.on) {
+   566→   566→      for (const ev of B.schedule) {
+   567→   567→        if (!ev.fired && B.waveT >= ev.at) {
+   568→   568→          ev.fired = true;
+   569→   569→          B.on = true;
+   570→   570→          B.until = B.waveT + ev.dur;
+   571→   571→          SFX.powerDown();
+   572→   572→          try { bark('sbo1', 'p', 'وای... برق رفت! چراغ‌قوه رو روشن کن!', '🔌 برق رفت!',
+   573→   573→            state.torch.owned ? 'چراغ‌قوه رو روشن کن — کلید L!' : 'چراغ‌قوه نداری؟! — از تب «بقا» بخر', 2.6); } catch (e) {}
+   574→   574→          Dark.level = Math.max(Dark.level, 0.6);   // با ضربه تیره شود
+   575→   575→          break;
+   576→   576→        }
+   577→   577→      }
+   578→   578→    } else if (B.waveT >= B.until) {
+   579→   579→      B.on = false;
+   580→   580→      setAnnounce('💡 برق برگشت', 'دید کامل شد', 1.4);
+   581→   581→      SFX.powerUp2();
+   582→   582→    }
+   583→   583→  }
+   584→   584→});
+   585→   585→
+   586→   586→/* ---------------------- ۶-۸) دستفروش مرموز (دزد شبانه) ---------------------- */
+   587→   587→/* هر روز (فقط در حالت day) صدا زده می‌شود: بعد از ۲ روزِ خالی، شانس ۴۰٪ */
+   588→   588→function peddlerRoll(force) {
+   589→   589→  if (force) {                                   // برای تست/API
+   590→   590→    state.peddler.here = true;
+   591→   591→    state.peddler.cd = 2;
+   592→   592→    state.peddler.stock = pickRareStock();
+   593→   593→    renderPeddlerStock();
+   594→   594→    return;
+   595→   595→  }
+   596→   596→  state.peddler.here = false;
+   597→   597→  if (state.peddler.cd > 0) { state.peddler.cd--; hidePeddlerPanel(); return; }
+   598→   598→  if (Math.random() < 0.4) {
+   599→   599→    state.peddler.here = true;
+   600→   600→    state.peddler.cd = 2;                        // دو روز بعد دوباره شانس
+   601→   601→    state.peddler.stock = pickRareStock();
+   602→   602→    setAnnounce('🕳 دستفروش مرموز رسید...', 'کالای کمیاب دارد — ولی ۳۰٪ شانس تقلبی بودن!', 2.8);
+   603→   603→    SFX.peddler();
+   604→   604→    try { bark('spd1', 'd', 'کالای کمیاب دارم... فقط، برای تو.', '🕳 دستفروش مرموز رسید...', 'کالای کمیاب — ۳۰٪ شانس تقلبی بودن!', 4); } catch (e) {}
+   605→   605→    renderPeddlerStock();
+   606→   606→  } else {
+   607→   607→    hidePeddlerPanel();
+   608→   608→  }
+   609→   609→}
+   610→   610→
+   611→   611→/* انتخاب ۱-۲ آیتم کمیاب تصادفی */
+   612→   612→function pickRareStock() {
+   613→   613→  const keys = Object.keys(RARE).sort(() => Math.random() - 0.5);
+   614→   614→  const n = Math.random() < 0.5 ? 1 : 2;
+   615→   615→  return keys.slice(0, n).map(k => ({ id: k, bought: false }));
+   616→   616→}
+   617→   617→
+   618→   618→function hidePeddlerPanel() { $('peddlerPanel').classList.add('hidden'); }
+   619→   619→
+   620→   620→/* پرتره‌ی دستفروش: شنل تیره + چشم‌های بنفش + فانوس */
+   621→   621→function drawPeddlerFace() {
+   622→   622→  const cv = $('pdFace');
+   623→   623→  if (!cv) return;
+   624→   624→  const c = cv.getContext('2d');
+   625→   625→  c.clearRect(0, 0, 92, 92);
+   626→   626→  const g = c.createRadialGradient(46, 34, 6, 46, 52, 62);
+   627→   627→  g.addColorStop(0, '#241a3e'); g.addColorStop(1, '#0a0714');
+   628→   628→  c.fillStyle = g; c.fillRect(0, 0, 92, 92);
+   629→   629→  /* شنل */
+   630→   630→  c.fillStyle = '#1c1430';
+   631→   631→  c.beginPath();
+   632→   632→  c.moveTo(18, 90); c.quadraticCurveTo(22, 42, 46, 32);
+   633→   633→  c.quadraticCurveTo(70, 42, 74, 90); c.closePath(); c.fill();
+   634→   634→  /* کلاه */
+   635→   635→  c.fillStyle = '#2a1f48';
+   636→   636→  c.beginPath();
+   637→   637→  c.moveTo(27, 48); c.quadraticCurveTo(46, 12, 65, 48);
+   638→   638→  c.quadraticCurveTo(46, 57, 27, 48); c.closePath(); c.fill();
+   639→   639→  /* چشم‌های بنفش درخشان */
+   640→   640→  c.save();
+   641→   641→  c.shadowColor = '#c08aff'; c.shadowBlur = 7;
+   642→   642→  c.fillStyle = '#d8b0ff';
+   643→   643→  circle2(c, 39, 45, 3); circle2(c, 53, 45, 3);
+   644→   644→  c.restore();
+   645→   645→  /* فانوس */
+   646→   646→  c.strokeStyle = '#7a5a20'; c.lineWidth = 1.6;
+   647→   647→  c.strokeRect(64, 58, 10, 14);
+   648→   648→  c.fillStyle = '#c9a24e'; c.fillRect(64, 58, 10, 14);
+   649→   649→  c.save();
+   650→   650→  c.shadowColor = '#ffd873'; c.shadowBlur = 9;
+   651→   651→  c.fillStyle = 'rgba(255,216,115,0.92)';
+   652→   652→  c.fillRect(66, 60, 6, 10);
+   653→   653→  c.restore();
+   654→   654→  c.strokeStyle = '#4a3a18'; c.lineWidth = 1.4;
+   655→   655→  c.beginPath(); c.moveTo(69, 58); c.lineTo(69, 50); c.stroke();
+   656→   656→}
+   657→   657→
+   658→   658→function initPeddlerUI() {
+   659→   659→  drawPeddlerFace();
+   660→   660→}
+   661→   661→
+   662→   662→/* رندر قفسه‌ی دستفروش (هر بار تازه) */
+   663→   663→function renderPeddlerStock() {
+   664→   664→  const box = $('pdStock');
+   665→   665→  if (!box) return;
+   666→   666→  box.innerHTML = '';
+   667→   667→  if (!state.peddler.here) { hidePeddlerPanel(); return; }
+   668→   668→  for (const it of state.peddler.stock) {
+   669→   669→    if (it.bought) continue;                     // خریداری‌شده‌ها حذف می‌شوند
+   670→   670→    const r = RARE[it.id];
+   671→   671→    const el = document.createElement('div');
+   672→   672→    el.className = 'pd-item' + (state.coins < r.price ? ' poor' : '');
+   673→   673→    const cv = document.createElement('canvas');
+   674→   674→    cv.width = 80; cv.height = 80;
+   675→   675→    paintGearIcon(it.id, cv);
+   676→   676→    const info = document.createElement('div');
+   677→   677→    info.innerHTML = '<span class="pd-name">' + r.name + '</span><span class="pd-sub">' + r.desc + '</span>';
+   678→   678→    const price = document.createElement('span');
+   679→   679→    price.className = 'pd-price';
+   680→   680→    price.textContent = faNum(r.price);
+   681→   681→    el.appendChild(cv); el.appendChild(info); el.appendChild(price);
+   682→   682→    el.addEventListener('click', () => buyRare(it));
+   683→   683→    box.appendChild(el);
+   684→   684→  }
+   685→   685→  /* اگر هر دو خریداری شد، پنل بسته شود */
+   686→   686→  if (!box.children.length) { hidePeddlerPanel(); return; }
+   687→   687→  $('peddlerPanel').classList.remove('hidden');
+   688→   688→}
+   689→   689→
+   690→   690→/* خرید از دستفروش: ۳۰٪ تقلبی (سکه می‌سوزد) — ۷۰٪ واقعی و قدرتمند */
+   691→   691→function buyRare(it) {
+   692→   692→  if (it.bought || !state.peddler.here || !canPlay()) return;
+   693→   693→  const r = RARE[it.id];
+   694→   694→  if (state.coins < r.price) { SFX.deny(); return; }
+   695→   695→  state.coins -= r.price;
+   696→   696→  it.bought = true;
+   697→   697→  if (Math.random() < 0.3) {
+   698→   698→    /* کلک خوردی! کالای تقلبی — افکت + پیام */
+   699→   699→    SFX.scam();
+   700→   700→    const p = $('peddlerPanel');
+   701→   701→    p.classList.remove('scammed'); void p.offsetWidth; p.classList.add('scammed');
+   702→   702→    setAnnounce('🎭 بهت کلک زد!', 'کالا تقلبی بود — ' + faNum(r.price) + ' سکه‌ات پرت شد!', 3);
+   703→   703→    spawnParticles(150, 180, 18, '#9f8fd0', { speed: 170, life: 0.75, size: 2.6, grav: 280 });
+   704→   704→    renderPeddlerStock(); updateHUD(); saveGame();
+   705→   705→    return;
+   706→   706→  }
+   707→   707→  if (!giveItem(it.id)) {
+   708→   708→    state.coins += r.price;                      // کوله پر بود → پول برگشت
+   709→   709→    it.bought = false;
+   710→   710→    return;
+   711→   711→  }
+   712→   712→  SFX.buy();
+   713→   713→  setAnnounce('💎 ' + r.name + ' گرفتی!', 'از کوله‌پشتی مصرفش کن — ' + r.desc, 2.6);
+   714→   714→  renderPeddlerStock(); updateHUD(); saveGame();
+   715→   715→}
+   716→   716→

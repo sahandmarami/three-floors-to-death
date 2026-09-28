@@ -3,21 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۳٫۰: گفتگوهای صوتی با صدای نورال فارسی، ریل کنترل گوشه‌ی چپ، نوار ارتقای خوانا، سیستم سیو اطمینانی با کد سیو، بهینه برای موبایل و اندروید">
+<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۴٫۰: داستان بازنویسی‌شده با صدای نورال فارسی و متن هم‌زمان، دستفروش مرموزِ استوری‌مود، تب بقا با آیکون، رابط بدون هم‌پوشانی و بهینه برای موبایل و اندروید">
 <title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۳٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۱۴٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
-   بخش‌ها: ۱) ریست و قاب کلی   ۲) HUD بالای صفحه
-            ۳) نوار باس و اعلان  ۴) پنل ساخت‌وساز تب‌دار کنار نقشه
-            ۵) پنل روز و کوله‌پشتی  ۶) اورلی‌ها و پنل‌ها
-            ۷) منوی اصلی مینیمال   ۸) راهنما
-   تازه‌های ۱۳٫۰:
-     - نوار سلاح پایین حذف شد — انتخاب سلاح از خود پنل ساخت‌وساز
-     - پنل ساخت‌وساز تب‌دار شد (ارتقاء/سلاح‌ها/برجک‌ها/بقا) — تمیز و کامل
-       قابل‌دیدن؛ چراغ‌قوه و باتری هم همیشه دیده می‌شوند
-     - رنگ‌بندی پررنگ‌تر و کادرهای جدید (قاب طلایی/فیروزه‌ای)
+   تازه‌های ۱۴٫۰:
+     - دکمه‌ی «شب شود» به پایین‌وسط رفت — دیگر با اعلان «صبح شد!»
+       روی هم نمی‌افتند (بازخورد کاربر: متنی روی متن)
+     - کلاس dlg-on: هنگام گفتگوی داستانی، دکمه‌ی شب/اعلان/کوله/توست
+       مخفی می‌شوند — گفتگو همیشه تمیز دیده می‌شود
+     - منو و صفحه‌ها چابک‌تر: متن‌های اضافی حذف شدند
+     - جعبه‌ی گفتگو و اعلان در صفحه‌های کوتاه (گوشی) فشرده می‌شوند
+     - راهنمای چرخش گوشی تمام‌صفحه شد (portrait)
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -26,7 +25,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e8ecf
   font-family:Tahoma,'Segoe UI','Noto Naskh Arabic','Noto Sans Arabic',Arial,sans-serif}
 body{display:flex;align-items:center;justify-content:center}
 
-/* قاب بازی: نسبت تصویر ۹۶۰×۵۶۰ حفظ می‌شود و در هر صفحه‌ای جای می‌گیرد */
+/* قاب بازی: (۱۴٫۰) اندازه‌ی نهایی را «کنترل‌کننده‌ی fitWrap» با JS می‌گذارد
+   (همیشه کل صحنه در صفحه جا می‌شود — حتی گوشی/مرورگر درون‌اپ)؛
+   مقدار CSS فقط پشتیبان مرورگرهای بدون JS است */
 #wrap{position:relative;width:min(97vw,calc(97vh*960/560));aspect-ratio:960/560;
   border-radius:12px;overflow:hidden;
   box-shadow:0 12px 70px rgba(0,0,0,.75),0 0 0 1px #24345e,0 0 0 3px rgba(255,209,102,.12)}
@@ -47,14 +48,29 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes dlgCaret{50%{opacity:0}}
 #dlgHint{font-size:9px;color:#9fb2dd;margin-top:4px;text-align:left}
 #dlgBox.hidden{display:none}
+/* (۱۴٫۰) جعبه‌ی گفتگو در صفحه‌های کوتاه (گوشی افقی) فشرده می‌شود */
+@media (max-height:430px){
+  #dlgPortrait{width:68px;height:68px}
+  #dlgTextWrap{min-width:200px;max-width:520px;padding:7px 12px 9px}
+  #dlgText{font-size:13.5px;line-height:1.6;min-height:22px}
+  #dlgBox{bottom:14px}
+}
+/* (۱۴٫۰) کلاس dlg-on: هنگام گفتگو، UIِ هم‌مکان مخفی — هیچ متنی روی متن نمی‌نشیند */
+#wrap.dlg-on #dayPanel,
+#wrap.dlg-on #announce,
+#wrap.dlg-on #backpackBar,
+#wrap.dlg-on #saveToast,
+#wrap.dlg-on #peddlerPanel,
+#wrap.dlg-on #lockBadge{display:none!important}
 
-/* ---------- (۱۱٫۰) چرخاندن گوشی در حالت عمودی ---------- */
-#rotateHint{position:absolute;inset:0;z-index:99;background:rgba(6,9,18,.96);
+/* ---------- (۱۱٫۰) چرخاندن گوشی در حالت عمودی (۱۴٫۰: تمام‌صفحه) ---------- */
+#rotateHint{position:fixed;inset:0;z-index:999;background:rgba(6,9,18,.97);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
   font-size:44px;font-weight:bold;color:#ffd873;text-align:center;padding:20px;pointer-events:none}
 #rotateHint div{font-size:15px;color:#c3cdea;font-weight:normal;line-height:1.9}
+#rotateHint .rh2{font-size:12px;color:#8fa3cf}
 #rotateHint.hidden{display:none}
-/* (۱۱٫۰) نمایش rotateHint با JS مدیریت می‌شود (v4_mobile — orient) */
+/* (۱۱٫۰/۱۴٫۰) نمایش rotateHint با JS مدیریت می‌شود (v4_mobile — orient) */
 
 /* ---------- (۱۲٫۰) لمس: دکمه‌های بزرگ‌تر و مناسب انگشت ---------- */
 #wrap.touch .hud-btn{padding:9px 15px;font-size:14px;min-height:40px}
@@ -134,6 +150,12 @@ body{display:flex;align-items:center;justify-content:center}
   text-shadow:0 3px 12px rgba(0,0,0,.9),0 0 30px rgba(255,190,60,.4)}
 #announce .sub{font-size:13.5px;color:#dbe5fa;margin-top:7px;font-weight:bold;
   text-shadow:0 2px 8px rgba(0,0,0,.85)}
+/* (۱۴٫۰) اعلان در صفحه‌های کوتاه کوچک‌تر — جای دکمه‌ها را نمی‌گیرد */
+@media (max-height:430px){
+  #announce{top:18%}
+  #announce .big{font-size:21px}
+  #announce .sub{font-size:11px;margin-top:4px}
+}
 /* ورود ضربه‌ای اعلان‌ها (۳٫۰) */
 #announce.pop .big{animation:annPop .5s cubic-bezier(.2,1.7,.5,1) both}
 @keyframes annPop{0%{transform:scale(.4) translateY(10px);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -215,9 +237,10 @@ body{display:flex;align-items:center;justify-content:center}
 #bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
 
 /* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب ----------
-   (۶٫۰) دکمه به بالای صفحه (زیر HUD) منتقل شد تا کف نقشه برای
-   دیدن و نصب برجک کاملاً آزاد بماند. */
-#dayPanel{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:6;
+   (۱۴٫۰) از بالای صفحه به «پایین‌وسط» منتقل شد: قبلاً در ارتفاع کم
+   (گوشی) اعلانِ «صبح شد!» روی دکمه و راهنمایش می‌افتاد؛ حالا دور از
+   اعلان، کوله‌پشتی و پنل‌ها — و روی گوشی زیر انگشت هم هست. */
+#dayPanel{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);z-index:6;
   display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
 #btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:15.5px;font-weight:bold;
   color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:999px;
@@ -272,21 +295,21 @@ body{display:flex;align-items:center;justify-content:center}
 .icon-btn:hover{background:#31456e;transform:translateY(-1px)}
 
 /* ---------- ۷) منوی اصلی: مینیمال و تمیز روی صحنه‌ی زنده (۵٫۰) ----------
-   فقط عنوان + یک جمله + دکمه‌ها؛ صحنه‌ی زنده‌ی بازی خودش تزئین است.
+   فقط عنوان + دکمه‌ها؛ صحنه‌ی زنده‌ی بازی خودش تزئین است (۱۴٫۰: دو زامبیِ
+   آرام + پرده‌ی تیره‌تر — پس‌زمینه دیگر شلوغ نیست).
    در حالت منو، HUD/نوار سلاح/پنل ساخت‌وساز هم مخفی می‌شوند (ضد شلوغی). */
 #wrap.menu-mode #hud, #wrap.menu-mode #buildPanel,
 #wrap.menu-mode #bossBar {display:none!important}
-#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.86),rgba(4,7,18,.52) 38%,rgba(4,7,18,.03) 60%,rgba(4,7,18,.42) 100%);
+#startScreen{background:linear-gradient(180deg,rgba(4,7,18,.92),rgba(4,7,18,.66) 38%,rgba(4,7,18,.18) 62%,rgba(4,7,18,.5) 100%);
   backdrop-filter:none;pointer-events:none;align-items:flex-start}
-#menuHero{pointer-events:none;text-align:center;max-width:660px;padding:38px 18px 0}
+#menuHero{pointer-events:none;text-align:center;max-width:660px;padding:44px 18px 0}
 #menuHero button{pointer-events:auto}
 .game-title{font-size:54px;font-weight:900;margin:0;letter-spacing:.5px;color:#ffd873;
   background:linear-gradient(180deg,#fff8dc 5%,#ffd873 45%,#e8961e 95%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
   filter:drop-shadow(0 4px 16px rgba(255,180,60,.5));animation:titleFloat 3.4s ease-in-out infinite}
 @keyframes titleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.tagline{color:#d5e0f5;font-size:16px;margin-top:10px;text-shadow:0 2px 8px rgba(0,0,0,.9)}
-.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+.menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:24px}
 .btn-big{font-size:20px;padding:15px 52px}
 .ver{margin-top:16px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 
@@ -554,19 +577,18 @@ body{display:flex;align-items:center;justify-content:center}
     <canvas id="dlgPortrait" width="96" height="96"></canvas>
   </div>
 
-  <!-- ============ (۱۱٫۰) راهنمای چرخاندن گوشی (حالت عمودی) ============ -->
-  <div id="rotateHint" class="hidden">🔄<div>برای بازی، گوشی را <b>افقی</b> بچرخان</div></div>
+  <!-- ============ (۱۱٫۰/۱۴٫۰) راهنمای چرخاندن گوشی — تمام‌صفحه در حالت عمودی ============ -->
+  <div id="rotateHint" class="hidden">🔄<div>برای بازی، گوشی را <b>افقی</b> بگیر</div><div class="rh2">صحنه‌ی بازی کامل و بزرگ‌تر دیده می‌شود</div></div>
   <!-- ============ دکمه‌ی «رد کردن» کات‌سین داستانی (۷٫۰) — ۱۰٫۰: افتتاحیه/انتقال‌ها هم ============ -->
   <button id="skipCs" class="hidden">⏭ رد کردن</button>
 
   <!-- ============ (۱۰٫۰) پوشش محو نرم بین حالت‌ها ============ -->
   <div id="fadeDiv"></div>
 
-  <!-- ============ منوی اصلی: تمیز و کم‌ازدحام روی صحنه‌ی زنده (۱۳٫۰) ============ -->
+  <!-- ============ منوی اصلی: تمیز و کم‌ازدحام روی صحنه‌ی زنده (۱۴٫۰) ============ -->
   <div class="overlay" id="startScreen">
     <div id="menuHero">
       <h1 class="game-title">سه طبقه تا بقا</h1>
-      <p class="tagline">۳۳ شب تا پناهگاه</p>
       <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
       <div class="menu-btns">
         <button class="btn-main btn-big" id="btnStart">🎮 بازی جدید</button>
@@ -577,7 +599,7 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="mini-btn" id="btnSettings">⚙️ تنظیمات</button>
         <button class="mini-btn" id="btnAbout">ℹ️ درباره</button>
       </div>
-      <p class="ver">نسخه ۱۳</p>
+      <p class="ver">نسخه ۱۴</p>
     </div>
   </div>
 
@@ -593,7 +615,7 @@ body{display:flex;align-items:center;justify-content:center}
         <div>🎬 <b>انتقال بین فصل‌ها:</b> برج می‌شکند و با ارشان فرار می‌کنی — اول صحنه‌ی سینمایی، بعد کنترل با تو (پرش: <b>↑ یا Space</b>، خم‌شدن زیر تیرآهن‌ها: <b>↓</b>، کم‌وزیاد کردن سرعت: <b>←/→</b>) و آخر دوباره صحنه‌ی سینمایی؛ توی هر فرار یک <b>آیتم مخفی</b> هم هست!</div>
         <div>🎒 <b>کوله‌پشتی (۶ جا):</b> «وسایل بقی» را از فروشگاه بخر و با کلیک روی جاخالی‌ها یا کلیدهای <b>Q W E R Y U</b> مصرف کن — کنسرو = شفای تدریجی، کیت = شفای فوری، باتری = شارژ چراغ‌قوه</div>
         <div>🔦 <b>چراغ‌قوه (کلید L):</b> در مهِ انبارها و لحظه‌های قطع برق فقط دایره‌ی نور دور خودت را می‌بینی — باتری‌اش تمام نشود! در «آخرین شب» تنها نورِ توست</div>
-        <div>🕳 <b>دستفروش مرموز:</b> بعضی روزها کنار فروشگاه ظاهر می‌شود و چیزهای کمیاب و گران می‌فروشد... اما حواست باشد، ۳۰٪ مواقع کالایش <b>تقلبی</b> درمی‌آید!</div>
+        <div>🕳 <b>دستفروش مرموز:</b> بعضی روزها از چپ می‌آید، پایین برج با تو حرف می‌زند و کالای کمیاب و گران می‌فروشد... اما حواست باشد، ۳۰٪ مواقع کالایش <b>تقلبی</b> درمی‌آید! غروب که شود می‌رود</div>
         <div>⌨ <b>۱/۲/۳:</b> تعویض سلاح (یا از تب «سلاح‌ها»ی پنل ساخت‌وساز) &nbsp;•&nbsp; <b>۴ تا ۹ و H:</b> ارتقاها و سلاح‌ها &nbsp;•&nbsp; <b>۰/G/F/T:</b> برجک‌های دفاعی &nbsp;•&nbsp; <b>J/K/C/V:</b> وسایل بقی &nbsp;•&nbsp; <b>B:</b> جمع/باز پنل &nbsp;•&nbsp; <b>L:</b> چراغ‌قوه &nbsp;•&nbsp; <b>P یا Esc:</b> توقف &nbsp;•&nbsp; <b>M:</b> صدا</div>
         <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
         <div>💾 <b>سیو خودکار:</b> بعد از پایان هر موج، بعد از هر خرید و موقع شروع هر فصل ذخیره می‌شود؛ وسط بازی هم «توقف ← ذخیره و خروج» داری. باخت که کردی، با «ادامه از آخرین روز» از صبحِ همان شب برمی‌گردی — از اولِ اول نه!</div>
@@ -612,17 +634,15 @@ body{display:flex;align-items:center;justify-content:center}
     </div>
   </div>
 
-  <!-- ============ صفحه توقف (۱۲٫۰: بدون گزینه‌ی صدا — تنظیمات در منوی اصلی) ============ -->
+  <!-- ============ صفحه توقف (۱۴٫۰: فقط دکمه‌ها — بدون متن اضافه) ============ -->
   <div class="overlay hidden" id="pauseScreen">
     <div class="panel">
       <h2>⏸ توقف</h2>
-      <p class="subtitle">نفسی تازه کن... زامبی‌ها منتظرت می‌مونن!</p>
       <div class="btn-row">
         <button class="btn-main" id="btnResume">▶ ادامه بازی</button>
         <button class="btn-sec" id="btnSaveExit">💾 ذخیره و خروج</button>
         <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
       </div>
-      <p class="hint">تنظیمات صدا و موسیقی در «تنظیمات» منوی اصلی است</p>
     </div>
   </div>
 
@@ -636,7 +656,6 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="btn-main" id="btnRetryDay">🌅 ادامه از آخرین روز</button>
         <button class="btn-sec" id="btnRestart1">🔄 شروع از اول</button>
       </div>
-      <p class="hint">«ادامه از آخرین روز» = از صبحِ همین شب، با همان سکه‌ها و ارتقاها</p>
     </div>
   </div>
 
@@ -660,15 +679,14 @@ body{display:flex;align-items:center;justify-content:center}
       <div class="btn-row">
         <button class="btn-main" id="closeSettings">برگرد</button>
       </div>
-      <p class="hint">«کد سیو» پیشرفتت را به‌صورت متن نگه می‌دارد — حتی اگر مرورگر ذخیره نکند</p>
     </div>
   </div>
 
-  <!-- ============ (۱۳٫۰) صفحه‌ی کد سیو: گرفتن / بارگذاری ============ -->
+  <!-- ============ (۱۳٫۰/۱۴٫۰) صفحه‌ی کد سیو: گرفتن / بارگذاری ============ -->
   <div class="overlay hidden" id="saveCodeScreen">
     <div class="panel" style="max-width:460px">
       <h2 id="scTitle">📤 کد سیو</h2>
-      <p class="subtitle" id="scHint">این کد را جایی امن ذخیره کن — با «بارگذاری کد» پیشرفتت برمی‌گردد</p>
+      <p class="subtitle" id="scHint">این کد پیشرفت توست — جایی امن ذخیره‌اش کن</p>
       <textarea id="scText" placeholder="کد سیو را این‌جا بچسبان..."></textarea>
       <div class="btn-row">
         <button class="btn-sec" id="scCopy">📋 کپی</button>
@@ -677,16 +695,14 @@ body{display:flex;align-items:center;justify-content:center}
     </div>
   </div>
 
-  <!-- ============ (۱۰٫۰) صفحه درباره‌ی بازی ============ -->
+  <!-- ============ (۱۰٫۰) صفحه درباره‌ی بازی (۱۴٫۰: کوتاه‌تر) ============ -->
   <div class="overlay hidden" id="aboutScreen">
     <div class="panel" style="max-width:470px">
       <h2>ℹ️ درباره‌ی بازی</h2>
-      <p class="subtitle">سه طبقه تا بقا — نسخه‌ی ۱۳٫۰</p>
+      <p class="subtitle">سه طبقه تا بقا — نسخه‌ی ۱۴٫۰</p>
       <div class="howto" style="text-align:right">
-        <div>چند ماه پیش یه ویروس ناشناخته شهر رو خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتون دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیوی قدیمی خبر شنیدید برسید.</div>
-        <div>۴ فصل، ۳۳ شب، ۳ صحنه‌ی فرار سینمایی-قابل‌بازی و یک «آخرین شب» با نگهبانِ آن.</div>
-        <div>همه‌چیز با <b>HTML5 Canvas</b> و جاوااسکریپت خالص در <b>یک فایل واحد</b> ساخته شده — بدون هیچ فایل خارجی؛ آیکون‌های فروشگاه هم از تصویر خود شما برش خورده‌اند. 🧡</div>
-        <div>(۱۳٫۰) گفتگوها با <b>صدای طبیعی فارسی</b> از پیش ساخته‌شده و داخل خود بازی جاسازی شده‌اند — روی هر گوشی پخش می‌شوند و متن هم هم‌زمان نمایش داده می‌شود.</div>
+        <div>یک ویروس ناشناخته شهر را خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتان دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیو خبر شنیدید برسید. ۴ فصل، ۳۳ شب، ۳ فرار سینمایی و یک «آخرین شب».</div>
+        <div>همه‌چیز با <b>HTML5 Canvas</b> و جاوااسکریپت خالص در <b>یک فایل واحد</b> ساخته شده — گفتگوها هم با صدای فارسی داخل خود بازی جاسازی شده‌اند. 🧡</div>
       </div>
       <div class="btn-row"><button class="btn-main" id="closeAbout">برگرد</button></div>
     </div>

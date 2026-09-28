@@ -1,19 +1,23 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۳٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
+   سه طبقه تا بقا — نسخه‌ی ۱۴٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
    ==================================================================
-   - VOICE (۱۳٫۰ بازطراحی کامل — صدای طبیعیِ همیشگی):
-     · ۳۳ کلیپ MP3 با «صدای نورال فارسی» از پیش ساخته و داخل همین فایل
-       جاسازی شده (VOICES13) — روی هر گوشی/مرورگری پخش می‌شود؛ نه رباتیک،
-       نه وابسته به صدای سیستم، نه نیازمند اینترنت.
+   - VOICE (۱۴٫۰ بازطراحی — متن دقیقاً هم‌زمان با صدا):
+     · ۳۶ کلیپ MP3 با «صدای نورال فارسی» داخل همین فایل (VOICES14) —
+       روی هر گوشی/مرورگری پخش می‌شود؛ نه رباتیک، نه وابسته به صدای سیستم.
+     · (۱۴٫۰) پیش‌بارگیری همه‌ی کلیپ‌ها بعد از اولین ژست کاربر — دیگر
+       هیچ خطی «بار اول بی‌صدا» نیست.
+     · (۱۴٫۰) اگر کلیپی هنوز دیکد نشده باشد، ماشین‌نویس صبر می‌کند تا
+       صدا واقعاً شروع شود؛ متن و صدا «دقیقاً» با هم آغاز می‌شوند
+       (حالت clipwait + VOICE.poll).
      · هر خط گفتگو «کلید صدا» دارد (v)؛ اگر کلیپ نبود → صدای فارسی سیستم
        (Web Speech) → «صدای شخصیت» (بلیپ‌های نرم).
-     · مدت واقعی هر کلیپ در داده هست → ماشین‌نویس دقیقاً هم‌زمان صدا تمام می‌شود.
    - MUSIC: آهنگساز الگویی با Web Audio (۵ قطعه) — ۱۲٫۰:
      · رفع «انباشت نُت» بعد از لگ: زمان‌بند جاافتاده را همگام می‌کند.
      · کراس‌فید نرم‌تر (۱٫۱s خاموش + ۱٫۶s روشن) — تعویض آهنگ نرم می‌شود.
      · حین «توقف» موسیقی و امبینت کامل خاموش می‌شود.
-   - DLG: سیستم گفتگو — پرتره + ماشین‌نویس همگام با صدا + کلیک ادامه.
-     (۱۲٫۰: رفع باگ متنِ سیاهِ نامرئی — متن همیشه روشن و خوانا)
+   - DLG: سیستم گفتگو — پرتره + ماشین‌نویسِ همگام با صدا + کلیک ادامه.
+     (۱۴٫۰) کلاس «dlg-on» روی قاب بازی: هنگام گفتگو، دکمه‌ی «شب شود» و
+     اعلان مرکزی و کوله‌پشتی مخفی می‌شوند تا متنی روی متن نیفتد.
    ================================================================== */
 
 /* ---------------------- ۱۰-۱) صدای گفتار ---------------------- */
@@ -27,6 +31,8 @@ const VOICE = {
   _bufs: {},          // کش بوم‌های دیکد‌شده‌ی کلیپ‌ها
   _src: null,         // بوم در حال پخش
   _gain: null,        // گین مستقل گفتار
+  _wait: null,        // (۱۴٫۰) {v, who, text, t0} — کلیپ در صف دیکد است
+  _warmAll: false,    // (۱۴٫۰) پیش‌بارگیری کامل انجام شد؟
 
   /* پروفایل صوتی شخصیت‌ها: p=پیچ، r=سرعت، f=فرکانس پایه‌ی بلیپ، w=موج، g=گین کلیپ */
   profile(who) {
@@ -52,7 +58,7 @@ const VOICE = {
   },
   /* دیکد تنبل + کش؛ بوم آماده یا null */
   _buf(key) {
-    const meta = (typeof VOICES13 !== 'undefined') && VOICES13[key];
+    const meta = (typeof VOICES14 !== 'undefined') && VOICES14[key];
     if (!meta) return null;
     if (this._bufs[key] !== undefined) return this._bufs[key];   // ممکن است nullِ درصف دیکد باشد
     if (!Snd.ready || !Snd.ctx || !window.fetch) return null;
@@ -82,9 +88,19 @@ const VOICE = {
       return true;
     } catch (e) { return false; }
   },
-  /* پیش‌بارگیری چند کلیپ پس از اولین ژست کاربر (شروع روان افتتاحیه) */
+  /* (۱۴٫۰) پیش‌بارگیری همه‌ی کلیپ‌ها — پله‌پله (هر ~۱۲۰ms یکی) تا لگ نیفتد؛
+     بعد از اولین ژست کاربر صدا زده می‌شود؛ نتیجه: هیچ خطی بار اول بی‌صدا نیست */
   warmup() {
-    ['i1n1', 'i2n1', 'i3a1', 'i4p1'].forEach(k => this._buf(k));
+    if (this._warmAll || !(typeof VOICES14 !== 'undefined')) return;
+    this._warmAll = true;
+    const keys = Object.keys(VOICES14);
+    let i = 0;
+    const step = () => {
+      if (i >= keys.length) return;
+      this._buf(keys[i++]);
+      setTimeout(step, 120);
+    };
+    step();
   },
 
   /* پیدا کردن صدای فارسی سیستم (جایگزین وقتی کلیپی نیست) */
@@ -107,27 +123,39 @@ const VOICE = {
     return this.faVoice;
   },
 
-  /* پخش یک خط — v = کلید کلیپ (اختیاری) — خروجی: مدت (ثانیه) */
+  /* پخش یک خط — v = کلید کلیپ (اختیاری) — خروجی: مدت (ثانیه)
+     (۱۴٫۰) اگر کلیپ هنوز دیکد نشده باشد، به‌جای «بی‌صدا ادامه دادن»
+     وارد حالت clipwait می‌شویم: VOICE.poll هر فریم چک می‌کند و به‌محضِ
+     آماده‌شدن بوم، صدا شروع می‌شود؛ DLG هم ماشین‌نویس را نگه داشته تا
+     متن دقیقاً هم‌زمان با صدا آغاز شود. */
   speak(text, who, v) {
     this.stop();
     if (!text) return 0;
     const pr = this.profile(who);
     const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
-    /* ۱) کلیپ نورالِ جاسازی‌شده (۱۳٫۰) — مدتِ واقعی از داده */
-    if (!muted && v && (typeof VOICES13 !== 'undefined') && VOICES13[v]) {
-      this.dur = VOICES13[v].d;
+    /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده */
+    if (!muted && v && (typeof VOICES14 !== 'undefined') && VOICES14[v]) {
+      this.dur = VOICES14[v].d;
       if (this._playClip(v, who)) {
         this.mode = 'clip';
         this.speaking = true;
         try { MUSIC.duck(this.dur, 0.35); } catch (e) {}
         return this.dur;
       }
-      /* کلیپ هنوز دیکد نشده؟ — خط را با همان مدت ادامه بده؛ صدا دفعه‌ی بعد می‌آید */
-      this._warmKey = v;
+      /* کلیپ هنوز دیکد نشده — صبر بر دیکد؛ صدا و متن با هم شروع می‌شوند */
+      this.mode = 'clipwait';
+      this.speaking = false;
+      this._wait = { v, who, text: String(text), t0: performance.now() };
+      return this.dur;
     }
+    return this._speakFallback(text, who, pr, muted);
+  },
+
+  /* مسیر جایگزین (Web Speech / بلیپ) — هم از speak هم از poll */
+  _speakFallback(text, who, pr, muted) {
     const words = String(text).trim().split(/\s+/).length;
     this.dur = clamp(0.65 + words * (0.46 / pr.r), 1.1, 7.5);
-    /* ۲) صدای فارسی سیستم */
+    /* صدای فارسی سیستم */
     if (!muted && this.initVoices() && window.speechSynthesis) {
       try {
         const u = new SpeechSynthesisUtterance(text);
@@ -144,10 +172,34 @@ const VOICE = {
         return this.dur;
       } catch (e) { /* می‌رویم سراغ بلیپ */ }
     }
-    /* ۳) صدای شخصیت: بلیپ‌ها با ماشین‌نویس (DLG.blip صدا می‌زند) */
+    /* صدای شخصیت: بلیپ‌ها با ماشین‌نویس (DLG.blip صدا می‌زند) */
     this.mode = muted ? 'off' : 'blip';
     this.speaking = !muted;
     return this.dur;
+  },
+
+  /* (۱۴٫۰) هر فریم صدا زده می‌شود (DLG.update + UPDATE_HOOKS) — اگر در
+     صف دیکد هستیم، به‌محض آماده‌شدن بوم صدا شروع می‌شود؛ اگر ۲٫۸ ثانیه
+     گذشت، همان خط با Web Speech/بلیپ ادامه می‌یابد (هیچ صحبتی بی‌صدا نمی‌ماند) */
+  poll() {
+    const w = this._wait;
+    if (!w) return;
+    const buf = this._bufs[w.v];
+    if (buf) {
+      this._wait = null;
+      if (this._playClip(w.v, w.who)) {
+        this.mode = 'clip';
+        this.speaking = true;
+        try { MUSIC.duck(this.dur, 0.35); } catch (e) {}
+      } else {
+        this._speakFallback(w.text, w.who, this.profile(w.who),
+          (typeof SETT !== 'undefined' && !SETT.sfx));
+      }
+    } else if (performance.now() - w.t0 > 2800) {
+      this._wait = null;
+      this._speakFallback(w.text, w.who, this.profile(w.who),
+        (typeof SETT !== 'undefined' && !SETT.sfx));
+    }
   },
 
   /* بلیپِ یک «هجا» — از DLG.update با هر حرفِ تازه صدا می‌شود */
@@ -168,6 +220,7 @@ const VOICE = {
   stop() {
     clearTimeout(this._safety);
     this.speaking = false;
+    this._wait = null;                          // (۱۴٫۰) انتظار دیکدِ خطِ قبلی هم بی‌اثر شود
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
     /* (۱۳٫۰) توقف کلیپ در حال پخش + برگشت موسیقی */
     if (this._src) {
@@ -473,6 +526,9 @@ const DLG = {
     this.lines = lines; this.idx = 0; this.onDone = onDone;
     this.active = true; this.doneFired = false;
     $('dlgBox').classList.remove('hidden');
+    /* (۱۴٫۰) کلاس dlg-on: تا پایان گفتگو، دکمه‌ی «شب شود»/اعلان مرکزی/
+       کوله‌پشتی/توست ذخیره مخفی می‌شوند — هیچ متنی روی متن نمی‌نشیند */
+    $('wrap').classList.add('dlg-on');
     this._line();
   },
   _line() {
@@ -489,12 +545,18 @@ const DLG = {
   },
   update(dt) {
     if (!this.active) return;
+    VOICE.poll();                               /* (۱۴٫۰) کلیپِ در صف دیکد، همین‌جا شروع می‌شود */
     const L = this.lines[this.idx];
     const full = L.text.length;
+    /* پرتره‌ی سخنگو (با دهانِ متحرک حین صدا) */
+    drawPortrait($('dlgPortrait'), L.who, VOICE.speaking || this.chars < full, this.t);
+    /* (۱۴٫۰) صدا هنوز شروع نشده (کلیپ در صف دیکد) — ماشین‌نویس هم شروع
+       نمی‌کند تا متن «دقیقاً هم‌زمان با صدا» بیاید (مهلت ایمنی در poll) */
+    if (VOICE.mode === 'clipwait') return;
     this.t += dt;
-    /* سرعت ماشین‌نویس: متن همزمان با صدا تمام شود */
+    /* سرعت ماشین‌نویس: متن هم‌زمان با صدا تمام شود */
     const vDur = this.voiceDur || Math.max(1.2, full / 26);
-    const cps = full / Math.max(0.9, vDur * 0.9);
+    const cps = full / Math.max(0.9, vDur * 0.96);
     if (this.chars < full) {
       this.lineT += dt * cps;
       const nc = Math.min(full, Math.floor(this.lineT));
@@ -510,8 +572,6 @@ const DLG = {
       if (!VOICE.speaking && this.holdT > 0.12 && this.t > vDur * 0.55) this._next();
       else if (this.t > vDur + 2.4) this._next();           /* مهلت ایمنی */
     }
-    /* پرتره‌ی سخنگو (با دهانِ متحرک حین صدا) */
-    drawPortrait($('dlgPortrait'), L.who, VOICE.speaking || this.chars < full, this.t);
   },
   _next() {
     this.idx++;
@@ -522,6 +582,7 @@ const DLG = {
     VOICE.stop();
     this.active = false;
     $('dlgBox').classList.add('hidden');
+    $('wrap').classList.remove('dlg-on');       /* (۱۴٫۰) UI روز برمی‌گردد */
     if (!this.doneFired) { this.doneFired = true; const f = this.onDone; this.onDone = null; if (f) f(); }
   },
   /* کلیک/Space: متن کامل شود یا خط بعد */
@@ -536,7 +597,10 @@ const DLG = {
     } else this._next();
     return true;
   },
-  skip() { if (this.active) { this.doneFired = true; this._finish(); } },
+  /* رد کردن گفتگو: همه‌چیز تمام می‌شود — onDone هم صدا زده می‌شود
+     (۱۴٫۰ رفع باگ قدیمی: قبلاً doneFired قبل از _finish true می‌شد و
+     onDone هرگز صدا زده نمی‌شد — داستان دستفروش وسط راه می‌ماند!) */
+  skip() { if (this.active) this._finish(); },
 };
 
 /* صدای کوتاه حین گیم‌پلی (بدون بلوک ورودی): صدا + زیرنویس اعلان
@@ -668,6 +732,9 @@ window.addEventListener('keydown', (e) => {
 }, true);
 
 UPDATE_HOOKS.push(function audioUpdate(dt) {
+  /* (۱۴٫۰) poll هر فریم: صحبتِ درصف‌دیکد حتی بیرون از DLG (مثل bark های
+     گیم‌پلی) هم به‌محض آماده‌شدن کلیپ شروع می‌شود */
+  try { VOICE.poll(); } catch (e) {}
   /* (۱۲٫۰) MUSIC.update از خود حلقه‌ی اصلی هر فریم صدا زده می‌شود تا
      در همه‌ی حالت‌ها (منو/توقف/سینمایی/باخت) رفتار درست داشته باشد */
 });

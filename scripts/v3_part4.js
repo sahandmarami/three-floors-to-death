@@ -95,11 +95,18 @@ BUILD_DEFS.forEach(d => { if (d.codes) d.codes.forEach(c => KEY2KIND[c] = d.kind
    هم‌سبک (تله خار و شاتگان دکلوله). سبک کاریکاتوریِ نرم است، پس با
    هموارسازی رسم می‌شوند (نه پیکسل‌آرت تیز). */
 
-/* رسم آیکون آیتم روی بوم کوچک: گوشه‌های گرد + اسپرایت نرم */
+/* رسم آیکون آیتم روی بوم کوچک: گوشه‌های گرد + اسپرایت نرم
+   (۱۴٫۰) وسایل بقا (چراغ‌قوه/باتری/کنسرو/کیت) اسپرایت مکعبی ندارند —
+   قبلاً جعبه‌ی خاکستری جای‌نگهدار می‌شد («تب بقا تصویر ندارد!»)؛ حالا
+   آیکون‌های رنگیِ مخصوصِ همان‌ها رسم می‌شود */
 function paintIcon(kind, cv) {
   cv.width = 88; cv.height = 88;                 // ۲ برابرِ نمایش ۴۴px برای تیزی رتینا
   const c = cv.getContext('2d');
   const im = CUBE_IMGS[kind];
+  if (!im && typeof GEAR !== 'undefined' && GEAR[kind] && typeof paintGearIcon === 'function') {
+    paintGearIcon(kind, cv);                     // (۱۴٫۰) آیکون واقعی وسایل بقا
+    return;
+  }
   c.clearRect(0, 0, 88, 88);
   if (im && im.complete && im.naturalWidth) {
     c.imageSmoothingEnabled = true;              // کاشی‌های کاریکاتوریِ نرم
@@ -383,6 +390,9 @@ function frame(now) {
   }
   /* (۱۲٫۰) موسیقی در همه‌ی حالت‌ها به‌روز می‌شود: منو/توقف (سکوت)/سینمایی/باخت */
   try { MUSIC.update(); } catch (e) {}
+  /* (۱۴٫۰) poll صدا هم در همه‌ی حالت‌ها (سینمایی/منو/باخت): صحبتِ درصفِ
+     دیکد هرگز گم نمی‌شود — مثلاً خط سینماییِ باخت که از DLG رد نمی‌شود */
+  try { VOICE.poll(); } catch (e) {}
   requestAnimationFrame(frame);
 }
 
@@ -524,10 +534,10 @@ window.GAME = {
     BP_TABS, setBPTab, get tab() { return BP_TAB; },
     retryFromSave,
   },
-  /* ---- (۱۳٫۰) رابط تست صدا/سیو/ریل چپ ---- */
+  /* ---- (۱۳٫۰) رابط تست صدا/سیو/ریل چپ (۱۴٫۰: VOICES14) ---- */
   v13: {
-    get VOICES() { return (typeof VOICES13 !== 'undefined') ? VOICES13 : null; },
-    get clipCount() { return (typeof VOICES13 !== 'undefined') ? Object.keys(VOICES13).length : 0; },
+    get VOICES() { return (typeof VOICES14 !== 'undefined') ? VOICES14 : null; },
+    get clipCount() { return (typeof VOICES14 !== 'undefined') ? Object.keys(VOICES14).length : 0; },
     exportSaveCode, importSaveCode,
     STORE: (typeof STORE !== 'undefined' ? STORE : null),
     storageOK: () => (typeof STORE !== 'undefined') && STORE.ok,
@@ -535,6 +545,14 @@ window.GAME = {
     ctlRail: () => document.getElementById('ctlRail'),
     warmup: () => VOICE.warmup(),
     toastSaved,
+  },
+  /* ---- (۱۴٫۰) دستفروش استوری‌مود + ابزار تست رابط ---- */
+  v14: {
+    get PED() { return (typeof PED !== 'undefined') ? PED : null; },
+    peddlerForce: () => { if (typeof PED !== 'undefined') peddlerRoll(true); },
+    fitWrap: () => { if (typeof fitWrap !== 'undefined') fitWrap(); },
+    orient: () => { if (window.ttbOrient) window.ttbOrient(); },
+    get dlgOn() { return document.getElementById('wrap').classList.contains('dlg-on'); },
   },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },
