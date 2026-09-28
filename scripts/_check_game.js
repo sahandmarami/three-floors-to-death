@@ -1,0 +1,8583 @@
+
+'use strict';
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۱)
+   ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
+     ۱) ثابت‌ها و تنظیمات       ۲) ابزارهای کمکی
+     ۳) موتور صدا (Web Audio)   ۴) وضعیت بازی
+     ۵) ورودی (ماوس/کیبورد)     ۶) جریان موج‌ها و تولید زامبی
+     ۷) شلیک و سلاح‌ها           ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج
+     ۹) سکه‌ها و قدرت‌های ویژه   ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده)
+   تازه‌های ۶٫۰:
+     - پنل ساخت‌وساز در شب خودکار جمع می‌شود (دید کامل نقشه) و
+       در روز باز می‌شود
+     - عناصر تازه‌ی صحنه برای گرافیک بهتر: ستاره‌های درشت،
+       دکل‌های آنتن با چراغ قرمز، گل‌ها، لبه‌ی چمن و بافت زمین
+   ================================================================== */
+
+/* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
+const W = 960, H = 560;                    // ابعاد منطقی دنیای بازی
+const GROUND_Y = 492;                      // خط زمین (پای زامبی‌ها)
+const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };
+const TOWER_TOP_Y = GROUND_Y - TOWER.floorH * TOWER.floors; // سقف برج = محل ایستادن بازیکن
+
+const TOTAL_WAVES = 10;                    // تعداد کل موج‌ها
+const INTERMISSION_TIME = 5;               // (فقط دیباگ: skipToWave)
+const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه قبل از موج اول (شروع شب)
+
+/* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
+   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰
+   (۵٫۰: سکه‌ها تقریباً دوبرابر شد تا خرید راحت‌تر باشد) */
+const ZTYPES = {
+  normal: { r: 15, hpBase: 8,  hpWave: 2.2, spdBase: 26, spdWave: 7,   bite: 1.0, dmg: 5,  coins: [4, 6],
+            skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
+  fast:   { r: 12, hpBase: 5,  hpWave: 1.4, spdBase: 62, spdWave: 9,   bite: 0.7, dmg: 3,  coins: [3, 4],
+            skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
+  tank:   { r: 22, hpBase: 42, hpWave: 9,   spdBase: 14, spdWave: 2.2, bite: 1.5, dmg: 12, coins: [10, 14],
+            skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
+  boss:   { r: 44, hpBase: 1050, hpWave: 0, spdBase: 11, spdWave: 1,   bite: 1.8, dmg: 40, coins: [60, 75],
+            skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
+};
+
+/* ترکیب موج‌ها: n=معمولی، f=سریع، t=تانک، b=پادشاه — با هر موج فشار بیشتر می‌شود */
+const WAVES = [
+  { n: 6,  f: 0,  t: 0, b: 0 },
+  { n: 9,  f: 0,  t: 0, b: 0 },
+  { n: 10, f: 3,  t: 0, b: 0 },
+  { n: 12, f: 5,  t: 1, b: 0 },
+  { n: 14, f: 7,  t: 2, b: 0 },
+  { n: 16, f: 9,  t: 3, b: 0 },
+  { n: 19, f: 11, t: 4, b: 0 },
+  { n: 22, f: 13, t: 5, b: 0 },
+  { n: 26, f: 16, t: 6, b: 0 },
+  { n: 16, f: 10, t: 7, b: 1 },
+];
+
+/* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک)
+   (۵٫۰: قیمت شاتگان و مسلسل حدود نصف شد) */
+const WEAPONS = {
+  pistol:  { name: 'تپانچه', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
+             price: 0,   owned: true,  barrel: 18, flash: 5, knock: 5,   sfx: 'shootP' },
+  shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
+             price: 120, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
+  mg:      { name: 'مسلسل', dmg: 2, rate: 0.12, spd: 760, pellets: 1, spread: 0.055, ttl: 2,
+             price: 260, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
+};
+
+/* تنظیمات ساخت‌وساز (۵٫۰: اقتصاد نو — قیمت‌ها حدود نصف و رشد ملایم‌تر):
+   قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
+const UPGRADES = {
+  weapon:  { name: 'ارتقای اسلحه',     base: 15, growth: 1.55, max: 8 },
+  speed:   { name: 'سرعت شلیک',      base: 18, growth: 1.55, max: 6 },   // (۹٫۰) آیکون کفشِ تصویر مرجع — ۸٪ نرخ شلیک سریع‌تر در هر سطح
+  health:  { name: 'افزایش جون برج',   base: 12, growth: 1.45, max: 8, bonus: 30 },
+  trap:    { name: 'نصب تله پایه برج', base: 20, growth: 1.55, max: 5,
+             dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
+  turretUp:{ name: 'ارتقای برجک‌ها',   base: 70, growth: 1.55, max: 5 },  // +۳۰٪ دمیج و +۱۲٪ سرعت شلیک برجک‌ها در هر سطح
+  shotgun: { price: 120 },                          // خرید یک‌باره
+  mg:      { price: 260 },                          // خرید یک‌باره
+  repair:  { price: 30, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
+};
+
+/* برجک‌های دفاعی خودکار (۴٫۰) — روی زمین نصب می‌شوند و خودشان به زامبی‌ها شلیک می‌کنند:
+   gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
+   frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
+const TURRETS = {
+  gatling: { name: 'برجک مسلسل',    price: 60,  dmg: 3,  rate: 0.26, range: 230, spd: 640,
+             len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
+  sniper:  { name: 'برجک تک‌تیرانداز', price: 150, dmg: 24, rate: 1.6,  range: 400, spd: 950,
+             len: 30, h: 19, knock: 6, crit: 0.25, sub: 'تک‌ضرب کُشنده • دمیج ۲۴ • برد ۴۰۰' },
+  frost:   { name: 'برجک یخ‌زن',     price: 100, dmg: 4,  rate: 1.05, range: 175, spd: 380,
+             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۴ • برد ۱۷۵' },
+};
+const MAX_TURRETS = 6;                       // حداکثر تعداد برجک روی نقشه
+
+/* جعبه‌های قدرت (۳٫۰) — از زامبی‌های کشته‌شده می‌افتند و به بازیکن پرو می‌کنند */
+const PTYPES = {
+  medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 20 },
+  rapid:  { name: 'شلیک سریع',    color: '#ffd873', dur: 8 },
+  freeze: { name: 'انجماد',       color: '#8fd6ff', dur: 5 },
+  coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 15 },
+};
+const POWER_LIFE = 9.5;                    // ثانیه عمر جعبه (اگر زودتر به بازیکن نرسد)
+
+/* رکوردهای کمبو: پیام + جایزه‌ی سکه (۵٫۰: جایزه‌ها پررنگ‌تر شد) */
+const COMBO_MILESTONES = {
+  3:  { msg: 'سه‌گانه!',        bonus: 3 },
+  5:  { msg: 'کشتار مضاعف!',   bonus: 5 },
+  8:  { msg: 'توقف‌ناپذیر!',    bonus: 8 },
+  12: { msg: 'زمین‌لرزه!',      bonus: 12 },
+  18: { msg: 'خدای زامبی‌کُش!', bonus: 18 },
+};
+const COMBO_WINDOW = 2.2;                  // ثانیه‌ی اعتبار کمبو بین هر دو کشتن
+
+/* ---------------------- ۲) ابزارهای کمکی ---------------------- */
+const $ = id => document.getElementById(id);
+
+/* تبدیل ارقام لاتین به فارسی (۰-۹) */
+const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+function faNum(n) { return String(n).replace(/\d/g, d => FA_DIGITS[d]); }
+
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+/* عدد تصادفیِ «Seed دار» — برای تولید ستاره/تپه/ساختمان‌های ثابت (تا در هر فریم عوض نشوند) */
+let _seed = 1379;
+function srand() { _seed = (_seed * 16807) % 2147483647; return (_seed - 1) / 2147483646; }
+
+/* تبدیل رنگ hex به رشته‌ی rgba با آلفا (برای هاله‌های نور) */
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+
+/* عناصر ثابت صحنه: ستاره‌ها، تپه‌ها، سنگ‌ریزه‌ها، ابرها و افق شهر یک بار ساخته می‌شوند */
+const STARS = Array.from({ length: 80 }, () => ({
+  x: srand() * W, y: srand() * (GROUND_Y - 90), r: 0.6 + srand() * 1.4,
+  ph: srand() * 6.28, sp: 0.5 + srand() * 1.6,
+}));
+const HILLS1 = Array.from({ length: 18 }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
+const HILLS2 = Array.from({ length: 13 }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
+const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
+/* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس — ۶٫۰: دو ابر دیگر) */
+const CLOUDS = [
+  { x: 140, y: 58,  s: 1.15, v: 6 },
+  { x: 520, y: 96,  s: 0.8,  v: 9 },
+  { x: 830, y: 44,  s: 1.35, v: 5 },
+  { x: 300, y: 128, s: 0.6,  v: 12 },
+  { x: 660, y: 30,  s: 0.75, v: 10 },
+];
+/* کرم‌های شب‌تاب (۳٫۰): نقاط نور کوچکی که آرام حول زمین شنا می‌شوند */
+const FIREFLIES = Array.from({ length: 14 }, () => ({
+  cx: srand() * W, cy: GROUND_Y - 8 - srand() * 66,
+  rx: 18 + srand() * 40, ry: 6 + srand() * 22,
+  ph: srand() * 6.28, sp: 0.35 + srand() * 0.6,
+}));
+/* دسته‌های چمن کنار جاده (۳٫۰) */
+const GRASS = Array.from({ length: 40 }, () => ({ x: srand() * W, h: 4 + srand() * 8, ph: srand() * 6.28 }));
+/* برکه‌های کوچک بازتابنده‌ی نور ماه (۳٫۰) */
+const PUDDLES = [{ x: 150, w: 52 }, { x: 392, w: 66 }, { x: 636, w: 46 }];
+/* افق شهر در دوردست: ساختمان‌های سیاه‌شکلی با پنجره‌های روشن (پیش‌محاسبه‌شده) */
+const SKYLINE = [];
+const SKYLINE_WINS = [];
+{
+  let x = -12, i = 0;
+  while (x < W + 12) {
+    const bw = 34 + srand() * 52, bh = 26 + srand() * 95;
+    SKYLINE.push({ x, w: bw, h: bh });
+    /* پنجره‌های روشنِ همین ساختمان (۶٫۰: هر پنجره فاز سوسوی خودش را دارد) */
+    const cols = Math.floor((bw - 8) / 9), rows = Math.floor((bh - 10) / 13);
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+      if (srand() > 0.72) {
+        SKYLINE_WINS.push({
+          x: x + 5 + c * 9, y: GROUND_Y - bh + 6 + r * 13, ph: srand() * 6.28,
+          c: srand() > 0.82 ? 'rgba(127,179,255,0.8)' : 'rgba(255,214,122,0.75)',
+        });
+      }
+    }
+    x += bw + 8; i++;
+  }
+}
+/* ---------- عناصر تازه‌ی صحنه (۶٫۰: ارتقای گرافیک) ---------- */
+/* ستاره‌های درشت با برقِ چهارپر — روی ستاره‌های ریز قبلی */
+const BIGSTARS = Array.from({ length: 6 }, () => ({
+  x: 30 + srand() * (W - 60), y: 16 + srand() * (GROUND_Y - 210),
+  r: 1.5 + srand() * 1.1, ph: srand() * 6.28, sp: 0.6 + srand() * 1.1,
+}));
+/* دکل‌های آنتن روی بلندترین ساختمان‌ها + چراغ قرمز چشمک‌زنِ هشدار (شب) */
+const ANTENNAS = [];
+for (const b of SKYLINE) {
+  if (b.h > 82 && ANTENNAS.length < 7 && srand() > 0.3) {
+    ANTENNAS.push({ x: b.x + b.w / 2, top: GROUND_Y - b.h, h: 13 + srand() * 17, ph: srand() * 6.28 });
+  }
+}
+/* گل‌های کوچک کنار زمین: روز باز و رنگی، شب بسته و کم‌رنگ */
+const FLOWERS = Array.from({ length: 14 }, () => ({
+  x: 20 + srand() * (W - 40), dy: 4 + srand() * 12,
+  hue: Math.floor(srand() * 360), s: 0.75 + srand() * 0.5, ph: srand() * 6.28,
+}));
+/* لبه‌ی ناهموار چمنِ خط زمین (تیغه‌های ریز) */
+const GRASS_EDGE = Array.from({ length: 70 }, () => ({ x: srand() * W, h: 2 + srand() * 4.5, ph: srand() * 6.28 }));
+/* رگه‌های افقی بافت خاک (عمق متفاوت برای حجم دادن به زمین) */
+const GROUND_STREAKS = Array.from({ length: 12 }, () => ({
+  x: srand() * W, w: 46 + srand() * 110, dy: 7 + srand() * 36, a: 0.05 + srand() * 0.06,
+}));
+
+/* ---------------------- ۳) موتور صدا (Web Audio) ---------------------- */
+/* همه‌ی صداها همین‌جا سینتز می‌شوند — هیچ فایل صوتی خارجی وجود ندارد.
+   AudioContext فقط بعد از اولین تعامل کاربر ساخته می‌شود (سیاست مرورگرها). */
+const Snd = {
+  ctx: null, master: null, noiseBuf: null, muted: false, ready: false,
+  musicOn: true, musicGain: null,       // (۱۰٫۰) کلید موسیقی محیطی (پد + باد)
+
+  init() {
+    if (this.ready) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : (typeof SETT !== 'undefined' ? (SETT.vol / 100) * 0.9 : 0.5);   // (۱۰٫۰) بلندی از تنظیمات
+      this.master.connect(this.ctx.destination);
+      /* بافر نویز سفید یک‌ثانیه‌ای (برای شلیک/برخورد/باد/رعد) */
+      this.noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+      const d = this.noiseBuf.getChannelData(0);
+      for (let j = 0; j < d.length; j++) d[j] = Math.random() * 2 - 1;
+      this.ready = true;
+      this.startAmbient();
+    } catch (e) { /* مرورگر بدون صدا */ }
+  },
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  /* (۱۰٫۰) روشن/خاموش کردن موسیقی محیطی با رمپ نرم */
+  setMusic(on) {
+    this.musicOn = on;
+    if (this.musicGain && this.ctx) {
+      try {
+        this.musicGain.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.musicGain.gain.linearRampToValueAtTime(on ? 1 : 0.0001, this.ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
+  },
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.master) this.master.gain.value = this.muted ? 0 : 0.5;
+    return this.muted;
+  },
+
+  /* یک نُت: {type,f0,f1,dur,vol,att,delay} */
+  tone(o) {
+    if (!this.ready || this.muted) return;
+    try {
+      const t0 = this.ctx.currentTime + (o.delay || 0);
+      const osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+      osc.type = o.type || 'sine';
+      osc.frequency.setValueAtTime(Math.max(1, o.f0), t0);
+      if (o.f1) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), t0 + o.dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(o.vol, t0 + (o.att || 0.008));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+      osc.connect(g); g.connect(this.master);
+      osc.start(t0); osc.stop(t0 + o.dur + 0.05);
+    } catch (e) {}
+  },
+  /* نویز فیلترشده: {dur,vol,ftype,freq,q,att,delay} */
+  noise(o) {
+    if (!this.ready || this.muted) return;
+    try {
+      const t0 = this.ctx.currentTime + (o.delay || 0);
+      const src = this.ctx.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+      const f = this.ctx.createBiquadFilter();
+      f.type = o.ftype || 'lowpass'; f.frequency.value = o.freq || 1000; f.Q.value = o.q || 0.8;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(o.vol, t0 + (o.att || 0.005));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+      src.connect(f); f.connect(g); g.connect(this.master);
+      src.start(t0); src.stop(t0 + o.dur + 0.05);
+    } catch (e) {}
+  },
+
+  /* موسیقی محیطیِ شب: درونِ بم + باد + نُت‌های پراکنده‌ی دل‌انگیز */
+  startAmbient() {
+    try {
+      /* (۱۰٫۰) گیت موسیقی: پد و باد از این‌جا رد می‌شوند تا از تنظیمات خاموش شوند */
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = this.musicOn === false ? 0.0001 : 1;
+      this.musicGain.connect(this.master);
+      const dg = this.ctx.createGain(); dg.gain.value = 0.045; dg.connect(this.musicGain);
+      const o1 = this.ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = 55;
+      const o2 = this.ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 110;
+      const lfo = this.ctx.createOscillator(); lfo.frequency.value = 0.09;
+      const lg = this.ctx.createGain(); lg.gain.value = 0.02;
+      lfo.connect(lg); lg.connect(dg.gain);
+      o1.connect(dg); o2.connect(dg);
+      o1.start(); o2.start(); lfo.start();
+      /* صدای باد (نویز لوپِ بسیار بم) */
+      const wind = this.ctx.createBufferSource(); wind.buffer = this.noiseBuf; wind.loop = true;
+      const wf = this.ctx.createBiquadFilter(); wf.type = 'lowpass'; wf.frequency.value = 260;
+      const wg = this.ctx.createGain(); wg.gain.value = 0.02;
+      wind.connect(wf); wf.connect(wg); wg.connect(this.musicGain); wind.start();
+      this.pluck();
+    } catch (e) {}
+  },
+  pluck() {
+    if (!this.ready || this.musicOn === false) return;   // (۱۰٫۰) با موسیقی خاموش، نت‌ها هم خاموش
+    const notes = [220, 246.9, 261.6, 329.6, 392];
+    const f = notes[Math.floor(rand(0, notes.length))];
+    this.tone({ type: 'sine', f0: f, dur: 2.4, vol: 0.05, att: 0.5 });
+    this.tone({ type: 'sine', f0: f * 1.5, dur: 2.8, vol: 0.028, att: 0.7, delay: 0.03 });
+    setTimeout(() => this.pluck(), rand(3500, 8000));
+  },
+};
+
+/* جلوی اسپمِ صداهای پرتکرار (مثل برخورد ۶ ساچمه‌ی شاتگان در یک فریم) */
+const _sfxGate = {};
+function sfxGate(name, ms) {
+  const t = performance.now();
+  if ((_sfxGate[name] || 0) + ms > t) return false;
+  _sfxGate[name] = t;
+  return true;
+}
+
+/* کتابخانه‌ی جلوه‌های صوتی بازی (۳٫۰: کریت/کمبو/رعد/قدرت/ضربان/اسلوموشن اضافه شد) */
+const SFX = {
+  click()    { Snd.tone({ type: 'square',   f0: 1300, f1: 850, dur: 0.05, vol: 0.07 }); },
+  shootP()   { Snd.noise({ dur: 0.09, vol: 0.20, ftype: 'highpass', freq: 700 });
+               Snd.tone({ type: 'square',   f0: 230,  f1: 70,  dur: 0.08, vol: 0.11 }); },
+  shootS()   { Snd.noise({ dur: 0.22, vol: 0.32, freq: 1300 });
+               Snd.tone({ type: 'sine',     f0: 105,  f1: 36,  dur: 0.24, vol: 0.28 }); },
+  shootM()   { Snd.noise({ dur: 0.05, vol: 0.13, ftype: 'bandpass', freq: 1700, q: 1.1 });
+               Snd.tone({ type: 'square',   f0: 300,  f1: 110, dur: 0.05, vol: 0.06 }); },
+  hit()      { if (!sfxGate('hit', 60)) return;
+               Snd.tone({ type: 'square',   f0: 165,  f1: 90,  dur: 0.06, vol: 0.09 }); },
+  crit()     { if (!sfxGate('crit', 60)) return;
+               Snd.tone({ type: 'triangle', f0: 1500, f1: 2050, dur: 0.07, vol: 0.10 });
+               Snd.tone({ type: 'triangle', f0: 2050, f1: 2650, dur: 0.09, vol: 0.08, delay: 0.05 }); },
+  combo(n)   { const f = 420 * Math.pow(1.14, Math.min(n, 18));
+               Snd.tone({ type: 'triangle', f0: f, dur: 0.09, vol: 0.12 });
+               Snd.tone({ type: 'triangle', f0: f * 1.5, dur: 0.14, vol: 0.10, delay: 0.07 }); },
+  death()    { if (!sfxGate('death', 70)) return;
+               Snd.tone({ type: 'sawtooth', f0: 180,  f1: 42,  dur: 0.30, vol: 0.14 });
+               Snd.noise({ dur: 0.22, vol: 0.12, freq: 650 }); },
+  coin()     { if (!sfxGate('coin', 70)) return;
+               Snd.tone({ type: 'sine',     f0: 920,  dur: 0.07, vol: 0.12 });
+               Snd.tone({ type: 'sine',     f0: 1360, dur: 0.15, vol: 0.12, delay: 0.07 }); },
+  towerHit() { if (!sfxGate('towerHit', 90)) return;
+               Snd.tone({ type: 'sine',     f0: 78,   f1: 40,  dur: 0.20, vol: 0.32 });
+               Snd.noise({ dur: 0.16, vol: 0.20, freq: 260 }); },
+  buy()      { Snd.tone({ type: 'triangle', f0: 520,  f1: 760,  dur: 0.09, vol: 0.15 });
+               Snd.tone({ type: 'triangle', f0: 760,  f1: 1140, dur: 0.14, vol: 0.15, delay: 0.09 }); },
+  deny()     { Snd.tone({ type: 'square',   f0: 130,  dur: 0.09, vol: 0.11 });
+               Snd.tone({ type: 'square',   f0: 96,   dur: 0.15, vol: 0.11, delay: 0.10 }); },
+  wave()     { Snd.tone({ type: 'sawtooth', f0: 196,  dur: 0.15, vol: 0.11 });
+               Snd.tone({ type: 'sawtooth', f0: 262,  dur: 0.20, vol: 0.11, delay: 0.16 }); },
+  clear()    { [440, 554, 659].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.11, delay: i * 0.09 })); },
+  gameover() { [330, 262, 196, 131].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.34, vol: 0.15, delay: i * 0.22 })); },
+  victory()  { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.20, vol: 0.14, delay: i * 0.13 })); },
+  trap()     { if (!sfxGate('trap', 200)) return;
+               Snd.tone({ type: 'square',   f0: 420,  f1: 110, dur: 0.06, vol: 0.07 }); },
+  roar()     { Snd.tone({ type: 'sawtooth', f0: 72,   f1: 30,  dur: 0.90, vol: 0.26 });
+               Snd.noise({ dur: 0.80, vol: 0.18, freq: 300 }); },
+  bossDie()  { Snd.tone({ type: 'sawtooth', f0: 160,  f1: 24,  dur: 1.10, vol: 0.24 }); SFX.victory(); },
+  thunder()  { if (!sfxGate('thunder', 800)) return;
+               Snd.noise({ dur: 1.8, vol: 0.24, freq: 110, q: 0.4, att: 0.12 });
+               Snd.tone({ type: 'sine',     f0: 52,   f1: 30,  dur: 1.6, vol: 0.18, att: 0.05 }); },
+  power()    { [620, 830, 1240].forEach((f, i) => Snd.tone({ type: 'triangle', f0: f, dur: 0.12, vol: 0.12, delay: i * 0.06 })); },
+  freeze()   { Snd.noise({ dur: 0.5, vol: 0.10, ftype: 'highpass', freq: 4000 });
+               Snd.tone({ type: 'sine',     f0: 1800, f1: 600,  dur: 0.5,  vol: 0.08 }); },
+  heartbeat(){ Snd.tone({ type: 'sine',     f0: 64,   f1: 40,  dur: 0.12, vol: 0.22 });
+               Snd.tone({ type: 'sine',     f0: 58,   f1: 36,  dur: 0.14, vol: 0.18, delay: 0.18 }); },
+  slowmo()   { Snd.tone({ type: 'sawtooth', f0: 400,  f1: 60,  dur: 0.5,  vol: 0.10 }); },
+  /* صداهای چرخه‌ی روز و شب (۵٫۰) */
+  morning(){ [1500, 1820, 1500, 2050].forEach((f, i) =>
+               Snd.tone({ type: 'sine', f0: f, f1: f * 1.18, dur: 0.13, vol: 0.09, delay: i * 0.15 })); },
+  dusk()   { Snd.tone({ type: 'sawtooth', f0: 160, f1: 55, dur: 0.9,  vol: 0.12 });
+             Snd.tone({ type: 'sine',     f0: 240, f1: 115, dur: 1.0, vol: 0.07, delay: 0.12 }); },
+  /* صداهای برجک‌های دفاعی (۴٫۰) */
+  turShot()  { if (!sfxGate('turShot', 110)) return;
+               Snd.noise({ dur: 0.06, vol: 0.10, ftype: 'bandpass', freq: 1500, q: 1 });
+               Snd.tone({ type: 'square',   f0: 210, f1: 90,  dur: 0.05, vol: 0.05 }); },
+  sniperShot(){ if (!sfxGate('sniperShot', 300)) return;
+               Snd.noise({ dur: 0.30, vol: 0.26, freq: 900 });
+               Snd.tone({ type: 'sine',     f0: 150, f1: 40,  dur: 0.32, vol: 0.24 });
+               Snd.tone({ type: 'triangle', f0: 620, f1: 190, dur: 0.30, vol: 0.06, delay: 0.14 }); },
+  frostShot(){ if (!sfxGate('frostShot', 150)) return;
+               Snd.tone({ type: 'sine',     f0: 1600, f1: 520, dur: 0.22, vol: 0.07 });
+               Snd.noise({ dur: 0.14, vol: 0.05, ftype: 'highpass', freq: 5000 }); },
+  placeT()   { Snd.tone({ type: 'sine',     f0: 130, f1: 55,  dur: 0.14, vol: 0.22 });
+               Snd.noise({ dur: 0.12, vol: 0.14, freq: 320 }); },
+};
+
+/* فعال‌سازی صدا با اولین تعامل کاربر (سیاست autoplay مرورگرها) */
+const armAudio = () => { Snd.init(); Snd.resume(); };
+window.addEventListener('pointerdown', armAudio, { passive: true });
+window.addEventListener('keydown', armAudio);
+
+/* ---------------------- ۴) وضعیت بازی ---------------------- */
+/* mode (وضعیت‌های بازی):
+   start        منوی اصلی (صحنه‌ی زنده: زامبی‌های تزئینی دور برج می‌خزند)
+   playing      درگیر موج فعلی (شب)
+   intermission شمارش معکوس کوتاه قبل از موج ۱ (فقط شروع بازی)
+   day          روزِ بین موج‌ها (۵٫۰): بدون زامبی، خرید آزاد، دکمه‌ی «شب شود»
+   paused       توقف دستی
+   gameover     باخت (جون برج صفر)
+   victory      برد (پاک‌سازی هر ۱۰ موج) */
+const state = {
+  mode: 'start', prevMode: null,
+  time: 0,                                 // زمان منطقی بازی (در توقف ثابت می‌ماند)
+  wave: 0,                                 // موج فعلی (۰ = هنوز شروع نشده)
+  intermission: 0,                         // ثانیه باقی‌مانده تا موج بعد (فقط شروع)
+  dayness: 0,                              // میزان روشنایی روز: ۰ = شب، ۱ = روز کامل (۵٫۰)
+  dayTarget: 0,                            // هدف گذار روز/شب (۵٫۰)
+  goingNight: false,                       // در حال گذار به شب بعد از کلیک دکمه (۵٫۰)
+  spawn: { queue: [], timer: 0, interval: 2, bossDelay: false }, // صف تولد زامبی‌های موج
+  coins: 0,
+  tower: { hp: 100, maxHp: 100 },
+  upgrades: { weapon: 0, health: 0, trap: 0 },
+  weapon: 'pistol',                        // سلاح انتخاب‌شده
+  zombies: [], bullets: [], coinsArr: [], particles: [], texts: [], zaps: [],
+  turrets: [],                              // برجک‌های دفاعیِ نصب‌شده (۴٫۰)
+  placing: null,                            // نوع برجکی که منتظر کلیک نصب است (۴٫۰)
+  tipTurret: false,                         // راهنمای نصب فقط بار اول نشان داده شود
+  powerups: [],                            // جعبه‌های قدرتِ روی صحنه
+  decals: [],                              // لکه‌های خون روی زمین (۳٫۰)
+  powerTimers: { rapid: 0, freeze: 0 },    // زمان‌سنج قدرت‌های فعال
+  combo: 0, comboT: 0, comboPop: 0,        // سیستم کمبو
+  killsSinceDrop: 0,                       // شمارش برای «شفقت»: حتماً جعبه بیفتد
+  heartT: 0,                               // زمان‌سنج ضربان قلبِ بحران
+  mouse: { x: W / 2, y: 120, down: false },
+  aimAngle: -Math.PI / 2,                  // زاویه اسلحه بازیکن رو به ماوس
+  shake: 0, flash: 0,                      // لرزش دوربین و فلش قرمزِ آسیب برج
+  fireFlash: 0, recoil: 0,                 // جلوه شلیک (نور دهانه + عقب‌راندگی اسلحه)
+  hitMark: 0, hitMarkCrit: false,          // نشانگر برخورد گلوله (۳٫۰)
+  muzzleGlow: 0,                           // نور محیطیِ دهانه‌ی اسلحه (۳٫۰)
+  slowmo: 0,                               // ثانیه‌ی اسلوموشن سینمایی (۳٫۰)
+  lightning: { t: rand(9, 20), a: 0 },     // رعدوبرق گاه‌به‌گاه (۳٫۰)
+  upgrades: { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 },
+  weapon: 'pistol',                        // سلاح انتخاب‌شده
+  towerVariant: 0,                         // پوسته‌ی برج: ۰=برج اول، ۱=برج دومِ شهر سوخته (۷٫۰)
+  cutsceneDone: false,                     // آیا رویداد داستانی فروریختن انجام شده؟ (۷٫۰)
+  weaponSpent: 0,                          // جمع پول خرج‌شده برای اسلحه‌ها (۸٫۰ — مبنای غرامت کات‌سین)
+  stats: { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 },
+  /* ---- (۱۰٫۰) فصل‌ها، کوله‌پشتی، چراغ‌قوه، دستفروش، قطع برق، باس ---- */
+  chapter: 1,                                        // فصل فعال ۱..۴
+  backpack: [null, null, null, null, null, null],    // کوله‌پشتی ۶ جا (وسایل بقا)
+  torch: { owned: false, on: false, battery: 0 },     // (۱۰٫۰) چراغ‌قوه — نام torch تا با فلش قرمزِ آسیب (state.flash) قاطی نشود
+  buffs: { vest: false, goldAmmo: false, helmet: false },  // آیتم‌های کمیاب فعال‌شده
+  regen: 0,                                          // جون باقی‌مانده‌ی شفای تدریجی کنسرو
+  peddler: { cd: 0, here: false, stock: [] },         // دستفروش مرموز (دزد شبانه)
+  blackout: { on: false, waveT: 0, schedule: [], until: 0 },  // قطع برق وسط موج
+  projectiles: [],                                   // آوار پرتابی نگهبانِ آخرین شب
+  cardT: 0,                                          // تایمر نمایش کارت فصل جدید
+};
+
+let animTime = 0;                          // زمان نمایشی (همیشه جلو می‌رود؛ برای سوسو ستاره‌ها و پرچم)
+let fireTimer = 0;                         // کول‌داون شلیک
+let announceTimer = 0;                     // مدت نمایش اعلان موقت (مثل «موج ۲»)
+let shootStar = null, shootStarT = rand(3, 7);   // شهابِ گاه‌به‌گاه آسمان
+
+/* قاب و بوم */
+const canvas = $('game');
+const ctx = canvas.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2); // شفافیت نمایش در صفحه‌های رتینا
+canvas.width = W * DPR;
+canvas.height = H * DPR;
+try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
+
+/* ---------------------- ۵) ورودی: ماوس/لمس و کیبورد ---------------------- */
+/* playing و intermission و day همه «قابل بازی»اند: در روز هم می‌شود
+   شلیک کرد، ارتقا خرید و برجک نصب کرد (۵٫۰). */
+function canPlay() { return state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day'; }
+
+/* تبدیل مختصات رویداد ماوس به مختصات منطقی دنیای بازی */
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+}
+
+/* به‌روزرسانی زاویه اسلحه بر اساس موقعیت فعلی ماوس */
+function updateAim() {
+  state.aimAngle = Math.atan2(state.mouse.y - (TOWER_TOP_Y - 17), state.mouse.x - TOWER.x);
+}
+
+canvas.addEventListener('pointermove', e => {
+  const p = canvasPos(e); state.mouse.x = p.x; state.mouse.y = p.y;
+  updateAim();
+});
+canvas.addEventListener('pointerdown', e => {
+  const p = canvasPos(e); state.mouse.x = p.x; state.mouse.y = p.y;
+  updateAim();                             // هدف‌گیری قبل از شلیک به‌روز شود
+  if (e.button === 2) {                    // راست‌کلیک: لغو نصب برجک (۴٫۰)
+    if (state.placing) cancelPlacement(true);
+    return;
+  }
+  if (e.button !== 0) return;
+  /* (۱۰٫۰) مینی‌گیم فرار (انتقال بین فصل‌ها): کلیک/لمس = پرش */
+  if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
+    mgJump();
+    e.preventDefault();
+    return;
+  }
+  /* (۸٫۰) بخش رانندگی کات‌سین: لمس نیمه‌ی راست = گاز، چپ = ترمز */
+  if (CS && CS.drive && !CS.drive.ended) {
+    const right = p.x > W / 2;
+    CS.drive.touch.a = right;
+    CS.drive.touch.b = !right;
+    state.mouse.down = false;
+    e.preventDefault();
+    return;
+  }
+  state.mouse.down = true;
+  if (state.placing && canPlay()) {
+    handlePlaceClick();                       // کلیک = نصب برجک
+    state.mouse.down = false;                 // شلیک خودکار بلافاصله بعد از نصب فعال نشود
+    e.preventDefault();
+    return;
+  }
+  if (canPlay()) tryShoot();               // شلیک فوری در لحظه‌ی کلیک
+  e.preventDefault();
+});
+window.addEventListener('pointerup', () => {
+  state.mouse.down = false;
+  /* (۸٫۰) رها کردن لمس = قطع گاز/ترمز لمسی */
+  if (CS && CS.drive) { CS.drive.touch.a = false; CS.drive.touch.b = false; }
+});
+canvas.addEventListener('contextmenu', e => {   // منوی راست‌کلیک باز نشود + لغو نصب
+  e.preventDefault();
+  if (state.placing) cancelPlacement(true);
+});
+
+/* کیبورد: P/Esc توقف، M صدا، ۱/۲/۳ تعویض سلاح، ۴..۹ خرید از ساخت‌وساز، B جمع/باز پنل
+   (۸٫۰) حین بخش رانندگی کات‌سین: → / D = گاز و ← / A = ترمز */
+window.addEventListener('keydown', e => {
+  if (CS && CS.drive && !CS.drive.ended) {
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') { CS.drive.keys.a = true; e.preventDefault(); }
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { CS.drive.keys.b = true; e.preventDefault(); }
+    return;                                   // در رانندگی، کلیدهای دیگر کاری نکنند
+  }
+  /* (۱۰٫۰) مینی‌گیم فرار در انتقال فصل‌ها: پرش/خم‌شدن/سرعت */
+  if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
+    if (e.code === 'ArrowUp' || e.code === 'Space') { mgJump(); e.preventDefault(); }
+    else if (e.code === 'ArrowDown') { mgDuck(true); e.preventDefault(); }
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { mgNudge(-1); e.preventDefault(); }
+    else if (e.code === 'ArrowRight' || e.code === 'KeyD') { mgNudge(1); e.preventDefault(); }
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (!$('howtoScreen').classList.contains('hidden')) hideScreen('howtoScreen');
+    else if (state.placing) cancelPlacement(true);      // اول لغو نصب برجک (۴٫۰)
+    else if (state.mode === 'paused') resumeGame();
+    else if (canPlay()) pauseGame();
+  } else if (e.key === 'p' || e.key === 'P') {
+    if (state.mode === 'paused') resumeGame();
+    else if (canPlay()) pauseGame();
+  } else if (e.key === 'm' || e.key === 'M') {
+    toggleSound();
+  } else if (e.key === 'b' || e.key === 'B') {
+    toggleBuildPanel();
+  } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+    selectWeapon('pistol');
+  } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+    selectWeapon('shotgun');
+  } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+    selectWeapon('mg');
+  } else if (e.key === 'l' || e.key === 'L') {
+    toggleFlashlight();                       // (۱۰٫۰) چراغ‌قوه
+  } else if (typeof BPKEYS !== 'undefined' && BPKEYS[e.code]) {
+    useItem(BPKEYS[e.code] - 1);              // (۱۰٫۰) مصرف آیتم کوله‌پشتی (Q..U)
+  } else {
+    /* خرید سریع از پنل ساخت‌وساز — کلید هر آیتم در BUILD_DEFS است (۴-۹، ۰ و T)
+       (۱۰٫۰) از مسیر buy(): قفل آخرین شب + سیو بعد از خرید */
+    const kind = KEY2KIND[e.code];
+    if (kind) buy(kind);
+  }
+});
+/* (۸٫۰) رها کردن کلیدهای گاز/ترمز رانندگی */
+window.addEventListener('keyup', e => {
+  /* (۱۰٫۰) رها کردن کلیدهای مینی‌گیم فرار (خم‌شدن + سرعت) */
+  if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
+    if (e.code === 'ArrowDown') { mgDuck(false); return; }
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') { mgNudge(0); return; }
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') { mgNudge(0); return; }
+  }
+  if (!(CS && CS.drive)) return;
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') CS.drive.keys.a = false;
+  else if (e.code === 'ArrowLeft' || e.code === 'KeyA') CS.drive.keys.b = false;
+});
+/* اگر تب/پنجره از حالت نمایش خارج شد، بازی خودکار متوقف شود */
+window.addEventListener('blur', () => { if (state.mode === 'playing') pauseGame(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.mode === 'playing') pauseGame();
+});
+
+/* ---------------------- ۶) جریان موج‌ها و تولید زامبی ---------------------- */
+/* شروع/ریست کامل بازی */
+function startGame() {
+  state.mode = 'intermission';
+  state.prevMode = null;
+  state.time = 0; state.wave = 0;
+  state.coins = 30;                       // سرمایه‌ی شروع (۵٫۰)
+  state.dayness = 0; state.dayTarget = 0; state.goingNight = false;   // شبِ شروع
+  state.tower.hp = 100; state.tower.maxHp = 100;
+  state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 };
+  state.weapon = 'pistol';
+  state.towerVariant = 0;                  // برج اول (۷٫۰)
+  state.cutsceneDone = false;
+  state.weaponSpent = 0;                   // (۸٫۰) حساب اسلحه‌ها دوباره از صفر
+  cutsceneHardReset();                     // اگر کات‌سینی در جریان بود کنسل شود (۷٫۰)
+  WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
+  state.zombies = []; state.bullets = []; state.coinsArr = [];
+  state.turrets = []; state.placing = null; state.tipTurret = false;
+  state.particles = []; state.texts = []; state.zaps = [];
+  state.powerups = []; state.decals = [];
+  state.powerTimers = { rapid: 0, freeze: 0 };
+  state.combo = 0; state.comboT = 0; state.comboPop = 0;
+  state.killsSinceDrop = 0; state.heartT = 0;
+  state.shake = 0; state.flash = 0;
+  state.hitMark = 0; state.muzzleGlow = 0; state.slowmo = 0;
+  state.lightning = { t: rand(9, 20), a: 0 };
+  state.stats = { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 };
+  state.spawn = { queue: [], timer: 0, interval: 2, bossDelay: false };
+  state.mouse.down = false; fireTimer = 0; announceTimer = 0;
+  state.intermission = INTERMISSION_FIRST; // شمارش معکوس کوتاه قبل از موج ۱
+  hideOverlays();
+  hideDayPanel();                          // پنل روز مطمئناً بسته باشد (۵٫۰)
+  $('wrap').classList.remove('menu-mode'); // HUD و پنل‌ها برگردند (۵٫۰)
+  setBuildPanel(false, true);              // پنل ساخت‌وساز در شروع باز باشد (۶٫۰)
+  $('btnPause').textContent = '⏸ توقف';
+  $('bpHead').classList.remove('attention');
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  updateHUD(); refreshBuildPanel(); refreshWeaponBar();
+}
+
+/* آغاز موج n: صف تولد بر اساس ترکیب جدول WAVES ساخته و شافل می‌شود */
+function startWave(n) {
+  state.wave = n;
+  state.mode = 'playing';
+  const c = WAVES[n - 1];
+  const q = [];
+  for (let i = 0; i < c.n; i++) q.push('normal');
+  for (let i = 0; i < c.f; i++) q.push('fast');
+  for (let i = 0; i < c.t; i++) q.push('tank');
+  for (let i = q.length - 1; i > 0; i--) {          // شافل فیشر–ییتس
+    const j = Math.floor(rand(0, i + 1));
+    const tmp = q[i]; q[i] = q[j]; q[j] = tmp;
+  }
+  if (c.b) q.push('boss');                           // پادشاه همیشه آخرِ صف می‌ایستد
+  state.spawn = {
+    queue: q,
+    timer: 1.2,
+    interval: Math.max(2.0 - n * 0.14, 0.5),        // فاصله بین تولدها (کم‌تر هر موج)
+    bossDelay: false,
+  };
+  setAnnounce('موج ' + faNum(n),
+    n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
+  SFX.wave();
+  setBuildPanel(true, true);               // شب شد: پنل خودکار جمع شود تا نقشه آزاد باشد (۶٫۰)
+  $('bpHead').classList.remove('attention');
+  updateHUD();
+}
+
+/* پایان موج فعلی (۵٫۰): جایزه‌ی سکه + «صبح می‌شود»؛
+   در روز زامبی نمی‌آید و بازیکن با دکمه‌ی «شب شود» موج بعد را شروع می‌کند. */
+function waveComplete() {
+  if (state.wave >= TOTAL_WAVES) { victory(); return; }
+  /* پادشایی موج: جایزه‌ی نقدی صبح (۱۲ + ۶×شماره موج) */
+  const bonus = 12 + state.wave * 6;
+  state.coins += bonus;
+  state.stats.earned += bonus;
+  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
+  pulseCoins();
+  /* صحنه پاک شود و صبح طلوع کند */
+  state.zombies = []; state.bullets = [];
+  /* (۷٫۰) رویداد داستانی: پایان موج ۵ = فروریختن برج و مهاجرت به برج بعدی؛
+     جون/سکه/سلاح/ارتقاها همه حفظ می‌شوند و موج ۶ روی برج جدید ادامه می‌یابد */
+  if (state.wave === CUTSCENE_AFTER_WAVE && state.towerVariant === 0 && !state.cutsceneDone) {
+    playTowerCollapseCutscene({
+      afterWave: CUTSCENE_AFTER_WAVE,
+      variant: 1,                             // پوسته‌ی برج دوم + شهر سوخته
+      /* (۸٫۰) هدیه‌ی راننده جای خود را به «غرامت اسلحه‌های سوخته» داده است:
+         سلاح‌ها زیر آوار از بین می‌روند و به‌جایش سکه‌ی اضافه می‌رسد */
+    });
+    return;
+  }
+  state.mode = 'day';
+  state.dayTarget = 1;                     // گذار نرم به روز
+  state.goingNight = false;
+  state.slowmo = Math.max(state.slowmo, 0.45);   // لحظه‌ی سینمایی پاک‌سازی موج
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  setAnnounce('☀️ صبح شد!', 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
+  SFX.clear();
+  SFX.morning();                           // چرپ‌چرپ صبحگاهی
+  showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
+  setBuildPanel(false, true);              // روز شد: پنل خودکار باز شود برای خرید/نصب (۶٫۰)
+  $('bpHead').classList.add('attention');   // راهنمایی بصری: فرصت خرید رسید
+  updateHUD();
+}
+
+/* پنل روز: دکمه‌ی شروع شب + راهنما (۵٫۰) — (۱۰٫۰) برچسب موج درون‌فصلی/آخرین شب */
+function showDayPanel() {
+  $('btnNight').innerHTML = (state.wave + 1 >= FINAL_WAVE)
+    ? '🌑 آخرین شب'
+    : '🌙 شب شود — موج ' + faNum(waveInChapter(state.wave + 1));
+  $('dayPanel').classList.remove('hidden');
+}
+function hideDayPanel() { $('dayPanel').classList.add('hidden'); }
+
+/* کلیک «شب شود»: گذار گرگ‌ومیش و بعد شروع موج بعد (۵٫۰) */
+function startNight() {
+  if (state.mode !== 'day' || state.goingNight) return;
+  state.goingNight = true;
+  hideDayPanel();
+  state.dayTarget = 0;                     // آسمان آرام تاریک می‌شود
+  setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+  SFX.dusk();
+}
+
+/* تولید یک زامبی از نوع دلخواه از لبه چپ یا راست */
+function spawnZombie(type) {
+  const T = ZTYPES[type || 'normal'];
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const hp = Math.round(T.hpBase + T.hpWave * state.wave);
+  state.zombies.push({
+    type: type || 'normal',
+    x: side < 0 ? -30 : W + 30,
+    y: GROUND_Y + rand(-3, 3),             // کمی پراکندگی عمودی برای خوانایی دسته‌جمعی
+    yJit: rand(-3, 3),                     // جیترِ ردیف هجوم (۳٫۰)
+    dir: side < 0 ? 1 : -1,                // جهت گام (به سمت برج)
+    hp, maxHp: hp,
+    speed: (T.spdBase + T.spdWave * state.wave) * rand(0.85, 1.15),
+    radius: T.r,
+    biteInt: T.bite, biteTimer: rand(0.2, 0.6),   // اولین گاز کمی زودتر/دیرتر
+    dmg: T.dmg,
+    walkPhase: Math.random() * Math.PI * 2,
+    attackAnim: 0,
+    attacking: false, attackSide: 0,       // سمتِ دیواری که به آن می‌کوبد
+    lane: 0, depth: 1,                     // ردیف هجوم و مقیاس عمق (۳٫۰)
+    stagger: 0,                            // سرخوردن بعد از گلوله (۳٫۰)
+    chill: 0,                              // ثانیه‌ی باقی‌مانده‌ی یخ‌زدگی برجک یخ‌زن (۴٫۰)
+    hitFlash: 0, dead: false, deathT: 0,
+  });
+  /* غبارِ ورود از لبه‌ی صفحه (۳٫۰) */
+  spawnParticles(side < 0 ? 8 : W - 8, GROUND_Y - 4, 5, '#5a4a33',
+    { speed: 55, life: 0.4, size: 2.2, grav: 180, up: true });
+  updateHUD();
+}
+
+/* ---------------------- ۷) شلیک و سلاح‌ها ---------------------- */
+/* آسیب هر گلوله/ساچمه بر اساس سلاح + سطح ارتقای اسلحه
+   (سلاح‌های ساچمه‌ای به‌ازای هر سطح +۱ می‌گیرند و تک‌گلوله‌ای +۲) */
+function weaponDmg(w, extra) {
+  const L = state.upgrades.weapon + (extra || 0);
+  let d = w.dmg + L * (w.pellets > 1 ? 1 : 2);
+  if (state.buffs && state.buffs.goldAmmo) d = Math.round(d * 1.25);   // (۱۰٫۰) فشنگ‌های طلایی
+  return d;
+}
+
+/* محل دهانه‌ی اسلحه (نوک لوله در بالای برج) — طول لوله به سلاح بستگی دارد */
+function gunMuzzle(len) {
+  const gx = TOWER.x, gy = TOWER_TOP_Y - 17;
+  return { x: gx + Math.cos(state.aimAngle) * (len + 6), y: gy + Math.sin(state.aimAngle) * (len + 6) };
+}
+
+function tryShoot() {
+  if (fireTimer > 0) return;
+  const w = WEAPONS[state.weapon];
+  /* قدرت «شلیک سریع» نرخ شلیک را تقریباً دوبرابر می‌کند +
+     ارتقای «سرعت شلیک» (۹٫۰) هر سطح ۸٪ فاصله‌ی شلیک را کم می‌کند */
+  fireTimer = w.rate * (state.powerTimers.rapid > 0 ? 0.55 : 1)
+            * (1 - 0.08 * (state.upgrades.speed || 0));
+  updateAim();                             // اطمینان از جهت صحیح گلوله
+  const m = gunMuzzle(w.barrel);
+  for (let i = 0; i < w.pellets; i++) {
+    const a = state.aimAngle + (Math.random() - 0.5) * 2 * w.spread;
+    const sp = w.spd * rand(0.92, 1.08);
+    state.bullets.push({
+      x: m.x, y: m.y,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      dmg: weaponDmg(w), r: w.pellets > 1 ? 3 : 4, life: w.ttl,
+      knock: w.knock,                      // پس‌زنی سلاح (۳٫۰)
+      dead: false, pellet: w.pellets > 1,  // ساچمه‌های شاتگان ریزترند
+    });
+  }
+  state.stats.shots++;
+  state.fireFlash = 0.07;
+  state.muzzleGlow = 0.07;                 // نور دهانه روی محیط (۳٫۰)
+  state.recoil = w.pellets > 1 ? 1.6 : 1;  // لگد شاتکن محسوس‌تر است
+  SFX[w.sfx]();
+  spawnParticles(m.x, m.y, 3, '#ffe9a8', { speed: 90, life: 0.18, size: 2, grav: 0,
+    dir: state.aimAngle, spread: Math.PI / 3 });
+  spawnShell(state.aimAngle);              // پوکه‌ی پرتاب‌شده
+  if (w.pellets > 1) state.shake = Math.min(8, state.shake + 2);
+}
+
+/* پوکه‌ی براقی که بعد از هر شلیک به عقب پرتاب می‌شود و روی بام می‌غلتد */
+function spawnShell(ang) {
+  const gx = TOWER.x + Math.cos(ang) * 8, gy = TOWER_TOP_Y - 17 + Math.sin(ang) * 8;
+  const a = ang + rand(1.6, 2.2);          // زاویه‌ی پرتاب به عقب/بالا
+  state.particles.push({
+    x: gx, y: gy,
+    vx: Math.cos(a) * rand(60, 130), vy: Math.sin(a) * rand(60, 130) - 70,
+    age: 0, life: rand(0.5, 0.8), size: 2.6, color: '#d9a441', grav: 900,
+    shell: true, rot: rand(0, 6.28), vr: rand(-9, 9),
+  });
+}
+
+/* برخورد گلوله با زامبی‌ها + خروج گلوله از صحنه
+   (۳٫۰: اول دایره‌ی سر بررسی می‌شود — برخورد سر = ضربه‌ی بحرانی ×۲) */
+function updateBullets(dt) {
+  for (const b of state.bullets) {
+    if (b.dead) continue;
+    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    /* رد برفیِ گلوله‌ی یخی برجک (۴٫۰) */
+    if (b.frost && Math.random() < dt * 34) {
+      state.particles.push({ x: b.x, y: b.y, vx: rand(-12, 12), vy: rand(-12, 12),
+        age: 0, life: 0.3, size: 1.3, color: 'rgba(205,240,255,0.9)', grav: 30 });
+    }
+    if (b.y > GROUND_Y + 4) {              // گلوله به زمین خورد
+      b.dead = true;
+      spawnParticles(b.x, GROUND_Y, 4, '#6a5a43', { speed: 70, life: 0.3, size: 2, grav: 300, up: true });
+      continue;
+    }
+    if (b.x < -40 || b.x > W + 40 || b.y < -40 || b.life <= 0) { b.dead = true; continue; }
+    const dir = Math.sign(b.vx) || 1;      // جهت پس‌زنی = جهت حرکت گلوله
+    const src = b.tur || 'player';         // منبع گلوله: بازیکن یا برجک (۴٫۰)
+    for (const z of state.zombies) {
+      if (z.dead) continue;
+      const s = (z.radius / 15) * (z.depth || 1);   // مرکز بدن بر اساس اندازه‌ی نوع و عمق
+      /* --- سر: ضربه‌ی بحرانی --- */
+      const hx = z.x + z.dir * 3 * s, hy = z.y - 36 * s, hr = 7 * s + b.r;
+      if ((b.x - hx) * (b.x - hx) + (b.y - hy) * (b.y - hy) < hr * hr) {
+        b.dead = true;
+        hitZombie(z, b.dmg, b.x, b.y, dir, true, b.knock, src);
+        if (b.frost) chillZombie(z);
+        break;
+      }
+      /* --- بدن --- */
+      const dx = z.x - b.x, dy = (z.y - 20 * s) - b.y;
+      const rr2 = z.radius * (z.depth || 1) + b.r + 3;
+      if (dx * dx + dy * dy < rr2 * rr2) {
+        b.dead = true;
+        hitZombie(z, b.dmg, b.x, b.y, dir, !!b.crit, b.knock, src);
+        if (b.frost) chillZombie(z);
+        break;
+      }
+    }
+  }
+  state.bullets = state.bullets.filter(b => !b.dead);
+}
+
+/* ---------------------- ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج ----------------------
+   در ۳٫۰ زامبی‌ها دیگر در یک خط نمی‌ایستند: هر طرفِ برج تا ۵ ردیف
+   «دیوارِ زامبی» می‌سازند؛ نزدیک‌ترین مهاجم ردیفِ چسبیده به دیوار را می‌گیرد و
+   بقیه پشت سرش ردیف می‌شوند. ردیف‌های عقب بالاتر و کوچک‌تر رسم می‌شوند و
+   با کشته‌شدنِ ردیف جلو، بقیه فشرده شده و جلو می‌خزند. */
+function updateZombies(dt) {
+  /* رتبه‌بندی مهاجم‌های فعلی بر اساس نزدیکی به دیوار (هر طرف جداگانه):
+     نزدیک‌ترین = ردیف ۰؛ با مرگ ردیف جلو، رتبه‌ها فشرده می‌شوند */
+  const rank = { '-1': 0, '1': 0 };
+  const attackers = state.zombies.filter(z => !z.dead && z.attacking);
+  attackers.sort((a, b) => Math.abs(TOWER.x - a.x) - Math.abs(TOWER.x - b.x));
+  for (const z of attackers) {
+    z.attackSide = z.x < TOWER.x ? -1 : 1;
+    z.lane = Math.min(rank[z.attackSide]++, 4);
+  }
+
+  for (const z of state.zombies) {
+    if (z.dead) { z.deathT += dt; continue; }   // انیمیشن مرگ ادامه پیدا کند
+    z.hitFlash = Math.max(0, z.hitFlash - dt);
+    z.stagger = Math.max(0, z.stagger - dt);    // سرخوردن بعد از ضربه
+    z.chill = Math.max(0, (z.chill || 0) - dt); // یخ‌زدگی برجک یخ‌زن (۴٫۰)
+
+    const dx = TOWER.x - z.x;
+    const side = z.x < TOWER.x ? -1 : 1;        // کدام دیوار برج؟
+    const lane = z.attacking ? z.lane : Math.min(rank[side], 4);
+    const stop = TOWER.baseHalf + z.radius * 0.55 + lane * 15;
+
+    /* انجماد: همه کُند می‌شوند (پادشاه مقاوم‌تر است) — یخ‌زدگی برجک هم جداگانه اثر می‌کند */
+    const slow = state.powerTimers.freeze > 0 ? (z.type === 'boss' ? 0.6 : 0.32) : 1;
+    const spd = z.speed * slow * (z.chill > 0 ? 0.55 : 1) * (z.stagger > 0 ? 0.25 : 1);
+
+    if (Math.abs(dx) > stop) {
+      /* راه رفتن به سمت برج (مهاجمِ پس‌زده‌شده هم برمی‌گردد) */
+      z.attacking = false;
+      z.lane = Math.min(rank[side], 4);
+      z.x += Math.sign(dx) * spd * dt;
+      z.walkPhase += dt * (4 + spd * 0.06);
+    } else {
+      /* رسید به دیوار برج: کوبیدن پایه با فاصله‌ی زمانیِ نوعِ خودش */
+      z.attacking = true;
+      z.attackSide = side;
+      z.attackAnim += dt * 5;
+      z.biteTimer -= dt;
+      if (z.biteTimer <= 0) {
+        z.biteTimer = z.biteInt;
+        damageTower(z.dmg, z.x);
+      }
+    }
+
+    /* عمق تصویری: ردیف‌های عقب‌تر کمی بالاتر ایستاده و کوچک‌تر دیده می‌شوند */
+    const yTarget = GROUND_Y - z.lane * 9 + z.yJit;
+    z.y += (yTarget - z.y) * Math.min(1, dt * 6);
+    z.depth = 1 - z.lane * 0.07;
+
+    /* غبار گام‌ها (۶٫۰): ذره‌ی ریز پشت پای زامبیِ در حال راه رفتن */
+    if (!z.dead && Math.abs(dx) > stop && Math.random() < dt * 2.2) {
+      state.particles.push({
+        x: z.x - z.dir * 7, y: z.y + 1,
+        vx: -z.dir * rand(5, 15), vy: rand(-20, -7),
+        age: 0, life: rand(0.25, 0.42), size: rand(1.2, 1.9),
+        color: 'rgba(96,84,58,0.45)', grav: 60,
+      });
+    }
+  }
+  state.zombies = state.zombies.filter(z => !z.dead || z.deathT < 0.55);
+}
+
+/* آسیب گلوله به زامبی (۳٫۰: کریت ×۲ + پس‌زنی + سرخوردن + نشانگر برخورد) */
+function hitZombie(z, dmg, bx, by, dir, crit, knock, src) {
+  if (z.dead) return;
+  if (src) z.killedBy = src;                 // منبع ضربه — برای آمار کشتار برجک‌ها (۴٫۰)
+  const total = crit ? dmg * 2 : dmg;
+  z.hp -= total;
+  z.hitFlash = 0.15;
+  z.stagger = 0.15;                         // چند لحظه از می‌افتد
+  z.x += dir * (knock || 0) * (crit ? 1.7 : 1);   // پس‌زنی فیزیکی
+  if (crit) {
+    addText(z.x, z.y - 52, faNum(total), '#ffb347', 16);
+    spawnParticles(bx, by, 5, '#ffd873', { speed: 150, life: 0.35, size: 2.2, grav: 300 });
+  } else {
+    addText(z.x, z.y - 46, faNum(total), '#ffffff', 12);
+  }
+  spawnParticles(bx, by, 3, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
+  spawnParticles(bx, by, 3, '#7a2f2f', { speed: 90,  life: 0.35, size: 2, grav: 500 });
+  if (Math.random() < 0.3) addDecal(z.x, false);   // چکه‌ی خون روی زمین
+  state.hitMark = 0.14; state.hitMarkCrit = !!crit; // نشانگر برخورد روی نشان
+  if (crit) SFX.crit(); else SFX.hit();
+  if (z.hp <= 0) killZombie(z);
+}
+
+/* مرگ زامبی: انیمیشن افتادن + خون + سکه + روح + جعبه‌ی قدرت + کمبو (۳٫۰) */
+function killZombie(z) {
+  if (z.dead) return;
+  z.dead = true; z.deathT = 0;
+  state.stats.kills++;
+  if (z.killedBy && z.killedBy !== 'player') state.stats.turKills++;   // کشتار دفاع‌های خودکار (۴٫۰)
+  spawnParticles(z.x, z.y - 18, 12, '#5f8f3e', { speed: 170, life: 0.55, size: 3, grav: 500 });
+  spawnParticles(z.x, z.y - 18, 8, '#7a2f2f', { speed: 130, life: 0.5, size: 2.6, grav: 500 });
+  addDecal(z.x, true);                     // لکه‌ی خون بزرگ زیر جسد
+  /* روحِ سبزِ کوچکی که آرام به آسمان می‌رود */
+  state.particles.push({
+    x: z.x, y: z.y - 26, vx: rand(-6, 6), vy: -38,
+    age: 0, life: 1.3, size: 3, color: 'rgba(190,255,200,0.5)', grav: -26, glow: true,
+  });
+  SFX.death();
+  dropCoins(z);
+  maybeDropPowerup(z);
+  bumpCombo();
+  updateHUD();
+  if (z.type === 'boss') {
+    state.shake = 16; state.flash = 0.8;
+    state.slowmo = 0.9;                    // لحظه‌ی سینمایی مرگ پادشاه
+    SFX.slowmo();
+    spawnParticles(z.x, z.y - 60, 40, '#ffd873', { speed: 300, life: 1.0, size: 3.5, grav: 400 });
+    spawnParticles(z.x, z.y - 60, 24, '#e8563f', { speed: 240, life: 0.8, size: 3, grav: 400 });
+    setAnnounce(state.wave >= FINAL_WAVE ? '🌑 نگهبان از پا درآمد!' : '👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
+    SFX.bossDie();
+  }
+}
+
+/* سیستم کمبو (۳٫۰): هر کشتنِ تازه، پنجره را باز نگه می‌دارد؛
+   در رکوردهای مشخص پیام + سکه‌ی جایزه می‌گیری. */
+function bumpCombo() {
+  state.combo++;
+  state.comboT = COMBO_WINDOW;
+  state.comboPop = 0.25;
+  state.stats.maxCombo = Math.max(state.stats.maxCombo, state.combo);
+  const m = COMBO_MILESTONES[state.combo];
+  if (m) {
+    state.coins += m.bonus;
+    state.stats.earned += m.bonus;
+    addText(TOWER.x, TOWER_TOP_Y - 46, '+' + faNum(m.bonus) + ' 💰', '#ffd873', 15);
+    setAnnounce('🔥 ' + m.msg, 'جایزه‌ی کمبو: +' + faNum(m.bonus) + ' سکه', 1.6);
+    SFX.combo(state.combo);
+    pulseCoins();
+  }
+}
+
+/* کاهش جون برج (کوبیدن پایه توسط زامبی‌ها) */
+function damageTower(amount, srcX) {
+  if (state.mode !== 'playing') return;
+  /* (۱۰٫۰) جلیقه‌ی ضدّ دندان: آسیب به برج ۲۵٪ کمتر */
+  if (state.buffs && state.buffs.vest) amount = Math.max(1, Math.round(amount * 0.75));
+  state.tower.hp = Math.max(0, state.tower.hp - amount);
+  state.flash = 1;
+  state.shake = Math.min(10, state.shake + 3);
+  const side = srcX < TOWER.x ? -1 : 1;
+  addText(TOWER.x + side * (TOWER.baseHalf + 6), GROUND_Y - 60, faNum(amount), '#ff6b5e', 16);
+  /* تراشه‌های سنگ از پایه‌ی برج می‌پارد (۳٫۰: بیشتر و پررنگ‌تر) */
+  spawnParticles(TOWER.x + side * TOWER.baseHalf, GROUND_Y - rand(10, 55), 7, '#8a6f52',
+    { speed: 130, life: 0.45, size: 2.6, grav: 500 });
+  spawnParticles(TOWER.x + side * TOWER.baseHalf, GROUND_Y - rand(8, 40), 3, '#c9b38a',
+    { speed: 100, life: 0.35, size: 2, grav: 500 });
+  SFX.towerHit();
+  updateHUD();
+  if (state.tower.hp <= 0) gameOver();
+}
+
+/* تله پایه برج: آسیب خودکار و پیوسته به زامبی‌های نزدیک */
+function updateTrap(dt) {
+  const lvl = state.upgrades.trap;
+  if (lvl <= 0) return;
+  const dps = UPGRADES.trap.dps + UPGRADES.trap.dpsPerLvl * (lvl - 1);
+  for (const z of state.zombies) {
+    if (z.dead) continue;
+    if (Math.abs(z.x - TOWER.x) < UPGRADES.trap.radius) {
+      z.hp -= dps * dt;
+      z.hitFlash = Math.max(z.hitFlash, 0.06);
+      if (Math.random() < dt * 6) { addZap(z.x, z.y - 18); SFX.trap(); }  // قوس برق نمایشی
+      if (z.hp <= 0) { z.killedBy = 'trap'; killZombie(z); }
+    }
+  }
+}
+
+/* ---------------------- ۸٫۵) برجک‌های دفاعی خودکار (۴٫۰) ----------------------
+   بازیکن برجک می‌خرد → شبحِ نصب دنبال ماوس می‌آید → کلیک روی زمین = نصب.
+   هر برجک نزدیک‌ترین زامبیِ در برد را نشانه می‌رود و خودکار شلیک می‌کند. */
+
+/* آیا نقطه‌ی (x,y) جای نصب مناسبی است؟ (نوار زمین، دوری از برج/برجک‌ها/مانع‌های صحنه) */
+function placementValid(x, y) {
+  if (y < GROUND_Y - 34 || y > GROUND_Y + 16) return false;    // فقط نوار زمین
+  if (x < 26 || x > W - 200) return false;                      // داخل کادر و دور از پنل ساخت‌وساز
+  if (Math.abs(x - TOWER.x) < TOWER.baseHalf + 34) return false; // چسبیده به پایه‌ی برج نه
+  for (const t of state.turrets) if (Math.hypot(t.x - x, t.y - y) < 36) return false;
+  for (const lx of LAMPS) if (Math.abs(x - lx) < 18) return false;
+  for (const tx of [88, 874]) if (Math.abs(x - tx) < 22) return false;   // درخت‌های خشک
+  for (const p of PUDDLES) if (Math.abs(x - p.x) < p.w / 2 + 8) return false;
+  return true;
+}
+
+/* شروع حالت نصب: پول هنوز کنار نمی‌رود — موقع نصبِ موفق کم می‌شود */
+function startPlacement(kind) {
+  if (state.placing) {
+    if (state.placing.type === kind) cancelPlacement(true);   // کلیک دوباره = لغو
+    else { state.placing = { type: kind }; SFX.click(); refreshBuildPanel(); }
+    return;
+  }
+  if (state.turrets.length >= MAX_TURRETS) { denyBPItem(kind); return; }
+  if (state.coins < TURRETS[kind].price) { denyBPItem(kind); return; }
+  state.placing = { type: kind };
+  SFX.click();
+  if (!state.tipTurret) {
+    state.tipTurret = true;
+    setAnnounce('🛠 نصب ' + TURRETS[kind].name, 'روی زمینِ سبز کلیک کن — راست‌کلیک: لغو', 2.4);
+  }
+  refreshBuildPanel();
+}
+
+/* لغو حالت نصب (Esc یا راست‌کلیک) — هنوز چیزی خرج نشده است */
+function cancelPlacement(notify) {
+  if (!state.placing) return;
+  state.placing = null;
+  if (notify) SFX.click();
+  refreshBuildPanel();
+}
+
+/* کلیک چپ در حالت نصب: اگر جای‌ درست بود برجک ساخته می‌شود */
+function handlePlaceClick() {
+  const pl = state.placing;
+  if (!pl) return;
+  const def = TURRETS[pl.type];
+  const mx = state.mouse.x, my = state.mouse.y;
+  if (!placementValid(mx, my)) { SFX.deny(); return; }
+  if (state.turrets.length >= MAX_TURRETS) { cancelPlacement(); return; }
+  if (state.coins < def.price) { denyBPItem(pl.type); cancelPlacement(); return; }
+  state.coins -= def.price;
+  state.turrets.push({
+    type: pl.type, x: mx, y: my,
+    cd: 0.45,                                // کمی تأخیر اولیه (حسِ نصب)
+    aim: mx < TOWER.x ? 0 : Math.PI,         // اول رو به برج
+    spin: 0, flash: 0, recoil: 0, hover: false, bob: rand(0, 6.28),
+  });
+  /* جلوه‌ی نصب: گردوخاک + کوبیدن + متن */
+  spawnParticles(mx, my + 2, 14, '#7a6a4c', { speed: 110, life: 0.5, size: 2.6, grav: 380, up: true });
+  spawnParticles(mx, my - 4, 8, '#c9b38a', { speed: 90, life: 0.4, size: 2, grav: 300, up: true });
+  state.shake = Math.min(6, state.shake + 3);
+  addText(mx, my - 40, def.name, '#9fe08a', 13);
+  SFX.placeT();
+  state.placing = null;
+  updateHUD();
+}
+
+/* یخ‌زدگی زامبی با گلوله‌ی برجک یخ‌زن */
+function chillZombie(z) {
+  if (z.dead) return;
+  z.chill = Math.max(z.chill || 0, TURRETS.frost.chill);
+  spawnParticles(z.x, z.y - 20, 4, '#cfeaff', { speed: 60, life: 0.4, size: 1.6, grav: 150 });
+}
+
+/* حلقه‌ی برجک‌ها: هدف‌گیری نزدیک‌ترین زامبی در برد + چرخش لوله + شلیک خودکار */
+function updateTurrets(dt) {
+  for (const t of state.turrets) {
+    const def = TURRETS[t.type];
+    t.cd = Math.max(0, t.cd - dt);
+    t.flash = Math.max(0, t.flash - dt);
+    t.recoil = Math.max(0, t.recoil - dt * 5);
+    t.hover = !state.placing && Math.abs(state.mouse.x - t.x) < 26 && Math.abs(state.mouse.y - (t.y - 14)) < 30;
+
+    /* نزدیک‌ترین زامبیِ زنده در شعاع برد */
+    let best = null, bd = Infinity;
+    for (const z of state.zombies) {
+      if (z.dead) continue;
+      const d = Math.abs(z.x - t.x);
+      if (d <= def.range && d < bd) { bd = d; best = z; }
+    }
+    if (best) {
+      const s = (best.radius / 15) * (best.depth || 1);
+      const want = Math.atan2((best.y - 20 * s) - (t.y - def.h), best.x - t.x);
+      let diff = want - t.aim;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      t.aim += diff * Math.min(1, dt * 8);   // چرخش نرم لوله به سمت هدف
+      if (t.cd <= 0 && Math.abs(diff) < 0.35) turretFire(t);
+    }
+    if (t.type === 'gatling') t.spin += dt * (best ? 16 : 3);   // چرخش لوله‌های مسلسل
+    /* برفک‌های محیطی برجک یخ‌زن */
+    if (t.type === 'frost' && Math.random() < dt * 2.5) {
+      state.particles.push({ x: t.x + rand(-13, 13), y: t.y - rand(14, 30),
+        vx: rand(-6, 6), vy: rand(8, 20), age: 0, life: rand(0.6, 1.2),
+        size: rand(1, 1.8), color: 'rgba(200,235,255,0.8)', grav: 10 });
+    }
+  }
+}
+
+/* شلیک برجک: گلوله با پرچم‌های مخصوص (tur/frost/tracer/crit) به صف گلوله‌ها اضافه می‌شود */
+function turretFire(t) {
+  const def = TURRETS[t.type];
+  const lvl = state.upgrades.turretUp;
+  const dmg = Math.round(def.dmg * (1 + 0.3 * lvl));
+  const mx = t.x + Math.cos(t.aim) * (def.len + 4);
+  const my = t.y - def.h + Math.sin(t.aim) * (def.len + 4);
+  const a = t.aim + rand(-0.03, 0.03);
+  state.bullets.push({
+    x: mx, y: my,
+    vx: Math.cos(a) * def.spd, vy: Math.sin(a) * def.spd,
+    dmg, r: t.type === 'sniper' ? 4 : (t.type === 'frost' ? 4.5 : 2.8),
+    life: t.type === 'sniper' ? 1.4 : 1.1,
+    knock: def.knock, dead: false,
+    pellet: t.type === 'gatling',          // گلوله‌های ریز مسلسل
+    tur: t.type,                           // منبع شلیک (برای آمار)
+    frost: t.type === 'frost',             // گلوله‌ی یخی
+    tracer: t.type === 'sniper',           // رد بلند تک‌تیرانداز
+    crit: t.type === 'sniper' && Math.random() < (def.crit || 0),
+  });
+  t.cd = def.rate / (1 + 0.12 * lvl);
+  t.flash = t.type === 'sniper' ? 0.09 : 0.07;
+  t.recoil = 1;
+  if (t.type === 'gatling') {
+    SFX.turShot();
+    spawnParticles(mx, my, 2, '#ffd88a', { speed: 70, life: 0.12, size: 1.6, grav: 0, dir: t.aim, spread: 0.6 });
+  } else if (t.type === 'sniper') {
+    SFX.sniperShot();
+    state.shake = Math.min(5, state.shake + 1.2);
+    spawnParticles(mx, my, 5, '#fff3c4', { speed: 160, life: 0.22, size: 2.2, grav: 0, dir: t.aim, spread: 0.9 });
+  } else {
+    SFX.frostShot();
+    spawnParticles(mx, my, 4, '#bfe6ff', { speed: 60, life: 0.4, size: 1.8, grav: 60, dir: t.aim, spread: 1.2 });
+  }
+}
+
+/* ---------------------- ۹) سکه‌ها و جعبه‌های قدرت ---------------------- */
+/* با مرگ هر زامبی چند سکه می‌پرد بیرون (تعدادش به نوع دشمن بستگی دارد) */
+function dropCoins(z) {
+  const range = ZTYPES[z.type].coins;
+  const n = Math.round(rand(range[0], range[1]));
+  for (let i = 0; i < n; i++) {
+    state.coinsArr.push({
+      x: z.x, y: z.y - 18, vx: rand(-100, 100), vy: rand(-280, -140),
+      phase: 'drop', t: 0, bounces: 0, flySpeed: 420, dead: false,
+    });
+  }
+}
+
+/* محل شمارنده سکه در HUD (تبدیل مختصات صفحه به مختصات بوم تا سکه‌ها دقیقاً به آن پرو کنند) */
+function coinTarget() {
+  try {
+    const r = canvas.getBoundingClientRect();
+    const c = $('coinItem').getBoundingClientRect();
+    return {
+      x: (c.left + c.width / 2 - r.left) / r.width * W,
+      y: (c.top + c.height / 2 - r.top) / r.height * H,
+    };
+  } catch (e) { return { x: W - 150, y: 26 }; }
+}
+
+function updateCoins(dt) {
+  const target = coinTarget(); // یک بار در هر فریم محاسبه می‌شود
+  for (const c of state.coinsArr) {
+    if (c.dead) continue;
+    c.t += dt;
+    if (c.phase === 'drop') {
+      /* پرتاب اولیه + جاذبه + وایراستن روی زمین */
+      c.vy += 900 * dt;
+      c.x += c.vx * dt; c.y += c.vy * dt;
+      if (c.y > GROUND_Y - 6) {
+        c.y = GROUND_Y - 6;
+        c.vy *= -0.45; c.vx *= 0.7; c.bounces++;
+        if (Math.abs(c.vy) < 40 || c.bounces >= 2 || c.t > 0.9) c.phase = 'fly';
+      }
+    } else {
+      /* پرو شتاب‌دار به سمت شمارنده سکه در HUD */
+      const dx = target.x - c.x, dy = target.y - c.y;
+      const d = Math.hypot(dx, dy) || 1;
+      c.flySpeed += 1400 * dt;
+      const step = Math.min(d, c.flySpeed * dt);
+      c.x += dx / d * step; c.y += dy / d * step;
+      if (d < 18) { collectCoin(c); continue; }
+    }
+    /* برق کوچکی که گاهی از سکه می‌پرد (۳٫۰) */
+    if (Math.random() < dt * 2.2) {
+      state.particles.push({ x: c.x + rand(-5, 5), y: c.y + rand(-5, 5), vx: 0, vy: -14,
+        age: 0, life: 0.35, size: 1.2, color: '#ffe98a', grav: 0 });
+    }
+    if (c.t > 4) collectCoin(c); // بیمه: سکه گم‌نشده جمع شود
+  }
+  state.coinsArr = state.coinsArr.filter(c => !c.dead);
+}
+
+function collectCoin(c) {
+  if (c.dead) return;
+  c.dead = true;
+  state.coins++;
+  state.stats.earned++;
+  updateHUD();
+  pulseCoins();
+}
+
+/* پالس بصری شمارنده سکه در HUD */
+function pulseCoins() {
+  const el = $('coinItem');
+  el.classList.remove('pulse');
+  void el.offsetWidth;                     // ریست انیمیشن
+  el.classList.add('pulse');
+}
+
+/* ---------- جعبه‌های قدرت (۳٫۰) ----------
+   از زامبی‌ها می‌افتند، روی زمین وای می‌دارند، بعد خودشان به
+   بازیکن پرو می‌کنند و اثرشان فعال می‌شود. */
+function pickPowerType() {
+  const r = Math.random();
+  return r < 0.30 ? 'medkit' : r < 0.57 ? 'rapid' : r < 0.80 ? 'freeze' : 'coin';
+}
+
+function spawnPowerupObj(type, x, y) {
+  state.powerups.push({
+    type, x, y, vx: rand(-70, 70), vy: rand(-260, -150),
+    phase: 'drop', t: 0, fs: 260, dead: false, bob: rand(0, 6.28),
+  });
+}
+
+function maybeDropPowerup(z) {
+  if (z.type === 'boss') {                 // پادشاه همیشه دو جعبه می‌ریزد
+    spawnPowerupObj(pickPowerType(), z.x - 24, z.y - 40);
+    spawnPowerupObj(pickPowerType(), z.x + 24, z.y - 40);
+    state.killsSinceDrop = 0;
+    return;
+  }
+  state.killsSinceDrop++;
+  /* شانس پایه ۸٫۵٪ + «شفقت»: اگر خیلی وقت است یکی نیفتاده باشد حتماً می‌افتد */
+  if (state.killsSinceDrop > 24 || Math.random() < 0.085) {
+    state.killsSinceDrop = 0;
+    spawnPowerupObj(pickPowerType(), z.x, z.y - 20);
+  }
+}
+
+function updatePowerups(dt) {
+  const tx = TOWER.x, ty = TOWER_TOP_Y - 24;   // مقصد: بازیکن روی بام
+  for (const p of state.powerups) {
+    if (p.dead) continue;
+    p.t += dt;
+    if (p.phase === 'drop') {
+      p.vy += 800 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.y > GROUND_Y - 10) {
+        p.y = GROUND_Y - 10;
+        p.vy *= -0.42; p.vx *= 0.65;
+        if (Math.abs(p.vy) < 30 || p.t > 0.8) p.phase = 'wait';
+      }
+    } else if (p.phase === 'wait') {
+      if (p.t > 1.15) p.phase = 'fly';    // مکث کوتاه روی زمین، بعد پرو به بازیکن
+    } else {
+      const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
+      p.fs += 900 * dt;
+      const step = Math.min(d, p.fs * dt);
+      p.x += dx / d * step; p.y += dy / d * step;
+      if (d < 18) { applyPowerup(p); p.dead = true; continue; }
+    }
+    if (p.t > POWER_LIFE) p.dead = true;  // اگر کسی نگرفت محو شود
+  }
+  state.powerups = state.powerups.filter(p => !p.dead);
+}
+
+/* اعمال اثر جعبه‌ی قدرت */
+function applyPowerup(p) {
+  const def = PTYPES[p.type];
+  SFX.power();
+  switch (p.type) {
+    case 'medkit': {
+      const heal = Math.min(def.heal, state.tower.maxHp - state.tower.hp);
+      state.tower.hp = Math.min(state.tower.maxHp, state.tower.hp + def.heal);
+      addText(TOWER.x, TOWER_TOP_Y - 44, '+' + faNum(Math.round(heal)) + ' ❤️', '#7be389', 15);
+      spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 14, '#7be389', { speed: 150, life: 0.55, size: 2.5, grav: 250, up: true });
+      break;
+    }
+    case 'rapid':
+      state.powerTimers.rapid = def.dur;
+      addText(TOWER.x, TOWER_TOP_Y - 44, 'شلیک سریع ⚡', '#ffd873', 15);
+      spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 14, '#ffd873', { speed: 160, life: 0.5, size: 2.4, grav: 250, up: true });
+      break;
+    case 'freeze':
+      state.powerTimers.freeze = def.dur;
+      SFX.freeze();
+      addText(TOWER.x, TOWER_TOP_Y - 44, 'انجماد ❄', '#8fd6ff', 15);
+      spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 18, '#bfe6ff', { speed: 180, life: 0.7, size: 2.4, grav: 120 });
+      break;
+    case 'coin': {
+      state.coins += def.bonus;
+      state.stats.earned += def.bonus;
+      for (const c of state.coinsArr) c.phase = 'fly';   // همه‌ی سکه‌های زمین هم جمع شود
+      addText(TOWER.x, TOWER_TOP_Y - 44, '+' + faNum(def.bonus) + ' 💰', '#f5c542', 15);
+      pulseCoins();
+      break;
+    }
+  }
+  updateHUD();
+}
+
+/* ---------------------- ۱۰) اقتصاد و ارتقاها (ساخت‌وساز زنده) ---------------------- */
+/* قیمت ارتقای kind در سطح فعلی (گردشده به مضرب ۵) */
+function priceOf(kind) {
+  const u = UPGRADES[kind], lvl = state.upgrades[kind];
+  return Math.round(u.base * Math.pow(u.growth, lvl) / 5) * 5;
+}
+
+/* لرزش آیتم پنل + صدای «نه» وقتی سکه کافی نیست */
+function denyBPItem(kind) {
+  const item = $('bp-' + kind);
+  if (item) { item.classList.remove('deny'); void item.offsetWidth; item.classList.add('deny'); }
+  SFX.deny();
+}
+
+/* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی نوار سلاح) */
+function selectWeapon(id) {
+  if (!WEAPONS[id].owned) {
+    SFX.deny();
+    const el = document.querySelector('#weaponBar .wslot[data-w="' + id + '"]');
+    if (el) { el.classList.remove('deny'); void el.offsetWidth; el.classList.add('deny'); }
+    return;
+  }
+  if (state.weapon === id) return;
+  state.weapon = id;
+  SFX.click();
+  refreshWeaponBar();
+}
+
+/* خرید ارتقا — در ۳٫۰ وسط مبارزه هم مجاز است (پنل زنده‌ی کنار نقشه) */
+function attemptBuy(kind) {
+  if (!canPlay()) return;                  // فقط وقتی بازی جریان دارد
+  const u = UPGRADES[kind];
+
+  /* --- برجک‌های دفاعی: به حالت انتخاب محل نصب می‌رود (۴٫۰) --- */
+  if (kind === 'gatling' || kind === 'sniper' || kind === 'frost') {
+    startPlacement(kind);
+    return;
+  }
+
+  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) --- */
+  if (kind === 'shotgun' || kind === 'mg') {
+    if (WEAPONS[kind].owned) return;
+    if (state.coins < u.price) { denyBPItem(kind); return; }
+    state.coins -= u.price;
+    state.weaponSpent += u.price;               // (۸٫۰) مبنای غرامتِ «زیر آوار ماندن»
+    WEAPONS[kind].owned = true;
+    selectWeapon(kind);                    // بلافاصله دستِ کاربر می‌افتد
+    SFX.buy();
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 18, '#ffd873', { speed: 170, life: 0.6, size: 2.6, grav: 300, up: true });
+    updateHUD(); refreshBuildPanel();
+    return;
+  }
+
+  /* --- تعمیر سریع --- */
+  if (kind === 'repair') {
+    if (state.tower.hp >= state.tower.maxHp - 0.5) return;
+    if (state.coins < u.price) { denyBPItem(kind); return; }
+    state.coins -= u.price;
+    const heal = Math.round(state.tower.maxHp * u.frac);
+    state.tower.hp = Math.min(state.tower.maxHp, state.tower.hp + heal);
+    addText(TOWER.x, TOWER_TOP_Y - 40, '+' + faNum(heal), '#6fce62', 16);
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 14, '#6fce62', { speed: 150, life: 0.55, size: 2.5, grav: 250, up: true });
+    SFX.buy();
+    updateHUD(); refreshBuildPanel();
+    return;
+  }
+
+  /* --- ارتقاهای سطح‌دار (اسلحه/جون/تله) --- */
+  const lvl = state.upgrades[kind];
+  if (lvl >= u.max) return;
+  const price = priceOf(kind);
+  if (state.coins < price) { denyBPItem(kind); return; }
+  state.coins -= price;
+  state.upgrades[kind] = lvl + 1;
+  if (kind === 'weapon' || kind === 'speed') state.weaponSpent += price;   // (۸/۹٫۰) مبنای غرامت
+  if (kind === 'health') {
+    /* هم حداکثر جون زیاد می‌شود هم همین الان ترمیم می‌شود */
+    state.tower.maxHp += u.bonus;
+    state.tower.hp = Math.min(state.tower.maxHp, state.tower.hp + u.bonus);
+    addText(TOWER.x, TOWER_TOP_Y - 40, '+' + faNum(u.bonus), '#6fce62', 15);
+  }
+  if (kind === 'turretUp') {
+    /* جلوه‌ی ارتقای برجک‌ها: جرقه‌ی طلایی روی همه‌ی برجک‌های نصب‌شده (۴٫۰) */
+    for (const t of state.turrets) spawnParticles(t.x, t.y - 18, 10, '#ffd873',
+      { speed: 130, life: 0.5, size: 2.2, grav: 250, up: true });
+    if (state.turrets.length) addText(TOWER.x, TOWER_TOP_Y - 40, 'برجک‌ها قوی‌تر شدند! ⬆', '#ffd873', 14);
+  }
+  if (kind === 'trap' && lvl === 0) {
+    /* نصب اول تله: جلوه بصری نصب */
+    spawnParticles(TOWER.x, GROUND_Y - 8, 16, '#ffcf6e', { speed: 150, life: 0.5, size: 2.5, grav: 300, up: true });
+    state.shake = Math.min(8, state.shake + 4);
+  }
+  SFX.buy();
+  updateHUD(); refreshBuildPanel();
+}
+
+/* آسیب فعلی تله (برای نمایش در پنل) */
+function trapDps(lvl) { return lvl <= 0 ? 0 : UPGRADES.trap.dps + UPGRADES.trap.dpsPerLvl * (lvl - 1); }
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۷٫۰ — منطق بازی (بخش ۲: افکت‌ها، به‌روزرسانی و رسم + هوک‌های کات‌سین)
+     ۱۱) افکت‌ها (ذرات، متن شناور، برق تله، ترک خون، شهاب)
+     ۱۲) حلقه به‌روزرسانی + صحنه‌ی زنده‌ی منو
+     ۱۳) پایان بازی (برد/باخت)
+     ۱۴) رسم صحنه با Canvas (آسمان/شهر/برج/زامبی‌ها/بازیکن/قدرت‌ها/UI)
+   تازه‌های ۶٫۰ در این بخش (ارتقای کلی گرافیک):
+     - آسمان غنی‌تر + ستاره‌های درشت چهارپر + ماه/خورشید پرجزئیات
+     - ابرهای چندلایه + دکل آنتن با چراغ قرمز + مهِ پایه‌ی شهر
+     - زمین با گرادیان/چمن‌لبه/مسیر فرسوده/گل‌ها + نور تاج تپه‌ها
+     - برجِ بازطراحی‌شده (سکو، بافت بلوک/آجر، کنگره، پنجره‌ی قوس‌دار، بنر)
+     - جزئیات زامبی (پیراهن پاره، خون دهان، برق مهتاب) + غبار گام‌ها
+     - گریدینگ رنگی سینمایی: تینت سرد شب + گرمای روز + وینیت نرم
+     - لکه‌های خون ماندگار روی زمین، رعدوبرق، کرم شب‌تاب، چمن، برکه،
+       درخت‌های خشک، تیرهای چراغ، آتش و دودِ برجِ زخمی، برفِ انجماد
+     - رسم زامبی با عمق ردیف هجوم + لунجِ کوبیدن دیوار + یخ‌زدگی
+     - کمبوی ضربه‌ای، حلقه‌ی زمان قدرت‌ها، فلش‌های لبه برای زامبی‌های خارج از کادر
+     - نوارهای سینمایی اسلوموشن و نشانگر برخورد روی نشان هدف
+   ================================================================== */
+
+/* ---------------------- ۱۱) افکت‌ها ---------------------- */
+/* تولید ذره (پارتیکل) — o: {speed, life, size, grav, dir, spread, up} */
+function spawnParticles(x, y, n, color, o = {}) {
+  const speed = o.speed || 120, life = o.life || 0.4;
+  const size = o.size || 2.5, grav = (o.grav === undefined ? 400 : o.grav);
+  for (let i = 0; i < n; i++) {
+    let a;
+    if (o.dir !== undefined) a = o.dir + rand(-(o.spread || 1) / 2, (o.spread || 1) / 2);
+    else if (o.up) a = rand(-Math.PI, -0.2);            // فقط رو به بالا
+    else a = rand(0, Math.PI * 2);
+    const sp = speed * rand(0.5, 1.15);
+    state.particles.push({
+      x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      age: 0, life: life * rand(0.7, 1.2), size: size * rand(0.7, 1.3), color, grav,
+    });
+  }
+}
+function updateParticles(dt) {
+  for (const p of state.particles) {
+    p.age += dt; p.vy += p.grav * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.shell) p.rot += p.vr * dt;                   // چرخش پوکه
+    if (p.y > GROUND_Y + 2 && p.vy > 0 && p.grav >= 0) { p.y = GROUND_Y + 2; p.vy *= -0.3; p.vx *= 0.6; } // وایراستن روی زمین
+  }
+  state.particles = state.particles.filter(p => p.age < p.life);
+}
+
+/* متن شناور (عدد دمیج و...) */
+function addText(x, y, str, color, size) {
+  state.texts.push({ x, y, str, color, size, age: 0, life: 0.8 });
+}
+function updateTexts(dt) {
+  for (const t of state.texts) { t.age += dt; t.y -= 45 * dt; }
+  state.texts = state.texts.filter(t => t.age < t.life);
+}
+
+/* لکه‌های خون روی زمین (۳٫۰): آرام در طول زمان محو می‌شوند */
+function addDecal(x, big) {
+  state.decals.push({
+    x: x + rand(-6, 6), y: GROUND_Y + rand(3, 10),
+    r: big ? rand(7, 12) : rand(3.5, 7), a: 1,
+  });
+  if (state.decals.length > 45) state.decals.shift();  // سقف تعداد برای کارایی
+}
+function updateDecals(dt) {
+  for (const d of state.decals) d.a -= dt / 18;
+  state.decals = state.decals.filter(d => d.a > 0);
+}
+
+/* قوس برق تله: خط زیگزاگ از خار پایه برج تا زامبی */
+function addZap(tx, ty) {
+  const side = tx < TOWER.x ? -1 : 1;
+  const ox = TOWER.x + side * (TOWER.baseHalf + 8 + Math.random() * 26), oy = GROUND_Y - 10;
+  const pts = [{ x: ox, y: oy }];
+  for (let i = 1; i < 5; i++) {
+    const t = i / 5;
+    pts.push({ x: ox + (tx - ox) * t + rand(-7, 7), y: oy + (ty - oy) * t + rand(-7, 7) });
+  }
+  pts.push({ x: tx, y: ty });
+  state.zaps.push({ pts, age: 0, life: 0.16 });
+}
+function updateZaps(dt) {
+  for (const z of state.zaps) z.age += dt;
+  state.zaps = state.zaps.filter(z => z.age < z.life);
+}
+
+/* شهابِ گاه‌به‌گاه آسمان (در همه‌ی حالت‌ها، حتی منو) */
+function updateShootingStar(dt) {
+  if (shootStar) {
+    shootStar.x += shootStar.vx * dt;
+    shootStar.y += shootStar.vy * dt;
+    shootStar.life -= dt;
+    if (shootStar.life <= 0) shootStar = null;
+  } else {
+    shootStarT -= dt;
+    if (shootStarT <= 0 && state.dayness < 0.4) {   // فقط شب (۵٫۰)
+      shootStar = { x: rand(150, W - 100), y: rand(20, 130), vx: -rand(300, 480), vy: rand(90, 160), life: 0.8 };
+      shootStarT = rand(4, 9);
+    }
+  }
+}
+
+/* رعدوبرق گاه‌به‌گاه (۳٫۰): فقط صحنه را روشن می‌کند؛ آسیبی ندارد — فقط شب (۵٫۰) */
+function updateLightning(dt) {
+  const L = state.lightning;
+  if (state.dayness > 0.35) {              // در روز رعدوبرقی نیست
+    L.a = 0;
+    L.t = rand(6, 12);
+    return;
+  }
+  L.t -= dt;
+  if (L.t <= 0) {
+    L.a = 0.9;
+    const Lr = curCh().theme.lightning || [13, 30];   // (۱۰٫۰) فصل ۴: آسمان خشمگین‌تر
+    L.t = rand(Lr[0], Lr[1]);
+    SFX.thunder();
+  }
+  if (L.a > 0) L.a = Math.max(0, L.a - dt * 2.6);
+}
+
+/* ---------------------- ۱۲) حلقه به‌روزرسانی ---------------------- */
+function update(dt) {
+  state.time += dt;
+
+  /* ---- چرخه‌ی روز و شب (۵٫۰) ----
+     dayness با گذار نمایی به سمت dayTarget می‌لغزد (~۲ ثانیه):
+     ۰ = شب کامل (ماه/ستاره/رعد) • ۱ = روز کامل (خورشید/آسمان روشن) */
+  if (Math.abs(state.dayness - state.dayTarget) > 0.0008) {
+    state.dayness += (state.dayTarget - state.dayness) * Math.min(1, dt * 1.15);
+  }
+  /* پایان گذار به شب بعد از کلیک «شب شود»: موج بعد شروع می‌شود */
+  if (state.mode === 'day' && state.goingNight && state.dayness <= 0.08) {
+    state.goingNight = false;
+    state.dayness = 0;
+    startWave(state.wave + 1);
+  }
+
+  fireTimer = Math.max(0, fireTimer - dt);
+  state.shake = Math.max(0, state.shake - dt * 22);
+  state.flash = Math.max(0, state.flash - dt * 2.2);
+  state.fireFlash = Math.max(0, state.fireFlash - dt);
+  state.recoil = Math.max(0, state.recoil - dt * 6);
+  state.hitMark = Math.max(0, state.hitMark - dt);
+  state.muzzleGlow = Math.max(0, state.muzzleGlow - dt);
+  state.comboPop = Math.max(0, state.comboPop - dt);
+
+  /* زمان‌سنج قدرت‌های ویژه */
+  state.powerTimers.rapid = Math.max(0, state.powerTimers.rapid - dt);
+  state.powerTimers.freeze = Math.max(0, state.powerTimers.freeze - dt);
+
+  /* کمبو: اگر به‌موقع کشتار تازه نکنی محو می‌شود */
+  if (state.combo > 0) {
+    state.comboT -= dt;
+    if (state.comboT <= 0) state.combo = 0;
+  }
+
+  /* برف ملایم هنگام انجماد (۳٫۰) */
+  if (state.powerTimers.freeze > 0 && Math.random() < dt * 34) {
+    state.particles.push({ x: rand(0, W), y: -6, vx: rand(-14, 14), vy: rand(30, 60),
+      age: 0, life: rand(1.2, 2), size: rand(1.2, 2), color: 'rgba(225,240,255,0.85)', grav: 12 });
+  }
+
+  /* اسلحه همیشه رو به ماوس باشد؛ اگر ماوس پایین است شلیک خودکار ادامه یابد */
+  updateAim();
+  if (state.mouse.down && canPlay() && !state.placing) tryShoot();
+
+  /* شمارش معکوس شروع بازی (فقط قبل از موج ۱؛ بعد از هر موج به‌جای این
+     وقفه، «روز» می‌شود و بازیکن خودش شب را شروع می‌کند — ۵٫۰) */
+  if (state.mode === 'intermission') {
+    state.intermission -= dt;
+    if (state.intermission <= 0) startWave(state.wave + 1);
+  }
+
+  if (state.mode === 'playing') {
+    /* تولد زامبی‌های صف موج فعلی — گاهی دوتایی می‌آیند (حسِ گله) */
+    if (state.spawn.queue.length) {
+      state.spawn.timer -= dt;
+      if (state.spawn.timer <= 0) {
+        const next = state.spawn.queue[0];
+        if (next === 'boss' && !state.spawn.bossDelay) {
+          /* ورود سینمایی باس: تأخیر + زلزله + غرش — (۱۰٫۰) نگهبانِ آخرین شب */
+          state.spawn.bossDelay = true;
+          state.spawn.timer = 2.4;
+          setAnnounce(state.wave >= FINAL_WAVE ? '🌑 زمین می‌لرزه...' : 'زمین می‌لرزه... 👑',
+            state.wave >= FINAL_WAVE ? 'نگهبانِ آخرین شب داره میاد!' : 'پادشاه زامبی‌ها داره میاد!', 2.2);
+          state.shake = Math.min(12, state.shake + 8);
+          SFX.roar();
+        } else {
+          spawnZombie(state.spawn.queue.shift());
+          const burst = Math.random() < 0.12 ? 0.18 : 1;   // گاهی برس دو-تایی
+          state.spawn.timer = state.spawn.interval * rand(0.7, 1.3) * burst;
+        }
+      }
+    } else if (!state.zombies.some(z => !z.dead)) {
+      waveComplete();                      // همه‌ی زامبی‌های موج از بین رفتند
+    }
+    updateTrap(dt);                        // تله پایه برج
+    updateBossBar();                       // نوار جون پادشاه (اگر حاضر باشد)
+
+    /* آتش و دود وقتی برج زخمی شده (۳٫۰) */
+    const ratio = state.tower.hp / state.tower.maxHp;
+    if (ratio < 0.4 && Math.random() < dt * (ratio < 0.2 ? 15 : 7)) {
+      const spots = [
+        [TOWER.x - 36, GROUND_Y - 108], [TOWER.x + 36, GROUND_Y - 108],
+        [TOWER.x - 28, GROUND_Y - 176], [TOWER.x + 28, GROUND_Y - 176],
+      ];
+      const sp = spots[Math.floor(rand(0, 4))];
+      if (Math.random() < 0.7) {
+        spawnParticles(sp[0], sp[1], 1, Math.random() < 0.5 ? '#ff9a3d' : '#ffd24d',
+          { dir: -Math.PI / 2, spread: 0.7, speed: 26, life: 0.7, size: 2.6, grav: -40 });
+      } else {
+        spawnParticles(sp[0], sp[1], 1, '#454a52',
+          { dir: -Math.PI / 2, spread: 0.5, speed: 14, life: 1.5, size: 3.4, grav: -30 });
+      }
+    }
+    /* ضربان قلب هشدار وقتی جون بحرانی است (۳٫۰) */
+    if (ratio < 0.3) {
+      state.heartT -= dt;
+      if (state.heartT <= 0) { state.heartT = 1.15; SFX.heartbeat(); }
+    }
+  }
+
+  if (canPlay()) {
+    updateZombies(dt);
+    updateBullets(dt);
+    updateTurrets(dt);                     // برجک‌های دفاعی خودکار (۴٫۰)
+    updateCoins(dt);
+    updatePowerups(dt);
+    updateDecals(dt);
+  }
+  updateParticles(dt); updateTexts(dt); updateZaps(dt);
+  updateAnnounce(dt);
+  hooksUpdate(dt);                           // (۱۰٫۰) چراغ‌قوه/قطع برق/شفای تدریجی/کارت فصل/باس
+}
+
+/* افکت‌ها پس از پایان بازی (برد/باخت) همچنان تمام شوند */
+function updateFx(dt) {
+  state.shake = Math.max(0, state.shake - dt * 22);
+  state.flash = Math.max(0, state.flash - dt * 2.2);
+  state.hitMark = Math.max(0, state.hitMark - dt);
+  state.muzzleGlow = Math.max(0, state.muzzleGlow - dt);
+  state.comboPop = Math.max(0, state.comboPop - dt);
+  updateParticles(dt); updateTexts(dt); updateZaps(dt);
+}
+
+/* ---------- صحنه‌ی زنده‌ی منوی اصلی ----------
+   چند زامبی تزئینی دور صحنه خزند و هرگز به برج نمی‌رسند؛
+   نزدیک که شدند از اولِ لبه‌ی صفحه با نوعی تازه ظاهر می‌شوند. */
+const menuZ = [];
+function makeMenuZombie(type, x) {
+  const T = ZTYPES[type];
+  return {
+    type, x, y: GROUND_Y + rand(-3, 3), dir: x < W / 2 ? 1 : -1,
+    radius: T.r, speed: T.spdBase * 0.7,
+    walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0,
+    attackSide: 0, lane: 0, depth: 1, yJit: rand(-3, 3), stagger: 0,
+    hitFlash: 0, dead: false, deathT: 0, hp: 1, maxHp: 1,
+    biteInt: 1, biteTimer: 1, dmg: 0,
+  };
+}
+function initMenuZ() {
+  menuZ.length = 0;
+  const types = ['normal', 'fast', 'tank', 'normal', 'fast'];
+  const xs = [-60, W + 80, -260, W + 300, -430];
+  for (let i = 0; i < types.length; i++) menuZ.push(makeMenuZombie(types[i], xs[i]));
+}
+function updateMenuScene(dt) {
+  for (const z of menuZ) {
+    z.walkPhase += dt * (4 + z.speed * 0.06);
+    z.x += z.dir * z.speed * dt;
+    if (Math.abs(z.x - TOWER.x) < 130) {
+      /* رسید نزدیک برج: از اول بیرونِ قاب با نوعی تازه ظاهر می‌شود */
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const type = ['normal', 'fast', 'normal', 'tank'][Math.floor(rand(0, 4))];
+      Object.assign(z, makeMenuZombie(type, TOWER.x + side * (W / 2 + rand(40, 260))));
+    }
+  }
+  updateParticles(dt); updateTexts(dt);   // ذراتِ شلیک آزمایشی/پوکه در منو هم تمام شوند
+}
+
+/* اعلان مرکزی: در وقفه «موج بعدی + شمارش» و در شروع موج بنر موقت */
+function updateAnnounce(dt) {
+  const el = $('announce');
+  if (state.mode === 'intermission') {
+    $('announceBig').textContent = 'موج بعدی: ' + faNum(waveInChapter(state.wave + 1));
+    $('announceSub').textContent = 'شروع در ' + faNum(Math.max(1, Math.ceil(state.intermission))) + ' ثانیه — 🛠 فرصت ارتقا!';
+    el.style.opacity = 1;
+  } else if (announceTimer > 0) {
+    announceTimer -= dt;
+    if (announceTimer <= 0) el.style.opacity = 0;
+    else el.style.opacity = Math.min(1, announceTimer / 0.45);
+  } else el.style.opacity = 0;
+}
+function setAnnounce(big, sub, t) {
+  const el = $('announce');
+  $('announceBig').textContent = big;
+  $('announceSub').textContent = sub;
+  announceTimer = t;
+  el.style.opacity = 1;
+  /* ورود ضربه‌ای (۳٫۰) */
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+function hideAnnounce() { $('announce').style.opacity = 0; announceTimer = 0; }
+
+/* ---------------------- ۱۳) پایان بازی ---------------------- */
+function gameOver() {
+  if (state.mode === 'gameover') return;
+  state.mode = 'gameover';
+  state.mouse.down = false;
+  state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
+  state.combo = 0;
+  state.dayTarget = 0;                      // باخت همیشه در شب رخ می‌دهد (۵٫۰)
+  hideDayPanel();                           // پنل روز بسته شود (۵٫۰)
+  state.shake = 14; state.flash = 1;
+  /* آوار و گردوخاک سقوط برج */
+  spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 36, '#8a6f52', { speed: 260, life: 0.9, size: 3.5, grav: 600 });
+  spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 16, '#e04b3a', { speed: 200, life: 0.7, size: 3, grav: 600 });
+  $('goSubtitle').textContent = 'برج سقوط کرد... تا ' + faNum(state.wave) + ' شب از ' + faNum(FINAL_WAVE) + ' دووم آوردی.';
+  $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) +
+    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
+    '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  hideAnnounce();
+  SFX.gameover();
+  showScreen('gameoverScreen');
+}
+
+function victory() {
+  if (state.mode === 'victory') return;
+  state.mode = 'victory';
+  state.mouse.down = false;
+  state.placing = null;                     // لغو نصبِ نیمه‌کاره (۴٫۰)
+  state.combo = 0;
+  state.dayTarget = 1;                      // پیروزی در روشنایی روز (۵٫۰)
+  hideDayPanel();
+  spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 30, '#ffd873', { speed: 240, life: 1.1, size: 3, grav: 350 });
+  spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 20, '#7bd389', { speed: 200, life: 1.0, size: 2.6, grav: 350 });
+  $('vStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه: <b>' + faNum(state.stats.earned) +
+    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
+    '</b> &nbsp;|&nbsp; ❤️ جون باقی‌مانده: <b>' + faNum(Math.ceil(state.tower.hp)) +
+    '</b> &nbsp;|&nbsp; 🌙 شب‌های زنده‌ماندن: <b>' + faNum(FINAL_WAVE) + '/' + faNum(FINAL_WAVE) + '</b>';
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  hideAnnounce();
+  SFX.victory();
+  showScreen('victoryScreen');
+}
+
+/* ---------------------- ۱۴) رسم صحنه با Canvas ---------------------- */
+/* ابزارهای رسم */
+function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else {
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+}
+
+/* ترکیب دو رنگ hex با ضریب t (۵٫۰: گذار نرم روز/شب) */
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const r = Math.round(((pa >> 16) & 255) + ((((pb >> 16) & 255) - ((pa >> 16) & 255)) * t));
+  const g = Math.round(((pa >> 8) & 255) + ((((pb >> 8) & 255) - ((pa >> 8) & 255)) * t));
+  const bl = Math.round((pa & 255) + ((pb & 255) - (pa & 255)) * t);
+  return 'rgb(' + r + ',' + g + ',' + bl + ')';
+}
+
+/* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها
+   (۵٫۰: با dayness به آسمان روشن روز و خورشید گذار می‌کند)
+   (۶٫۰: گرادیان چهارلایه + ستاره‌های درشتِ چهارپر + ماه/خورشید پرجزئیات)
+   (۱۰٫۰) پالت آسمان از تنظیمات فصل خوانده می‌شود — محله‌ی آجری،
+     انبارهای مه‌گرفته، پاسگاه سرخ‌وشب و قله‌ی بارانی هرکدام آسمان خودشان را دارند */
+function drawSky() {
+  const d = state.dayness;                  // ۰ = شب کامل، ۱ = روز کامل
+  const th = curCh().theme;
+  const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
+  const stops = [0, 0.42, 0.78, 1];
+  th.sky.forEach((s, i) => g.addColorStop(stops[i], mixHex(s[0], s[1], d)));
+  ctx.fillStyle = g;
+  ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
+
+  /* افق دودی/مه‌آلود فصل‌های خرابه و انبار (۱۰٫۰) */
+  if (th.smoke) {
+    const a = th.smoke.a[0] + (th.smoke.a[1] - th.smoke.a[0]) * d;
+    const sm = ctx.createLinearGradient(0, GROUND_Y - 170, 0, GROUND_Y);
+    sm.addColorStop(0, 'rgba(' + th.smoke.c + ',0)');
+    sm.addColorStop(1, 'rgba(' + th.smoke.c + ',' + a.toFixed(2) + ')');
+    ctx.fillStyle = sm;
+    ctx.fillRect(-20, GROUND_Y - 170, W + 40, 170);
+  }
+
+  /* ستاره‌های ریز فقط شب (با طلوع محو می‌شوند) */
+  if (d < 0.98) {
+    const sf = 1 - d;
+    for (const s of STARS) {
+      const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(animTime * s.sp + s.ph))) * sf;
+      if (a < 0.02) continue;
+      ctx.fillStyle = 'rgba(215,228,255,' + a.toFixed(2) + ')';
+      circle(s.x, s.y, s.r);
+    }
+    /* ستاره‌های درشت با برقِ چهارپر (۶٫۰) */
+    for (const s of BIGSTARS) {
+      const tw = 0.5 + 0.5 * Math.sin(animTime * s.sp + s.ph);
+      const a = (0.35 + 0.65 * tw) * sf;
+      if (a < 0.03) continue;
+      const L = s.r * (2.1 + tw * 1.6);
+      ctx.strokeStyle = 'rgba(230,240,255,' + (a * 0.85).toFixed(2) + ')';
+      ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(s.x - L, s.y); ctx.lineTo(s.x + L, s.y);
+      ctx.moveTo(s.x, s.y - L); ctx.lineTo(s.x, s.y + L);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(245,250,255,' + a.toFixed(2) + ')';
+      circle(s.x, s.y, s.r * 0.8);
+    }
+  }
+
+  /* ماه شب — (۱۰٫۰) جایگاه/اندازه/رنگ ماهِ هر فصل از تنظیمات فصل
+     (فصل ۳: ماه خونیِ بزرگ سمت راست؛ فصل ۴: ماه رنگ‌پریده پشت ابرها) */
+  if (d < 0.98) {
+    const M = th.moon;
+    const blood = !!M.blood;
+    const mx = M.x, my = M.y, mr = M.r;
+    ctx.globalAlpha = (1 - d) * (M.dim || 1);
+    const gcol = blood ? '224,84,64' : '244,238,210';
+    const glow = ctx.createRadialGradient(mx, my, mr * 0.45, mx, my, mr * (blood ? 3.6 : 3));
+    glow.addColorStop(0, 'rgba(' + gcol + ',' + (blood ? 0.4 : 0.34) + ')');
+    glow.addColorStop(1, 'rgba(' + gcol + ',0)');
+    ctx.fillStyle = glow; circle(mx, my, mr * (blood ? 3.6 : 3));
+    if (blood) {                             // هاله‌ی سرخِ گسترده‌ی ماه خونی
+      const g2 = ctx.createRadialGradient(mx, my, mr, mx, my, mr * 5.4);
+      g2.addColorStop(0, 'rgba(190,50,40,0.16)'); g2.addColorStop(1, 'rgba(190,50,40,0)');
+      ctx.fillStyle = g2; circle(mx, my, mr * 5.4);
+    }
+    const body = ctx.createRadialGradient(mx - mr * 0.45, my - mr * 0.5, mr * 0.2, mx, my, mr);
+    if (blood) {
+      body.addColorStop(0, '#ffb09a'); body.addColorStop(0.55, '#e2604c'); body.addColorStop(1, '#9c2c24');
+    } else {
+      body.addColorStop(0, '#f9f3dd'); body.addColorStop(0.55, '#efe6c4'); body.addColorStop(1, '#cfc39c');
+    }
+    ctx.fillStyle = body; circle(mx, my, mr);
+    ctx.fillStyle = blood ? 'rgba(90,22,20,0.28)' : 'rgba(120,110,80,0.16)';
+    circle(mx - 12, my - 8, 7); circle(mx + 9, my + 10, 5); circle(mx + 15, my - 12, 3.4);
+    circle(mx - 2, my + 16, 3); circle(mx - 20, my + 8, 2.6);
+    ctx.strokeStyle = blood ? 'rgba(255,190,170,0.5)' : 'rgba(255,252,235,0.5)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(mx, my, mr - 1, Math.PI * 0.95, Math.PI * 1.55); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  /* خورشید روز (۵٫۰): هاله‌ی گرم + ۱۲ پرتوِ چرخان بلندتر + برق عدسی (۶٫۰) */
+  if (d > 0.02) {
+    const sx = 790, sy = 92, sr = 30;
+    ctx.globalAlpha = d;
+    const glow = ctx.createRadialGradient(sx, sy, sr * 0.35, sx, sy, sr * 3.4);
+    glow.addColorStop(0, 'rgba(255,240,180,0.55)'); glow.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = glow; circle(sx, sy, sr * 3.4);
+    ctx.fillStyle = '#ffe28a'; circle(sx, sy, sr);
+    ctx.fillStyle = '#fff7cf'; circle(sx - sr * 0.25, sy - sr * 0.28, sr * 0.6);
+    ctx.strokeStyle = 'rgba(255,235,160,' + (0.55 * d).toFixed(2) + ')';
+    ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k < 12; k++) {
+      const a = animTime * 0.25 + k * Math.PI / 6;
+      const len = sr + 19 + 4 * Math.sin(animTime * 2 + k);
+      ctx.moveTo(sx + Math.cos(a) * (sr + 9), sy + Math.sin(a) * (sr + 9));
+      ctx.lineTo(sx + Math.cos(a) * len, sy + Math.sin(a) * len);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,246,200,' + (0.35 * d).toFixed(2) + ')';
+    circle(sx - 66, sy + 40, 7); circle(sx - 108, sy + 66, 4);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* ابرهای شناور (۵٫۰: شب تیره، روز سفید — با حرکت آرام پیوسته از راست به چپ)
+   (۶٫۰: سه‌لایه — سایه‌ی زیرین، بدنه و هایلایت بالایی — برای حجم و نرمی) */
+function drawClouds() {
+  const d = state.dayness;
+  const dark = 'rgba(' + Math.round(9 + 185 * d) + ',' + Math.round(14 + 180 * d) + ',' + Math.round(34 + 170 * d) + ',0.82)';
+  const main = 'rgba(' + Math.round(15 + 225 * d) + ',' + Math.round(22 + 220 * d) + ',' + Math.round(44 + 200 * d) + ',0.85)';
+  const hi = 'rgba(' + Math.round(46 + 205 * d) + ',' + Math.round(64 + 190 * d) + ',' + Math.round(94 + 160 * d) + ',0.5)';
+  for (const c of CLOUDS) {
+    const m = W + 300;
+    const x = (((c.x - animTime * c.v) % m) + m) % m - 150;
+    const y = c.y, s = c.s;
+    cloudBlob(x, y + 3 * s, s, dark);                  // سایه‌ی زیرین
+    cloudBlob(x, y, s, main);                          // بدنه
+    cloudBlob(x - 8 * s, y - 4 * s, s * 0.6, hi);      // هایلایت بالایی
+  }
+}
+function cloudBlob(x, y, s, col) {
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 46 * s, 15 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 34 * s, y - 6 * s, 30 * s, 12 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - 36 * s, y + 2 * s, 26 * s, 10 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/* افق شهر در دوردست (۵٫۰: شب سیاه‌شکلی با پنجره‌های روشن؛ روز خاکستری روشن)
+   (۶٫۰: سوسوی مستقل پنجره‌ها + دکل آنتن با چراغ قرمز + مهِ پایه‌ی ساختمان‌ها) */
+function drawSkyline() {
+  const d = state.dayness;
+  const sk = curCh().theme.skyline;           // (۱۰٫۰) افقِ مخصوص هر فصل
+  if (sk === 'ruin') { drawRuinedSkyline(d); return; }            // پاسگاه نظامی (۷٫۰)
+  if (sk === 'warehouse') { drawWarehouseSkyline(d); return; }    // منطقه‌ی انبارها (۱۰٫۰)
+  if (sk === 'mountain') { drawMountainSkyline(d); return; }      // برج مخابراتی (۱۰٫۰)
+  ctx.fillStyle = mixHex('#0b1226', '#6a7d96', d);
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
+  /* لبه‌ی روشن‌ترِ پشت‌بام‌ها برای جدا شدن از آسمان */
+  ctx.fillStyle = mixHex('#141d3d', '#8fa2b8', d);
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, 2.5);
+  /* پنجره‌ها فقط شب روشن‌اند (روز همه سرِ کارند!) — با سوسوی مستقل (۶٫۰) */
+  if (d < 0.95) {
+    const nf = 1 - d;
+    for (const w2 of SKYLINE_WINS) {
+      const tw = 0.7 + 0.3 * Math.sin(animTime * 1.4 + w2.ph);
+      ctx.globalAlpha = nf * tw;
+      ctx.fillStyle = w2.c;
+      ctx.fillRect(w2.x, w2.y, 2.5, 3.5);
+    }
+    ctx.globalAlpha = 1;
+  }
+  /* دکل‌های آنتن روی پشت‌بامِ بلندها + چراغ قرمز چشمک‌زنِ هشدار (۶٫۰) */
+  ctx.strokeStyle = mixHex('#0e1630', '#55667e', d);
+  ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  for (const a of ANTENNAS) {
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.top); ctx.lineTo(a.x, a.top - a.h);
+    ctx.moveTo(a.x - 3.5, a.top - a.h * 0.35); ctx.lineTo(a.x + 3.5, a.top - a.h * 0.35);
+    ctx.stroke();
+    if (d < 0.7) {                        // چراغ هشدار فقط شب کار می‌کند
+      const blink = Math.sin(animTime * 1.6 + a.ph) > 0.1 ? 1 : 0.12;
+      const aa = (1 - d) * blink;
+      const g2 = ctx.createRadialGradient(a.x, a.top - a.h, 0, a.x, a.top - a.h, 5);
+      g2.addColorStop(0, 'rgba(255,70,60,' + (0.8 * aa).toFixed(2) + ')');
+      g2.addColorStop(1, 'rgba(255,70,60,0)');
+      ctx.fillStyle = g2; circle(a.x, a.top - a.h, 5);
+      ctx.fillStyle = 'rgba(255,120,110,' + aa.toFixed(2) + ')';
+      circle(a.x, a.top - a.h, 1.6);
+    }
+  }
+  /* مهِ پایه‌ی ساختمان‌ها: انتقال نرم به تپه‌ها (۶٫۰) */
+  const fog = ctx.createLinearGradient(0, GROUND_Y - 46, 0, GROUND_Y);
+  fog.addColorStop(0, 'rgba(90,115,165,0)');
+  fog.addColorStop(1, d > 0.5 ? 'rgba(190,215,232,' + (0.20 * d).toFixed(2) + ')'
+                              : 'rgba(70,95,150,' + (0.16 * (1 - d)).toFixed(2) + ')');
+  ctx.fillStyle = fog;
+  ctx.fillRect(-20, GROUND_Y - 46, W + 40, 46);
+}
+
+/* تپه‌های دوردست در دو لایه برای عمق + زمین (۵٫۰: رنگ روز)
+   (۶٫۰: نور تاجِ تپه‌ها + خاک گرادیانی + لبه‌ی چمن + مسیر فرسوده‌ی زامبی‌ها + گل‌ها) */
+function drawHills() {
+  const d = state.dayness;
+  const GC = curCh().theme.ground;           // (۱۰٫۰) رنگ تپه/زمین هر فصل
+  ctx.fillStyle = mixHex(GC.h1[0], GC.h1[1], d); drawHillRow(HILLS1);
+  strokeCrest(HILLS1, mixHex(GC.h1c[0], GC.h1c[1], d));
+  ctx.fillStyle = mixHex(GC.h2[0], GC.h2[1], d); drawHillRow(HILLS2);
+  strokeCrest(HILLS2, mixHex(GC.h2c[0], GC.h2c[1], d));
+
+  /* زمین: خاک با گرادیان عمقی */
+  const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  gg.addColorStop(0, mixHex(GC.soil[0], GC.soil[1], d));
+  gg.addColorStop(1, mixHex(GC.soilD[0], GC.soilD[1], d));
+  ctx.fillStyle = gg;
+  ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+
+  /* نوار چمنِ بالای زمین + لبه‌ی ناهموارِ تیغه‌ها */
+  ctx.fillStyle = mixHex(GC.grass[0], GC.grass[1], d);
+  ctx.fillRect(-20, GROUND_Y - 2, W + 40, 9);
+  ctx.strokeStyle = mixHex(GC.blade[0], GC.blade[1], d);
+  ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (const e of GRASS_EDGE) {
+    const sway = Math.sin(animTime * 1.6 + e.ph) * 1.2;
+    ctx.moveTo(e.x, GROUND_Y + 2);
+    ctx.lineTo(e.x + sway, GROUND_Y - e.h);
+  }
+  ctx.stroke();
+
+  /* مسیر فرسوده‌ی زامبی‌ها: دو باند خاکی روشن‌تر از دو طرف برج (۶٫۰) */
+  const pathA = d > 0.5 ? 0.26 + 0.10 * d : 0.30 * (1 - d * 0.4);
+  ctx.fillStyle = 'rgba(112,96,64,' + pathA.toFixed(2) + ')';
+  ctx.beginPath(); ctx.ellipse(TOWER.x - 185, GROUND_Y + 7, 172, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(TOWER.x + 185, GROUND_Y + 7, 172, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(58,48,34,0.25)';        // ردِ تیره‌تر وسط مسیر
+  ctx.beginPath(); ctx.ellipse(TOWER.x - 185, GROUND_Y + 8, 128, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(TOWER.x + 185, GROUND_Y + 8, 128, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+
+  /* رگه‌های افقی بافت خاک (۶٫۰) */
+  for (const s of GROUND_STREAKS) {
+    ctx.fillStyle = 'rgba(0,0,0,' + s.a.toFixed(2) + ')';
+    ctx.fillRect(s.x, GROUND_Y + s.dy, s.w, 2);
+    ctx.fillStyle = 'rgba(255,240,200,' + (s.a * 0.5).toFixed(2) + ')';
+    ctx.fillRect(s.x + 6, GROUND_Y + s.dy + 2.4, s.w * 0.8, 1.2);
+  }
+
+  /* سنگ‌ریزه‌ها (۳٫۰) */
+  ctx.fillStyle = 'rgba(120,105,80,0.35)';
+  for (const p of PEBBLES) circle(p.x, GROUND_Y + p.dy, p.r);
+
+  /* گل‌های کوچک فقط محله‌ی قدیمی؛ فصل خرابه: رد سوختگی (۱۰٫۰) */
+  if (GC.scorch) {
+    for (const f of FLOWERS) {
+      const x = f.x, y = GROUND_Y + f.dy;
+      ctx.fillStyle = 'rgba(18,12,9,0.55)';
+      ctx.beginPath(); ctx.ellipse(x, y, 4.5 * f.s, 1.6 * f.s, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    return;
+  }
+  for (const f of FLOWERS) {
+    const x = f.x, y = GROUND_Y + f.dy;
+    ctx.strokeStyle = mixHex('#2c3d1c', '#4c7a34', d);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 2); ctx.lineTo(x + Math.sin(animTime + f.ph) * 1, y - 4 * f.s);
+    ctx.stroke();
+    if (d > 0.35) {
+      ctx.fillStyle = 'hsl(' + f.hue + ',65%,' + Math.round(58 + 14 * d) + '%)';
+      for (let k = 0; k < 5; k++) {
+        const a = k * 1.256 + f.ph;
+        circle(x + Math.cos(a) * 2.6 * f.s, y - 5 * f.s + Math.sin(a) * 2.6 * f.s, 1.5 * f.s);
+      }
+      ctx.fillStyle = 'rgba(255,240,160,0.95)';
+      circle(x, y - 5 * f.s, 1.2 * f.s);
+    } else {
+      ctx.fillStyle = 'rgba(150,150,140,0.4)';
+      circle(x, y - 5 * f.s, 1.4 * f.s);
+    }
+  }
+}
+function drawHillRow(pts) {
+  ctx.beginPath();
+  ctx.moveTo(-20, GROUND_Y);
+  for (const p of pts) ctx.lineTo(p.x, GROUND_Y - p.h);
+  ctx.lineTo(W + 20, GROUND_Y);
+  ctx.closePath(); ctx.fill();
+}
+/* خط روشنِ تاج تپه‌ها (۶٫۰) — حس حجم و نور پشت صحنه */
+function strokeCrest(pts, col) {
+  ctx.strokeStyle = col; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(-20, GROUND_Y - pts[0].h);
+  for (const p of pts) ctx.lineTo(p.x, GROUND_Y - p.h);
+  ctx.lineTo(W + 20, GROUND_Y - pts[pts.length - 1].h);
+  ctx.stroke();
+}
+
+/* برکه‌های کوچک (۳٫۰): شب بازتاب ماه؛ روز آسمان آبی را برمی‌گردانند (۵٫۰) */
+function drawPuddles() {
+  const d = state.dayness;
+  for (const p of PUDDLES) {
+    const sh = 0.5 + 0.5 * Math.sin(animTime * 1.3 + p.x);
+    ctx.fillStyle = d > 0.5 ? 'rgba(140,190,235,0.16)' : 'rgba(120,150,205,0.10)';
+    ctx.beginPath(); ctx.ellipse(p.x, GROUND_Y + 8, p.w / 2, 5, 0, 0, Math.PI * 2); ctx.fill();
+    /* رد بازتاب عمودی: شب نور ماه، روز آسمان روشن */
+    const refA = (1 - d) * (0.05 + sh * 0.05) + d * 0.07;
+    ctx.fillStyle = d > 0.5 ? 'rgba(190,225,255,' + refA.toFixed(2) + ')' : 'rgba(200,220,255,' + refA.toFixed(2) + ')';
+    ctx.fillRect(p.x - 1.2, GROUND_Y + 3, 2.4, 9);
+  }
+}
+
+/* دسته‌های چمن تاب‌خورده (۳٫۰) */
+function drawGrass() {
+  ctx.strokeStyle = state.towerVariant === 1 ? 'rgba(96,86,70,0.9)' : 'rgba(62,88,46,0.9)';   // (۷٫۰) کاه خاکستر
+  ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (const g of GRASS) {
+    const sway = Math.sin(animTime * 1.5 + g.ph) * 2.2;
+    for (let b = -1; b <= 1; b++) {
+      ctx.moveTo(g.x + b * 2.4, GROUND_Y + 1);
+      ctx.quadraticCurveTo(g.x + b * 2.4 + sway * 0.5, GROUND_Y - g.h * 0.6,
+        g.x + b * 2.4 + sway + b * 1.5, GROUND_Y - g.h);
+    }
+  }
+  ctx.stroke();
+}
+
+/* لکه‌های خون روی زمین (۳٫۰) */
+function drawDecals() {
+  for (const d of state.decals) {
+    /* دو لایه: هسته‌ی پررنگ + هاله‌ی گسترده‌تر برای دیده‌شدن روی خاک تیره */
+    ctx.fillStyle = 'rgba(122,26,18,' + (0.55 * d.a).toFixed(2) + ')';
+    ctx.beginPath(); ctx.ellipse(d.x, d.y, d.r, d.r * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(158,40,28,' + (0.35 * d.a).toFixed(2) + ')';
+    ctx.beginPath(); ctx.ellipse(d.x, d.y, d.r * 0.55, d.r * 0.18, 0, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+/* رعدوبرق: آسمان و زمین لحظه‌ای روشن می‌شوند (۳٫۰) */
+function drawLightning() {
+  const a = state.lightning.a;
+  if (a <= 0.02 || state.dayness > 0.5) return;   // فقط شب (۵٫۰)
+  const flick = 0.55 + 0.45 * Math.abs(Math.sin(animTime * 55));
+  const k = a * flick;
+  ctx.fillStyle = 'rgba(205,225,255,' + (0.30 * k).toFixed(2) + ')';
+  ctx.fillRect(-20, -20, W + 40, GROUND_Y + 20);
+  ctx.fillStyle = 'rgba(205,225,255,' + (0.10 * k).toFixed(2) + ')';
+  ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+}
+
+/* درخت خشک سیاه‌شکلی (۳٫۰) */
+/* درخت صحنه — dead=true: نسخه‌ی سوخته/شکسته با شاخه‌های کج و اخگرِ پای تنه (۸٫۰) */
+function drawTree(x, s, dead) {
+  ctx.save();
+  ctx.translate(x, GROUND_Y + 2);
+  ctx.scale(s, s);
+  ctx.strokeStyle = dead ? '#171210' : '#0a0f1e'; ctx.lineCap = 'round';
+  ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dead ? -4 : 2, -44); ctx.stroke();
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  if (dead) {
+    /* شاخه‌های سوخته‌ی کوتاه‌تر و شکسته */
+    ctx.moveTo(-4, -34); ctx.lineTo(-16, -46);
+    ctx.moveTo(-4, -30); ctx.lineTo(10, -44);
+    ctx.moveTo(-4, -38); ctx.lineTo(2, -56);
+    ctx.moveTo(-4, -36); ctx.lineTo(-12, -50);
+  } else {
+    ctx.moveTo(2, -40); ctx.lineTo(-14, -58);
+    ctx.moveTo(2, -36); ctx.lineTo(16, -54);
+    ctx.moveTo(2, -44); ctx.lineTo(-8, -70);
+    ctx.moveTo(2, -42); ctx.lineTo(10, -72);
+    ctx.moveTo(2, -44); ctx.lineTo(1, -80);
+  }
+  ctx.stroke();
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  if (dead) {
+    ctx.moveTo(-16, -46); ctx.lineTo(-21, -52);
+    ctx.moveTo(10, -44); ctx.lineTo(15, -50);
+    ctx.moveTo(-12, -50); ctx.lineTo(-16, -57);
+  } else {
+    ctx.moveTo(-14, -58); ctx.lineTo(-22, -64);
+    ctx.moveTo(-8, -70); ctx.lineTo(-13, -78);
+    ctx.moveTo(16, -54); ctx.lineTo(24, -60);
+    ctx.moveTo(10, -72); ctx.lineTo(15, -80);
+    ctx.moveTo(1, -80); ctx.lineTo(-4, -88);
+  }
+  ctx.stroke();
+  if (dead) {
+    /* رد سوختگی پای تنه + اخگر چشمک‌زن */
+    ctx.fillStyle = 'rgba(10,7,6,0.6)';
+    ctx.beginPath(); ctx.ellipse(0, 0, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+    const ea = 0.35 + 0.3 * Math.sin(animTime * 5 + x);
+    ctx.fillStyle = 'rgba(255,120,50,' + ea.toFixed(2) + ')';
+    circle(-2, -5, 1.8);
+  }
+  ctx.restore();
+}
+
+/* تیرهای چراغ با مخروط نور چشمک‌زن (۳٫۰) — در روز کم‌نور (۵٫۰) */
+const LAMPS = [236, 724];
+function drawLamps() {
+  const dim = 1 - state.dayness * 0.9;      // چراغ‌ها در روز تقریباً خاموش‌اند
+  const warm = state.towerVariant === 1 ? '255,110,70' : '255,214,120';   // (۷٫۰) نور اضطراری در شهر سوخته
+  for (const lx of LAMPS) {
+    /* سوسوی ملایم + چشمکِ گاه‌به‌گاه */
+    let fl = 0.8 + 0.2 * Math.sin(animTime * 9 + lx) * Math.sin(animTime * 3.7 + lx * 2);
+    if (Math.random() < 0.012) fl = 0.3;
+    fl *= dim;
+    ctx.strokeStyle = mixHex('#151d33', '#3a4457', state.dayness); ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(lx, GROUND_Y + 2); ctx.lineTo(lx, GROUND_Y - 58); ctx.stroke();
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx, GROUND_Y - 58); ctx.lineTo(lx + 10, GROUND_Y - 58); ctx.stroke();
+    ctx.fillStyle = '#1c2742'; rr(lx + 5, GROUND_Y - 62, 12, 7, 2); ctx.fill();
+    ctx.fillStyle = 'rgba(' + warm + ',' + (0.75 * fl).toFixed(2) + ')';
+    circle(lx + 11, GROUND_Y - 56, 3);
+    /* مخروط نور به سمت زمین */
+    const g = ctx.createLinearGradient(lx + 11, GROUND_Y - 54, lx + 11, GROUND_Y + 6);
+    g.addColorStop(0, 'rgba(' + warm + ',' + (0.15 * fl).toFixed(2) + ')');
+    g.addColorStop(1, 'rgba(' + warm + ',0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(lx + 5, GROUND_Y - 54); ctx.lineTo(lx + 17, GROUND_Y - 54);
+    ctx.lineTo(lx + 34, GROUND_Y + 6); ctx.lineTo(lx - 12, GROUND_Y + 6);
+    ctx.closePath(); ctx.fill();
+    /* برکه‌ی نور روی زمین */
+    ctx.fillStyle = 'rgba(' + warm + ',' + (0.06 * fl).toFixed(2) + ')';
+    ctx.beginPath(); ctx.ellipse(lx + 11, GROUND_Y + 6, 26, 6, 0, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+/* نور محیطیِ دهانه‌ی اسلحه (۳٫۰): دایره‌ی گرم و محو اطراف دهانه */
+function drawMuzzleGlow() {
+  if (state.muzzleGlow <= 0) return;
+  const w = WEAPONS[state.weapon];
+  const m = gunMuzzle(w.barrel);
+  const a = state.muzzleGlow / 0.07;
+  const g = ctx.createRadialGradient(m.x, m.y, 4, m.x, m.y, 85);
+  g.addColorStop(0, 'rgba(255,225,150,' + (0.20 * a).toFixed(2) + ')');
+  g.addColorStop(1, 'rgba(255,225,150,0)');
+  ctx.fillStyle = g; circle(m.x, m.y, 85);
+}
+
+/* کرم‌های شب‌تاب (۳٫۰) — فقط شب (۵٫۰) */
+function drawFireflies() {
+  const nf = 1 - state.dayness;             // با طلوع محو می‌شوند
+  if (nf < 0.1) return;
+  const th = curCh().theme;                  // (۱۰٫۰)
+  if (th.fog > 0.4 || th.snow) return;      // انبار مه‌گرفته و قله‌ی برفی: کرم شب‌تاب نیست
+  const ember = !!th.emberEyes;              // فصل خرابه: اخگر به‌جای کرم شب‌تاب
+  for (const f of FIREFLIES) {
+    const x = f.cx + Math.sin(animTime * f.sp + f.ph) * f.rx;
+    let y = f.cy + Math.sin(animTime * f.sp * 1.7 + f.ph * 2) * f.ry;
+    if (ember) y = f.cy - ((animTime * 9 + f.ph * 20) % 60);   // بالا خزیدن اخگر
+    const a = (0.18 + 0.5 * (0.5 + 0.5 * Math.sin(animTime * 2.2 + f.ph * 3))) * nf;
+    ctx.fillStyle = ember ? 'rgba(255,120,50,' + (a * 0.22).toFixed(2) + ')' : 'rgba(205,245,150,' + (a * 0.25).toFixed(2) + ')';
+    circle(x, y, 3.4);
+    ctx.fillStyle = ember ? 'rgba(255,190,120,' + a.toFixed(2) + ')' : 'rgba(230,255,190,' + a.toFixed(2) + ')';
+    circle(x, y, 1.3);
+  }
+}
+
+/* بارش خاکستر (۸٫۰) — فقط شهر سوخته: دانه‌های خاکستری که آرام می‌بارند؛
+   شب پررنگ‌تر از روز. موقعیت خالصِ تابعی از animTime است (بدون state). */
+const ASH_FLAKES = Array.from({ length: 46 }, () => ({
+  x: srand() * W, y0: srand() * (GROUND_Y + 30),
+  v: 16 + srand() * 26, sw: 0.4 + srand() * 0.9,
+  ph: srand() * 6.28, r: 0.9 + srand() * 1.5,
+}));
+function drawAsh() {
+  if (!curCh().theme.ash) return;           // (۱۰٫۰) فقط فصل خرابه‌ها
+  const d = state.dayness;
+  const a0 = 0.2 + 0.18 * (1 - d);
+  for (const f of ASH_FLAKES) {
+    const y = (f.y0 + animTime * f.v) % (GROUND_Y + 34) - 14;
+    const x = f.x + Math.sin(animTime * f.sw + f.ph) * 13;
+    const a = a0 * (0.55 + 0.45 * Math.sin(animTime * 1.7 + f.ph * 3));
+    ctx.fillStyle = 'rgba(186,178,170,' + a.toFixed(2) + ')';
+    ctx.fillRect(x, y, f.r, f.r);
+  }
+}
+
+/* شهاب آسمان (خط نورانی محوشونده) */
+function drawShootingStar() {
+  if (!shootStar) return;
+  const a = clamp(shootStar.life / 0.8, 0, 1);
+  const g = ctx.createLinearGradient(shootStar.x, shootStar.y,
+    shootStar.x - shootStar.vx * 0.14, shootStar.y - shootStar.vy * 0.14);
+  g.addColorStop(0, 'rgba(255,255,255,' + (0.9 * a).toFixed(2) + ')');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(shootStar.x, shootStar.y);
+  ctx.lineTo(shootStar.x - shootStar.vx * 0.14, shootStar.y - shootStar.vy * 0.14);
+  ctx.stroke();
+}
+
+/* تله پایه برج: خارهای فلزی + محدوده اثر + قوس‌های برق */
+function drawTrap() {
+  const lvl = state.upgrades.trap;
+  if (lvl <= 0) return;
+  const R = UPGRADES.trap.radius;
+
+  /* محدوده اثر تله روی زمین (بیضی خط‌چین کم‌رنگ) */
+  ctx.strokeStyle = 'rgba(255,130,80,' + (0.12 + 0.05 * Math.sin(animTime * 3)).toFixed(2) + ')';
+  ctx.lineWidth = 2; ctx.setLineDash([6, 9]);
+  ctx.beginPath(); ctx.ellipse(TOWER.x, GROUND_Y + 6, R, 16, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* نور هشدار نارنجی پای برج */
+  const g = ctx.createRadialGradient(TOWER.x, GROUND_Y, 10, TOWER.x, GROUND_Y, 90);
+  g.addColorStop(0, 'rgba(255,110,60,0.16)'); g.addColorStop(1, 'rgba(255,110,60,0)');
+  ctx.fillStyle = g; circle(TOWER.x, GROUND_Y, 90);
+
+  /* خارهای فلزی دو طرف پایه برج — با هر سطح بلندتر و پرتعدادتر */
+  const perSide = 4 + lvl;
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < perSide; i++) {
+      const x = TOWER.x + side * (TOWER.baseHalf + 8 + i * 7);
+      const h = 10 + lvl * 1.6 + (i > perSide - 2 ? -4 : 0);
+      ctx.fillStyle = '#8b93a3';
+      ctx.beginPath();
+      ctx.moveTo(x - 4, GROUND_Y + 2); ctx.lineTo(x + 4, GROUND_Y + 2); ctx.lineTo(x, GROUND_Y + 2 - h);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#3c4250'; ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
+}
+
+/* برجک‌های دفاعی خودکار (۴٫۰) — هر نوع شکل مخصوص خودش را دارد:
+   مسلسل: کیسه‌ی شن + سه لوله‌ی چرخان | تک‌تیرانداز: سه‌پایه + لوله‌ی بلند + دوربین
+   یخ‌زن: پایه‌ی سنگی + بلور شناورِ درخشان. بالای سر هر برجک، پین‌های سطح ارتقا رسم می‌شود. */
+function drawTurret(t) {
+  const def = TURRETS[t.type];
+  const lvl = state.upgrades.turretUp;
+  ctx.save();
+  ctx.translate(t.x, t.y);
+
+  /* سایه روی زمین */
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 15, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+
+  if (t.type === 'gatling') {
+    /* کیسه‌های شن دو طرف */
+    ctx.fillStyle = '#6e6146';
+    rr(-17, -7, 14, 8, 3); ctx.fill();
+    rr(4, -7, 14, 8, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1;
+    ctx.strokeRect(-17, -7, 14, 8); ctx.strokeRect(4, -7, 14, 8);
+    /* بدنه + جعبه‌ی مهمات */
+    ctx.fillStyle = '#3a4150'; rr(-8, -17, 16, 12, 3); ctx.fill();
+    ctx.fillStyle = '#8a6f3a'; rr(9, -13, 8, 6, 1.5); ctx.fill();
+    /* نوار مهمات از جعبه تا سرِ لوله‌ها (حسِ مسلسل) */
+    ctx.strokeStyle = '#c9a35a'; ctx.lineWidth = 1.6; ctx.setLineDash([2.5, 2]);
+    ctx.beginPath(); ctx.moveTo(9, -12); ctx.quadraticCurveTo(4, -15, 1, -16.5); ctx.stroke();
+    ctx.setLineDash([]);
+    /* سر چرخان با سه لوله (دورشدن لوله‌ها با spin) */
+    ctx.save();
+    ctx.translate(0, -def.h);
+    ctx.rotate(t.aim);
+    ctx.translate(-t.recoil * 2, 0);
+    ctx.fillStyle = '#2b2f38'; circle(0, 0, 6.5);
+    for (let k = 0; k < 3; k++) {
+      const off = Math.sin((t.spin || 0) + k * 2.094) * 3.2;
+      ctx.strokeStyle = '#5d6575'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(2, off); ctx.lineTo(def.len, off); ctx.stroke();
+    }
+    /* نوکِ لوله‌ها همیشه دیده شود */
+    ctx.fillStyle = '#8b93a3';
+    for (let k = 0; k < 3; k++) {
+      const off = Math.sin((t.spin || 0) + k * 2.094) * 3.2;
+      circle(def.len, off, 1.5);
+    }
+    if (t.flash > 0) {
+      const a = t.flash / 0.07;
+      ctx.fillStyle = 'rgba(255,220,140,' + a.toFixed(2) + ')';
+      circle(def.len + 3, 0, 5 * a + 2);
+    }
+    ctx.restore();
+  } else if (t.type === 'sniper') {
+    /* سه‌پایه‌ی چوبی */
+    ctx.strokeStyle = '#4a3b28'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-4, -12); ctx.lineTo(-12, 0);
+    ctx.moveTo(4, -12); ctx.lineTo(12, 0);
+    ctx.moveTo(0, -13); ctx.lineTo(0, 1);
+    ctx.stroke();
+    /* بدنه‌ی سبز تیره + لوله‌ی بلند + دوربین */
+    ctx.save();
+    ctx.translate(0, -def.h);
+    ctx.rotate(t.aim);
+    ctx.translate(-t.recoil * 4, 0);
+    ctx.fillStyle = '#334632'; rr(-7, -3.5, 14, 7, 2.5); ctx.fill();
+    ctx.fillStyle = '#20262b'; ctx.fillRect(6, -1.6, def.len, 3.2);
+    ctx.fillStyle = '#454b57'; ctx.fillRect(6 + def.len - 4, -2.4, 4, 4.8);
+    ctx.fillStyle = '#141a20'; rr(0, -6.5, 7, 4, 1.5); ctx.fill();
+    ctx.fillStyle = 'rgba(140,220,255,0.75)'; circle(3.5, -4.5, 1.3);
+    if (t.flash > 0) {
+      const a = t.flash / 0.09;
+      ctx.fillStyle = 'rgba(255,235,170,' + a.toFixed(2) + ')';
+      circle(def.len + 8, 0, 8 * a + 3);
+    }
+    ctx.restore();
+  } else {
+    /* برجک یخ‌زن: پایه‌ی سنگی + بلور شناور */
+    ctx.fillStyle = '#3f4a5e'; rr(-11, -10, 22, 11, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1; ctx.strokeRect(-11, -10, 22, 11);
+    ctx.fillStyle = 'rgba(160,200,240,0.25)'; rr(-11, -10, 22, 3, 2); ctx.fill();
+    const bob = Math.sin(animTime * 2.6 + (t.bob || 0)) * 2.2;
+    ctx.save();
+    ctx.translate(0, -def.h + bob);
+    const g = ctx.createRadialGradient(0, 0, 2, 0, 0, 16);
+    g.addColorStop(0, 'rgba(140,215,255,0.5)');
+    g.addColorStop(1, 'rgba(140,215,255,0)');
+    ctx.fillStyle = g; circle(0, 0, 16);
+    ctx.fillStyle = t.flash > 0 ? '#eaf8ff' : '#9fdcff';
+    ctx.beginPath();
+    ctx.moveTo(0, -9); ctx.lineTo(6, 0); ctx.lineTo(0, 9); ctx.lineTo(-6, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,120,170,0.8)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.restore();
+  }
+
+  /* پین‌های سطح ارتقای برجک‌ها (هر سطح یک مثلث طلایی) */
+  for (let i = 0; i < lvl; i++) {
+    ctx.fillStyle = '#ffd873';
+    ctx.beginPath();
+    ctx.moveTo(-10 + i * 6, -30); ctx.lineTo(-7 + i * 6, -34); ctx.lineTo(-4 + i * 6, -30);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  /* حلقه‌ی برد هنگام hover روی برجک */
+  if (t.hover) {
+    ctx.strokeStyle = 'rgba(130,190,255,0.4)';
+    ctx.lineWidth = 1.6; ctx.setLineDash([6, 8]);
+    ctx.beginPath(); ctx.ellipse(t.x, t.y + 4, def.range, def.range * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* شبحِ نصب برجک (۴٫۰): دنبال ماوس می‌آید — سبز = مجاز، قرمز = نامعتبر */
+function drawPlacing() {
+  if (!state.placing || !canPlay()) return;
+  const def = TURRETS[state.placing.type];
+  const mx = state.mouse.x, my = state.mouse.y;
+  const ok = placementValid(mx, my);
+
+  /* حلقه‌ی برد + رنگ وضعیت */
+  ctx.strokeStyle = ok ? 'rgba(110,225,140,0.5)' : 'rgba(235,80,70,0.55)';
+  ctx.lineWidth = 1.8; ctx.setLineDash([7, 9]);
+  ctx.beginPath(); ctx.ellipse(mx, my + 6, def.range, def.range * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* شبحِ نیمه‌شفاف برجک */
+  ctx.globalAlpha = 0.62;
+  drawTurret({ type: state.placing.type, x: mx, y: my, cd: 9, flash: 0, recoil: 0,
+    aim: mx < TOWER.x ? 0 : Math.PI, spin: animTime * 2, hover: false, bob: 0 });
+  ctx.globalAlpha = 1;
+
+  /* علامت ✕ اگر جای نامعتبری است */
+  if (!ok) {
+    ctx.strokeStyle = 'rgba(235,80,70,0.9)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(mx - 10, my - 30); ctx.lineTo(mx + 10, my - 10);
+    ctx.moveTo(mx + 10, my - 30); ctx.lineTo(mx - 10, my - 10);
+    ctx.stroke();
+  }
+
+  /* نوار راهنمای نصب بالای صحنه */
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 13px Tahoma, sans-serif';
+  const msg = 'کلیک: نصب  •  راست‌کلیک / Esc: لغو';
+  const tw = ctx.measureText(msg).width + 30;
+  ctx.fillStyle = 'rgba(8,14,30,0.82)';
+  rr(W / 2 - tw / 2, 86, tw, 27, 8); ctx.fill();
+  ctx.strokeStyle = ok ? 'rgba(110,225,140,0.5)' : 'rgba(235,80,70,0.5)';
+  ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#e8ecf5';
+  ctx.fillText(msg, W / 2, 100);
+  ctx.restore();
+}
+
+/* برج سه‌طبقه (۶٫۰ بازطراحی کامل گرافیکی — اندازه‌ی منطقی تغییری نکرده):
+   سکوی سنگی، بافت بلوک/آجر، لبه‌های برآمده‌ی کنگره‌دار بین طبقه‌ها،
+   درِ چوبی قوس‌دار با نور گرم، پنجره‌های قوس‌دار نورانی با قاب،
+   بنرِ دیواری و پرچم دوبخشیِ موج‌دار. نور از سمت چپ (ماه).
+   (۷٫۰) پوسته‌ی برج با TOWER_SKINS قابل تعویض است (برج دوم پس از
+   کات‌سین) و حین کات‌سین، CS.draw.floors[i] تعیین می‌کند هر طبقه
+   چقدر «زنده» است: a=آلفا (فروریختن)، dy=افت، rot=چرخش حین سقوط. */
+function drawTower() {
+  const d = state.dayness;
+  const ratio = state.tower.hp / state.tower.maxHp;
+  const cx = TOWER.x;
+  const widths = [136, 124, 112];
+  /* پوسته‌ی برج فعلی (۷٫۰: برج دوم، رنگ‌بندی متفاوت) */
+  const SK = TOWER_SKINS[state.towerVariant] || TOWER_SKINS[0];
+  const floors = SK.floors;
+  /* وضعیت طبقه‌ها حین کات‌سین فروریختن (خارج از کات‌سین: کامل) */
+  const fv = i => (CS && CS.draw ? CS.draw.floors[i] : { a: 1, dy: 0, rot: 0 });
+
+  /* --- سکوی سنگی پایه (پلینث) --- */
+  ctx.fillStyle = mixHex('#3f362b', '#8c7f6a', d);
+  rr(cx - 82, GROUND_Y - 5, 164, 15, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.09)';
+  ctx.fillRect(cx - 82, GROUND_Y - 5, 164, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(cx - 82, GROUND_Y + 6, 164, 4);
+
+  /* --- طبقه‌ها از پایین به بالا: گرادیان (مهتاب از چپ) + بافت + لبه ---
+     (۷٫۰: طبقه‌ی فروریخته رسم نمی‌شود؛ طبقه‌ی در حال سقوط با افت/چرخش) */
+  for (let i = 0; i < 3; i++) {
+    const f = fv(i);
+    if (f.a <= 0.02) continue;                    // این طبقه فرو ریخته است
+    ctx.save();
+    ctx.globalAlpha = f.a;
+    if (f.rot) {                                  // چرخش حول مرکز طبقه (سقوط بام)
+      const cyc = GROUND_Y - (i + 0.5) * TOWER.floorH + f.dy;
+      ctx.translate(cx, cyc); ctx.rotate(f.rot); ctx.translate(-cx, -cyc);
+    } else if (f.dy) ctx.translate(0, f.dy);
+    const hw = widths[i] / 2;
+    const yT = GROUND_Y - (i + 1) * TOWER.floorH, yB = GROUND_Y - i * TOWER.floorH;
+    const F = floors[i];
+    const g = ctx.createLinearGradient(cx - hw, 0, cx + hw, 0);
+    g.addColorStop(0, F.light);
+    g.addColorStop(0.55, F.base);
+    g.addColorStop(1, F.dark);
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - hw, yT, hw * 2, TOWER.floorH);
+    ctx.strokeStyle = F.edge; ctx.lineWidth = 2;
+    ctx.strokeRect(cx - hw + 1, yT + 1, hw * 2 - 2, TOWER.floorH - 2);
+
+    /* بافت بلوک‌های سنگی/آجری: ردیف‌های افقی + درزهای عمودیِ جابه‌جا (۶٫۰) */
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
+    const rows = i === 1 ? 6 : 5;
+    const bw = i === 1 ? 16 : 22;
+    ctx.beginPath();
+    for (let r2 = 0; r2 < rows; r2++) {
+      const y = yT + (r2 + 1) * TOWER.floorH / rows;
+      if (r2 < rows - 1) { ctx.moveTo(cx - hw + 3, y); ctx.lineTo(cx + hw - 3, y); }
+      const off = (r2 % 2) * (bw / 2);
+      for (let x = cx - hw + off + bw; x < cx + hw - 4; x += bw) {
+        ctx.moveTo(x, y - TOWER.floorH / rows + 2); ctx.lineTo(x, y - 1);
+      }
+    }
+    ctx.stroke();
+
+    /* سایه‌ی جداکننده‌ی طبقه‌ها (خط پایین هر طبقه) */
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(cx - hw, yB - 4, hw * 2, 4);
+
+    /* لبه‌ی برآمده (کورنیس) بالای طبقه‌های ۱ و ۲ (۶٫۰) */
+    if (i < 2) {
+      ctx.fillStyle = F.edge;
+      ctx.fillRect(cx - hw - 4, yT - 5, hw * 2 + 8, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.13)';
+      ctx.fillRect(cx - hw - 4, yT - 5, hw * 2 + 8, 1.6);
+    }
+    ctx.restore();                                // پایان تبدیل این طبقه (۷٫۰)
+  }
+
+  /* --- کنگره‌های بام + پرچم (۷٫۰: همراه طبقه‌ی سوم می‌افتند) --- */
+  const f2 = fv(2);
+  const topW = widths[2] / 2;
+  if (f2.a > 0.02) {
+  ctx.save();
+  ctx.globalAlpha = f2.a;
+  if (f2.rot) {
+    ctx.translate(cx, TOWER_TOP_Y + TOWER.floorH / 2 + f2.dy);
+    ctx.rotate(f2.rot);
+    ctx.translate(-cx, -(TOWER_TOP_Y + TOWER.floorH / 2));
+  } else if (f2.dy) ctx.translate(0, f2.dy);
+  ctx.fillStyle = floors[2].edge;
+  ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 6);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 1.5);
+  ctx.fillStyle = mixHex(SK.batt[0], SK.batt[1], d);
+  for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19, TOWER_TOP_Y - 9, 12, 9);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19 + 10, TOWER_TOP_Y - 9, 2, 9);
+
+  /* --- درِ قوس‌دار چوبی + قاب سنگی + نور گرمِ درزِ در ---
+     (۷٫۰: با طبقه‌ی اول می‌افتد/محو می‌شود) */
+  const f0 = fv(0);
+  if (f0.a > 0.02) {
+  ctx.save(); ctx.globalAlpha = f0.a; ctx.translate(0, f0.dy);
+  ctx.beginPath();                                     // قاب سنگی در
+  ctx.moveTo(cx - 17, GROUND_Y - 2);
+  ctx.lineTo(cx - 17, GROUND_Y - 24);
+  ctx.arc(cx, GROUND_Y - 24, 17, Math.PI, 0);
+  ctx.lineTo(cx + 17, GROUND_Y - 2);
+  ctx.strokeStyle = mixHex(SK.doorFrame[0], SK.doorFrame[1], d); ctx.lineWidth = 3.5; ctx.stroke();
+  ctx.fillStyle = '#241a12';                           // درِ چوبی تیره
+  ctx.beginPath();
+  ctx.moveTo(cx - 13, GROUND_Y - 3);
+  ctx.lineTo(cx - 13, GROUND_Y - 22);
+  ctx.arc(cx, GROUND_Y - 22, 13, Math.PI, 0);
+  ctx.lineTo(cx + 13, GROUND_Y - 3);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();                                     // تخته‌های چوبی
+  for (const dx of [-6, 0, 6]) {
+    const topY = GROUND_Y - 22 - Math.sqrt(Math.max(0, 169 - dx * dx)) + 1;
+    ctx.moveTo(cx + dx, GROUND_Y - 4); ctx.lineTo(cx + dx, topY);
+  }
+  ctx.stroke();
+  /* نور گرم از در، روی زمین (فقط شب — ۶٫۰) */
+  if (d < 0.6) {
+    const doorGlow = 0.5 + 0.2 * Math.sin(animTime * 2.1);
+    const sp = ctx.createRadialGradient(cx, GROUND_Y - 6, 4, cx, GROUND_Y - 6, 52);
+    sp.addColorStop(0, 'rgba(255,190,90,' + (0.20 * (1 - d) * doorGlow).toFixed(2) + ')');
+    sp.addColorStop(1, 'rgba(255,190,90,0)');
+    ctx.fillStyle = sp; circle(cx, GROUND_Y - 6, 52);
+  }
+  ctx.restore();                                      // پایان تبدیل در (۷٫۰)
+  }
+
+  /* --- پنجره‌های قوس‌دار نورانی (۷٫۰: با طبقه‌ی خودشان می‌افتند/محو می‌شوند) --- */
+  const wins = [
+    { x: -36, y: GROUND_Y - 46, f: 0 }, { x: 36, y: GROUND_Y - 46, f: 0 },
+    { x: -38, y: GROUND_Y - 108, f: 1 }, { x: 38, y: GROUND_Y - 108, f: 1 },
+    { x: -28, y: GROUND_Y - 176, f: 2 }, { x: 28, y: GROUND_Y - 176, f: 2 },
+  ];
+  wins.forEach((w2, i) => {
+    const fw = fv(w2.f);
+    if (fw.a < 0.35) return;
+    ctx.save(); ctx.globalAlpha = fw.a; ctx.translate(0, fw.dy);
+    let a = 0.66 + 0.25 * Math.sin(animTime * 2.1 + i * 1.9);
+    if (ratio < 0.5 && Math.random() < 0.05) a *= 0.2;   // چشمکِ برق‌گرفتگی
+    archWin(cx + w2.x, w2.y, 13, 19, a);
+    ctx.restore();
+  });
+
+  /* --- بنرِ دیواری طبقه‌ی دوم با نشان طلایی (۷٫۰: رنگ پوسته + همراه طبقه) --- */
+  if (fv(1).a > 0.35) {
+    ctx.save(); ctx.globalAlpha = fv(1).a; ctx.translate(0, fv(1).dy);
+    const by = GROUND_Y - 122, tip = Math.sin(animTime * 2) * 1.2;
+    ctx.fillStyle = mixHex(SK.banner[0], SK.banner[1], 0.35 + 0.3 * d);
+    ctx.beginPath();
+    ctx.moveTo(cx - 11, by);
+    ctx.lineTo(cx + 11, by);
+    ctx.lineTo(cx + 11, by + 25);
+    ctx.lineTo(cx + tip, by + 33);
+    ctx.lineTo(cx - 11, by + 25);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.fillStyle = '#f7c948'; circle(cx, by + 12, 4.2);
+    ctx.fillStyle = SK.bannerMark; circle(cx, by + 12, 1.8);
+    ctx.fillStyle = mixHex(SK.pole[0], SK.pole[1], d);
+    ctx.fillRect(cx - 12, by - 2, 24, 2.5);            // میله‌ی بنر
+    ctx.restore();                                      // پایان تبدیل بنر (۷٫۰)
+  }
+
+  /* --- میله‌ی پرچم با گوی + پرچم دوبخشی موج‌دار (رنگ پوسته) --- */
+  ctx.fillStyle = mixHex(SK.pole[0], SK.pole[1], d);
+  ctx.fillRect(cx - 1.5, TOWER_TOP_Y - 38, 3, 38);
+  ctx.fillStyle = '#f7c948'; circle(cx, TOWER_TOP_Y - 39, 2.2);       // گویِ نوک میله
+  const wv = Math.sin(animTime * 4), wv2 = Math.sin(animTime * 4 - 1.3);
+  ctx.fillStyle = SK.flag;
+  ctx.beginPath();
+  ctx.moveTo(cx + 2, TOWER_TOP_Y - 36);
+  ctx.bezierCurveTo(cx + 13 + wv * 2, TOWER_TOP_Y - 34.5,
+                    cx + 21 + wv * 3, TOWER_TOP_Y - 32.5 + wv2,
+                    cx + 27 + wv * 3, TOWER_TOP_Y - 29.5);
+  ctx.lineTo(cx + 27 + wv * 3, TOWER_TOP_Y - 20.5);
+  ctx.bezierCurveTo(cx + 19 + wv * 2, TOWER_TOP_Y - 22.5,
+                    cx + 10, TOWER_TOP_Y - 23.5,
+                    cx + 2, TOWER_TOP_Y - 21);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = SK.flagMark; circle(cx + 15 + wv * 2, TOWER_TOP_Y - 26, 2);  // نشان روی پرچم
+  ctx.restore();                                      // پایان تبدیل بام/پرچم (۷٫۰)
+  }
+
+  /* --- ترک‌ها وقتی برج آسیب دیده است --- */
+  ctx.strokeStyle = 'rgba(20,14,8,0.8)'; ctx.lineWidth = 2;
+  if (ratio < 0.55) {
+    ctx.beginPath();
+    ctx.moveTo(cx - 40, GROUND_Y - 14); ctx.lineTo(cx - 33, GROUND_Y - 30); ctx.lineTo(cx - 41, GROUND_Y - 44);
+    ctx.moveTo(cx + 44, GROUND_Y - 80); ctx.lineTo(cx + 37, GROUND_Y - 96);
+    ctx.stroke();
+  }
+  if (ratio < 0.28) {
+    ctx.beginPath();
+    ctx.moveTo(cx + 20, GROUND_Y - 100); ctx.lineTo(cx + 13, GROUND_Y - 118); ctx.lineTo(cx + 21, GROUND_Y - 132);
+    ctx.moveTo(cx - 14, GROUND_Y - 150); ctx.lineTo(cx - 7, GROUND_Y - 166);
+    ctx.stroke();
+    /* آوار کنار پایه (۶٫۰) */
+    ctx.fillStyle = mixHex('#5d4c39', '#948268', d);
+    ctx.fillRect(cx - 74, GROUND_Y - 8, 10, 6); ctx.fillRect(cx - 68, GROUND_Y - 4, 7, 4);
+    ctx.fillRect(cx + 62, GROUND_Y - 7, 11, 6); ctx.fillRect(cx + 70, GROUND_Y - 3, 6, 4);
+  }
+
+  /* --- ترک‌های داستانی حین کات‌سین فروریختن (۷٫۰) --- */
+  if (CS && CS.draw && CS.draw.cracks > 0.03) drawTowerCracks(CS.draw.cracks);
+}
+
+/* پنجره‌ی قوس‌دار نورانی با قاب و تقسیم‌کندها (۶٫۰) */
+function archWin(x, y, w, h, glow) {
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y + h / 2);
+  ctx.lineTo(x - w / 2, y - h / 2 + w / 2);
+  ctx.arc(x, y - h / 2 + w / 2, w / 2, Math.PI, 0);
+  ctx.lineTo(x + w / 2, y + h / 2);
+  ctx.closePath();
+  const a = Math.min(1, 0.55 + 0.45 * glow);
+  const g = ctx.createLinearGradient(x, y - h / 2, x, y + h / 2);
+  g.addColorStop(0, 'rgba(255,238,170,' + a.toFixed(2) + ')');
+  g.addColorStop(1, 'rgba(255,186,88,' + (a * 0.8).toFixed(2) + ')');
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(30,22,12,0.75)'; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.beginPath();                                     // تقسیم‌کندهای شیشه
+  ctx.moveTo(x, y - h / 2 + 2); ctx.lineTo(x, y + h / 2 - 1);
+  ctx.moveTo(x - w / 2 + 2, y + h / 2 - w / 4); ctx.lineTo(x + w / 2 - 2, y + h / 2 - w / 4);
+  ctx.stroke();
+}
+
+/* زامبی: بر اساس نوع رسم می‌شود (معمولی/سریع/تانک/پادشاه)
+   - پاهای متحرک، دست‌های کشیده، سر خمیده و چشم‌های درخشان
+   - سریع: کج به جلو + خط‌های سرعت
+   - تانک: زره شانه + کلاه‌خود فولادی
+   - پادشاه: تاج + هاله‌ی مهیب + چشم‌های بنفش
+   - مرگ: کج شدن و محو شدن تدریجی
+   - ۳٫۰: مقیاس عمق ردیف هجوم + لونجِ کوبیدن دیوار + لایه‌ی یخ هنگام انجماد */
+function drawZombie(z) {
+  const T = ZTYPES[z.type];
+  const s = (z.radius / 15) * (z.depth || 1);   // اندازه‌ی نوع × عمق ردیف
+  const flash = z.hitFlash > 0;
+  const skin = flash ? '#d9f2c6' : T.skin;
+  const shirt = flash ? '#9db4cc' : T.shirt;
+  const pants = flash ? '#5d6a80' : T.pants;
+
+  /* سایه روی زمین (زامبی‌های پرتاب‌شده‌ی کات‌سین سایه‌ی جداگانه دارند — ۷٫۰) */
+  if (!z.noShadow) {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, 13 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  ctx.save();
+  /* لونج: موقع حمله به سمت دیوار برج شیرجه می‌رود */
+  const lunge = z.attacking ? Math.sin(z.attackAnim) * 3.5 : 0;
+  ctx.translate(z.x + z.dir * lunge, z.y);
+
+  /* انیمیشن مرگ: کج شدن به عقب + فرو رفتن + محو شدن */
+  if (z.dead) {
+    const t = clamp(z.deathT / 0.55, 0, 1);
+    ctx.globalAlpha = 1 - t;
+    ctx.rotate(-z.dir * t * 1.5);
+    ctx.translate(0, t * 7);
+  }
+
+  ctx.scale(z.dir * s, s);                 // آینه بر اساس جهت حرکت + مقیاس نوع
+
+  const walk = Math.sin(z.walkPhase);
+  const bob = z.attacking ? Math.sin(z.attackAnim) * 1.5 : Math.abs(walk) * 1.2;
+
+  /* نوع سریع: کج به جلو + خط‌های سرعت پشت سرش */
+  if (z.type === 'fast' && !z.dead) {
+    ctx.rotate(-0.12);
+    ctx.strokeStyle = 'rgba(220,190,120,0.3)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-14, -20); ctx.lineTo(-24, -20);
+    ctx.moveTo(-13, -14); ctx.lineTo(-21, -14);
+    ctx.stroke();
+  }
+
+  /* پاها */
+  ctx.strokeStyle = pants; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-4, -13); ctx.lineTo(-4 + (z.attacking ? 0 : walk * 6), -1);
+  ctx.moveTo(4, -13); ctx.lineTo(4 - (z.attacking ? 0 : walk * 6), -1);
+  ctx.stroke();
+
+  /* بدن و پارگی پیراهن */
+  ctx.fillStyle = shirt; rr(-9, -31 + bob * 0.4, 18, 19, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-3, -24 + bob * 0.4, 6, 7);
+  /* لبه‌ی پاره‌پاره‌ی پیراهن (۶٫۰) */
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.moveTo(-8, -13 + bob * 0.4); ctx.lineTo(-5, -17 + bob * 0.4); ctx.lineTo(-2, -13 + bob * 0.4);
+  ctx.lineTo(1, -13 + bob * 0.4); ctx.lineTo(4, -16.5 + bob * 0.4); ctx.lineTo(7, -13 + bob * 0.4);
+  ctx.closePath(); ctx.fill();
+
+  /* زره‌ی شونه برای تانک و پادشاه */
+  if (z.type === 'tank' || z.type === 'boss') {
+    ctx.fillStyle = z.type === 'boss' ? '#3f151d' : '#39364a';
+    ctx.fillRect(-11, -33 + bob * 0.4, 7, 6);
+    ctx.fillRect(4, -33 + bob * 0.4, 7, 6);
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+    ctx.strokeRect(-11, -33 + bob * 0.4, 7, 6);
+    ctx.strokeRect(4, -33 + bob * 0.4, 7, 6);
+  }
+
+  /* بازوهای کشیده به جلو (موقع حمله می‌کوبند) */
+  const armY = -27 + bob * 0.4;
+  const armSw = z.attacking ? Math.sin(z.attackAnim) * 4 : Math.sin(z.walkPhase * 0.5) * 2;
+  ctx.strokeStyle = skin; ctx.lineWidth = 4.5;
+  ctx.beginPath();
+  ctx.moveTo(-5, armY + 2); ctx.lineTo(13, armY + armSw);
+  ctx.moveTo(5, armY + 3); ctx.lineTo(14, armY + 5 + armSw * 0.6);
+  ctx.stroke();
+  ctx.fillStyle = skin;
+  circle(13, armY + armSw, 3); circle(14, armY + 5 + armSw * 0.6, 3);
+
+  /* سر + مو */
+  ctx.fillStyle = skin; circle(3, -36 + bob * 0.5, 7);
+  ctx.fillStyle = '#2f3b26';
+  ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  /* برق مهتاب روی سر (۶٫۰ — فقط شب) */
+  if (state.dayness < 0.55 && !z.dead) {
+    ctx.strokeStyle = 'rgba(195,220,255,' + (0.38 * (1 - state.dayness)).toFixed(2) + ')';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.62); ctx.stroke();
+  }
+
+  /* کلاه‌خود فولادی تانک */
+  if (z.type === 'tank') {
+    ctx.fillStyle = '#5c5f74';
+    ctx.fillRect(-4, -44 + bob * 0.5, 14, 4);
+  }
+  /* تاجِ پادشاه */
+  if (z.type === 'boss') {
+    ctx.fillStyle = '#f7c948';
+    ctx.beginPath();
+    ctx.moveTo(-3, -42 + bob * 0.5); ctx.lineTo(-3, -48 + bob * 0.5); ctx.lineTo(0, -44 + bob * 0.5);
+    ctx.lineTo(3, -49 + bob * 0.5); ctx.lineTo(6, -44 + bob * 0.5); ctx.lineTo(9, -48 + bob * 0.5);
+    ctx.lineTo(9, -42 + bob * 0.5); ctx.closePath(); ctx.fill();
+  }
+
+  /* چشم‌های درخشان (قرمز؛ نگهبان بنفش؛ فصل خرابه: اخگریِ نارنجی — ۸٫۰) */
+  if (!z.dead) {
+    const emberE = !!curCh().theme.emberEyes && z.type !== 'boss';   // (۱۰٫۰)
+    ctx.save();
+    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : (emberE ? '#ff8a3c' : '#ff4b3e');
+    ctx.shadowBlur = 5 * s;
+    ctx.fillStyle = flash ? '#ffffff' : (z.type === 'boss' ? '#c44dff' : (emberE ? '#ffb03c' : '#ff4b3e'));
+    circle(5.5, -37 + bob * 0.5, 1.6); circle(8.8, -37.5 + bob * 0.5, 1.6);
+    ctx.restore();
+  }
+
+  /* لکه‌ی خون گوشه‌ی دهان + چکه (۶٫۰) */
+  if (!z.dead) {
+    ctx.fillStyle = 'rgba(110,22,22,0.85)';
+    circle(7.5, -33.4 + bob * 0.5, 1.4);
+    ctx.fillRect(6.9, -33 + bob * 0.5, 1.1, 2.1);
+  }
+
+  /* هاله‌ی مهیب و تپنده‌ی پادشاه */
+  if (z.type === 'boss' && !z.dead) {
+    ctx.strokeStyle = 'rgba(196,77,223,' + (0.22 + 0.12 * Math.sin(animTime * 3)).toFixed(2) + ')';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(4, -22, 30, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  ctx.restore();
+
+  /* لایه‌ی یخ هنگام انجماد (۳٫۰) */
+  if (!z.dead && state.powerTimers.freeze > 0) {
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = '#a5d8ff';
+    circle(z.x, z.y - 18 * s, 14 * s + 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* لایه‌ی یخِ ملایم‌تر گلوله‌ی برجک یخ‌زن (۴٫۰) */
+  if (!z.dead && z.chill > 0) {
+    ctx.globalAlpha = Math.min(0.30, 0.12 + z.chill * 0.09);
+    ctx.fillStyle = '#a5d8ff';
+    circle(z.x, z.y - 18 * s, 14 * s + 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* نوار جون بالای سر (وقتی آسیب دیده) */
+  if (!z.dead && z.hp < z.maxHp - 0.001) {
+    const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
+    const by = z.y - 50 * s - 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    rr(z.x - w2 / 2, by, w2, 4.5, 2); ctx.fill();
+    ctx.fillStyle = ratio2 > 0.5 ? '#6fce62' : (ratio2 > 0.25 ? '#e7b53a' : '#e04b3a');
+    ctx.fillRect(z.x - w2 / 2 + 0.75, by + 0.75, (w2 - 1.5) * ratio2, 3);
+  }
+}
+
+/* بازیکن: نگهبان کوچک روی بام برج با اسلحه‌ی چرخانِ رو به ماوس
+   (۷٫۰: حین کات‌سین، جای/چرخش/زاویه‌ی اسلحه را خود کات‌سین تعیین می‌کند —
+   سقوط از بام یا ایستادن روی ماشینِ نجات) */
+function drawPlayer() {
+  const P = (CS && CS.draw && CS.draw.player) || null;
+  const px = P ? P.x : TOWER.x;
+  const py = P ? P.y : TOWER_TOP_Y;
+  const bob = Math.sin(animTime * 2.4) * 1.1;
+  const w = WEAPONS[state.weapon];
+  ctx.save();
+  ctx.translate(px, py + bob * 0.4);
+  if (P && P.rot) ctx.rotate(P.rot);          // چرخش حین سقوط/سوار شدن
+
+  /* حلقه‌ی زردِ چرخان وقتی «شلیک سریع» فعال است (۳٫۰) */
+  if (state.powerTimers.rapid > 0) {
+    ctx.strokeStyle = 'rgba(255,216,115,' + (0.4 + 0.3 * Math.sin(animTime * 10)).toFixed(2) + ')';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 1, 14, 5, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  /* سایه روی بام (در سقوط/سوار شدن، سایه‌ی جداگانه رسم می‌شود) */
+  if (!P) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 1, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  /* پاها و بدن */
+  ctx.fillStyle = '#2c3550';
+  ctx.fillRect(-7, -6, 6, 6); ctx.fillRect(1, -6, 6, 6);
+  ctx.fillStyle = '#3d6db5'; rr(-9, -25, 18, 20, 5); ctx.fill();
+  ctx.fillStyle = '#26324d'; ctx.fillRect(-9, -9, 18, 3);
+
+  /* سر و مو */
+  ctx.fillStyle = '#f0c49a'; circle(0, -30, 6.5);
+  ctx.fillStyle = '#5a3d28';
+  ctx.beginPath(); ctx.arc(0, -30, 6.5, Math.PI, Math.PI * 2); ctx.fill();
+
+  /* چشم‌ها رو به جهت هدف */
+  const look = Math.cos(state.aimAngle) >= 0 ? 1 : -1;
+  ctx.fillStyle = '#1d2433';
+  circle(look * 2.5 - 1.8, -31, 1.1); circle(look * 2.5 + 1.8, -31, 1.1);
+
+  /* اسلحه: می‌چرخد رو به ماوس + عقب‌راندگی لحظه شلیک
+     (۷٫۰: حین کات‌سین زاویه‌ی نمایشی ثابت) */
+  ctx.save();
+  ctx.translate(0, -17);
+  ctx.rotate(P && P.aim !== undefined ? P.aim : state.aimAngle);
+  ctx.translate(-state.recoil * 3, 0);
+  if (state.weapon === 'pistol') {
+    ctx.fillStyle = '#2b2f38'; ctx.fillRect(-4, -2.5, 9, 5);     // بدنه
+    ctx.fillStyle = '#454b57'; ctx.fillRect(5, -2, 13, 4);       // لوله
+  } else if (state.weapon === 'shotgun') {
+    ctx.fillStyle = '#4a3320'; ctx.fillRect(-8, -3, 12, 6);      // قنداق چوبی
+    ctx.fillStyle = '#2b2f38'; ctx.fillRect(2, -3, 20, 5);       // لوله‌ی دوقلو
+    ctx.fillStyle = '#6b4a2c'; ctx.fillRect(8, 2, 8, 4);         // پمپ
+  } else {                                                       // مسلسل
+    ctx.fillStyle = '#2b2f38'; ctx.fillRect(-6, -3.5, 26, 6);    // بدنه
+    ctx.fillStyle = '#454b57'; ctx.fillRect(20, -2.5, 12, 4);    // لوله
+    ctx.fillStyle = '#31363f'; circle(6, 5, 5);                  // خشاب گرد
+    ctx.fillRect(-6, 2.5, 4, 3);                                 // قنداق کوتاه
+  }
+  /* شعله‌ی دهانه‌ی اسلحه (اندازه‌اش به سلاح بستگی دارد) */
+  if (state.fireFlash > 0) {
+    const a = state.fireFlash / 0.07;
+    ctx.fillStyle = 'rgba(255,240,170,' + a.toFixed(2) + ')';
+    circle(w.barrel + 12, 0, w.flash * (0.6 + 0.4 * a));
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+/* حلقه‌ی زمانِ قدرت‌های فعال بالای سر بازیکن (۳٫۰) */
+function drawPowerTimers() {
+  const defs = [
+    { key: 'rapid',  color: '#ffd873', max: PTYPES.rapid.dur,  icon: 'bolt' },
+    { key: 'freeze', color: '#8fd6ff', max: PTYPES.freeze.dur, icon: 'snow' },
+  ];
+  let i = 0;
+  for (const d of defs) {
+    const t = state.powerTimers[d.key];
+    if (t <= 0) continue;
+    const x = TOWER.x - 30 + i * 60, y = TOWER_TOP_Y - 58;
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = d.color;
+    ctx.beginPath(); ctx.arc(x, y, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (t / d.max)); ctx.stroke();
+    /* آیکن کوچک داخل حلقه */
+    ctx.save(); ctx.translate(x, y);
+    if (d.icon === 'bolt') {
+      ctx.fillStyle = d.color;
+      ctx.beginPath();
+      ctx.moveTo(2, -6); ctx.lineTo(-3, 1); ctx.lineTo(0, 1); ctx.lineTo(-2, 6); ctx.lineTo(4, -1); ctx.lineTo(1, -1);
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.strokeStyle = d.color; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let k = 0; k < 3; k++) {
+        const a = k * Math.PI / 3;
+        ctx.moveTo(-Math.cos(a) * 6, -Math.sin(a) * 6);
+        ctx.lineTo(Math.cos(a) * 6, Math.sin(a) * 6);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+    i++;
+  }
+}
+
+/* گلوله با دنباله درخشان — ساچمه/مسلسل ریز، تیر تک‌تیرانداز ردِ بلند، یخی لوزی (۴٫۰) */
+function drawBullet(b) {
+  if (b.frost) {
+    /* گلوله‌ی یخی: لوزی درخشان آبی + رد محو */
+    ctx.strokeStyle = 'rgba(160,225,255,0.45)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(b.x - b.vx * 0.03, b.y - b.vy * 0.03); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.fillStyle = 'rgba(140,215,255,0.3)'; circle(b.x, b.y, 6);
+    ctx.save();
+    ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx));
+    ctx.fillStyle = '#dff3ff';
+    ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(-3, 3.2); ctx.lineTo(-3, -3.2); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (b.tracer) {
+    /* تیر تک‌تیرانداز: ردِ بلند سفید-زرد */
+    ctx.strokeStyle = 'rgba(255,244,200,0.55)'; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(b.x - b.vx * 0.085, b.y - b.vy * 0.085); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,235,170,0.3)'; circle(b.x, b.y, 8);
+    ctx.fillStyle = '#fff7d6'; circle(b.x, b.y, 3.2);
+    return;
+  }
+  const tl = b.pellet ? 0.022 : 0.04;
+  ctx.strokeStyle = 'rgba(255,216,115,0.45)'; ctx.lineWidth = b.pellet ? 2 : 3;
+  ctx.beginPath();
+  ctx.moveTo(b.x - b.vx * tl, b.y - b.vy * tl);
+  ctx.lineTo(b.x, b.y); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,200,80,0.25)'; circle(b.x, b.y, b.pellet ? 5 : 7);
+  ctx.fillStyle = '#ffe9a8'; circle(b.x, b.y, b.pellet ? 2.5 : 3.5);
+}
+
+/* سکه در حال چرخش (افکت سه‌بعدی با scale افقی) */
+function drawCoin(c) {
+  const s = Math.max(0.18, Math.abs(Math.cos(c.t * 5)));
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.fillStyle = 'rgba(245,197,66,0.22)'; circle(0, 0, 9);
+  ctx.scale(s, 1);
+  ctx.fillStyle = '#f5c542'; circle(0, 0, 6);
+  ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#ffe98a'; circle(0, 0, 3);
+  ctx.restore();
+}
+
+/* آیکن برداری جعبه‌های قدرت (بدون وابستگی به فونت ایموجی) */
+function drawPowerIcon(type) {
+  if (type === 'medkit') {
+    ctx.fillStyle = '#f2f5f9'; rr(-7, -5.5, 14, 11, 2.5); ctx.fill();
+    ctx.strokeStyle = '#b9c2cf'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(-7, -5.5, 14, 11); ctx.stroke();
+    ctx.fillStyle = '#e04b3a';
+    ctx.fillRect(-1.6, -4, 3.2, 8); ctx.fillRect(-4.5, -1.4, 9, 2.8);
+  } else if (type === 'rapid') {
+    ctx.fillStyle = '#ffd873';
+    ctx.beginPath();
+    ctx.moveTo(2.5, -8); ctx.lineTo(-3.5, 1); ctx.lineTo(-0.5, 1);
+    ctx.lineTo(-2.5, 8); ctx.lineTo(4, -1.5); ctx.lineTo(1, -1.5);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#8a5a12'; ctx.lineWidth = 1; ctx.stroke();
+  } else if (type === 'freeze') {
+    ctx.strokeStyle = '#a8e2ff'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k < 3; k++) {
+      const a = k * Math.PI / 3;
+      ctx.moveTo(-Math.cos(a) * 7, -Math.sin(a) * 7);
+      ctx.lineTo(Math.cos(a) * 7, Math.sin(a) * 7);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#e8f7ff'; circle(0, 0, 2);
+  } else {   /* coin */
+    for (let k = -1; k <= 1; k++) {
+      ctx.fillStyle = '#f5c542'; circle(0, k * 4, 4);
+      ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(0, k * 4, 4, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.fillStyle = '#fff3bd'; circle(0, 0, 1.6);
+  }
+}
+
+/* جعبه‌های قدرت روی صحنه (۳٫۰): هاله‌ی رنگی + شنا شدن + چشمکِ پایان عمر */
+function drawPowerups() {
+  for (const p of state.powerups) {
+    const def = PTYPES[p.type];
+    const blink = p.t > POWER_LIFE - 2 ? (Math.sin(p.t * 18) > 0 ? 1 : 0.25) : 1;
+    const by = p.phase === 'wait' ? Math.sin(animTime * 4 + p.bob) * 3 : 0;
+    ctx.save();
+    ctx.globalAlpha = blink;
+    ctx.translate(p.x, p.y + by);
+    const g = ctx.createRadialGradient(0, 0, 2, 0, 0, 16);
+    g.addColorStop(0, hexA(def.color, 0.4));
+    g.addColorStop(1, hexA(def.color, 0));
+    ctx.fillStyle = g; circle(0, 0, 16);
+    drawPowerIcon(p.type);
+    ctx.restore();
+  }
+}
+
+/* قوس‌های برق تله */
+function drawZaps() {
+  for (const zp of state.zaps) {
+    const a = 1 - zp.age / zp.life;
+    const passes = [
+      [4, 'rgba(255,227,110,' + (a * 0.25).toFixed(2) + ')'],
+      [2, 'rgba(255,240,160,' + a.toFixed(2) + ')'],
+    ];
+    for (const [lw, col] of passes) {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(zp.pts[0].x, zp.pts[0].y);
+      for (let i = 1; i < zp.pts.length; i++) ctx.lineTo(zp.pts[i].x, zp.pts[i].y);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawParticles() {
+  for (const p of state.particles) {
+    const a = 1 - p.age / p.life;
+    ctx.globalAlpha = Math.max(0, a);
+    if (p.glow) {
+      /* ذره‌ی نورانی (روح زامبی و...) */
+      ctx.save();
+      ctx.shadowColor = p.color; ctx.shadowBlur = 10;
+      ctx.fillStyle = p.color;
+      circle(p.x, p.y, p.size);
+      ctx.restore();
+    } else if (p.shell) {
+      /* پوکه‌ی چرخان مستطیلی */
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size, -p.size * 0.55, p.size * 2, p.size * 1.1);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = p.color;
+      circle(p.x, p.y, p.size);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawTexts() {
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const t of state.texts) {
+    const a = 1 - t.age / t.life;
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.font = 'bold ' + t.size + 'px Tahoma, sans-serif';
+    ctx.fillStyle = 'rgba(0,0,0,' + (0.5 * a).toFixed(2) + ')';  // سایه متن
+    ctx.fillText(t.str, t.x + 1, t.y + 1);
+    ctx.fillStyle = t.color;
+    ctx.fillText(t.str, t.x, t.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* شمارنده‌ی کمبوی ضربه‌ای (۳٫۰) — بالای صحنه */
+function drawCombo() {
+  if (state.combo < 2 || !canPlay()) return;
+  const scale = 1 + state.comboPop * 1.6;
+  ctx.save();
+  ctx.translate(W / 2, 118);
+  ctx.scale(scale, scale);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '900 26px Tahoma, sans-serif';
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillText('کمبو ×' + faNum(state.combo), 2, 2);
+  ctx.fillStyle = state.combo >= 8 ? '#ff9d3d' : '#ffd873';
+  ctx.fillText('کمبو ×' + faNum(state.combo), 0, 0);
+  ctx.restore();
+}
+
+/* فلش‌های قرمز لبه‌ی صفحه برای زامبی‌های خارج از کادر (۳٫۰) */
+function drawOffscreenArrows() {
+  if (state.mode !== 'playing') return;
+  for (const z of state.zombies) {
+    if (z.dead) continue;
+    const off = z.x < -12 ? -1 : (z.x > W + 12 ? 1 : 0);
+    if (!off) continue;
+    const ax = off < 0 ? 14 : W - 14;
+    const ay = clamp(z.y - 26, 60, GROUND_Y - 30);
+    const pulse = 0.55 + 0.45 * Math.sin(animTime * 7);
+    const big = z.type === 'boss';
+    const s2 = big ? 1.5 : 1;
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.scale(-off, 1);                     // نوکِ فلش همیشه رو به داخل صحنه
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = big ? '#ffd873' : '#ff5d4d';
+    ctx.beginPath();
+    ctx.moveTo(10 * s2, 0); ctx.lineTo(-4 * s2, -8 * s2); ctx.lineTo(-4 * s2, 8 * s2);
+    ctx.closePath(); ctx.fill();
+    if (big) { ctx.globalAlpha = 1; ctx.fillStyle = '#fff'; circle(0, 0, 3); }
+    ctx.restore();
+  }
+}
+
+/* نشانگر هدف‌گیری ماوس (در حالت نصب برجک مخفی می‌شود) */
+function drawReticle() {
+  if (!canPlay() || state.placing) return;
+  const m = state.mouse;
+  const r = 9 + state.recoil * 2.5;         // با شلیک باز می‌شود
+  ctx.strokeStyle = 'rgba(255,90,80,0.85)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(m.x - r - 4, m.y); ctx.lineTo(m.x - r + 2, m.y);
+  ctx.moveTo(m.x + r - 2, m.y); ctx.lineTo(m.x + r + 4, m.y);
+  ctx.moveTo(m.x, m.y - r - 4); ctx.lineTo(m.x, m.y - r + 2);
+  ctx.moveTo(m.x, m.y + r - 2); ctx.lineTo(m.x, m.y + r + 4);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,90,80,0.9)'; circle(m.x, m.y, 1.5);
+}
+
+/* نشانگر برخورد گلوله روی نشان هدف (۳٫۰) */
+function drawHitMark() {
+  if (state.hitMark <= 0) return;
+  const a = state.hitMark / 0.14;
+  const m = state.mouse;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = state.hitMarkCrit ? '#ffb347' : '#ffffff';
+  ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+  const r1 = 5, r2 = 11;
+  ctx.beginPath();
+  for (const [dx, dy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    ctx.moveTo(m.x + dx * r1, m.y + dy * r1);
+    ctx.lineTo(m.x + dx * r2, m.y + dy * r2);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* فلش قرمزِ تمام‌صفحه موقع آسیب دیدن برج */
+function drawFlash() {
+  if (state.flash > 0) {
+    ctx.fillStyle = 'rgba(255,40,30,' + (state.flash * 0.20).toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+/* هشدار قرمزِ تپنده وقتی جون برج بحرانی است (زیر ۳۰٪) */
+function drawVignette() {
+  if (!canPlay()) return;
+  const ratio = state.tower.hp / state.tower.maxHp;
+  if (ratio >= 0.3) return;
+  const a = Math.max(0, (0.3 - ratio) / 0.3 * (0.2 + 0.12 * Math.sin(animTime * 6)));
+  const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.78);
+  g.addColorStop(0, 'rgba(180,20,20,0)');
+  g.addColorStop(1, 'rgba(180,20,20,' + a.toFixed(2) + ')');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* ته‌رنگ آبی هنگام انجماد (۳٫۰) */
+function drawFreezeOverlay() {
+  if (state.powerTimers.freeze <= 0) return;
+  const a = Math.min(0.16, state.powerTimers.freeze * 0.05);
+  const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+  g.addColorStop(0, 'rgba(140,200,255,0)');
+  g.addColorStop(1, 'rgba(140,200,255,' + a.toFixed(2) + ')');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+/* نوارهای سینمایی اسلوموشن (۳٫۰) */
+function drawCinematic() {
+  if (state.slowmo <= 0) return;
+  const k = Math.min(1, state.slowmo * 2.2);
+  const h = Math.round(30 * k);
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillRect(0, 0, W, h);
+  ctx.fillRect(0, H - h, W, h);
+}
+
+/* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم.
+   (۸٫۰) برج دوم: شب = تینت سرخِ خاکستری؛ روز = سپیای دودی — حال‌وهوای
+   متفاوتِ شهر سوخته. بعد از صحنه و قبل از UI رسم می‌شود (بدون لرزش). */
+function drawColorGrade() {
+  const d = state.dayness;
+  const v1 = curCh().theme.grade === 'ember';   // (۱۰٫۰) فصل خرابه: تینت اخگری — بقیه: سرمای آبی
+  /* وینیت نرم همیشه — شب عمیق‌تر (شهر سوخته: کمی شدیدتر) */
+  const vg = ctx.createRadialGradient(W / 2, H * 0.46, H * 0.36, W / 2, H * 0.55, H * 0.88);
+  const va = (v1 ? 0.13 : 0.10) + 0.16 * (1 - d);
+  vg.addColorStop(0, v1 ? 'rgba(20,4,4,0)' : 'rgba(2,4,14,0)');
+  vg.addColorStop(1, v1 ? 'rgba(20,4,4,' + va.toFixed(2) + ')' : 'rgba(2,4,14,' + va.toFixed(2) + ')');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+  /* تینت شب: برج اول سرمای آبی؛ برج دوم سرخیِ اخگر — ضرب ملایم */
+  if (d < 0.85) {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = v1
+      ? 'rgba(228,164,150,' + (0.15 * (1 - d)).toFixed(2) + ')'
+      : 'rgba(178,192,236,' + (0.14 * (1 - d)).toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  /* گرمای روز: برج اول طلایی؛ برج دوم سپیای دودی (روشن‌سازی ملایم) */
+  if (d > 0.15) {
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = v1
+      ? 'rgba(255,170,110,' + (0.07 * d).toFixed(2) + ')'
+      : 'rgba(255,196,96,' + (0.05 * d).toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
+/* ترتیب رسم صحنه (از دور به نزدیک) — در منو زامبی‌های تزئینی رسم می‌شوند */
+function render() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.save();
+  if (state.shake > 0.2 && SETT.shake) ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+  /* (۱۰٫۰) حالت‌های تمام‌صحنه: افتتاحیه / انتقال فصل / صحنه‌ی پیروزی
+     (فاز ۱ انتقال روی همان میدان بازی رندر می‌شود → شاخه‌ی عادی) */
+  if (state.mode === 'intro') {
+    renderIntro();                             // کات‌سین افتتاحیه — روایت داستان
+  } else if (state.mode === 'victorycine') {
+    renderVictoryCine();                       // صحنه‌ی سحرِ پیروزی
+  } else if (state.mode === 'transition' && TR && TR.phase !== 1) {
+    renderTransition();                        // فاز ۲/۳ انتقال — صحنه‌ی اختصاصی مینی‌گیم
+  } else if (CS && CS.drive) {
+    /* ---- صحنه‌ی رانندگی کات‌سین (۸٫۰): جاده به‌جای میدان نبرد ---- */
+    drawSky();
+    drawClouds();
+    drawDriveScene();
+    drawPlayer();                              // بازیکن روی سقف ماشین (۸٫۰)
+  } else {
+  drawSky();
+  drawClouds();
+  /* (۱۰٫۰) پارالاکس ملایم منو: افق و تپه‌ها با ماوس کمی جابه‌جا می‌شوند */
+  ctx.save(); ctx.translate(-menuPar(12), 0); drawSkyline(); ctx.restore();
+  ctx.save(); ctx.translate(-menuPar(26), 0); drawHills(); ctx.restore();
+  drawPuddles();
+  drawGrass();
+  drawAsh();                                  // بارش خاکسترِ شهر سوخته (۸٫۰)
+  drawChapterWeather();                        // (۱۰٫۰) مه انبارها / برف قله — و مهِ آرام منو
+  drawDecals();
+  drawLightning();
+  drawTree(88, 0.95, !!curCh().theme.deadTrees);   // (۱۰٫۰) درخت سوخته در فصل خرابه‌ها
+  drawTree(874, 0.7, !!curCh().theme.deadTrees);
+  drawLamps();
+  drawMuzzleGlow();
+  drawShootingStar();
+  drawFireflies();
+  drawTrap();
+  drawTower();
+  drawChapterProps();                          // (۱۰٫۰) اسباب‌متعلقات فصل (جعبه/کیسه‌شن/برف) + صحنه‌های انتقال
+  if (CS) drawRubble(CS.draw.rubble);        // توده‌ی آوار زیر برج حین کات‌سین (۷٫۰)
+  /* زامبی‌ها و برجک‌ها بر اساس عمق (y) با هم مرتب می‌شوند تا ردیف‌های عقب
+     پشت سر جلو دیده شوند و برجک‌ها هم در جای درستِ خودشان بایستند (۴٫۰) */
+  if (state.mode === 'start') {
+    for (const z of menuZ.slice().sort((a, b) => a.y - b.y)) drawZombie(z);
+  } else {
+    const ents = [];
+    for (const z of state.zombies) ents.push({ y: z.y, z });
+    for (const t of state.turrets) ents.push({ y: t.y + 0.1, t });
+    if (CS) {                                  // موجودیت‌های کات‌سین (۷٫۰)
+      for (const z of CS.zombies) ents.push({ y: z.y, csZ: z });
+      if (CS.car) ents.push({ y: CS.car.y - 1, car: CS.car });
+    }
+    ents.sort((a, b) => a.y - b.y);
+    for (const e of ents) {
+      if (e.car) drawCar(e.car);               // ماشین نجات (۷٫۰)
+      else if (e.csZ) drawCsZombie(e.csZ);     // زامبی‌های پرتاب‌شده (۷٫۰)
+      else if (e.z) drawZombie(e.z);
+      else drawTurret(e.t);
+    }
+  }
+  drawPlayer();
+  drawPlacing();                              // شبحِ نصب برجک روی همه‌چیز (۴٫۰)
+  drawPowerTimers();
+  for (const b of state.bullets) drawBullet(b);
+  drawDebris();                                // (۱۰٫۰) آوار پرتابی نگهبانِ آخرین شب
+  for (const c of state.coinsArr) drawCoin(c);
+  drawPowerups();
+  drawZaps();
+  }
+  drawParticles();
+  drawTexts();
+  Dark.render();                               // (۱۰٫۰) تاریکی/مه دید + دایره‌ی نور چراغ‌قوه
+  drawDarkEyes();                              // (۱۰٫۰) چشم‌های زامبی‌ها در تاریکی
+  ctx.restore();
+  /* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم */
+  drawColorGrade();
+  /* لایه‌ی UI: بدون لرزش */
+  drawOffscreenArrows();
+  drawReticle();
+  drawHitMark();
+  drawCombo();
+  drawFlash();
+  drawVignette();
+  drawFreezeOverlay();
+  drawCinematic();
+  if (CS && state.mode === 'cutscene') drawCutscene();   // لایه‌ی کات‌سین (۷٫۰) — (۱۰٫۰) فقط در حالت cutscene
+  drawTransitionOverlay();                     // (۱۰٫۰) نوار سینما/زیرنویس/پیشرفتِ انتقال فصل‌ها
+}
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۸٫۰ — بخش ۴: رویداد داستانی «فروریختن برج»
+   ==================================================================
+   بعد از پاک‌سازی موج ۵ و پیش از موج ۶، یک کات‌سین چند‌پرده‌ای پخش می‌شود:
+     ۱) لرزشِ پیش‌رونده‌ی زمین + ترک‌خوردن تدریجی برج (کند و منطقی)
+     ۲) فروریختن طبقه‌ی اول → نشستن طبقه‌های بالا → فروریختن طبقه‌ی دوم
+        → لغزیدن و کج‌شدن بام (برج مثل پنکیک طبقه‌طبقه می‌نشیند)
+     ۳) جهش بازیکن از بامِ در حال لغزش + سقوط قوسی + نشستن روی ماشین دوست
+     ۴) بخش «رانندگی»: خود بازیکن فرمان را دست می‌گیرد (گاز/ترمز با کلیدهای
+        جهت‌دار یا لمس چپ/راست صفحه) — زامبی‌ها و موانع را کنار می‌زند؛
+        نوار «مسیر تا برج جدید» پیش می‌رود تا مقصد
+     ۵) پایان مسیر: ماشین خودش دور می‌شود، صفحه سیاه می‌شود — «اسلحه‌هایت
+        زیر آوار ماند...» + «غرامت: +N سکه» + «به موقعیت جدید رسیدید...»
+     ۶) طلوع در برج دومِ شهر سوخته (آسمان سرخ، ماه خونی، بارش خاکستر)
+   قواعد گیم‌پلی (۸٫۰):
+     - سکه‌ها، جون برج، برجک‌ها و ارتقاهای ساختمانی همه حفظ می‌شوند
+     - سلاح‌های همراه (تپانچه‌ی ارتقایافته/شاتگان/مسلسل) زیر آوار از بین
+       می‌روند؛ به‌جایش «غرامت» (سکه‌ی اضافه بر سکه‌های خودمان) می‌رسد
+     - موج‌های ۶ تا ۱۰ روی برج جدید با همان منطق سختی ادامه می‌یابند
+     - کات‌سین با دکمه‌ی «رد کردن» گوشه‌ی صفحه قابل عبور است
+   جزئیات فنی:
+     - همه‌چیز فقط با Canvas و شکل‌های ساده رسم می‌شود (بدون تصویر خارجی)
+     - playTowerCollapseCutscene پارامتری است تا برای فصل‌های بعدی
+       (برج سوم/چهارم...) هم قابل استفاده باشد
+     - همه‌ی حرکت‌ها از t محاسبه می‌شوند تا پرش/تست زمانی (csGoto) قطعی باشد؛
+       رانندگی هم بدون ورودی، با گازِ خودکار پیش می‌رود (تست‌پذیر)
+   ================================================================== */
+
+/* ---------------------- ۱۷) رویداد داستانی ---------------------- */
+
+/* موجی که بعد از پایانش کات‌سین پخش می‌شود */
+const CUTSCENE_AFTER_WAVE = 5;
+
+/* زمان‌بندی مراحل کات‌سین (ثانیه) — ۸٫۰: فروریختن «کندتر و منطقی‌تر»
+   شد (طبقه‌طبقه با فاصله) و بخش رانندگی تعاملی به آن اضافه شد.
+   زمان‌های پس از رانندگی (fadeOut/black/switch/fadeIn/end) نسبت به
+   پایان رانندگی در CS.post محاسبه می‌شوند (طول رانندگی متغیر است). */
+const CS_T = {
+  shakeEnd: 3.4,     // پایان لرزش/ترک‌خوردن (شدت به‌مرور رشد می‌کند)
+  col1End: 5.2,      // پایان فروریختن طبقه‌ی اول
+  col2End: 7.0,      // پایان فروریختن طبقه‌ی دوم
+  chunkDrop: 7.0,    // شروع لغزش/سقوط بام (طبقه‌ی سوم)
+  chunkDur: 1.15,    // مدت سقوط بام
+  playerDrop: 7.3,   // جهش بازیکن از بامِ در حال لغزش
+  fallDur: 1.5,      // مدت سقوط قوسی بازیکن
+  carEnter: 6.9,     // ورود ماشین از لبه‌ی چپ
+  catchDX: 14,       // جای بازیکن روی ماشین (نسبت به مرکز ماشین)
+  driveStart: 9.15,  // شروع بخش رانندگی (بازیکن سوار شد)
+  /* --- رانندگی --- */
+  driveDist: 3000,   // طول مسیر تا برج جدید (پیکسل دنیای جاده)
+  vMin: 150, vMax: 560, vBase: 310, vAcc: 430, vBrk: 560,
+  driveMax: 18,      // حداکثر ثانیه‌ی رانندگی (بعدش خودکار تمام می‌شود)
+  /* --- پس از رانندگی (آفست از لحظه‌ی پایان مسیر) --- */
+  fadeDur: 0.95,
+  switchOff: 2.3,    // تعویض صحنه در دلِ سیاهی
+  fadeInOff: 3.4,    // شروع بازگشت صحنه‌ی جدید (بعد از متن‌های سیاهی)
+  endOff: 4.5,       // پایان کات‌سین → روزِ برج جدید
+};
+
+/* جای ثابت ماشین روی صفحه‌ی جاده */
+const CS_DRIVE_CAR_X = 330;
+
+/* زیرنویس‌های کات‌سین: [شروع، پایان، متن] */
+const CS_CAPS = [
+  [0.35, 2.95, 'زمین می‌لرزد... برج دارد ترک می‌خورد!'],
+  [3.5, 5.05, 'طبقه‌ی اول فرو می‌ریزد!'],
+  [5.35, 6.85, 'طبقه‌ی دوم هم...!'],
+  [7.0, 7.9, 'بام می‌لغزد — بپر!'],
+  [8.6, 9.1, 'رسیدی! سوار شو'],
+  [9.5, 12.6, 'فرمان با توست! گاز بده تا برج جدید'],
+];
+
+/* --- پوسته‌های برج (۱۰٫۰): هر فصل رنگ و جنس خودش را دارد ---
+   ۰=محله‌ی قدیمی (آجری/آبی) • ۱=انبارها (فولادی/زنگاری/خردلی)
+   ۲=پاسگاه (سنگ‌خزه/فیروزه — برج دوم سابق) • ۳=مخابرات (لاجوردی/یخی)
+   drawTower این رنگ‌ها را می‌خواند؛ اندازه‌ی برج در همه یکی است. */
+const TOWER_SKINS = [
+  { /* فصل ۱ — محله‌ی قدیمی: سنگی/آجری/آبی (ظاهر اصلی بازی) */
+    floors: [
+      { light: '#82705a', base: '#6e5a44', dark: '#4d3f2f', edge: '#453a2c' },
+      { light: '#b25a47', base: '#a04b3a', dark: '#7c3527', edge: '#6e2f24' },
+      { light: '#4f83b5', base: '#41729f', dark: '#2f557c', edge: '#2a4b6b' },
+    ],
+    plinth: ['#3f362b', '#8c7f6a'], batt: ['#33557e', '#5c8ac0'],
+    flag: '#d8453a', flagMark: '#f7c948',
+    banner: ['#a12a20', '#c23a2c'], bannerMark: '#7a1f18',
+    doorFrame: ['#8a7a5e', '#bfae8e'], pole: ['#4a3b2a', '#7a6244'],
+  },
+  { /* فصل ۲ — منطقه‌ی انبارها: فولادی/صناعتی/زنگاری (۱۰٫۰) */
+    floors: [
+      { light: '#7a8496', base: '#5f6a7d', dark: '#434c5e', edge: '#3a4254' },
+      { light: '#5d84a6', base: '#4c7191', dark: '#375873', edge: '#2f4c63' },
+      { light: '#b07838', base: '#9a662e', dark: '#75491d', edge: '#663f1a' },
+    ],
+    plinth: ['#2c3038', '#6a7078'], batt: ['#4c7191', '#7fa5c4'],
+    flag: '#e8a13c', flagMark: '#3a2c14',
+    banner: ['#75491d', '#96682c'], bannerMark: '#3a2c14',
+    doorFrame: ['#4c5566', '#7d8896'], pole: ['#333a44', '#5d666f'],
+  },
+  { /* فصل ۳ — پاسگاه نظامی: سنگ‌خزه/فیروزه/زرشکی (برج دوم سابق — ۷٫۰) */
+    floors: [
+      { light: '#6b7a5e', base: '#57644b', dark: '#3e4835', edge: '#39422e' },
+      { light: '#3f8d86', base: '#357871', dark: '#265a55', edge: '#22504b' },
+      { light: '#9c4252', base: '#873644', dark: '#692934', edge: '#5f2530' },
+    ],
+    plinth: ['#2e2a24', '#6e675c'], batt: ['#274f4a', '#4d8a82'],
+    flag: '#3f8d86', flagMark: '#ffd873',
+    banner: ['#274f4a', '#3f8d86'], bannerMark: '#173b37',
+    doorFrame: ['#5a5446', '#8f8871'], pole: ['#3a3529', '#615a48'],
+  },
+  { /* فصل ۴ — برج مخابراتی: لاجوردی/یخی/کمرنگ (۱۰٫۰) */
+    floors: [
+      { light: '#5b6a84', base: '#48566e', dark: '#333e52', edge: '#2c3648' },
+      { light: '#8fb4d9', base: '#7299c2', dark: '#527495', edge: '#466382' },
+      { light: '#c8d4e2', base: '#aebbc9', dark: '#8c99a8', edge: '#7a8694' },
+    ],
+    plinth: ['#242c3a', '#5a6578'], batt: ['#527495', '#8fb4d9'],
+    flag: '#7fd8ff', flagMark: '#0e2a3a',
+    banner: ['#527495', '#7299c2'], bannerMark: '#1c3040',
+    doorFrame: ['#3a4254', '#6a7584'], pole: ['#2c3648', '#4d5a6b'],
+  },
+];
+
+/* --- شهر سوخته‌ی برج دوم: آسمان‌خراش‌های با لبه‌ی شکسته + کانون‌های آتش ---
+   با همان تولیدکننده‌ی seed دارِ صحنه ساخته می‌شود تا همیشه یکسان باشد */
+const RUIN_SKYLINE = [];
+const RUIN_FIRES = [];
+const RUIN_WINS = [];                       // پنجره‌های شکسته/سوخته‌ی ساختمان‌ها
+{
+  let x = -14;
+  while (x < W + 14) {
+    const bw = 40 + srand() * 58, bh = 30 + srand() * 100;
+    const notch = [];                      // دندانه‌های لبه‌ی فروریخته‌ی بام
+    const nn = 1 + Math.floor(srand() * 3);
+    for (let i = 0; i < nn; i++) {
+      notch.push({ dx: 5 + srand() * (bw - 22), w: 8 + srand() * 14, d: 13 + srand() * 30 });
+    }
+    RUIN_SKYLINE.push({ x, w: bw, h: bh, notch });
+    /* پنجره‌های شکسته: تیره + چند نورافکن نارنجیِ آتش */
+    const wn = 2 + Math.floor(srand() * 4);
+    for (let i = 0; i < wn; i++) {
+      RUIN_WINS.push({
+        x: x + 5 + srand() * (bw - 12), y: GROUND_Y - bh + 8 + srand() * (bh - 20),
+        lit: srand() > 0.72, ph: srand() * 6.28,
+      });
+    }
+    /* چند کانون آتشِ دودکن روی ساختمان‌های بلندتر */
+    if (bh > 45 && srand() > 0.35 && RUIN_FIRES.length < 6) {
+      RUIN_FIRES.push({ x: x + 9 + srand() * (bw - 18), y: GROUND_Y - bh + 6 + srand() * 22, ph: srand() * 6.28 });
+    }
+    x += bw + 9;
+  }
+}
+
+/* --- اجزای کنار راهِ بخش رانندگی (۸٫۰) ---
+   چراغ/درخت/بوته/سنگ + موانعِ راه‌بندیِ پرت‌خورِ هر چند صد پیکسل.
+   موانع سرعت ماشین را می‌گیرند (ولی شکست نمی‌آورند). */
+const DRIVE_PROPS = [];
+{
+  let wx = 230, i = 0;
+  while (wx < CS_T.driveDist + 700) {
+    const r = srand();
+    let kind = 'bush';
+    if (i % 4 === 3) kind = 'barrier';            // هر چهارمی: مانع
+    else if (r < 0.3) kind = 'lamp';
+    else if (r < 0.55) kind = 'tree';
+    else if (r < 0.8) kind = 'bush';
+    else kind = 'rock';
+    DRIVE_PROPS.push({ wx, kind, s: 0.75 + srand() * 0.5, ph: srand() * 6.28 });
+    wx += 150 + srand() * 170;
+    i++;
+  }
+}
+
+/* توده‌ی آوار برج (قطعات پیش‌محاسبه‌شده برای رسم سریع) */
+const RUBBLE_PTS = [];
+for (let i = 0; i < 30; i++) RUBBLE_PTS.push({
+  dx: (srand() * 2 - 1) * 74,
+  dy: srand() * 30,
+  w: 5 + srand() * 14, h: 4 + srand() * 9,
+  rot: (srand() * 2 - 1) * 0.7,
+  col: ['#6e5a44', '#8a6f52', '#4d3f2f', '#b25a47', '#9c8a6d'][Math.floor(srand() * 5)],
+});
+
+/* ترک‌های پیش‌فرض برج حین کات‌سین: نقاط نسبی به (TOWER.x, GROUND_Y) */
+const TOWER_CRACKS = [
+  { pts: [[-44, -16], [-33, -30], [-40, -46], [-27, -60], [-31, -74]] },
+  { pts: [[46, -20], [37, -36], [45, -50]] },
+  { pts: [[-38, -84], [-28, -96], [-36, -112], [-24, -126]] },
+  { pts: [[40, -80], [30, -94], [38, -108], [26, -122]] },
+  { pts: [[2, -88], [-4, -102], [3, -116]] },
+];
+
+/* --- صداهای کات‌سین (با همان موتور Web Audio بازی) --- */
+Object.assign(SFX, {
+  csRumble() { if (!sfxGate('csRumble', 420)) return;
+    Snd.noise({ dur: 0.5, vol: 0.16, freq: 95, q: 0.5 });
+    Snd.tone({ type: 'sine', f0: 46, f1: 30, dur: 0.5, vol: 0.2 }); },
+  csCrack()  { Snd.noise({ dur: 0.1, vol: 0.2, ftype: 'highpass', freq: 1900 });
+    Snd.tone({ type: 'square', f0: 850, f1: 190, dur: 0.09, vol: 0.09 }); },
+  csBoom()   { Snd.noise({ dur: 1.1, vol: 0.38, freq: 170, q: 0.4 });
+    Snd.tone({ type: 'sine', f0: 72, f1: 26, dur: 1.0, vol: 0.38 }); },
+  csLand()   { Snd.noise({ dur: 0.35, vol: 0.3, freq: 150, q: 0.5 });
+    Snd.tone({ type: 'sine', f0: 62, f1: 28, dur: 0.4, vol: 0.3 }); },
+  csWhistle(){ Snd.tone({ type: 'sine', f0: 1450, f1: 300, dur: 1.0, vol: 0.06 }); },
+  csEngine() { if (!sfxGate('csEngine', 300)) return;
+    Snd.tone({ type: 'sawtooth', f0: 92, f1: 118, dur: 0.2, vol: 0.08 });
+    Snd.noise({ dur: 0.18, vol: 0.04, freq: 420 }); },
+  csThud()   { Snd.noise({ dur: 0.15, vol: 0.22, freq: 230 });
+    Snd.tone({ type: 'sine', f0: 95, f1: 40, dur: 0.16, vol: 0.18 }); },
+  csWhoosh() { if (!sfxGate('csWhoosh', 700)) return;
+    Snd.noise({ dur: 0.25, vol: 0.06, ftype: 'highpass', freq: 900 }); },
+  csCrash()  { Snd.noise({ dur: 0.3, vol: 0.3, freq: 200, q: 0.6 });
+    Snd.tone({ type: 'sawtooth', f0: 120, f1: 60, dur: 0.25, vol: 0.14 }); },
+  csGift()   { [660, 880, 1320].forEach((f, i) =>
+    Snd.tone({ type: 'triangle', f0: f, dur: 0.16, vol: 0.12, delay: i * 0.08 })); },
+});
+
+/* --- وضعیت اجرای کات‌سین (null = کات‌سینی در جریان نیست) ---
+   draw: داده‌های رندر لحظه‌ای که drawTower/drawPlayer می‌خوانند */
+let CS = null;
+
+/* غرامت اسلحه‌های سوخته: ۶۰٪ پولِ خرج‌شده + کمی لطف راننده
+   (کف ۶۰ سکه، سقف ۳۲۰) — جدا از سکه‌های خودِ بازیکن */
+function computeWeaponCompensation() {
+  return clamp(Math.round((state.weaponSpent * 0.6 + 50) / 10) * 10, 60, 320);
+}
+
+/* شروع کات‌سین «فروریختن برج» — تابع پارامتری برای استفاده در فصل‌های بعدی:
+   opts.afterWave  موجِ مقدمه‌ی رویداد
+   opts.variant    شماره‌ی پوسته‌ی برج بعدی (پیش‌فرض ۱) */
+function playTowerCollapseCutscene(opts = {}) {
+  if (CS) return;                            // کات‌سین دیگری در جریان است
+  CS = {
+    t: 0, paused: false,
+    afterWave: opts.afterWave || CUTSCENE_AFTER_WAVE,
+    variant: opts.variant !== undefined ? opts.variant : 1,
+    boomed1: false, boomed2: false, chunkHit: false,
+    caught: false, whistled: false, switched: false,
+    compApplied: false, compCoins: 0, compSpent: 0,
+    bursts1: 0, bursts2: 0,
+    zombies: [], car: null, drive: null, post: null,
+    fade: 0,
+    draw: {
+      floors: [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }],
+      cracks: 0, rubble: 0, player: null,
+    },
+  };
+  state.mode = 'cutscene';
+  state.mouse.down = false;
+  state.placing = null;
+  state.slowmo = 0;
+  state.powerTimers = { rapid: 0, freeze: 0 };
+  /* سکه‌ها/جعبه‌های معلق صحنه بلافاصله جمع شوند (پاداش موج نمی‌باید گم شود) */
+  for (const c of state.coinsArr) collectCoin(c);
+  state.coinsArr = [];
+  state.powerups = [];
+  hideDayPanel();
+  hideAnnounce();
+  setBuildPanel(true, true);                 // پنل جمع: حالت سینمایی
+  $('wrap').classList.add('cs-mode');        // نوار سلاح/پنل‌ها مخفی (CSS)
+  $('skipCs').classList.remove('hidden');    // دکمه‌ی «رد کردن»
+  /* زامبی‌های ول‌گردِ صحنه — همان‌ها که بعداً جلوی ماشین را می‌گیرند */
+  const spawns = [
+    { type: 'normal', x: 70 }, { type: 'fast', x: 215 }, { type: 'normal', x: 335 },
+    { type: 'normal', x: 645 }, { type: 'fast', x: 760 }, { type: 'tank', x: 845 },
+    { type: 'normal', x: 940 },
+  ];
+  for (const s of spawns) {
+    const T = ZTYPES[s.type];
+    CS.zombies.push({
+      type: s.type, x: s.x, y: GROUND_Y + 14, dir: s.x < TOWER.x ? 1 : -1,
+      radius: T.r, speed: T.spdBase * 0.55, hp: 10, maxHp: 10,
+      walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0,
+      attackSide: 0, lane: 0, depth: 1.06, yJit: rand(-2, 2), stagger: 0,
+      chill: 0, hitFlash: 0, dead: false, deathT: 0,
+      /* فیلدهای مخصوص کات‌سین: */
+      hit: false, vx: 0, vy: 0, vr: 0, rot: 0, landed: false,
+      groundY: GROUND_Y + 14,
+    });
+  }
+  SFX.csRumble();
+  updateHUD();
+}
+
+/* برخورد ماشین با زامبی مانع: پرتاب به جلو و بالا + خون + لرزش */
+function csKnockZombie(z, v) {
+  z.hit = true;
+  z.vx = (v || 430) * 0.72 + rand(0, 90);
+  z.vy = -rand(300, 430);
+  z.vr = rand(6, 11) * (Math.random() < 0.5 ? -1 : 1);
+  if (CS && CS.car) CS.car.kick = 1;
+  state.shake = Math.max(state.shake, 3.5);
+  SFX.csThud();
+  spawnParticles(z.x, z.y - 16, 10, '#7a2f2f', { speed: 160, life: 0.5, size: 2.6, grav: 500 });
+  spawnParticles(z.x, z.y - 16, 6, '#5f8f3e', { speed: 130, life: 0.45, size: 2.2, grav: 500 });
+}
+
+/* موج انفجار آجر/چوب حین فروریختن طبقه‌ها (درشت + جرقه + غبار)
+   i = شماره طبقه (۰/۱) برای انتخاب ارتفاع انفجار */
+function csBrickBurst(i, n) {
+  const fy = i === 0 ? GROUND_Y - rand(10, 55) : GROUND_Y - rand(60, 120);
+  const cols = ['#a58a68', '#7d6a4f', '#c46a54', '#5d4c39', '#d9c49b'];
+  spawnParticles(TOWER.x + rand(-58, 58), fy, 26, cols[Math.floor(rand(0, 5))],
+    { speed: rand(180, 320), life: rand(0.8, 1.2), size: rand(4, 6.5), grav: 600 });
+  /* جرقه‌های درخشان (روشن و قابل‌دید در تاریکی) */
+  for (let k = 0; k < 7; k++) {
+    const a = rand(0, Math.PI * 2), sp = rand(140, 330);
+    state.particles.push({
+      x: TOWER.x + rand(-56, 56), y: fy,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
+      age: 0, life: rand(0.5, 0.9), size: rand(1.6, 2.6),
+      color: Math.random() < 0.5 ? '#ffca6e' : '#ff9a4d', grav: 560, glow: true,
+    });
+  }
+  /* ابر غبار نرمِ همره (دایره‌های بزرگِ نیمه‌شفاف) */
+  for (let k = 0; k < 5; k++) {
+    state.particles.push({
+      x: TOWER.x + rand(-64, 64), y: fy - rand(4, 34),
+      vx: rand(-46, 46), vy: rand(-75, -22),
+      age: 0, life: rand(0.9, 1.5), size: rand(9, 17),
+      color: 'rgba(172,152,122,0.30)', grav: -10,
+    });
+  }
+  SFX.csCrack();
+}
+
+/* «اسلحه‌ها زیر آوار ماندند» + پرداخت غرامت (فقط یک‌بار) */
+function cutsceneApplyCompensation() {
+  if (!CS || CS.compApplied) return;
+  CS.compApplied = true;
+  CS.compSpent = state.weaponSpent;
+  CS.compCoins = computeWeaponCompensation();
+  /* اسلحه‌های همراهِ روی برج از بین می‌روند */
+  WEAPONS.shotgun.owned = false;
+  WEAPONS.mg.owned = false;
+  state.weapon = 'pistol';
+  state.upgrades.weapon = 0;
+  state.upgrades.speed = 0;               // (۹٫۰) ارتقای سرعت شلیک هم «زیر آوار» می‌ماند
+  state.weaponSpent = 0;
+  /* غرامت: سکه‌ی اضافه، جدا از سکه‌های خودمان */
+  state.coins += CS.compCoins;
+  state.stats.earned += CS.compCoins;
+  SFX.csGift();
+  pulseCoins();
+  refreshWeaponBar();
+  refreshBuildPanel();
+  updateHUD();
+}
+
+/* پایان کات‌سین: ورود به «روزِ برج جدید» — پیشرفت ساختمانی حفظ شده است */
+function cutsceneFinish() {
+  if (!CS) return;
+  cutsceneApplyCompensation();               // اطمینان: غرامت حتماً پرداخت شود
+  const compCoins = CS.compCoins;
+  const variant = CS.variant;
+  CS = null;
+  state.mode = 'day';
+  state.towerVariant = variant;              // برج دوم + شهر سوخته
+  state.cutsceneDone = true;
+  state.dayTarget = 1;
+  state.dayness = Math.max(state.dayness, 0.85);
+  $('wrap').classList.remove('cs-mode');
+  $('skipCs').classList.add('hidden');
+  hideAnnounce();
+  showDayPanel();                            // «شب شود — موج ۶»
+  setBuildPanel(false, true);
+  $('bpHead').classList.add('attention');
+  setAnnounce('🌅 برج بعدی!',
+    'اسلحه‌ها زیر آوار ماندند — غرامت: +' + faNum(compCoins) + ' سکه • موج '
+    + faNum(state.wave + 1) + ' در راه است', 3.6);
+  SFX.morning();
+  updateHUD();
+}
+
+/* رد کردن کات‌سین — دکمه‌ی گوشه‌ی صفحه (برای بازی‌های دوباره) */
+function skipCutscene() {
+  if (!CS) return;
+  SFX.click();
+  cutsceneFinish();
+}
+
+/* ریست کامل حالت کات‌سین (مثلاً هنگام شروع مجدد بازی) */
+function cutsceneHardReset() {
+  CS = null;
+  $('skipCs').classList.add('hidden');
+  $('wrap').classList.remove('cs-mode');
+}
+
+/* ------------------ بخش رانندگی (۸٫۰) ------------------
+   بازیکن خودش ماشین را می‌راند: گاز/ترمز با کلیدهای جهت‌دار (یا A/D)
+   یا لمس نیمه‌ی راست/چپ صفحه؛ بدون ورودی، گازِ خودکارِ ملایم جلو می‌رود
+   تا neither قفل شود نه تستِ زمانی (csGoto) غیرقطعی شود. */
+function startCsDrive() {
+  const cs = CS;
+  cs.zombies = [];                           // صحنه‌ی برج تمام شد
+  state.particles = []; state.texts = [];
+  if (cs.car) { cs.car.x = CS_DRIVE_CAR_X; cs.car.hand = 0; }
+  cs.drive = {
+    scroll: 0, v: 280, progress: 0,
+    keys: { a: false, b: false },            // گاز/ترمز کیبورد
+    touch: { a: false, b: false },           // گاز/ترمز لمسی
+    spawnT: 0.7, zombies: [], hits: {},
+    ended: false, endT: 0,
+  };
+  SFX.csEngine();
+}
+
+function updateCsDrive(dt) {
+  const cs = CS, dr = cs.drive, t = cs.t;
+  if (!dr.ended) {
+    /* --- کنترل بازیکن: گاز/ترمز (کیبورد + لمس) --- */
+    const acc = dr.keys.a || dr.touch.a, brk = dr.keys.b || dr.touch.b;
+    if (acc) dr.v += CS_T.vAcc * dt;
+    else if (brk) dr.v -= CS_T.vBrk * dt;
+    else dr.v += (CS_T.vBase - dr.v) * Math.min(1, dt * 1.1);   // گازِ خودکار
+    dr.v = clamp(dr.v, CS_T.vMin, CS_T.vMax);
+    dr.scroll += dr.v * dt;
+    dr.progress = clamp(dr.scroll / CS_T.driveDist, 0, 1);
+    /* پایان مسیر یا مهلتِ زمانی → ماشین خودش مقصد را پیدا می‌کند */
+    if (dr.progress >= 1 || t - CS_T.driveStart > CS_T.driveMax) {
+      dr.ended = true;
+      dr.endT = t;
+      cs.post = {
+        fadeOut: t,
+        black: t + CS_T.fadeDur,
+        switchT: t + CS_T.switchOff,
+        fadeIn: t + CS_T.fadeInOff,
+        end: t + CS_T.endOff,
+      };
+      SFX.csWhoosh();
+    }
+  } else {
+    /* بعد از مسیر: ماشین خودش دور می‌شود (تا در سیاهی محو شود) */
+    if (cs.car) cs.car.x += (dr.v + 280) * dt;
+    dr.scroll += dr.v * dt;
+  }
+  if (cs.car) {
+    cs.car.spin += (dr.v / 13) * dt;
+    cs.car.kick = Math.max(0, cs.car.kick - dt * 4);
+  }
+  SFX.csEngine();
+  /* دم اگزوز + غبار چرخ‌ها (هرچه تندتر، بیشتر) */
+  if (cs.car && Math.random() < dt * (dr.v / 20)) {
+    spawnParticles(CS_DRIVE_CAR_X - 84, GROUND_Y + 6, 1, 'rgba(190,180,168,0.5)',
+      { speed: 30, life: 0.5, size: 2.4, grav: -20, dir: Math.PI, spread: 0.7 });
+  }
+  /* زامبی‌های خیابانی: جلوتر سر راه می‌آیند تا ماشین آنها را کنار براند */
+  dr.spawnT -= dt;
+  if (dr.spawnT <= 0 && !dr.ended) {
+    dr.spawnT = rand(0.9, 1.7);
+    const r = Math.random();
+    const type = r < 0.62 ? 'normal' : (r < 0.86 ? 'fast' : 'tank');
+    const T = ZTYPES[type];
+    dr.zombies.push({
+      type, x: W + 60, y: GROUND_Y + 14, dir: -1, radius: T.r,
+      walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0, attackSide: 0,
+      lane: 0, depth: 1.06, yJit: rand(-2, 2), stagger: 0, chill: 0, hitFlash: 0,
+      dead: false, deathT: 0, walk: rand(30, 70),
+      hit: false, vx: 0, vy: 0, vr: 0, rot: 0, landed: false,
+      groundY: GROUND_Y + 14,
+    });
+  }
+  for (const z of dr.zombies) {
+    if (z.hit) {
+      z.vy += 900 * dt;
+      z.x += z.vx * dt; z.y += z.vy * dt; z.rot += z.vr * dt;
+      if (z.y > z.groundY) {
+        z.y = z.groundY;
+        if (!z.landed) {
+          z.landed = true;
+          spawnParticles(z.x, z.y, 6, '#7a2f2f', { speed: 110, life: 0.4, size: 2.2, grav: 400 });
+        }
+        z.vx *= 0.8; z.vr = 0;
+        z.rot += (Math.sign(z.rot || 1) * 1.45 - z.rot) * Math.min(1, dt * 9);
+      }
+    } else {
+      z.x -= (dr.v * 0.92 + z.walk) * dt;    // جاده زیر پایشان می‌گذرد
+      z.walkPhase += dt * 5;
+      if (!dr.ended && cs.car && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z, dr.v);
+    }
+  }
+  dr.zombies = dr.zombies.filter(z => z.x > -90 && z.x < W + 160);
+  /* برخورد با موانعِ راه‌بندی: سرعت می‌گیرد/می‌شکند ولی باخت نیست */
+  for (const p of DRIVE_PROPS) {
+    if (p.kind !== 'barrier' || dr.hits[p.wx]) continue;
+    const sx = p.wx - dr.scroll;
+    if (!dr.ended && Math.abs(sx - CS_DRIVE_CAR_X) < 48) {
+      dr.hits[p.wx] = true;
+      dr.v = Math.max(CS_T.vMin, dr.v * 0.55);
+      state.shake = Math.max(state.shake, 7);
+      if (cs.car) cs.car.kick = 1;
+      SFX.csCrash();
+      spawnParticles(sx, GROUND_Y - 6, 14, '#c9a35a', { speed: 200, life: 0.7, size: 3, grav: 500 });
+      spawnParticles(sx, GROUND_Y - 4, 8, 'rgba(190,180,168,0.6)', { speed: 120, life: 0.9, size: 5, grav: -30 });
+    }
+  }
+  /* خطوط سرعت در سرعت بالا */
+  if (dr.v > 430 && Math.random() < dt * 30) {
+    state.particles.push({
+      x: rand(60, W - 60), y: rand(80, GROUND_Y - 40),
+      vx: -dr.v * 1.6, vy: 0, age: 0, life: 0.22, size: rand(1, 2),
+      color: 'rgba(200,215,255,0.5)', grav: 0,
+    });
+  }
+  /* جای بازیکن روی سقف کابین (پاها روی لبه‌ی سقف) */
+  if (cs.car) cs.draw.player = { x: cs.car.x + CS_T.catchDX, y: cs.car.y - 60, rot: -0.06, aim: -0.5 };
+}
+
+/* ------------------ به‌روزرسانی کات‌سین (هر فریم) ------------------ */
+function updateCutscene(dt) {
+  if (!CS || CS.paused) return;
+  const cs = CS;
+  const t = (cs.t += dt);
+  const D = cs.draw;
+
+  /* زوال جلوه‌های عمومی */
+  state.shake = Math.max(0, state.shake - dt * 22);
+  state.flash = Math.max(0, state.flash - dt * 2.2);
+
+  /* ---- مرحله ۱: لرزش پیش‌رونده + ترک‌خوردن (کند و منطقی) ---- */
+  if (t < CS_T.shakeEnd) {
+    const k = t / CS_T.shakeEnd;                   // شدت به‌مرور رشد می‌کند
+    D.cracks = k;
+    state.shake = (2 + 9 * k) * (0.6 + 0.4 * Math.abs(Math.sin(t * 14)));
+    if (Math.random() < dt * 14 * (0.2 + k)) {     // گردوغاک چکه‌کن از ترک‌ها
+      spawnParticles(TOWER.x + rand(-52, 52), GROUND_Y - rand(15, 120), 1, '#9c8a6d',
+        { speed: 40, life: 0.7, size: 1.8, grav: 300 });
+    }
+    SFX.csRumble();
+    if (Math.random() < dt * 1.1 * (0.3 + k)) SFX.csCrack();
+  }
+
+  /* ---- مرحله ۲: فروریختن طبقه‌ی اول (۳٫۴ تا ۵٫۲) ---- */
+  else if (t < CS_T.col1End) {
+    const p = clamp((t - CS_T.shakeEnd) / (CS_T.col1End - CS_T.shakeEnd), 0, 1);
+    if (!cs.boomed1) { cs.boomed1 = true; SFX.csBoom(); state.shake = 12; }
+    D.cracks = 1;
+    D.floors[0].a = clamp(1 - p * 1.45, 0, 1);      // طبقه‌ی اول: خرد و محو
+    D.floors[0].dy = p * p * 40;
+    D.floors[0].rot = p * 0.04;
+    D.floors[1].dy = p * 52;                        // طبقه‌های بالا پایین می‌آیند
+    D.floors[2].dy = p * 52;
+    D.rubble = clamp(p * 0.5, 0, 0.5);
+    state.shake = Math.max(state.shake, 3 + 6 * (1 - p));
+    const bn = [0.05, 0.35, 0.65, 0.95].filter(b => p >= b).length;
+    while (cs.bursts1 < bn) { csBrickBurst(0, cs.bursts1); cs.bursts1++; }
+    /* بازیکن روی بامِ در حال نشستن است */
+    D.player = { x: TOWER.x, y: TOWER_TOP_Y + D.floors[2].dy, rot: D.floors[2].rot * 0.6, aim: -1.2 };
+  }
+
+  /* ---- مرحله ۳: فروریختن طبقه‌ی دوم (۵٫۲ تا ۷٫۰) ---- */
+  else if (t < CS_T.col2End) {
+    const p = clamp((t - CS_T.col1End) / (CS_T.col2End - CS_T.col1End), 0, 1);
+    if (!cs.boomed2) { cs.boomed2 = true; SFX.csBoom(); state.shake = 11; }
+    D.floors[0].a = 0;
+    D.floors[1].a = clamp(1 - p * 1.4, 0, 1);
+    D.floors[1].dy = 52 + p * 70;
+    D.floors[1].rot = -p * 0.05;
+    D.floors[2].dy = 52 + p * 60;                  // بام باز هم پایین می‌آید
+    D.floors[2].rot = p * 0.1;                     // و کم‌کم کج می‌شود
+    D.rubble = clamp(0.5 + p * 0.35, 0, 0.85);
+    state.shake = Math.max(state.shake, 3 + 5 * (1 - p));
+    const bn = [0.1, 0.45, 0.8].filter(b => p >= b).length;
+    while (cs.bursts2 < bn) { csBrickBurst(1, cs.bursts2); cs.bursts2++; }
+    SFX.csRumble();
+    D.player = { x: TOWER.x, y: TOWER_TOP_Y + D.floors[2].dy, rot: D.floors[2].rot * 0.6, aim: -1.2 };
+  }
+
+  /* ---- مرحله ۴: لغزیدن/سقوط بام (طبقه‌ی ۳) روی توده‌ی آوار ---- */
+  const cf = clamp((t - CS_T.chunkDrop) / CS_T.chunkDur, 0, 1);
+  if (cf > 0 && !cs.chunkHit) {
+    D.floors[0].a = 0;
+    D.floors[1].a = 0;
+    D.floors[2].a = 1;
+    D.floors[2].dy = 112 + cf * cf * (GROUND_Y - TOWER_TOP_Y - 140);
+    D.floors[2].rot = 0.1 + cf * 0.34;             // لغزیدن کج
+    if (t < CS_T.playerDrop) {                      // بازیکن هنوز روی بامِ لغزان است
+      D.player = { x: TOWER.x, y: TOWER_TOP_Y + D.floors[2].dy, rot: D.floors[2].rot * 0.6, aim: -1.2 };
+    }
+    if (cf >= 1) {
+      cs.chunkHit = true;
+      D.floors[2].a = 0;                           // بام خورد و در آوار رفت
+      D.rubble = 1;
+      state.shake = 12;
+      SFX.csLand();
+      spawnParticles(TOWER.x, GROUND_Y - 10, 26, '#8a6f52', { speed: 240, life: 0.8, size: 3.4, grav: 560, up: true });
+      spawnParticles(TOWER.x, GROUND_Y - 4, 18, '#6e5a44', { speed: 170, life: 1.2, size: 4.2, grav: 260, up: true });
+    }
+  }
+
+  /* ---- ماشین نجات: ورود نرم از چپ و ایستادن زیر بازیکن ---- */
+  const catchT = CS_T.playerDrop + CS_T.fallDur;   // لحظه‌ی رسیدن بازیکن به ماشین
+  if (t >= CS_T.carEnter && t < CS_T.driveStart) {
+    if (!cs.car) {
+      cs.car = { x: -160, y: GROUND_Y + 14, spin: 0, kick: 0, hand: 1.8 };
+      SFX.csEngine();
+    }
+    if (t < catchT) {
+      /* حرکت قطعی از زمان (قابل تست و پرش زمانی): نرم به زیر برج می‌رسد */
+      const u = clamp((t - CS_T.carEnter) / (catchT - CS_T.carEnter), 0, 1);
+      const e = u * u * (3 - 2 * u);
+      cs.car.x = -160 + (TOWER.x + 160) * e;
+      cs.car.spin += 24 * dt;
+    } else {
+      cs.car.x = TOWER.x;                          // زیر برج منتظر بازیکن
+      cs.car.spin += 6 * dt;
+    }
+    cs.car.hand = Math.max(0, cs.car.hand - dt);   // اول کار دست می‌دهد
+    SFX.csEngine();
+    /* تصادم ساده: هر زامبیِ جلوی مسیر کنار پرتاب می‌شود */
+    for (const z of cs.zombies) {
+      if (!z.hit && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z, 430);
+    }
+  }
+
+  /* ---- سقوط قوسی بازیکن و نشستن روی ماشین ---- */
+  const pf = clamp((t - CS_T.playerDrop) / CS_T.fallDur, 0, 1);
+  if (pf > 0 && !cs.caught) {
+    const y0 = TOWER_TOP_Y + 112;                   // بامِ نشسته روی آوار (پیوستگی با فریم قبل)
+    const y1 = GROUND_Y + 14 - 60;                 // سقف کابین ماشین
+    const arc = -46 * Math.sin(Math.PI * Math.min(1, pf * 1.25));   // جهش اول
+    D.player = {
+      x: TOWER.x + 8 + pf * (CS_T.catchDX - 8),    // کمی به سمت ماشین می‌لغزد
+      y: y0 + arc + (y1 - y0) * pf * pf,           // جهش + سقوط شتاب‌دار
+      rot: pf * 0.62,                              // چرخش تدریجی حین سقوط
+      aim: -2.35,                                  // اسلحه بالا (چنگ زدن به هوا)
+    };
+    if (!cs.whistled) { cs.whistled = true; SFX.csWhistle(); }
+    if (pf >= 1) {                                 // رسید به ماشین — سوار شد
+      cs.caught = true;
+      state.shake = 4;
+      SFX.csThud();
+      spawnParticles(D.player.x, D.player.y, 9, '#ffd873',
+        { speed: 120, life: 0.5, size: 2.4, grav: 320, up: true });
+    }
+  }
+  if (cs.caught && cs.car && t < CS_T.driveStart) {
+    /* سوار شدن: بازیکن روی سقف کابین، پاها روی لبه‌ی سقف، کمی به عقب خم */
+    D.player = { x: cs.car.x + CS_T.catchDX, y: cs.car.y - 60, rot: -0.07, aim: -0.5 };
+  }
+
+  /* ---- زامبی‌های صحنه‌ی برج: خزش به سمت آوار یا فیزیک پرتاب ---- */
+  for (const z of cs.zombies) {
+    if (z.hit) {
+      z.vy += 900 * dt;
+      z.x += z.vx * dt; z.y += z.vy * dt; z.rot += z.vr * dt;
+      if (z.y > z.groundY) {
+        z.y = z.groundY;
+        if (!z.landed) {
+          z.landed = true;
+          addDecal(z.x, true);
+          spawnParticles(z.x, z.y, 6, '#7a2f2f', { speed: 110, life: 0.4, size: 2.2, grav: 400 });
+        }
+        z.vx *= 0.8; z.vr = 0;
+        z.rot += (Math.sign(z.rot || 1) * 1.45 - z.rot) * Math.min(1, dt * 9);
+      }
+    } else {
+      const dir = Math.sign(TOWER.x - z.x) || 1;
+      if (Math.abs(TOWER.x - z.x) > 155) { z.x += dir * z.speed * dt; z.walkPhase += dt * 5; }
+      else z.walkPhase += dt * 2.2;                // دور آوار جمع می‌شوند
+    }
+  }
+
+  /* ---- شروع بخش رانندگی (زیر پوشش سیاهیِ کوتاه) ----
+     (بعد از تعویض صحنه، رانندگی دیگر به‌روز نمی‌شود — ماشین رفته است) */
+  if (t >= CS_T.driveStart && !cs.drive) startCsDrive();
+  if (cs.drive && !(cs.post && t >= cs.post.switchT)) updateCsDrive(dt);
+
+  /* ---- محو به سیاهی / سیاهی / بازگشت صحنه (نسبی به پایان رانندگی) ---- */
+  cs.fade = !cs.post ? 0
+    : t < cs.post.fadeOut ? 0
+    : t < cs.post.black ? clamp((t - cs.post.fadeOut) / CS_T.fadeDur, 0, 1)
+    : t < cs.post.fadeIn ? 1
+    : clamp(1 - (t - cs.post.fadeIn) / (CS_T.endOff - CS_T.fadeInOff), 0, 1);
+
+  /* پرداخت غرامت در دلِ سیاهی — قبل از ظاهر شدن متن‌های صفحه‌ی سیاه */
+  if (cs.post && !cs.compApplied && t >= cs.post.black) cutsceneApplyCompensation();
+
+  /* تعویض صحنه در دلِ سیاهی: برج دوم + شهر سوخته */
+  if (cs.post && t >= cs.post.switchT && !cs.switched) {
+    cs.switched = true;
+    state.towerVariant = cs.variant;
+    state.cutsceneDone = true;
+    state.dayness = 0.3;
+    state.dayTarget = 1;                          // صبحِ شهر سوخته
+    cs.zombies = [];
+    if (cs.drive) cs.drive.zombies = [];
+    state.particles = []; state.texts = []; state.zaps = []; state.decals = [];
+    cs.car = null;
+    D.floors = [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }];
+    D.cracks = 0; D.rubble = 0; D.player = null;  // بازیکن روی برج جدید
+  }
+
+  /* ---- پایان کات‌سین → روزِ برج جدید ---- */
+  if (cs.post && t >= cs.post.end) { cutsceneFinish(); return; }
+
+  /* ذرات/متن‌های کات‌سین همیشه جریان دارند */
+  updateParticles(dt); updateTexts(dt); updateZaps(dt);
+}
+
+/* ------------------ رسم: ماشین نجات دوست راننده ------------------
+   ماشین عضلانی نارنجی-قرمز با نوار مشکی، شیشه‌ی آبی، راننده‌ی کلاه‌دار،
+   چراغ جلو با مخروط نور (شب)، چرخ‌های در حال چرخش و دنباله‌ی غبار. */
+function drawCar(car) {
+  ctx.save();
+  ctx.translate(car.x, car.y);
+  const b = Math.sin(animTime * 16) * 1.1 - car.kick * 3;   // نرمی تعلیق + ضربه‌ی تصادم
+  /* سایه روی زمین */
+  ctx.fillStyle = 'rgba(0,0,0,0.42)';
+  ctx.beginPath(); ctx.ellipse(0, 4, 78, 10, 0, 0, Math.PI * 2); ctx.fill();
+  /* چرخ‌ها (زیر بدنه) */
+  for (const wx of [-48, 48]) {
+    ctx.fillStyle = '#15181f'; circle(wx, -12, 13);
+    ctx.fillStyle = '#3c4250'; circle(wx, -12, 7.5);
+    ctx.strokeStyle = '#9aa3b5'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let k = 0; k < 4; k++) {                // پره‌های در حال چرخش
+      const a = car.spin + k * Math.PI / 2;
+      ctx.moveTo(wx - Math.cos(a) * 3, -12 - Math.sin(a) * 3);
+      ctx.lineTo(wx + Math.cos(a) * 6.5, -12 + Math.sin(a) * 6.5);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#cfd6e4'; circle(wx, -12, 2.2);
+  }
+  ctx.translate(0, b);
+  /* بدنه‌ی پایین — قرمز آتشین + نوار مسابقه‌ای مشکی */
+  const bg = ctx.createLinearGradient(0, -30, 0, 0);
+  bg.addColorStop(0, '#ff7a4d'); bg.addColorStop(0.5, '#e8563f'); bg.addColorStop(1, '#b23a30');
+  ctx.fillStyle = bg; rr(-77, -26, 154, 24, 9); ctx.fill();
+  ctx.fillStyle = 'rgba(20,16,20,0.9)'; rr(-77, -15, 154, 7, 3); ctx.fill();
+  /* کابین + شیشه‌ها */
+  ctx.fillStyle = '#c23a2c';
+  ctx.beginPath();
+  ctx.moveTo(-46, -26); ctx.lineTo(-34, -54); ctx.lineTo(26, -54); ctx.lineTo(44, -26);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(160,215,255,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(-38, -28); ctx.lineTo(-29, -50); ctx.lineTo(20, -50); ctx.lineTo(34, -28);
+  ctx.closePath(); ctx.fill();
+  /* راننده (دوست ما): سر + کلاه + دست تکان‌دادن اول ورود */
+  ctx.fillStyle = '#f0c49a'; circle(-8, -40, 5.5);
+  ctx.fillStyle = '#2c3550';
+  ctx.beginPath(); ctx.arc(-8, -41, 5.8, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillRect(-14, -41, 12, 2.4);               // لبه‌ی کلاه
+  if (car.hand > 0) {
+    ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-2, -36);
+    ctx.lineTo(-8 + Math.sin(animTime * 9) * 3, -50 - car.hand * 8);
+    ctx.stroke();
+  }
+  /* اسپویلر عقب */
+  ctx.fillStyle = '#8a2f26'; rr(-74, -61, 36, 5, 2); ctx.fill();
+  ctx.fillStyle = '#3c4250';
+  ctx.fillRect(-48, -57, 4, 8); ctx.fillRect(-70, -57, 4, 8);
+  /* سپرهای کرومی + چراغ‌ها */
+  ctx.fillStyle = '#cfd6e4'; rr(72, -15, 8, 8, 3); ctx.fill(); rr(-80, -15, 8, 8, 3); ctx.fill();
+  ctx.fillStyle = '#ff5d4d'; rr(-79, -22, 5, 8, 2); ctx.fill();  // عقب
+  ctx.fillStyle = '#fff3c4'; circle(74, -20, 4.5);               // جلو
+  /* مخروط نور چراغ جلو (کات‌سین در شب است) */
+  const hg = ctx.createLinearGradient(74, -20, 158, -14);
+  hg.addColorStop(0, 'rgba(255,235,160,0.30)'); hg.addColorStop(1, 'rgba(255,235,160,0)');
+  ctx.fillStyle = hg;
+  ctx.beginPath();
+  ctx.moveTo(74, -24); ctx.lineTo(158, -30); ctx.lineTo(158, -4); ctx.lineTo(74, -16);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* زامبی‌های کات‌سین: معمولی = همان رسم بازی؛ پرتاب‌شده = چرخشی + بدون سایه‌ی زمین */
+function drawCsZombie(z) {
+  if (!z.hit) { drawZombie(z); return; }
+  ctx.save();
+  ctx.translate(z.x, z.y - (z.landed ? 10 : 0));
+  if (z.rot) ctx.rotate(z.rot);
+  drawZombie(Object.assign({}, z, { x: 0, y: 0, noShadow: true, attacking: false }));
+  ctx.restore();
+}
+
+/* توده‌ی آوار پایه‌ی برج (k = ۰..۱ اندازه‌ی توده) + غبار روی آن */
+function drawRubble(k) {
+  if (k <= 0.02) return;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, k * 1.2);
+  ctx.translate(TOWER.x, GROUND_Y + 2);
+  /* هسته‌ی توده + غبار فراگیر روی آن */
+  ctx.fillStyle = 'rgba(58,48,36,0.92)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 74 * k, 16 * k + 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(160,140,110,' + (0.16 * k).toFixed(2) + ')';
+  ctx.beginPath(); ctx.ellipse(0, -9 * k, 62 * k + 12, 30 * k + 6, 0, 0, Math.PI * 2); ctx.fill();
+  /* قطعات آجر/سنگ پراکنده */
+  for (const p of RUBBLE_PTS) {
+    ctx.save();
+    ctx.translate(p.dx * k, -p.dy * k - 2);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.col;
+    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.restore();
+  }
+  /* تیرهای چوبِ کج‌مانده */
+  if (k > 0.7) {
+    ctx.strokeStyle = '#4a3b2a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-30, -6); ctx.lineTo(-2, -40);
+    ctx.moveTo(26, -4); ctx.lineTo(44, -30);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ترک‌های داستانی برج (k = ۰..۱ طول هر ترک):
+   شکاف تیره‌ی پهن + لبه‌ی روشنِ تراشه تا در تاریکی شب هم خوانا باشد */
+function drawTowerCracks(k) {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const c of TOWER_CRACKS) {
+    const n = Math.max(2, Math.ceil(c.pts.length * k));
+    const seg = (off, col, lw) => {
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.moveTo(TOWER.x + c.pts[0][0] + off, GROUND_Y + c.pts[0][1]);
+      for (let i = 1; i < n; i++) ctx.lineTo(TOWER.x + c.pts[i][0] + off, GROUND_Y + c.pts[i][1]);
+      ctx.stroke();
+    };
+    seg(1.5, 'rgba(232,210,175,0.55)', 2.1);   // لبه‌ی روشنِ تراشه
+    seg(0, 'rgba(13,8,4,0.94)', 4.2);          // شکاف تیره
+  }
+  ctx.fillStyle = 'rgba(160,140,110,' + (0.1 * k).toFixed(2) + ')';
+  ctx.beginPath(); ctx.ellipse(TOWER.x, GROUND_Y - 80, 84, 118, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ------------------ افق شهر سوخته (برج دوم) ------------------
+   ساختمان‌های سوگته با بام‌های شکسته + پنجره‌های تیره/نارنجی +
+   کانون‌های آتشِ چشمک‌زن با دنباله‌ی دود + مهِ دودیِ پایه‌ها.
+   آتش و دود در روز هم (کم‌رنگ‌تر) دیده می‌شوند — شهر هنوز می‌سوزد. */
+function drawRuinedSkyline(d) {
+  ctx.fillStyle = mixHex('#141018', '#6e5546', d);
+  ctx.beginPath();
+  for (const b of RUIN_SKYLINE) {
+    const top = GROUND_Y - b.h;
+    ctx.moveTo(b.x, GROUND_Y);
+    ctx.lineTo(b.x, top);
+    for (const n of b.notch) {                 // لبه‌ی فروریخته‌ی بام
+      ctx.lineTo(b.x + n.dx, top);
+      ctx.lineTo(b.x + n.dx + n.w * 0.5, top + n.d);
+      ctx.lineTo(b.x + n.dx + n.w, top);
+    }
+    ctx.lineTo(b.x + b.w, top);
+    ctx.lineTo(b.x + b.w, GROUND_Y);
+    ctx.closePath();
+  }
+  ctx.fill();
+  /* پنجره‌های شکسته: روز و شب — تیره‌ها سیاه، نارنجی‌ها سوسوزن */
+  for (const w2 of RUIN_WINS) {
+    if (w2.lit) {
+      const fl = 0.55 + 0.45 * Math.sin(animTime * 4 + w2.ph);
+      ctx.fillStyle = 'rgba(255,140,60,' + (fl * (0.6 + 0.4 * (1 - d))).toFixed(2) + ')';
+    } else {
+      ctx.fillStyle = 'rgba(5,3,6,0.5)';
+    }
+    ctx.fillRect(w2.x, w2.y, 3.4, 5);
+  }
+  /* کانون‌های آتش + دودِ بالا رونده — حتی روز هم به‌روشنی دیده می‌شوند
+     (۸٫۰: آتش روز کمی قوی‌تر تا روی آسمان سپیا خوانا بماند) */
+  const fireA = 0.86 + 0.14 * (1 - d);
+  for (const f of RUIN_FIRES) {
+    const fl = 0.55 + 0.45 * Math.sin(animTime * 5 + f.ph);
+    const g2 = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 23);
+    g2.addColorStop(0, 'rgba(255,150,66,' + (0.85 * fireA * fl).toFixed(2) + ')');
+    g2.addColorStop(0.5, 'rgba(255,110,40,' + (0.45 * fireA * fl).toFixed(2) + ')');
+    g2.addColorStop(1, 'rgba(255,110,40,0)');
+    ctx.fillStyle = g2; circle(f.x, f.y, 23);
+    ctx.fillStyle = 'rgba(255,200,120,' + (0.9 * fireA * fl).toFixed(2) + ')';
+    circle(f.x, f.y, 3);                        // هسته‌ی روشن شعله
+    const sy = f.y - 13 - (animTime * 7 + f.ph * 10) % 26;
+    ctx.fillStyle = 'rgba(64,50,52,' + (0.45 * fireA * fl).toFixed(2) + ')';
+    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime + f.ph) * 4, sy, 7.5, 13, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime * 0.7 + f.ph) * 7, sy - 17, 11, 16, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  /* مهِ پایه‌ی ساختمان‌ها: خاکستریِ دودی */
+  const fog = ctx.createLinearGradient(0, GROUND_Y - 46, 0, GROUND_Y);
+  fog.addColorStop(0, 'rgba(120,95,80,0)');
+  fog.addColorStop(1, d > 0.5 ? 'rgba(160,130,110,' + (0.24 * d).toFixed(2) + ')'
+                              : 'rgba(80,60,55,' + (0.2 * (1 - d)).toFixed(2) + ')');
+  ctx.fillStyle = fog;
+  ctx.fillRect(-20, GROUND_Y - 46, W + 40, 46);
+}
+
+/* ------------------ صحنه‌ی رانندگی (۸٫۰) ------------------
+   جاده‌ی شب زیر نور چراغ‌ها: خط‌چین متحرک، اجزای کنار راه (چراغ/درخت/
+   بوته/سنگ/مانع)، زامبی‌های سرآمد، ماشین با بازیکن روی سقف و — وقتی
+   نزدیک مقصد می‌شویم — محوشدنِ شهر سوخته در افقِ پیش‌رو. */
+function drawDriveScene() {
+  const cs = CS, dr = cs.drive;
+  const d = state.dayness;                       // کات‌سین شب است (d ≈ ۰)
+
+  /* افق شهر معمولی + تپه‌ها (پس‌زمینه‌ی ثابت — حس حرکت با اجزای نزدیک) */
+  drawSkyline();
+  ctx.fillStyle = mixHex('#16244a', '#8fae6e', d); drawHillRow(HILLS1);
+  strokeCrest(HILLS1, mixHex('#2c4272', '#b7d193', d));
+
+  /* نزدیک‌شدن به مقصد: شهر سوخته در افقِ پیش‌رو ظاهر می‌شود (۸٫۰: پررنگ) */
+  if (dr.progress > 0.4) {
+    ctx.save();
+    ctx.globalAlpha = clamp((dr.progress - 0.4) / 0.35, 0, 1);
+    drawRuinedSkyline(d);
+    ctx.restore();
+  }
+
+  /* جاده‌ی آسفالت + شانه‌ها */
+  const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  gg.addColorStop(0, mixHex('#23262e', '#565b66', d));
+  gg.addColorStop(1, mixHex('#101216', '#2e3238', d));
+  ctx.fillStyle = gg;
+  ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';       // لبه‌ی روشن سرِ جاده
+  ctx.fillRect(-20, GROUND_Y, W + 40, 3);
+  /* خط‌چین زرد وسط جاده — با اسکرول می‌دود (۸٫۰: پررنگ برای خوانایی) */
+  const dash = 46, off = dr.scroll % (dash * 2);
+  ctx.fillStyle = 'rgba(244,206,110,0.66)';
+  for (let x = -dash * 2 + off; x < W + dash; x += dash * 2) {
+    rr(x, GROUND_Y + 24, 32, 5.5, 2.5); ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(220,215,200,0.14)';       // جدول کنار جاده
+  ctx.fillRect(-20, GROUND_Y + 42, W + 40, 3);
+
+  /* اجزای کنار راه */
+  for (const p of DRIVE_PROPS) {
+    const sx = p.wx - dr.scroll;
+    if (sx < -70 || sx > W + 90) continue;
+    drawRoadProp(p, sx);
+  }
+
+  /* زامبی‌های خیابانی + ماشینِ بازیکن (مرتب‌شده با عمق) */
+  const ents = [];
+  for (const z of dr.zombies) ents.push({ y: z.y, csZ: z });
+  if (cs.car) ents.push({ y: cs.car.y - 1, car: cs.car });
+  ents.sort((a, b) => a.y - b.y);
+  for (const e of ents) {
+    if (e.car) drawCar(e.car);
+    else drawCsZombie(e.csZ);
+  }
+}
+
+/* یک جزء کنار راه: چراغ‌برق / درخت / بوته / سنگ / مانعِ راه‌بندی
+   (۱۰٫۰) در انتقال‌های فصل، CS.drive وجود ندارد → dr ممکن است null باشد */
+function drawRoadProp(p, sx) {
+  const dr = CS && CS.drive;
+  const d = state.dayness;
+  if (p.kind === 'lamp') {
+    ctx.strokeStyle = mixHex('#151d33', '#3a4457', d); ctx.lineWidth = 3.6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sx, GROUND_Y + 2); ctx.lineTo(sx, GROUND_Y - 52); ctx.stroke();
+    ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(sx, GROUND_Y - 52); ctx.lineTo(sx - 10, GROUND_Y - 52); ctx.stroke();
+    let fl = 0.8 + 0.2 * Math.sin(animTime * 9 + p.ph);
+    if (Math.random() < 0.01) fl = 0.3;
+    ctx.fillStyle = 'rgba(255,214,120,' + (0.75 * fl * (1 - d * 0.8)).toFixed(2) + ')';
+    circle(sx - 9, GROUND_Y - 50, 2.6);
+    const g = ctx.createLinearGradient(sx - 9, GROUND_Y - 48, sx - 9, GROUND_Y + 4);
+    g.addColorStop(0, 'rgba(255,214,120,' + (0.14 * fl * (1 - d * 0.8)).toFixed(2) + ')');
+    g.addColorStop(1, 'rgba(255,214,120,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(sx - 14, GROUND_Y - 48); ctx.lineTo(sx - 4, GROUND_Y - 48);
+    ctx.lineTo(sx + 6, GROUND_Y + 4); ctx.lineTo(sx - 26, GROUND_Y + 4);
+    ctx.closePath(); ctx.fill();
+  } else if (p.kind === 'tree') {
+    drawTree(sx, p.s * 0.85, false);
+  } else if (p.kind === 'bush') {
+    ctx.fillStyle = mixHex('#12251a', '#3c5a33', d);
+    for (const [ox, oy, r] of [[-8, 2, 7], [0, -2, 9], [9, 2, 6.5]]) {
+      ctx.beginPath(); ctx.ellipse(sx + ox * p.s, GROUND_Y + oy * p.s, r * p.s, r * 0.72 * p.s, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (p.kind === 'rock') {
+    ctx.fillStyle = mixHex('#2a2d36', '#6a6f7a', d);
+    ctx.beginPath();
+    ctx.moveTo(sx - 9 * p.s, GROUND_Y + 3);
+    ctx.lineTo(sx - 5 * p.s, GROUND_Y - 7 * p.s);
+    ctx.lineTo(sx + 3 * p.s, GROUND_Y - 9 * p.s);
+    ctx.lineTo(sx + 10 * p.s, GROUND_Y + 3);
+    ctx.closePath(); ctx.fill();
+  } else if (p.kind === 'barrier') {
+    const hit = !!(dr && dr.hits && dr.hits[p.wx]);
+    ctx.save();
+    ctx.translate(sx, GROUND_Y + 2);
+    if (hit) { ctx.rotate(0.42); ctx.translate(6, 2); }
+    /* بدنه‌ی نارنجی-سفید راه‌بندی + پایه‌ها */
+    ctx.fillStyle = hit ? '#7a4a20' : '#d8712c';
+    rr(-17, -20, 34, 13, 2); ctx.fill();
+    ctx.fillStyle = hit ? '#9c9c94' : '#f2ece0';
+    for (const bx of [-13, -3, 7]) ctx.fillRect(bx, -20, 7, 13);
+    ctx.fillStyle = '#3a3f4a';
+    ctx.fillRect(-15, -8, 4, 10); ctx.fillRect(11, -8, 4, 10);
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2;
+    rr(-17, -20, 34, 13, 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* آیکون کوچک برج مقصد (انتهای نوار پیشرفت رانندگی) */
+function drawMiniTower(x, y) {
+  const cols = ['#3f8d86', '#357871', '#9c4252'];
+  for (let i = 0; i < 3; i++) {
+    const w = 16 - i * 3;
+    ctx.fillStyle = cols[i];
+    ctx.fillRect(x - w / 2, y - 4 - i * 6, w, 6);
+  }
+  ctx.fillStyle = '#ffd873';
+  circle(x, y - 24, 2);
+}
+
+/* ------------------ لایه‌ی رویی کات‌سین ------------------
+   نوارهای سینمایی، زیرنویس مراحل، تپش قرمزِ لرزش، نوار پیشرفت و
+   راهنمای رانندگی، محو/سیاهی و متن‌های صفحه‌ی سیاه — بعد از همه‌ی
+   لایه‌ها رسم می‌شود */
+function drawCutscene() {
+  if (!CS) return;
+  const t = CS.t;
+  /* نوارهای سینمایی (ورود/خروج نرم) — حین رانندگی کوتاه‌تر تا جاده دیده شود */
+  const lIn = clamp(t / 0.45, 0, 1);
+  const lOut = clamp(((CS.post ? CS.post.end : CS_T.driveStart + 20) - t) / 0.55, 0, 1);
+  const L = (CS.drive && !CS.drive.ended ? 26 : 46) * Math.min(lIn, lOut);
+  if (L > 0.5) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, L);
+    ctx.fillRect(0, H - L, W, L);
+  }
+  /* زیرنویس مراحل (کپسول پایین صحنه) */
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 15px Tahoma, sans-serif';
+  for (const c of CS_CAPS) {
+    if (t < c[0] || t > c[1]) continue;
+    const a = Math.min(1, (t - c[0]) / 0.25, (c[1] - t) / 0.25);
+    ctx.globalAlpha = a;
+    const tw = ctx.measureText(c[2]).width + 26;
+    ctx.fillStyle = 'rgba(0,0,0,0.66)';
+    rr(W / 2 - tw / 2, H - L - 42, tw, 26, 13); ctx.fill();
+    ctx.fillStyle = '#f3e9cf';
+    ctx.fillText(c[2], W / 2, H - L - 29);
+    ctx.globalAlpha = 1;
+  }
+  /* تپش قرمز لبه‌ها حین لرزش زمین */
+  if (t < CS_T.shakeEnd) {
+    const a = 0.1 + 0.08 * Math.sin(t * 26);
+    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+    g.addColorStop(0, 'rgba(180,20,20,0)');
+    g.addColorStop(1, 'rgba(180,20,20,' + a.toFixed(2) + ')');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+  /* ---- HUD رانندگی: نوار «مسیر تا برج جدید» + راهنمای کنترل ---- */
+  const dr = CS.drive;
+  if (dr && !dr.ended && t > CS_T.driveStart + 0.4) {
+    const pct = Math.round(dr.progress * 100);
+    const bw = 430, bx = (W - bw) / 2, by = 58;
+    ctx.font = 'bold 13px Tahoma, sans-serif';
+    ctx.fillStyle = '#e8ecf5';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 6;
+    ctx.fillText('مسیر تا برج جدید — ' + faNum(pct) + '٪', W / 2, by - 13);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(5,9,22,0.92)';
+    rr(bx, by, bw, 14, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,216,115,0.55)'; ctx.lineWidth = 1.5;
+    rr(bx, by, bw, 14, 7); ctx.stroke();
+    const fw = (bw - 6) * dr.progress;
+    if (fw > 4) {
+      const fg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+      fg.addColorStop(0, '#f0b53c'); fg.addColorStop(1, '#ffd873');
+      ctx.fillStyle = fg;
+      rr(bx + 3, by + 3, fw, 8, 4); ctx.fill();
+    }
+    /* نشان ماشین روی نوار + آیکون برج مقصد */
+    ctx.fillStyle = '#e8563f';
+    rr(bx + 3 + Math.max(0, fw - 8), by + 1.5, 15, 11, 3); ctx.fill();
+    drawMiniTower(bx + bw + 20, by + 14);
+    /* راهنمای کنترل (چند ثانیه‌ی اول) */
+    const k = clamp((t - CS_T.driveStart - 0.6) / 0.4, 0, 1)
+            * clamp((5.8 - (t - CS_T.driveStart)) / 0.8, 0, 1);
+    if (k > 0.03) {
+      ctx.globalAlpha = k;
+      const hw = 470, hx = (W - hw) / 2, hy = by + 24;
+      ctx.fillStyle = 'rgba(4,7,18,0.94)';
+      rr(hx, hy, hw, 32, 16); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,216,115,0.6)'; ctx.lineWidth = 1.6;
+      rr(hx, hy, hw, 32, 16); ctx.stroke();
+      ctx.font = 'bold 14px Tahoma, sans-serif';
+      ctx.fillStyle = '#ffd873';
+      ctx.fillText('گاز', hx + hw - 54, hy + 16);        // سمت راست: گاز
+      ctx.fillStyle = '#8fd6ff';
+      ctx.fillText('ترمز', hx + 58, hy + 16);           // سمت چپ: ترمز
+      ctx.fillStyle = '#c3cdea';
+      ctx.font = 'bold 12px Tahoma, sans-serif';
+      ctx.fillText('کلیدهای جهت‌دار یا لمس چپ/راست صفحه', W / 2, hy + 16);
+      /* فلش‌های جهت (رسم مسیری — بدون متن، ضد به‌هم‌ریختگی RTL) */
+      ctx.fillStyle = '#ffd873';
+      ctx.beginPath(); ctx.moveTo(hx + hw - 26, hy + 15); ctx.lineTo(hx + hw - 36, hy + 9); ctx.lineTo(hx + hw - 36, hy + 21); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8fd6ff';
+      ctx.beginPath(); ctx.moveTo(hx + 26, hy + 15); ctx.lineTo(hx + 36, hy + 9); ctx.lineTo(hx + 36, hy + 21); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+  /* پوشش سیاهی کوتاه هنگام ورود به جاده (تعویض صحنه زیر آن پنهان است) */
+  if (CS.drive && t < CS_T.driveStart + 0.4) {
+    const a = 1 - clamp((t - CS_T.driveStart) / 0.4, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,' + a.toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  /* محو به سیاهی */
+  if (CS.fade > 0.003) {
+    ctx.fillStyle = 'rgba(0,0,0,' + CS.fade.toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  /* متن‌های صفحه‌ی سیاه: اسلحه‌ها سوختند + غرامت + رسیدن به مقصد
+     (پنجره‌ی زمانی — نه آلفای محو — تا با شروعِ روشن‌شدن صحنه ناپدید نشوند) */
+  if (CS.post && t >= CS.post.black) {
+    const tb = CS.post.black;
+    const lines = [
+      [tb + 0.15, 'bold 21px Tahoma, sans-serif', '#ff9d8a', 'اسلحه‌هایت زیر آوار ماند...'],
+      [tb + 0.72, 'bold 26px Tahoma, sans-serif', '#ffd873', 'غرامت: +' + faNum(CS.compCoins) + ' سکه'],
+      [tb + 1.35, 'bold 30px Tahoma, sans-serif', '#e8ecf5', 'به موقعیت جدید رسیدید...'],
+      [tb + 1.9, 'bold 19px Tahoma, sans-serif', '#ffd873', '🏗 برج بعدی'],
+    ];
+    let li = 0;
+    for (const [t0, font, col, txt] of lines) {
+      const a = clamp((t - t0) / 0.45, 0, 1) * clamp((CS.post.fadeIn + 0.35 - t) / 0.3, 0, 1);
+      if (a <= 0.02) { li++; continue; }
+      ctx.globalAlpha = a;
+      ctx.font = font; ctx.fillStyle = col;
+      ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 12;
+      ctx.fillText(txt, W / 2, H / 2 - 52 + li * 36);
+      ctx.shadowBlur = 0;
+      li++;
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* اتصال دکمه‌ی «رد کردن» (عنصر در HTML موجود است) — (۱۰٫۰):
+   در هر حالت سینمایی، عملِ مناسب همان حالت انجام می‌شود */
+$('skipCs').addEventListener('click', () => {
+  if (state.mode === 'intro') skipIntro();
+  else if (state.mode === 'transition') skipTransition();
+  else skipCutscene();
+});
+/* آیکون‌های فروشگاه (۹٫۰) — برش مستقیم از تصویر مرجع کاربر
+   (مکعب‌های فروشگاه با قاب تکنیک/گرادیان/نماد) + دو کاشی ترکیبی
+   هم‌سبک (تله خار و شاتگان). جاسازی‌شده به‌صورت data-URI تا بازی
+   تک‌فایل و بدون منبع خارجی بماند. */
+const CUBE_SPRITES = {
+  repair: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAABIFBMVEX98O7719b8qqjlq6P6gn73bGukd41EdcD2Xlv0U1T2SEWVTF0lTHj1PD/3NDn2JyvSMj+tMTtyL0ZHNE5HJz0ePGUaMFIRKUkQJUISIjWBICwUICwUICsUICoQIDHqHCKMHDhFHDITHiwKGzMOGywHHTgGGjb6FBn4DBPoERvmChb0BQvrBQnhBQrfAQPPDhvOCBS3DRu2CBfUAgXIAga/AgWxAgqdDBmbBxikAw+XBBKGDR6FCBmKBRZ+BRZzDiRvCBpvBxldDB1dBxluBBZbBRZFEiREDBpMBxlABxhPBRdHBRc/BRYxDBowBxgvBhkuBRgzAxYlAxQNFSQFFiwODh4DDR0aBRUPBA8CBRABAgQSAAkGAAcAAQIAAQAAAAChMbpWAAAOhElEQVR42u2ZeVfi3LKHHUi/SeiQQKut+NqR1jaEKYQ5kSDzDAqOdOiX7/8t7q92AEHtdc5a95z7x11dy4mY1LNr2LVr7+z8/V+WnT+AP4A/gP8DwOnp6euns7P/rHYo3znzlH5ncnLyfVNO18I+fXh1697tj9+/Q/nOr18zfL6E3F8+HB8/3T9ALv49efDk9///+evXzmIxOzu7uDx7vL+/f3giwSNXVxc/flxd0Td+rIX+vrravrb+xwdXLn4uFgT4/u372ezwr8+Qw8PDzyv5638hSxUrwOXZ0yEuHr6Rzxu0fy2H7+VoBTibHf3119GP4+Ovazl+lXcX1tc3H9i86+TbyckJfq9cdPL0daX/5GLlRPbwEeTwX8iRJ6T89dklaAlg+r/hwv3s/vTk5Ojoy5aEVuJfCf4KvYp31wHJCZPTp4ctwE/45/CY6ff0bejclPOPZP1f0h9ajen+6esa8Gtxxvzz9evlry9fIp60P5RRp92ur2R5BdIebUi7jccPQo8PG4B7jP/k+OsJxh8JPc9ms5eVzD3xPrgkz+zn62d3dc9s+YseB+ELI1wsAZ+J9o3pH3nanj2ZQu4gt+PJZOjJZDwZj0bDyWQyvr3Ff0ju6D72AHt4NoOiLxSHNeCrp78disxWqtlDnnpo70H1YECAXq877A16Hmoy8QB3y7u9Z19mjyGEY/bwYwNwMjvwR0IHc++Wu4knd+MxG3uv1xsMup70W336NRj0SEZkyngMxtTDMML8zM8IG4CnU5h1MHthfrmbDEfDIUNAOYY+IL0tfEEazWaj0Wj1+/1uv+tRegyCoYyJARWP879D9S/w0hoAAyBzTz+0ki7ygzdyKGvVoLZWazarlVKlVq0SA99kDIPAYcyHE4/w/PM0FEGyrgEXswP4/2VK+se9bt9RzWaj32d+6UNRo1mr4KtWqVSui06lUq3VqrXratNjDJi/Ot1Wv4fQe4TZc+TL5dKCx8NjD7Acf6/RKmlqpdYgLzDtzVq1fF2ulOxSqVTMFPETJMepkEkwhfzXbTWqptnoDiZw0wrwtA148fzfazllU9YtqwKHN5rVKsZdvi4Vi3axmIGY+CrZTqlYcsplGNOotxp1Goajqk0YMV4CQmvA/ecfDx5g6gEMWdM0VS42a7UajdSxbdtiutNp0zDSJhj4bOGy7ZSrJIiNlVHVktPqDW+J8PIbwN3tZNAydF1TdT3TxNDL0G6ZTPL5dCxmxHQDjDRophk0TUJcw1cVS6Zhyc5wCZhuAZiL5phet0iGfqViyqplOZUyDd6UOE94SU/EdB3oWFqVeJ6na7xilsoYR/naTKtaxmz2PB+9jD4ATGnWAtBoZmTVxthLJcvkOX+oPpxMRxE/x4l6VNOiMV3wcaHICB5th/ycUKTgO46l6uVGf/AbQGQJQOb3GzXHMBFGq2AKnL/jToeDznDizl0wApqmSz5/G3Vu0hlO54t5z88pSK6SbRlGucYAILy038TAA9yOUGv6jXqt4unnuLo7vAkqoiiISrg7X4R8gsz5Igu3ThclRSl23UWb4zOWUy6V7BqzgKrfS/v8LeCAADCgi5SrIu+L0O8fDsMKz4tMpEB4PG/7fJ9G825Q4AVcCARk2ewspjxvla6dMqZ7v9ubvAMcwkXt0IF7h/lOAOR+texYGc4/GQYRTEEUeYRYhtQXo09jNwzdsEkUAYhiTrruJ9HCtKhVG90OStMScP8GMEcRJUALdaBaLlkCx/Rze/t7u3v7Pk7EcOWq606DorS/x/FQD4CGsFcWU05BvlZuGl2qfTDhpR0+eAOIvAAA/f1WtUIGGFxnEhYE3+7Ozg6ppwEj1Rs/w6K4t7MnIuujUQ1XEnG9vwhxJbuMad0fdFiibgIelwB3QrUZgGalXCoWBL9bF0jXzs7e3p6PBULSo8a1rO7t8pjqBIhHtUQ2GzWGrl+xrxGEequLKNzd/Q6AJEWWViolGDByg6LIQf8u9HsmiAEMWt33UThIfzQeTyRz+YRWdMO8jdJElbw7GI7vtl109TBrhxmADGhUYYEl+hcdiQyAesi+jwyQJFnTfXx0BYhDUtlcNhobTnhMnWvmJUqkbQsA6IQjLwBQ5QXAKWb40ALJIuzu+nyMQBYEiMDzmuwBNA+Qy+cT0eY0KBWKKOFVzAWsP5ho7wAuAzRQGTFnTG40V0SJ34V3mPACMhUismTy9DMAXJRPRYvDoEArRbmK5XTQ+wjQJgAijBBjFhu8Ow1IYmClnxNR2kRJ1vVkKqUy/Z4BFIN8VjOaRd7MFItYpwD4yIKbtotVlVLIgX5L5d1hICBpwhIgUu0UZIVYnKGuDUgQIJeTlUpRMC0spwRYuujxPQALX9OxgmamoApzAAKazHvjZ7VZVCmpdnaU2Hr8DJBPBxTbEk3M5kq1yVzkIsiPb100ZClqF3xKLqcK/zCAJosCqg5PpV+UloBgbBWAJSAZUKyMZGYoBk0s0r3ec+/mPaBHgLJt+oR0WhXcqcoAkABKEelfWRBMvupPJPP5XCyg5A0RK6m99BEBIm8AXQBaWAosZQ8AXZi4BgEkISCLrOJJoqDyKxdFvVkGySLGuqTmVInagaJdQUkdDN3OTeTpvQUIcakg+Ph0OsbX/yli8FGRyiicpaZjaSMveBbk4ZZ8MkGAFAAJTVSzciCTznOK5dSarTeAo6sLAOouJgEBkPF6LCmGFzVZk6OyILK8N/aZ7LDaR8IVSH0qlS9kEzJvpDCEdNrHF0oVAAbPW4AfawC6A5MLcHIsJivuRKdk8SaWprCx7+yS0K+dfYvpzxbyqbgkZHURvYbh4zIeYIqZ+w6A1bhatoKcwYkxXRM6CxulLbosDMpS+Vr2rRQJZkFK45WULKVjWUwT0y43W93fACgElsJlOT4R1QPBxTCWiEejrN/RzN3d94BsKlfIpRISn0yJsDqLDgdBqKDpJMDjFuD8xkUInEyB47MCF4/qmjj6acUT8bjGxNxl7t8A2KlsliIQ17hAShXRzmQFgRcLJQdzbfouyOc3z/2mY2cyPimv+KKqmiATKFOwqBAAcd3b83RjEcUnOwsHFfKJuCgkk1JA59UkJ0kcWkoQJtuAK2ZBVQkIHOcz8oZPlXycb+9g0YynkCsIhZYuWIWC5WeAoE19aSGbzRUKqbgs6AkRRXEvEPOpqo+aQMWZdMPtd4CGaSiQTD7tkzifIHCKO7dASKXYtEokE/klIE/pk83mC0hRTTDyMZqJPkH3GUnSoJjlSf28/S4GPSqltl3M5Hy8T4rHY4HzxTRNuZikSYvSAAB5KYjBM/9Af1RSrAImZDwucgqXzuUR5GazP+2evw8yWiJqiEqZPEqoSn2uVKcwULa8AhCIYB4A8k8uEUeZs4xADCL7eC5vYW9Cu4TnzgbgcGVBl/V0TgZR5tNo1KOyOPynFaNll0KRSLwCcrk80y+LtmMG9BhaegNuLaDVbrJi134HCLvU92I/Uy4WDJ8IAGwIKNMFI5BLUol8kNJnP5xPef6HfqdiSWoshjKR4/cUKhQNlKK3gCsPgHpdr2LJL5k+BU+AEQ0E3UUrSTbkAEgVkD5o1JH/tkXjl+ymLWGKYUOSySl7imWTAdgCu+3zjfXgxw8GGKNrqVNfWipyBp5IG3CTxAgwIUc2JLNUPZE/lp1PQr9TsUVPf9EqKFQnaqwvQtvyDnDuYneDKNSaZELGKi4JIhGgHDYwP6VyuVzBsnKYAIrTtMUA+QfLfRGbFQsRQFs0vL19qZ+H7t8A5rcTtvtA9+SU2IaVAq1pYnC6GKTRIaKuUfbA/dCP8QebTQe9ns62hdiBlIrYdV630Jx+BAgyQA/L/g0C7VBrkcGWkiq2oEwWkwxbWnJe+iDAMdls9a8FORpFBmHLiU0U1NeaVeopbm/dDcD9K2DZO2LTSNPBMA1mgiaidE/tJKvNTH0uq8vFQT+81G+YWCuhv1bDtnwAwB0BDj4A0AanT5MB22M7oyMGSFasCZJws3Ar6dQy/XNZTW1N0ctpUd3Tn9aRP1VqG/udHnrfu98AmAUNb/9tGuRdIsCIAB+e/+rnUzkEACuYZg5dTz+pNzOGqpk2+okGAL2PABcMQDucpQVVAuhkuuG5SaZQD22WrQm9OHW7Cva03vAz8KaKDK1SX0qnL7fYH/wOQFsopCr5yDIsZBKLA9zEAvGzlU6l4pmh64aFgE7jT8P72F4WDdrf1OjshWKMHQ4BHjYB52sAnbBU2TbNcej8g04OYqjXshByFxMnXcHP4Cq8hrk8FEEEqo1GF5tAdmg02wZ8WwLG1MF3l17CPqRMs4H6KViBTb6otBfucD7H8LFAxsj7aBeRPghv3dM/oPOv94ATD3DHtoGUqXR0Rn4qw4gSneNgrDpqHx+czEdB0Rs+TS+bDR/5ScdtGBt2gGM69doGHHul4g47caQqc1OfTtCqNwyBWZ0xTUZQJSkoojrrXnSL3uyi/KfhkwGTW3YiNa9jn/wGMGenmOPJiM4Tut16vV69qVZvrq+v4ShoQyQg6kq9aaL+UL9eq9JJMMLb6XToTI0d283bW4CTJYCOQ8Z0SjrAXoSdMjYhdH5m25ZVyFMNT7PanLGocGP1ajbZYSQd8NGh4FL/W8AxA3gnvePRZHkSHlyKsiXYCQZoNyi9XlrdGAwN7+5+CwjPvRPf22nok9/v3zzXj7QjdIy/ecb/aS3svN87dPd/8q9OgOe0R3vwjvfp7PoV8Az9ny/uH1ZyP5u7o87I/Tl7enp6fLqHPD6yH4/4Xr1VWsrRpxB0sONlAB4efgEwm10iBk+jm8jySHzk9588sPdekIvvjy9h/yeO87dfoPbykt6R3Z9tvW1b3Qt5OPJHnh+ZjCIHlw+z2Wzn9PTvs7Oz01P69uTy8mz7bd43PLr5wnDz3eEb+X65fotHLwDpTSA9sHXP2VsF7F3hv/kS8j37z+veP4A/gP8PgP8B5fJdEzx8g7gAAAAASUVORK5CYII=',
+  speed: 'data:image/png;base64,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',
+  health: 'data:image/png;base64,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',
+  weapon: 'data:image/png;base64,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',
+  trap: 'data:image/png;base64,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',
+  shotgun: 'data:image/png;base64,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',
+  mg: 'data:image/png;base64,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',
+  gatling: 'data:image/png;base64,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',
+  sniper: 'data:image/png;base64,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',
+  frost: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAABIFBMVEXDzcC6qIFXuuBkjcEQzfoKpvAJlewFi/SVfnBSdq05crMSeM8Cf/gGfOYCcekHbtdUX3o8W4wzXp4zU4UdYq0iXo8gU5clT38FZdQEXcwJXLgCVLoCT7YEUKsKT4w8PFAnQGUhQXEhMlYaPm4ZNV4aMVUYKUwMRIoMQGgLNm4QMlkMLmANLFELJlILJEIBSaUCQ5wBQJICPYcBOYQBNn8CNHgCMnABL24CLGwBK2UBKl4BJl4CJFQeIjAVIS0VICoUIS8UISsUICsUICoIIUcOIDQBIVATHjAUFicLGzYLEiIGHEUHGTUGECUGBxgCHUwCGEYDGTcDFTYCEy4CDzACDR8CBx0CAhIAHEYAFjcAES0ACycAAgoAAA8AAAEAAABYFUbKAAAMxElEQVR42u2ZaUPiyhKG0YAYIjsCAcIagmxhBxEZ58wE2UIUEhIhqP//X9yqDng843Y+3Pvp+o6BUUI9XVW9VHdsv/7Hsn0DvgHfgG/A/wXg917/bcMHu7Yfe/21181vfD3cdvNGv//U3zZffe/XwewP22yvCd48/vV7KvwaW4Lbxv/UaDQav9HbxsPfxpODXdvzXsoEpCiGsdDXprkFLRYmeVmQX8wF+SP+5VOpRLJysGt72ms2mYwVMcfnK3kQz/PpTCYSiZy/VgD0+v/kt8BB+w/gS5FMZHSw++IBABSBcsGHuVyO53PEfjAYDnwlf9BS5KAMWpg8P+09sN6enmc3O5FySfJyOZ3K8mazWanqFn72nlvRMVHbLVwYL3MvK3RbjbxocCvESPkDAB4oc8p1PRIlUQJND5qDxL3w//MlaH7Q/o7pa8myPJWnbwBPT2PKVRVFScZEG/p7Is3VP5WprFUZpbwJ0QjaL4rV6a5aLBYLheRLZpNEhUKhUyx2u91eD3563WJnr26xW7QEkS+X+amBhOlbgN8lTiVxZFQ4LhaLsVGv1/1GTqfT8VpOIvjA6/VG2VgswXFcWNQxTG8B+ZwsirNdleOK1XK5ClelXC6XQPB2Vb2+voL3iz9VtlS9vbufL1cr+b6crFfW0+nyLaDCS+LkSUwmCpAD3Xyl7Qq61Ob+T93dXl/f3t7dwXUPN2ggzFCZC5XBh3c84KWRIdVrEc3UVkR7O5auQYODrlD9yy5JSe+yPwDOHO6Fzr3Wi1y4ar4LENdyoVbQ9K0GDYJWE/sPYPzWsg02/9Zlp9Nut1pwtTu9K3TlAQCrjbo121xYXb8LUCSuAO3XALBZPjyg+YcHYr4Pti8vL6G1cEG7wXqzUW804GoCpT8ghIcH+OJGMwucqr8HmCpSoq9rmtV4tA3xvb2GlmMw2m2rWzbBYqvVqNdrtUQs6mW5RqPZgSgNICPEiyUAVusPALGivlXRvmWdhAbD0Wo2avUGGG42YlwdxHGJuJeJtaVynU00IEqXELaBRTALMXnxHmAJgIIO8bHMk6yC9V6306zXuESiBiFpxD0sV0sk4qyb4R52w+HMWHLxJnGv20cfHjZmOLZ8FyArElswNxYAjLc7A2K+024k4nGWTUDLEx5PlI2zHieTNHepI4qm/UOjHms0IRfNHiEsASAv1m8BJVmXoklzeW/Zv+q3210w34aw1NkoKIFh8XjOPG4H09NnPspGBegATad2YbaGEexcQrIf7okH7wPmB8At2Mee0sSoN2qJqMfj8bJs1HMGcjgqj8NT2zFl89PCeOinUzoTTdTqzXYXutPdgxn6ECB5CQAG6e1Vr8HVG7VaA3pLnPWCXY/HjeY9Drs4pMA8OEALO8XQg9RYckNmoDfhiHjYhmLzDwEF07J/fX1Zi9VqXBymrzgbPSNy4uWwnw9tFJi3QYTWir5daDRthDwcBy5gFgDALtX3AEvlmgBwbA0Gl9h1MLcQfzeZNXH2tIO29DGaB0DQAIBq5qnsnZOFXtbCjvSghVj5MwCx3+/3Og20H4W0etC8nYiprMQJsQ4QKggB0raq5vcbjCeRqDc7Awuw+gjAEADODb0OjFawD73mDBpvtx+fi1LyehgUnobYeIqiKcq/eDS0jbxN00ryLJ6ot3sAuEOApnwASJo4DQ+uLtF+LcES+w778XHEmA2Nmc8WmSskBQiw+ae7R/N+uRGoacUJkwbpp3cfeMDzGKKkeUcc6Lagd0J6AYDmM/rklCqlKRt9L0oWgKZpG53d7XSYFrNUfnkS5xokyQQgvwVkSysDc0Ay0GtB76xhBk7sx66KmaVtNn4ObQ6qfHpiI+ZpP0UFd0/6snqbpbLqCcvVWzgQbj8AQIiMa3cOATC7NTicHaJR6JRbJQXd3kZVBeg7mUXQr1jmodKiAtknZSlJaYpfOuLQTztfAiBEt4N+p1UnPSjqtl/oMCUcHwNA8kFyg7Ng0PDRAT/UbxneT/uFR7Gy8VGCeBKvNdrdy48BWQugAQAyTCZMr8fOLCiwfkyn0ra8D/LqV4X8WqChvoTqMseDI1ltIVCByYWz9gVg74EGKQBAHRPgtjskH7Tdl/KdDulMnqYpejoRfhuRDL8XKU1pOvgE4wDniq8AXgSQPlqLRz32c1Ox2Xyp06Ojo1TQP6Vh7hSUqboTMlgf8+iEK+APuFxjiFAcprsvAMoLoFnnWNYeUvxpOpg6Qp2m/LOgP0hH1oq2VtIZPg3WC+FCIcS4IrMt445zOFV8BYAQXV/3e20EeO2bIFWmAxbgCMawAKmNiIa6WS8gB1jeh2MMk5R3I8bJggM4Dj5NsjKwAN12o55gT5gd9JrAAZAq5uRMLs+nVV2d6YtwKFxIMidMU99VQg5n9F8BjKtXgLgjBLOaLxPKnloxkiJzEcIeSS+Uzex5nWQYJlQ1ZucnDqcnGoXJtN7oWADuwySXDyGyAONjKiIEcgg4PTodFvm1wJeAMFV2C+NpUVk8j1x2uwPXIjYOgPoXAFH5wwPN5TofZ4okRqdHqXlmsZ6KpSJ00tx0p0+MGUyyjhOn8wwLAVzR9iGKsep7IYLKrs9gL+pjnRKPnzB6KBCe8m3x9Ij8m6xMZWJOpWqlqj4aerk8A/u4CoELAMBVfw+IvQfA0nFgAXqdJiw2XseaD+eq1ZyUOiJRGgq0jUrvDGMHMnQpZ4ReAB4s8UiF9ymg702uYCPQg0oIRrLjQi+Ui8tKdQLNP02lfDB/0v7x0/PT4+5RN6Xk4mIPwJojGockWwDuXYBAAAXIAZSiTZir427HrlToSnJlM0ylUukIjAI/FQwKIwGVL4XzIztkAB04w6ImXm9jJf8hAJNsAXrteiwOs6nj/LHIxSQ9n4ZNM4wr2Az7M5F8GaaJMl/uJLULO9qH1sMOKuqON9qXV7jgfAZokiRDjt1eFicjvRpepXHuz2TSmUimtJyLWqWCG9pqeaM77KT92Pp4Il6D0u4LQNnbIUluNTi3F9d7e2hkPIbD0PYMD71HmovCQtdMxVBURakwdisBUTIKIMfdyyuosLXaJ4CiBkUXLDjN/YIPSSxV8XyhJMqaKkqR4OjRVBfrZVG/sKN98MC7HwVQXvcHn3tw6e3CgvPSjcAHt9Pu0AvFsgRbSD4vZuigODVhkyJxGnYhUpCdReO4XLYAMECAycU+Gsld8ACqCgSgC14PKYkuHhe6kstUShIfoP0VXhCFUpnbVCwHMEikMG1B7XsFxe89FL+rDzwoMkVc9GFBIBP2oeZiQufrSDjDZ2Dx8pf5DJ8HwLyElR6J0ZkXhnETtjn9K1K+Q206fd+DF0DXArihHgX7yfMLJXge9PsDAYou82k8TkqKM9ijw1C2xnGiQXabkOL7zwAd7wHQacSjXrQPdYs+vr83pjJMQlVJEFbmWlmbJiw64u3d7twO9snuBHNMHPh3gFYMq16y29CpY8aVHmZTqOEwm83COIbXiItxFtewGGAvYlluv/24X0IO5p8DBj0oW1hS+DrsoRnUWaQYtVk1+/ExKRz9/kgkFHtk7OBBPJFgGCzrbj8D8Ai4IJVdB/pQHMoKDFFpSJNjtbBFoYN4ikZOznKZCKNfMIzTC8OgxjVfA+QPARr0UlLZcfGoG+ZTZZelAq6Aa+8Fhbs+aH0wjV0px8gwb+cYrFhaVuX7OaANkx2pfduw8eYSznM9wISrpUhEqpRKPBRYUNqhIhkRs5DlS/NcKPJYYHGxISUL2Sd/FiILsN8dnFyVXOGCkMmIPtrn88EAEzDBeHy3TZM88NVIgVvdxZqwwySHLg8P9x8BeAJoalb5DrNRnXMvip2qOiuVBRgDfl8aFExDbAAyneeFuSzLC1EqT9VYkxwmkE66+RxQIICrq16v3eKiz3z3SjdgB5PmSxVhiQeM1Yooq5q6NZfkVFNXZWn6VGh1yXEIZABPW2KfAUxyCDLoB0KgdAQWAigYYUMPLgRJ/PEcFt9oK9m4VPBQnYZcrsj9HI++1D8AhyPgA4AcJNy5aOyH6YxlNJgrVWBZw5Pgve19l6JpVyCCKxHIT/F4jKVt1xwC3hwt8zlRacFAI4dcASonL2VZXS5l2FPvnofD4fPTWlXVFawF64WqvpyTqyqe1C5Xsiz5qTwB6FwMp4rD4fjhGF4QRpPKhTiZjkYjMZ3Hc/yfY3gd/ZxMcNEfTiYvJ/o/Dxr/3B/448H/KJudwm+TSYkfvzrePzxI+P3794+byc0P8hRiNrnBRxg3N/Dz68ePEbR9/OPHr183v6xHFPjoAp834Od/P7qYTOD1r7/QzM3fDyj+8SDj58vzi388ccDbb75+CHP4Fnl/ecTy/ZjrG/AN+AZ8A/4L+g82ykgH+BkOMQAAAABJRU5ErkJggg==',
+  turretUp: 'data:image/png;base64,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'
+};
+
+/* نسخه‌ی بارگذاری‌شده‌ی تصاویر برای رسم سریع روی کاشی‌ها */
+const CUBE_IMGS = {};
+for (const k in CUBE_SPRITES) {
+  const im = new Image();
+  im.onload = () => { repaintCubeIcons(k); };
+  im.src = CUBE_SPRITES[k];
+  CUBE_IMGS[k] = im;
+}
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۵: فصل‌بندی، جریان موج‌ها و سیو
+   ==================================================================
+   ساختار چهار فصل بازی (هر فصل ۸ موج + موج ۳۳ = «آخرین شب»):
+     ۱) محله‌ی قدیمی   — آجری، شب معمولی، برج سنگی/آجری
+     ۲) منطقه‌ی انبارها — صنعتی، مه‌گرفته، برج فولادی + قطع برق تصادفی
+     ۳) پاسگاه نظامی    — خرابه‌ها، ماه خونی و بارش خاکستر (شهر سوخته‌ی ۷٫۰)
+     ۴) برج مخابراتی   — بارانی/برفی، رعدوبرق پرتواتر، برج لاجوردی
+   قواعد:
+     - جون، سکه، سلاح‌ها، ارتقاها و کوله‌پشتی بین فصل‌ها حفظ می‌شوند
+     - برجک‌ها روی برج قبلی می‌مانند (هر فصل از نو ساخته می‌شود)
+     - پایان هر فصل = انتقال سه‌فازی سینمایی-قابل‌بازی (بخش ۷)
+     - سیو خودکار localStorage: پایان هر موج + هر خرید + شروع هر فصل
+   این فایل توابع جریان نسخه‌های قبل (startGame/startWave/waveComplete/
+   startNight/spawnZombie) را با نسخه‌ی فصل‌دار بازنویسی می‌کند.
+   ================================================================== */
+
+/* ---------------------- ۵-۱) ثابت‌های فصل‌بندی ---------------------- */
+const WAVES_PER_CH = 8;                    // موج‌های عادی هر فصل
+const FINAL_WAVE = 33;                     // ۴×۸ + ۱ = موج آخرِ کل بازی («آخرین شب»)
+
+/* شماره‌ی فصل/موجِ درون‌فصلی از شماره‌ی موجِ سراسری */
+function waveChapter(w) { return w <= 8 ? 1 : w <= 16 ? 2 : w <= 24 ? 3 : 4; }
+function waveInChapter(w) { return clamp(w, 1, FINAL_WAVE) - (waveChapter(clamp(w, 1, FINAL_WAVE)) - 1) * WAVES_PER_CH; }
+
+/* ابزارهای تصادفی مکمل */
+function irand(a, b) { return Math.floor(rand(a, b + 0.999)); }
+function chance(p) { return Math.random() < p; }
+
+/* تنظیمات کامل هر فصل:
+   mulHp/mulSpd/mulCount = ضریب سختی دشمن‌ها • unlock = موجِ درون‌فصلیِ ورود انواع
+   blackout = تعداد قطع‌برق‌های تصادفی هر شب • theme = پالت و حال‌وهوای صحنه */
+const CHAPTERS = [
+  { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
+    name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
+    waves: WAVES_PER_CH,
+    mulHp: 1.00, mulSpd: 1.00, mulCount: 1.00,
+    unlock: { fast: 3, tank: 6 },
+    blackout: null,
+    theme: {
+      sky: [['#05091a', '#5aa9e0'], ['#0d1734', '#93cdf0'], ['#182550', '#c9e6f6'], ['#233865', '#e9f3fa']],
+      moon: { x: 176, y: 88, r: 37 },
+      skyline: 'city', grade: 'cold',
+      ground: {
+        h1: ['#16244a', '#8fae6e'], h1c: ['#2c4272', '#b7d193'],
+        h2: ['#101d3d', '#7a9a5e'], h2c: ['#263a63', '#a5c180'],
+        soil: ['#1e2815', '#587a3d'], soilD: ['#0c110a', '#2c3f21'],
+        grass: ['#273418', '#6f964b'], blade: ['#33451f', '#82b25c'],
+      },
+      fog: 0, snow: false, ash: false, emberEyes: false, deadTrees: false,
+      lightning: [13, 30], darkBase: 0, props: 'village',
+    },
+  },
+  { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
+    name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
+    waves: WAVES_PER_CH,
+    mulHp: 1.28, mulSpd: 1.08, mulCount: 1.12,
+    unlock: { fast: 1, tank: 3 },
+    blackout: { min: 1, max: 2 },
+    theme: {
+      sky: [['#070d16', '#6e8ca0'], ['#10202e', '#9db4c4'], ['#1a3441', '#c2d2da'], ['#24424a', '#dde8ec']],
+      smoke: { c: '110,130,145', a: [0.26, 0.12] },
+      moon: { x: 760, y: 70, r: 26, dim: 0.75 },
+      skyline: 'warehouse', grade: 'cold',
+      ground: {
+        h1: ['#15202e', '#8e9aa6'], h1c: ['#243448', '#b7c2ca'],
+        h2: ['#101a26', '#7c8892'], h2c: ['#1e2c3e', '#a5b0b8'],
+        soil: ['#232a30', '#6a7278'], soilD: ['#101418', '#3a4046'],
+        grass: ['#2e3844', '#7d8894'], blade: ['#3a4654', '#8d99a6'],
+      },
+      fog: 0.9, snow: false, ash: false, emberEyes: false, deadTrees: false,
+      lightning: [22, 46], darkBase: 0.5, props: 'warehouse',
+    },
+  },
+  { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
+    name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
+    waves: WAVES_PER_CH,
+    mulHp: 1.60, mulSpd: 1.16, mulCount: 1.22,
+    unlock: { fast: 1, tank: 1 },
+    blackout: { min: 0, max: 1 },
+    theme: {
+      sky: [['#170b1c', '#7a6a58'], ['#241028', '#96816a'], ['#3a1626', '#b39a7d'], ['#4a1c28', '#cdb08c']],
+      smoke: { c: '150,85,55', a: [0.30, 0.15] },
+      moon: { x: 806, y: 96, r: 44, blood: true },
+      skyline: 'ruin', grade: 'ember',
+      ground: {
+        h1: ['#242028', '#8d7f6c'], h1c: ['#3a3440', '#a8977f'],
+        h2: ['#1c1820', '#7c6e5c'], h2c: ['#302a34', '#97866f'],
+        soil: ['#2a2118', '#6b5a44'], soilD: ['#120e0a', '#3a3227'],
+        grass: ['#3a3125', '#7d6d54'], blade: ['#4a4030', '#948266'],
+        scorch: true,
+      },
+      fog: 0.15, snow: false, ash: true, emberEyes: true, deadTrees: true,
+      lightning: [16, 34], darkBase: 0.22, props: 'military',
+    },
+  },
+  { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
+    name: 'برج مخابراتی', sub: 'آخرین قله',
+    waves: WAVES_PER_CH,
+    mulHp: 1.95, mulSpd: 1.25, mulCount: 1.32,
+    unlock: { fast: 1, tank: 1 },
+    blackout: { min: 1, max: 2 },
+    theme: {
+      sky: [['#0a1020', '#8fa6bd'], ['#152238', '#b6c7d8'], ['#20304a', '#d4e0ea'], ['#2c3f5c', '#eef4f8']],
+      smoke: { c: '90,105,130', a: [0.20, 0.10] },
+      moon: { x: 250, y: 64, r: 30, dim: 0.6 },
+      skyline: 'mountain', grade: 'frost',
+      ground: {
+        h1: ['#1a2740', '#aebfd4'], h1c: ['#2c3f5e', '#d4e2ef'],
+        h2: ['#141f36', '#94a8c2'], h2c: ['#243450', '#bccce0'],
+        soil: ['#2a3342', '#8e9db2'], soilD: ['#141a26', '#4a566a'],
+        grass: ['#39465a', '#a8bacf'], blade: ['#46536a', '#bcd0e2'],
+      },
+      fog: 0.1, snow: true, ash: false, emberEyes: false, deadTrees: false,
+      lightning: [5, 12], darkBase: 0.3, props: 'telecom',
+    },
+  },
+];
+
+/* فصل فعال (برای خواندن تم/ضریب‌ها در توابع رندر) */
+function curCh() { return CHAPTERS[clamp(state.chapter - 1, 0, 3)]; }
+
+/* برچسب موج برای HUD: «فصل ۲ • موج ۳/۸» یا «آخرین شب» */
+function waveLabel() {
+  if (state.wave >= FINAL_WAVE) return '🌑 آخرین شب';
+  const w = clamp(state.wave, 1, FINAL_WAVE);
+  return 'فصل ' + faNum(waveChapter(w)) + ' • موج ' + faNum(waveInChapter(w)) + '/' + faNum(WAVES_PER_CH);
+}
+
+/* ---------------------- ۵-۲) تولید ترکیب موج‌ها ---------------------- */
+/* ترکیب هر موج به‌صورت رویه‌ای از (فصل، شماره‌ی درون‌فصلی) ساخته می‌شود؛
+   موج آخرِ کل بازی فقط نگهبان است (زامبی‌هایش را خودش فراخوان می‌کند) */
+function buildWaveQueue(w) {
+  if (w >= FINAL_WAVE) return ['boss'];
+  const ch = waveChapter(w), wv = waveInChapter(w), C = CHAPTERS[ch - 1];
+  let n = Math.round((5 + wv * 1.55) * C.mulCount);
+  const f = wv >= C.unlock.fast ? Math.round(n * 0.30) : 0;
+  const t = wv >= C.unlock.tank ? Math.max(1, Math.round(n * 0.13)) : 0;
+  n = Math.max(3, n - Math.round((f + t) * 0.55));
+  const q = [];
+  for (let i = 0; i < n; i++) q.push('normal');
+  for (let i = 0; i < f; i++) q.push('fast');
+  for (let i = 0; i < t; i++) q.push('tank');
+  for (let i = q.length - 1; i > 0; i--) {          // شافل فیشر–ییتس
+    const j = Math.floor(rand(0, i + 1));
+    const tmp = q[i]; q[i] = q[j]; q[j] = tmp;
+  }
+  return q;
+}
+
+/* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر */
+function spawnInterval(w) {
+  const ch = waveChapter(w), wv = waveInChapter(w);
+  return clamp(2.1 - wv * 0.12 - (ch - 1) * 0.18, 0.55, 2.2);
+}
+
+/* ---------------------- ۵-۳) بازنویسی جریان اصلی ---------------------- */
+/* (جایگزین نسخه‌های بخش ۲ — فصل‌دار و سیو‌دار) */
+
+function startGame() {
+  state.mode = 'intermission';
+  state.prevMode = null;
+  state.time = 0; state.wave = 0;
+  state.coins = 30;                       // سرمایه‌ی شروع
+  state.dayness = 0; state.dayTarget = 0; state.goingNight = false;
+  state.tower.hp = 100; state.tower.maxHp = 100;
+  state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 };
+  state.weapon = 'pistol';
+  state.chapter = 1;                      // (۱۰٫۰) فصل ۱
+  state.towerVariant = 0;
+  state.cutsceneDone = false;
+  state.weaponSpent = 0;
+  /* (۱۰٫۰) ریست نظام‌های جدید */
+  state.backpack = [null, null, null, null, null, null];
+  state.torch = { owned: false, on: false, battery: 0 };
+  state.buffs = { vest: false, goldAmmo: false, helmet: false };
+  state.regen = 0;
+  state.peddler = { cd: 0, here: false, stock: [] };
+  state.blackout = { on: false, waveT: 0, schedule: [], until: 0 };
+  state.projectiles = [];
+  state.cardT = 0;
+  cutsceneHardReset();                    // کات‌سین معلق نباشد (۷٫۰)
+  transitionHardReset();                  // انتقال فصل معلق نباشد (۱۰٫۰)
+  introHardReset();                       // کات‌سین افتتاحیه معلق نباشد (۱۰٫۰)
+  wipeSave();                             // بازی تازه = سیو تازه
+  WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
+  state.zombies = []; state.bullets = []; state.coinsArr = [];
+  state.turrets = []; state.placing = null; state.tipTurret = false;
+  state.particles = []; state.texts = []; state.zaps = [];
+  state.powerups = []; state.decals = [];
+  state.powerTimers = { rapid: 0, freeze: 0 };
+  state.combo = 0; state.comboT = 0; state.comboPop = 0;
+  state.killsSinceDrop = 0; state.heartT = 0;
+  state.shake = 0; state.flash = 0;   // فلش قرمز آسیب (عدد) — چراغ‌قوه state.torch است
+  state.hitMark = 0; state.muzzleGlow = 0; state.slowmo = 0;
+  state.lightning = { t: rand(9, 20), a: 0 };
+  state.stats = { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 };
+  state.spawn = { queue: [], timer: 0, interval: 2, bossDelay: false };
+  state.mouse.down = false; fireTimer = 0; announceTimer = 0;
+  state.intermission = INTERMISSION_FIRST;
+  hideOverlays();
+  hideDayPanel();
+  hidePeddlerPanel();                     // (۱۰٫۰)
+  hideChapterCard();                      // (۱۰٫۰)
+  $('wrap').classList.remove('menu-mode', 'cs-mode', 'cine-mode');
+  $('lockBadge').classList.add('hidden'); // (۱۰٫۰)
+  setBuildPanel(false, true);
+  $('btnPause').textContent = '⏸ توقف';
+  $('bpHead').classList.remove('attention');
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  updateHUD(); refreshBuildPanel(); refreshWeaponBar();
+  refreshBackpack(); refreshGearHUD();    // (۱۰٫۰)
+}
+
+/* آغاز موج سراسری n — صف ترکیبِ فصل‌محور + زمان‌بندی قطع برق */
+function startWave(n) {
+  state.wave = n;
+  state.mode = 'playing';
+  const isFinal = n >= FINAL_WAVE;
+  state.spawn = {
+    queue: buildWaveQueue(n),
+    timer: 1.2,
+    interval: spawnInterval(n),
+    bossDelay: false,
+  };
+  /* (۱۰٫۰) زمان‌بندی قطع‌برق‌های تصادفیِ این موج (فصل‌های ۲ به بعد) */
+  state.blackout.waveT = 0;
+  state.blackout.on = false;
+  state.blackout.schedule = [];
+  const C = curCh();
+  if (!isFinal && C.blackout) {
+    const k = irand(C.blackout.min, C.blackout.max);
+    for (let i = 0; i < k; i++) {
+      state.blackout.schedule.push({ at: rand(5, 24), dur: rand(8, 13), fired: false });
+    }
+  }
+  if (isFinal) {
+    $('lockBadge').classList.remove('hidden');    // فروشگاه قفل
+    setAnnounce('🌑 آخرین شب', 'فروشگاه قفل است — فقط کوله‌پشتی و برجت', 2.6);
+    SFX.roar();
+  } else {
+    setAnnounce(waveLabel(), 'دفاع کن! 🧟', 2);
+    SFX.wave();
+  }
+  SFX.dusk();
+  setBuildPanel(true, true);             // شب: پنل جمع
+  $('bpHead').classList.remove('attention');
+  updateHUD();
+}
+
+/* پایان موج: جایزه + مسیر جدید (انتقال فصل / روز / پیروزی) */
+function waveComplete() {
+  if (state.wave >= FINAL_WAVE) { startVictoryCine(); return; }   // برد واقعی (۱۰٫۰)
+  const bonus = 12 + state.wave * 4;
+  state.coins += bonus;
+  state.stats.earned += bonus;
+  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
+  pulseCoins();
+  state.zombies = []; state.bullets = []; state.projectiles = [];
+  state.blackout.on = false;              // برق برمی‌گردد
+  $('lockBadge').classList.add('hidden');
+  /* آخرین موجِ فصل → انتقال سینمایی-قابل‌بازی به فصل بعد (۱۰٫۰) */
+  const ch = waveChapter(state.wave), wv = waveInChapter(state.wave);
+  if (wv === WAVES_PER_CH && ch < 4) {
+    startTransition(ch);
+    return;
+  }
+  enterDay();
+}
+
+/* ورود به روز: پنل فروشگاه + دستفروش + سیو خودکار */
+function enterDay() {
+  state.mode = 'day';
+  state.dayTarget = 1;
+  state.goingNight = false;
+  state.slowmo = Math.max(state.slowmo, 0.45);
+  $('bossBar').style.display = 'none'; bossBarVisible = false;
+  const isFinalNext = state.wave + 1 >= FINAL_WAVE;
+  setAnnounce('☀️ صبح شد!',
+    isFinalNext ? '⚠️ شب بعدی «آخرین شب» است — آخرین فرصت خرید!'
+                : 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
+  SFX.clear();
+  SFX.morning();
+  showDayPanel();
+  $('dpHint').textContent = isFinalNext
+    ? '⚠️ شب بعدی «آخرین شب» است — کوله‌پشتیت را پر کن!'
+    : 'زامبی نمی‌آید — ارتقا بخر و برجک بگذار';
+  peddlerRoll();                          // (۱۰٫۰) شانس آمدن دستفروش مرموز
+  saveGame();                             // (۱۰٫۰) سیو خودکارِ پایان موج
+  setBuildPanel(false, true);
+  $('bpHead').classList.add('attention');
+  updateHUD(); refreshBackpack();
+}
+
+/* کلیک «شب شود» — با هشدار ویژه‌ی آخرین شب (۱۰٫۰) */
+function startNight() {
+  if (state.mode !== 'day' || state.goingNight) return;
+  state.goingNight = true;
+  hideDayPanel();
+  state.dayTarget = 0;
+  if (state.wave + 1 >= FINAL_WAVE) {
+    showBossWarn();
+    SFX.dusk();
+    SFX.roar();
+  } else {
+    setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+    SFX.dusk();
+  }
+}
+
+/* هشدار تمام‌صفحه «آخرین شب» */
+function showBossWarn() {
+  const el = $('bossWarn');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3400);
+}
+
+/* تولید زامبی با مقیاسِ فصل (جون/سرعت به موجِ درون‌فصلی و ضریب فصل وابسته است) */
+function spawnZombie(type) {
+  const T = ZTYPES[type || 'normal'];
+  const C = curCh();
+  const wv = waveInChapter(clamp(state.wave, 1, FINAL_WAVE));
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const hp = Math.max(1, Math.round((T.hpBase + T.hpWave * wv) * C.mulHp));
+  state.zombies.push({
+    type: type || 'normal',
+    x: side < 0 ? -30 : W + 30,
+    y: GROUND_Y + rand(-3, 3),
+    yJit: rand(-3, 3),
+    dir: side < 0 ? 1 : -1,
+    hp, maxHp: hp,
+    speed: (T.spdBase + T.spdWave * wv) * C.mulSpd * rand(0.85, 1.15),
+    radius: T.r,
+    biteInt: T.bite, biteTimer: rand(0.2, 0.6),
+    dmg: T.dmg,
+    walkPhase: Math.random() * Math.PI * 2,
+    attackAnim: 0,
+    attacking: false, attackSide: 0,
+    lane: 0, depth: 1,
+    stagger: 0,
+    chill: 0,
+    hitFlash: 0, dead: false, deathT: 0,
+  });
+  spawnParticles(side < 0 ? 8 : W - 8, GROUND_Y - 4, 5, '#5a4a33',
+    { speed: 55, life: 0.4, size: 2.2, grav: 180, up: true });
+  updateHUD();
+}
+
+/* ---------------------- ۵-۴) شروع فصل جدید + کارت فصل ---------------------- */
+const CH_ORD = ['اول', 'دوم', 'سوم', 'چهارم'];
+
+/* ورود به فصل ch: برج تازه + حفظ پیشرفت بازیکن (۱۰٫۰)
+   برجک‌ها/تله‌های فیزیکی مکان قبلی هستند؛ ارتقاها و وسایل می‌آیند */
+function startChapter(ch) {
+  ch = clamp(ch, 1, 4);
+  state.chapter = ch;
+  state.towerVariant = ch - 1;                 // پوسته‌ی برج فصل
+  state.wave = (ch - 1) * WAVES_PER_CH;        // موج بعدی = این + ۱
+  state.turrets = [];                          // برجک‌ها روی برج قبلی ماندند
+  state.placing = null;
+  state.zombies = []; state.bullets = []; state.projectiles = [];
+  state.powerups = []; state.decals = [];
+  state.blackout.on = false; state.blackout.schedule = [];
+  state.dayTarget = 1; state.dayness = Math.max(state.dayness, 0.85);
+  state.goingNight = false;
+  saveGame();                                  // سیو شروع فصل
+  state.mode = 'day';
+  enterDay();
+  setAnnounce('🗺 فصل ' + CH_ORD[ch - 1] + ': ' + curCh().name,
+    curCh().sub + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(WAVES_PER_CH) + ' در راه است', 3.2);
+  showChapterCard(ch);
+}
+
+/* کارت تمام‌صفحه‌ی فصل جدید */
+function showChapterCard(ch) {
+  const C = CHAPTERS[ch - 1];
+  $('ccNum').textContent = 'فصل ' + CH_ORD[ch - 1];
+  $('ccName').textContent = C.name;
+  $('ccSub').textContent = C.sub;
+  $('chapterCard').classList.add('show');
+  state.cardT = 2.9;                           // در هوک به‌روزرسانی کم می‌شود
+  SFX.clear();
+}
+function hideChapterCard() {
+  $('chapterCard').classList.remove('show');
+  state.cardT = 0;
+}
+
+/* ---------------------- ۵-۵) سیستم سیو localStorage ---------------------- */
+const SAVE_KEY = 'ttb3_save_v1';
+
+/* عکس‌الوضعتی که ذخیره می‌شود: فصل/موج بعدی، جون، سکه، سلاح‌ها و ارتقاها،
+   محتویات کوله‌پشتی، باتری چراغ‌قوه، دستفروش و آمار */
+function collectSave() {
+  return {
+    v: 1,
+    chapter: state.chapter,
+    wave: state.wave + 1,                      // موجی که بعداً بازی می‌شود
+    coins: state.coins,
+    hp: Math.ceil(state.tower.hp), maxHp: state.tower.maxHp,
+    upgrades: Object.assign({}, state.upgrades),
+    weapon: state.weapon,
+    owned: { shotgun: WEAPONS.shotgun.owned, mg: WEAPONS.mg.owned },
+    backpack: state.backpack.map(s => (s ? s.id : null)),
+    flash: { owned: state.torch.owned, battery: Math.round(state.torch.battery) },
+    buffs: Object.assign({}, state.buffs),
+    peddlerCd: state.peddler.cd,
+    weaponSpent: state.weaponSpent,
+    stats: Object.assign({}, state.stats),
+  };
+}
+
+function saveGame() {
+  if (state.mode === 'gameover' || state.mode === 'victory') return;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(collectSave())); } catch (e) {}
+  refreshMenuContinue();
+}
+
+/* خواندن امن سیو: ساختار نامعتبر = null (بدون کرش) */
+function loadSaveData() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (!d || d.v !== 1) return null;
+    if (!CHAPTERS[(d.chapter | 0) - 1]) return null;
+    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > FINAL_WAVE) return null;
+    if (typeof d.coins !== 'number' || !d.upgrades || !d.stats || !d.flash) return null;
+    return d;
+  } catch (e) { return null; }
+}
+
+/* اعمال سیو روی state (بعد از ریست کامل) — مقاوم در برابر داده‌های ناقص */
+function applySave(d) {
+  startGame();
+  state.chapter = clamp(d.chapter | 0, 1, 4);
+  state.towerVariant = state.chapter - 1;
+  state.wave = clamp(d.wave | 0, 1, FINAL_WAVE) - 1;   // enterDay با +1 ادامه می‌دهد
+  state.coins = Math.max(0, d.coins | 0);
+  state.tower.maxHp = Math.max(100, d.maxHp | 0);
+  state.tower.hp = clamp(d.hp | 0, 1, state.tower.maxHp);
+  state.upgrades = Object.assign({ weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 }, d.upgrades);
+  WEAPONS.shotgun.owned = !!(d.owned && d.owned.shotgun);
+  WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
+  state.weapon = (d.weapon && WEAPONS[d.weapon]) ? d.weapon : 'pistol';
+  state.weaponSpent = d.weaponSpent | 0;
+  state.backpack = (d.backpack || []).slice(0, 6)
+    .map(id => ((id && GEAR[id]) || (id && RARE[id])) ? { id } : null);
+  while (state.backpack.length < 6) state.backpack.push(null);
+  state.torch = {
+    owned: !!(d.flash && d.flash.owned),
+    on: false,
+    battery: clamp((d.flash && d.flash.battery) | 0, 0, 100),
+  };
+  state.buffs = Object.assign({ vest: false, goldAmmo: false, helmet: false }, d.buffs);
+  state.peddler = { cd: d.peddlerCd | 0, here: false, stock: [] };
+  state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
+  state.intermission = 0;
+  state.dayness = 1; state.dayTarget = 1;
+  updateHUD(); refreshBackpack(); refreshGearHUD(); refreshWeaponBar();
+}
+
+function wipeSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  refreshMenuContinue();
+}
+function wipeSaveAndUI() {
+  SFX.click();
+  wipeSave();
+  hideScreen('confirmBox');
+  setAnnounce('🗑 سیو پاک شد', 'برای شروع تازه «بازی جدید» را بزن', 2.4);
+}
+
+/* فعال/غیرفعال‌شدن دکمه‌ی «ادامه‌ی بازی» منو */
+function refreshMenuContinue() {
+  const btn = $('btnContinue');
+  if (!btn) return;
+  const d = loadSaveData();
+  btn.disabled = !d;
+  btn.textContent = d
+    ? '▶ ادامه — فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave))
+    : '▶ ادامه‌ی بازی (سیوی نیست)';
+}
+
+/* ادامه از سیو: دقیقاً از روزِ موجِ ذخیره‌شده */
+function continueGame() {
+  const d = loadSaveData();
+  if (!d) { SFX.deny(); refreshMenuContinue(); return; }
+  SFX.click();
+  doFade(() => {
+    applySave(d);
+    hideOverlays();
+    state.mode = 'day';
+    enterDay();
+    setAnnounce('💾 بازی ادامه پیدا کرد',
+      'فصل ' + faNum(state.chapter) + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(WAVES_PER_CH), 2.8);
+  });
+}
+
+/* بعد از باخت: تلاش دوباره از آخرین سیو (وگرنه شروع تازه) */
+function retryFromSave() {
+  const d = loadSaveData();
+  SFX.click();
+  hideOverlays();
+  if (d) {
+    applySave(d);
+    state.mode = 'day';
+    enterDay();
+    setAnnounce('🔄 تلاش دوباره',
+      'از آخرین سیو: فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)), 2.6);
+  } else {
+    startGame();
+  }
+}
+
+/* «بازی جدید» منو: اگر سیو هست تأیید بگیر، بعد کات‌سین افتتاحیه */
+function startNewGame() {
+  SFX.click();
+  if (loadSaveData()) {
+    askConfirm('با شروع بازی جدید، سیوِ قبلی پاک می‌شود. ادامه بدهم؟', () => {
+      hideScreen('confirmBox');
+      wipeSave();
+      startIntroCine();
+    });
+    return;
+  }
+  startIntroCine();
+}
+
+/* ---------------------- ۵-۶) محو نرم + جعبه‌ی تایید ---------------------- */
+let fadeBusy = false;
+function doFade(mid, dur) {
+  const d = dur || 0.45;
+  if (fadeBusy) { mid && mid(); return; }
+  fadeBusy = true;
+  const el = $('fadeDiv');
+  el.style.transition = 'opacity ' + d + 's ease';
+  el.classList.add('on');
+  setTimeout(() => {
+    try { mid && mid(); } catch (e) {}
+    setTimeout(() => { el.classList.remove('on'); fadeBusy = false; }, 90);
+  }, d * 1000 + 40);
+}
+
+let _cfYes = null;
+function askConfirm(msg, onYes) {
+  $('cfMsg').textContent = msg;
+  _cfYes = onYes;
+  showScreen('confirmBox');
+}
+$('cfYes').addEventListener('click', () => {
+  SFX.click();
+  hideScreen('confirmBox');
+  if (_cfYes) { const f = _cfYes; _cfYes = null; f(); }
+});
+
+/* ---------------------- ۵-۷) هوک‌های به‌روزرسانی/رندر ---------------------- */
+/* ماژول‌های نسخه‌ی ۱۰ منطق اضافه‌ی خودشان را این‌جا ثبت می‌کنند تا update/render
+   اصلی فقط دو خط هوک داشته باشند */
+const UPDATE_HOOKS = [];
+const RENDER_HOOKS = [];
+function hooksUpdate(dt) { for (const f of UPDATE_HOOKS) f(dt); }
+function hooksRender() { for (const f of RENDER_HOOKS) f(); }
+
+/* هوک فصل‌ها: تایمر کارت فصل */
+UPDATE_HOOKS.push(function chaptersUpdate(dt) {
+  if (state.cardT > 0) {
+    state.cardT -= dt;
+    if (state.cardT <= 0) hideChapterCard();
+  }
+});
+
+/* ---------------------- ۵-۸) افق‌های جدید: انبارها و کوهستان ---------------------- */
+/* افق صنعتیِ فصل ۲: انبارهای جعبه‌ای + جرثقیل + دودکش + چراغ‌های سدیم */
+const WH_SKYLINE = [];
+{
+  let x = -10;
+  while (x < W + 10) {
+    const bw = 66 + srand() * 88, bh = 34 + srand() * 62;
+    WH_SKYLINE.push({ x, w: bw, h: bh, win: 2 + Math.floor(srand() * 4), stack: srand() > 0.72, lamp: srand() > 0.5 });
+    x += bw + 16;
+  }
+}
+function drawWarehouseSkyline(d) {
+  const body = mixHex('#0d141c', '#7d8a96', d);
+  const edge = mixHex('#18222e', '#9aa8b4', d);
+  for (const b of WH_SKYLINE) {
+    ctx.fillStyle = body;
+    ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
+    ctx.fillStyle = edge;                                     // لبه‌ی بام ساده (شیب‌دار)
+    ctx.beginPath();
+    ctx.moveTo(b.x - 4, GROUND_Y - b.h); ctx.lineTo(b.x + b.w / 2, GROUND_Y - b.h - 9);
+    ctx.lineTo(b.x + b.w + 4, GROUND_Y - b.h); ctx.closePath(); ctx.fill();
+    /* پنجره‌های نواری روشن (شب) */
+    if (d < 0.95) {
+      const nf = 1 - d;
+      ctx.fillStyle = 'rgba(255,196,110,' + (0.5 * nf).toFixed(2) + ')';
+      for (let i = 0; i < b.win; i++) {
+        ctx.fillRect(b.x + 8 + i * ((b.w - 16) / b.win), GROUND_Y - b.h + 12, (b.w - 16) / b.win - 8, 5);
+      }
+    }
+    /* دودکش یکی‌یکی */
+    if (b.stack) {
+      ctx.fillStyle = body;
+      ctx.fillRect(b.x + b.w * 0.7, GROUND_Y - b.h - 22, 9, 26);
+      ctx.fillStyle = edge;
+      ctx.fillRect(b.x + b.w * 0.7 - 2, GROUND_Y - b.h - 24, 13, 4);
+    }
+    /* چراغ سدیم نارنجی روی بام (شب) */
+    if (b.lamp && d < 0.7) {
+      const lx = b.x + 10, ly = GROUND_Y - b.h - 4;
+      const blink = 0.75 + 0.25 * Math.sin(animTime * 2.2 + b.x);
+      ctx.strokeStyle = mixHex('#18222e', '#5a6570', d); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx, ly - 10); ctx.lineTo(lx + 8, ly - 10); ctx.stroke();
+      const g2 = ctx.createRadialGradient(lx + 8, ly - 8, 1, lx + 8, ly - 8, 16);
+      g2.addColorStop(0, 'rgba(255,170,80,' + (0.5 * blink * (1 - d)).toFixed(2) + ')');
+      g2.addColorStop(1, 'rgba(255,170,80,0)');
+      ctx.fillStyle = g2; circle(lx + 8, ly - 8, 16);
+      ctx.fillStyle = 'rgba(255,200,120,' + (blink * (1 - d)).toFixed(2) + ')';
+      circle(lx + 8, ly - 8, 2);
+    }
+  }
+  /* مه غلیظ پایه‌ی انبارها */
+  const fog = ctx.createLinearGradient(0, GROUND_Y - 60, 0, GROUND_Y);
+  fog.addColorStop(0, 'rgba(140,160,175,0)');
+  fog.addColorStop(1, 'rgba(140,160,175,' + (d > 0.5 ? 0.30 * d : 0.34 * (1 - d)).toFixed(2) + ')');
+  ctx.fillStyle = fog;
+  ctx.fillRect(-20, GROUND_Y - 60, W + 40, 60);
+}
+
+/* افق کوهستانی فصل ۴: قله‌های برفی + دکل مخابراتی بزرگ با چراغ قرمز */
+const MT_PEAKS = [];
+{
+  let x = -30;
+  while (x < W + 30) {
+    const pw = 120 + srand() * 130, ph = 90 + srand() * 110;
+    MT_PEAKS.push({ x, w: pw, h: ph });
+    x += pw * 0.62;
+  }
+}
+function drawMountainSkyline(d) {
+  /* دو ردیف قله برای عمق */
+  ctx.fillStyle = mixHex('#0e1626', '#8fa6bd', d);
+  ctx.beginPath(); ctx.moveTo(-20, GROUND_Y);
+  for (const p of MT_PEAKS) {
+    ctx.lineTo(p.x + p.w * 0.5, GROUND_Y - p.h * 0.72);
+    ctx.lineTo(p.x + p.w, GROUND_Y - p.h * 0.3);
+  }
+  ctx.lineTo(W + 20, GROUND_Y); ctx.closePath(); ctx.fill();
+  /* برف‌گیر قله‌ها */
+  ctx.fillStyle = mixHex('#2c3f5e', '#e8f0f8', d);
+  ctx.beginPath(); ctx.moveTo(-20, GROUND_Y);
+  for (const p of MT_PEAKS) {
+    ctx.lineTo(p.x + p.w * 0.5, GROUND_Y - p.h * 0.72);
+    ctx.lineTo(p.x + p.w * 0.62, GROUND_Y - p.h * 0.5);
+  }
+  ctx.lineTo(W + 20, GROUND_Y); ctx.closePath(); ctx.fill();
+  /* دکل مخابراتی بزرگ (پس‌زمینه‌ی فصل ۴) — شبکه‌ای با چراغ قرمز چشمک‌زن */
+  const mx = 780, mtop = GROUND_Y - 208, mbase = GROUND_Y - 4;
+  ctx.strokeStyle = mixHex('#1a2438', '#6a7a92', d); ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(mx - 34, mbase); ctx.lineTo(mx - 8, mtop);
+  ctx.moveTo(mx + 34, mbase); ctx.lineTo(mx + 8, mtop);
+  for (let i = 0; i < 6; i++) {                 // مهاربندهای X
+    const t = i / 6, t2 = (i + 1) / 6;
+    const w1 = 34 - 26 * t, w2 = 34 - 26 * t2;
+    const y1 = mbase - (mbase - mtop) * t, y2 = mbase - (mbase - mtop) * t2;
+    ctx.moveTo(mx - w1, y1); ctx.lineTo(mx + w2, y2);
+    ctx.moveTo(mx + w1, y1); ctx.lineTo(mx - w2, y2);
+  }
+  ctx.moveTo(mx - 20, mtop + 46); ctx.lineTo(mx + 20, mtop + 46);
+  ctx.moveTo(mx - 12, mtop + 12); ctx.lineTo(mx + 12, mtop + 12);
+  ctx.stroke();
+  ctx.fillStyle = mixHex('#1a2438', '#6a7a92', d);
+  ctx.fillRect(mx - 11, mtop + 6, 22, 8);       // سکوی آنتن
+  ctx.strokeStyle = mixHex('#243450', '#7d8ca2', d);
+  ctx.beginPath(); ctx.moveTo(mx - 6, mtop + 6); ctx.lineTo(mx - 6, mtop - 26);
+  ctx.moveTo(mx + 6, mtop + 6); ctx.lineTo(mx + 6, mtop - 20); ctx.stroke();
+  if (d < 0.8) {                                // چراغ قرمز هشدار
+    const blink = Math.sin(animTime * 2.4) > 0.2 ? 1 : 0.1;
+    const aa = (1 - d * 0.7) * blink;
+    const g2 = ctx.createRadialGradient(mx - 6, mtop - 26, 1, mx - 6, mtop - 26, 12);
+    g2.addColorStop(0, 'rgba(255,70,60,' + (0.9 * aa).toFixed(2) + ')');
+    g2.addColorStop(1, 'rgba(255,70,60,0)');
+    ctx.fillStyle = g2; circle(mx - 6, mtop - 26, 12);
+    ctx.fillStyle = 'rgba(255,120,110,' + aa.toFixed(2) + ')';
+    circle(mx - 6, mtop - 26, 2);
+  }
+}
+
+/* ---------------------- ۵-۹) اسباب‌متعلقات صحنه‌ی هر فصل ---------------------- */
+/* جعبه‌ها/بشکه‌های انبار، کیسه‌شن و خودروی سوخته‌ی پاسگاه، تل‌های برف قله */
+function drawChapterProps() {
+  const th = curCh().theme;
+  const d = state.dayness;
+  if (th.props === 'warehouse') {
+    /* بشکه‌های زنگاری + جعبه‌های چوبی کنار برج */
+    for (const bx of [122, 176, 794, 848]) {
+      ctx.fillStyle = mixHex('#3a3038', '#7d6a70', d);
+      rr(bx, GROUND_Y - 20, 13, 20, 3); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(bx, GROUND_Y - 13, 13, 2.5);
+      ctx.fillStyle = mixHex('#22262e', '#5a6270', d);
+      ctx.fillRect(bx - 1, GROUND_Y - 22, 15, 3);
+    }
+    ctx.fillStyle = mixHex('#3d3020', '#8a7452', d);
+    rr(300, GROUND_Y - 16, 26, 16, 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.4;
+    ctx.strokeRect(300, GROUND_Y - 16, 26, 16);
+    ctx.beginPath(); ctx.moveTo(300, GROUND_Y - 8); ctx.lineTo(326, GROUND_Y - 8); ctx.stroke();
+  } else if (th.props === 'military') {
+    /* کیسه‌های شن دو طرف پایه‌ی برج */
+    ctx.fillStyle = mixHex('#5a5544', '#a89f84', d);
+    const bags = [[-92, -13], [-80, -13], [-86, -24], [70, -13], [82, -13], [76, -24]];
+    for (const [dx, dy] of bags) {
+      ctx.beginPath();
+      ctx.ellipse(TOWER.x + dx, GROUND_Y + dy, 9, 5.5, dx < 0 ? 0.3 : -0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    /* خودروی زرهی سوخته در راست صحنه */
+    const vx = 828, vy = GROUND_Y - 6;
+    ctx.fillStyle = mixHex('#2c3038', '#5f6870', d);
+    rr(vx, vy - 20, 72, 20, 6); ctx.fill();
+    rr(vx + 16, vy - 30, 34, 12, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    circle(vx + 16, vy - 2, 7); circle(vx + 56, vy - 2, 7);
+    ctx.strokeStyle = mixHex('#3a4048', '#7d8890', d); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(vx + 50, vy - 30); ctx.lineTo(vx + 58, vy - 44); ctx.stroke();
+    /* زبانه‌ی آتش کوچک از موتور (شب) */
+    if (d < 0.6 && Math.sin(animTime * 7) > 0) {
+      ctx.fillStyle = 'rgba(255,140,60,0.5)';
+      circle(vx + 8, vy - 22, 3 + Math.sin(animTime * 11) * 1.5);
+    }
+  } else if (th.props === 'telecom') {
+    /* تل‌های برف کنار برج + سیم‌های آویخته */
+    for (const sx of [130, 240, 760, 860]) {
+      ctx.fillStyle = mixHex('#3c4a60', '#d4e2ef', d);
+      ctx.beginPath();
+      ctx.ellipse(sx, GROUND_Y + 2, 30, 9, 0, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(sx, GROUND_Y + 2, 18, 5, 0, Math.PI, Math.PI * 2); ctx.fill();
+    }
+  }
+  /* صحنه‌ی فاز ۱ انتقال فصل‌ها: درِ سردابه (فصل ۲) / دکل زیپ‌لاین (فصل ۳) */
+  if (state.mode === 'transition' && TR && TR.phase === 1) drawTransitionIntroProps();
+}
+
+/* ---------------------- ۵-۱۰) آب‌وهوای فصل: مه روان و برف ---------------------- */
+const FOG_BLOBS = Array.from({ length: 9 }, () => ({
+  x: srand() * (W + 300), y: 70 + srand() * (GROUND_Y - 200),
+  s: 0.8 + srand() * 1.5, v: 4 + srand() * 8, a: 0.05 + srand() * 0.06,
+}));
+const SNOW_FLAKES = Array.from({ length: 90 }, () => ({
+  x: srand() * W, y0: srand() * H, v: 22 + srand() * 42,
+  sw: 0.5 + srand() * 1.1, ph: srand() * 6.28, r: 1 + srand() * 1.8,
+}));
+
+function drawChapterWeather() {
+  const th = curCh().theme;
+  const d = state.dayness;
+  /* مهِ روان — انبارها (شب پررنگ‌تر) + یک نسخه‌ی آرام در منوی اصلی */
+  const fogA = (state.mode === 'start' ? 0.55 : th.fog) * (1 - 0.55 * d);
+  if (fogA > 0.02) {
+    for (const f of FOG_BLOBS) {
+      const m = W + 300;
+      const x = (((f.x - animTime * f.v) % m) + m) % m - 150;
+      ctx.fillStyle = 'rgba(168,188,203,' + Math.min(0.34, f.a * fogA * 2).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.ellipse(x, f.y, 95 * f.s, 20 * f.s, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  /* برف فصل ۴ — با بادِ جانبی و رگبار باران‌گونه */
+  if (th.snow) {
+    for (const f of SNOW_FLAKES) {
+      const m = W + 40;
+      const x = (((f.x - animTime * 13) % m) + m) % m - 20 + Math.sin(animTime * f.sw + f.ph) * 16;
+      const y = (f.y0 + animTime * f.v) % (H + 24) - 12;
+      const a = 0.5 + 0.4 * (1 - d * 0.5);
+      ctx.fillStyle = 'rgba(235,244,252,' + a.toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(x, y, f.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+/* پارالاکس ملایم منو: افق/تپه‌ها کمی با ماوس جابه‌جا می‌شوند (۱۰٫۰) */
+function menuPar(k) {
+  if (state.mode !== 'start') return 0;
+  return (state.mouse.x - W / 2) / W * k;
+}
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۶: کوله‌پشتی، وسایل بقی،
+   چراغ‌قوه و تاریکی، قطع برق تصادفی و دستفروش مرموز (دزد شبانه)
+   ==================================================================
+   - فروشگاه بخش تازه «وسایل بقی» دارد: چراغ‌قوه، باتری، کنسرو (شفای
+     تدریجی) و کیت کمک‌های اولیه (شفای فوری) — همه داخل کوله‌پشتی
+     ۶ جایی می‌روند و با کلیک یا کلیدهای Q..U مصرف می‌شوند
+   - چراغ‌قوه باتری محدود دارد (کلید L)؛ در مهِ انبارها و لحظه‌های
+     قطع برق وسط موج، دید به دایره‌ی نور دور بازیکن محدود می‌شود
+   - دستفروش مرموز: هر چند روز یک‌بار با شانس ۴۰٪ کنار فروشگاه می‌آید
+     و ۱-۲ آیتم کمیاب می‌فروشد؛ ۳۰٪ مواقع کالا تقلبی درمی‌آید!
+   ================================================================== */
+
+/* ---------------------- ۶-۱) وسایل بقی و آیتم‌های کمیاب ---------------------- */
+const GEAR = {
+  flashlight: { name: 'چراغ‌قوه',            price: 80, icon: 'flashlight', color: '#f5d76e',
+    desc: 'با کلید L روشن/خاموش می‌شود — دید در مه و قطع برق (باتری دارد)' },
+  battery:    { name: 'باتری',               price: 30, icon: 'battery',    color: '#7be389',
+    desc: '+۵۰٪ شارژ چراغ‌قوه — ذخیره در کوله، مصرف با کلیک' },
+  canned:     { name: 'کنسرو',               price: 25, icon: 'canned',     color: '#e8a13c',
+    desc: 'شفای تدریجی ۴۵ جون در ۱۲ ثانیه' },
+  medkit:     { name: 'کیت کمک‌های اولیه',   price: 45, icon: 'medkit',     color: '#ff8a8a',
+    desc: '۷۰ جون برج را فوراً برمی‌گرداند' },
+};
+
+/* آیتم‌های کمیاب دستفروش (فعال‌سازی دائمی بعد از مصرف) */
+const RARE = {
+  vest:     { name: 'جلیقه‌ی ضدّ دندان', price: 260, icon: 'vest',     color: '#8fd6ff',
+    desc: 'آسیب به برج ۲۵٪ کمتر می‌شود — دائمی' },
+  goldAmmo: { name: 'فشنگ‌های طلایی',   price: 320, icon: 'goldAmmo', color: '#ffd873',
+    desc: 'دمیج همه‌ی گلوله‌ها ۲۵٪ بیشتر — دائمی' },
+  helmet:   { name: 'کلاهخود فولادی',   price: 200, icon: 'helmet',   color: '#b8c4d4',
+    desc: '+۴۰ به حداکثر جون برج (و همین‌جا ترمیم) — دائمی' },
+};
+
+/* کلیدهای میان‌بر مصرف کوله‌پشتی (اسلات ۱ تا ۶) */
+const BPKEYS = { KeyQ: 1, KeyW: 2, KeyE: 3, KeyR: 4, KeyY: 5, KeyU: 6 };
+
+/* صداهای جدید این بخش */
+Object.assign(SFX, {
+  powerDown() { Snd.tone({ type: 'sawtooth', f0: 320, f1: 38, dur: 0.7, vol: 0.15 });
+                Snd.noise({ dur: 0.5, vol: 0.10, freq: 300 }); },
+  powerUp2()  { Snd.tone({ type: 'triangle', f0: 120, f1: 480, dur: 0.4, vol: 0.12 }); },
+  scam()      { [280, 220, 160].forEach((f, i) =>
+                Snd.tone({ type: 'sawtooth', f0: f, f1: f * 0.84, dur: 0.22, vol: 0.13, delay: i * 0.24 })); },
+  peddler()   { Snd.tone({ type: 'triangle', f0: 520, f1: 660, dur: 0.14, vol: 0.10 });
+                Snd.tone({ type: 'triangle', f0: 660, f1: 520, dur: 0.18, vol: 0.09, delay: 0.15 }); },
+});
+
+/* ---------------------- ۶-۲) مسیر یکسان خرید (buy) ---------------------- */
+/* همه‌ی خریدهای پنل/کیبورد از این‌جا رد می‌شوند:
+   ۱) در «آخرین شب» فروشگاه قفل است  ۲) وسایل بقی مسیر خودشان را دارند
+   ۳) بقیه = attemptBuy اصلی  ۴) بعد از هر خرید موفق، سیو خودکار */
+function buy(kind) {
+  /* قفل فروشگاه در موج آخر کل بازی (۱۰٫۰) */
+  if (state.wave >= FINAL_WAVE && state.mode === 'playing') {
+    SFX.deny();
+    setAnnounce('🔒 فروشگاه قفل است!', 'در «آخرین شب» فقط کوله‌پشتی و برجت کارت را می‌کنند', 1.8);
+    return;
+  }
+  if (GEAR[kind]) { buyGear(kind); return; }
+  const before = state.coins;
+  attemptBuy(kind);
+  if (state.coins !== before) saveGame();      // (۱۰٫۰) سیو بعد از خرید
+}
+
+/* خرید وسایل بقی: چراغ‌قوه یک‌بار؛ بقیه به کوله‌پشتی می‌روند */
+function buyGear(kind) {
+  if (!canPlay()) return;
+  const g = GEAR[kind];
+  if (kind === 'flashlight') {
+    if (state.torch.owned) return;
+    if (state.coins < g.price) { denyBPItem('flashlight'); return; }
+    state.coins -= g.price;
+    state.torch.owned = true;
+    state.torch.battery = 100;
+    state.torch.on = true;                     // روشن تحویل گرفته می‌شود
+    SFX.buy();
+    setAnnounce('🔦 چراغ‌قوه گرفتی!', 'کلید L روشن/خاموشش می‌کند — باتری: ۱۰۰٪', 2.4);
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 16, '#f5d76e',
+      { speed: 150, life: 0.6, size: 2.4, grav: 250, up: true });
+    saveGame();
+    updateHUD(); refreshBuildPanel(); refreshGearHUD();
+    return;
+  }
+  if (state.coins < g.price) { denyBPItem(kind); return; }
+  if (!giveItem(kind)) return;                 // کوله پر بود → سکه کنار ماند
+  state.coins -= g.price;
+  SFX.buy();
+  addText(TOWER.x, TOWER_TOP_Y - 46, g.name + ' → کوله 🎒', '#9fe08a', 13);
+  saveGame();
+  updateHUD(); refreshBuildPanel(); refreshBackpack();
+}
+
+/* ---------------------- ۶-۳) کوله‌پشتی (۶ جا) ---------------------- */
+/* گذاشتن آیتم در اولین جای خالی */
+function giveItem(id) {
+  const i = state.backpack.findIndex(s => !s);
+  if (i < 0) {
+    setAnnounce('🎒 کوله‌پشتی پر است!', 'اول یکی را مصرف کن (کلیک روی جاخالی یا Q تا U)', 2);
+    SFX.deny();
+    return false;
+  }
+  state.backpack[i] = { id };
+  refreshBackpack();
+  return true;
+}
+
+/* مصرف آیتم اسلات i (کلیک یا کلید) */
+function useItem(i) {
+  if (!canPlay()) return;
+  if (i < 0 || i > 5) return;
+  const s = state.backpack[i];
+  if (!s) return;
+  const id = s.id;
+  if (id === 'battery') {
+    if (!state.torch.owned) {
+      setAnnounce('🔦 چراغ‌قوه نداری!', 'اول چراغ‌قوه را از فروشگاه بخر (کلید J)', 1.8);
+      SFX.deny();
+      return;
+    }
+    state.torch.battery = clamp(state.torch.battery + 50, 0, 100);
+    addText(TOWER.x, TOWER_TOP_Y - 46, '+۵۰٪ 🔦', '#7be389', 15);
+    SFX.power();
+    refreshGearHUD();
+  } else if (id === 'canned') {
+    state.regen += 45;                         // ۳٫۷۵ جون در ثانیه × ۱۲ ثانیه
+    addText(TOWER.x, TOWER_TOP_Y - 46, 'شفای تدریجی 🥫', '#e8a13c', 15);
+    SFX.power();
+  } else if (id === 'medkit') {
+    healTower(70);
+    SFX.power();
+  } else if (RARE[id]) {
+    if (state.buffs[id]) {
+      setAnnounce('✅ ' + RARE[id].name + ' از قبل فعال است', 'برای بعد نگهش دار', 1.8);
+      SFX.deny();
+      return;                                  // مصرف نشود
+    }
+    state.buffs[id] = true;
+    if (id === 'helmet') { state.tower.maxHp += 40; state.tower.hp += 40; }
+    setAnnounce('⚡ ' + RARE[id].name + ' فعال شد!', RARE[id].desc, 2.4);
+    SFX.power();
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 18, RARE[id].color,
+      { speed: 170, life: 0.6, size: 2.6, grav: 200, up: true });
+    updateHUD();
+  }
+  state.backpack[i] = null;
+  spawnParticles(TOWER.x, TOWER_TOP_Y - 26, 10, '#7be389',
+    { speed: 130, life: 0.5, size: 2.2, grav: 220, up: true });
+  refreshBackpack();
+}
+
+/* ترمیم جون برج (کیت/قدرت‌ها) */
+function healTower(n) {
+  const heal = Math.min(n, state.tower.maxHp - state.tower.hp);
+  if (heal <= 0) {
+    setAnnounce('❤️ برج سرِ سلامتی است', 'فعلاً لازم نیست', 1.4);
+    return;
+  }
+  state.tower.hp += heal;
+  addText(TOWER.x, TOWER_TOP_Y - 44, '+' + faNum(Math.round(heal)) + ' ❤️', '#7be389', 16);
+  spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 12, '#7be389',
+    { speed: 140, life: 0.55, size: 2.4, grav: 240, up: true });
+  updateHUD();
+}
+
+/* ساخت کوله‌پشتی HTML (یک بار در شروع صفحه) */
+function initBackpackUI() {
+  const wrap = $('bpkSlots');
+  wrap.innerHTML = '';
+  const keys = ['Q', 'W', 'E', 'R', 'Y', 'U'];
+  for (let i = 0; i < 6; i++) {
+    const el = document.createElement('div');
+    el.className = 'bpk-slot empty';
+    el.id = 'bpk-' + i;
+    const cv = document.createElement('canvas');
+    cv.width = 80; cv.height = 80;
+    el.appendChild(cv);
+    const k = document.createElement('span');
+    k.className = 'bpk-key';
+    k.textContent = keys[i];
+    el.appendChild(k);
+    el.addEventListener('click', () => useItem(i));
+    el.addEventListener('mouseenter', () => showBpkTip(i, el));
+    el.addEventListener('mouseleave', hideTip);
+    wrap.appendChild(el);
+  }
+  refreshBackpack();
+}
+
+/* به‌روزرسانی جاخالی‌ها (آیکون + حالت) */
+function refreshBackpack() {
+  for (let i = 0; i < 6; i++) {
+    const el = $('bpk-' + i);
+    if (!el) continue;
+    const s = state.backpack[i];
+    const cv = el.querySelector('canvas');
+    el.classList.toggle('empty', !s);
+    const usable = !!s && (GEAR[s.id] || (RARE[s.id] && !state.buffs[s.id]));
+    el.classList.toggle('ready', usable);
+    paintGearIcon(s ? s.id : null, cv);
+  }
+}
+
+/* تولتیپ مخصوص کوله (سمت راست جاخالی باز می‌شود) */
+function bpkStatus(id) {
+  if (id === 'battery') return 'کلیک/کلید = شارژ ۵۰٪ چراغ‌قوه';
+  if (id === 'canned') return 'کلیک/کلید = شفای تدریجی ۴۵ جون';
+  if (id === 'medkit') return 'کلیک/کلید = شفای فوری ۷۰ جون';
+  if (RARE[id]) return state.buffs[id] ? 'از قبل فعال است — نگهش دار' : 'کلیک/کلید = فعال‌سازی دائمی';
+  return '';
+}
+function showBpkTip(i, el) {
+  const s = state.backpack[i];
+  if (!s) return;
+  const def = GEAR[s.id] || RARE[s.id];
+  if (!def) return;
+  const tip = $('bpTip');
+  tip.innerHTML = '<b>' + def.name + '</b><span>' + def.desc + '</span>' +
+    '<span class="t-status">' + bpkStatus(s.id) + '</span>';
+  tip.style.display = 'block';
+  /* کوله سمت چپ صفحه است → تولتیپ سمت راستِ جاخالی باز شود */
+  const wrapR = $('wrap').getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  tip.style.left = Math.min(W - tip.offsetWidth - 6, r.right - wrapR.left + 8) + 'px';
+  tip.style.top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6) + 'px';
+}
+
+/* ---------------------- ۶-۴) آیکون‌های Canvas وسایل ---------------------- */
+/* هم‌سبک کاشی‌های فروشگاهِ تصویر مرجع: قاب تیره‌ی گرد + گرادیان +
+   هاله‌ی رنگی + نماد برجسته + ذرات ستاره‌ای (بدون فایل خارجی) */
+const GEAR_ICON_COLORS = {
+  flashlight: '#f5d76e', battery: '#7be389', canned: '#e8a13c', medkit: '#ff8a8a',
+  vest: '#8fd6ff', goldAmmo: '#ffd873', helmet: '#b8c4d4',
+};
+
+function icoRR(c, x, y, w, h, r) {
+  c.beginPath();
+  if (c.roundRect) c.roundRect(x, y, w, h, r);
+  else c.rect(x, y, w, h);
+}
+function icoStar(c, x, y, r) {
+  c.beginPath();
+  c.moveTo(x - r, y); c.lineTo(x, y - r * 0.35); c.lineTo(x + r, y);
+  c.lineTo(x, y + r * 0.35); c.closePath(); c.fill();
+  c.beginPath();
+  c.moveTo(x, y - r); c.lineTo(x + r * 0.35, y); c.lineTo(x, y + r);
+  c.lineTo(x - r * 0.35, y); c.closePath(); c.fill();
+}
+
+function paintGearIcon(kind, cv) {
+  cv.width = 80; cv.height = 80;
+  const c = cv.getContext('2d');
+  c.clearRect(0, 0, 80, 80);
+  if (!kind) return;
+  const col = GEAR_ICON_COLORS[kind] || '#ffd873';
+  /* زمینه‌ی کاشی */
+  icoRR(c, 4, 4, 72, 72, 11);
+  c.save(); c.clip();
+  const bg = c.createRadialGradient(40, 28, 8, 40, 46, 60);
+  bg.addColorStop(0, 'rgba(56,76,128,0.95)');
+  bg.addColorStop(0.6, 'rgba(22,32,64,0.97)');
+  bg.addColorStop(1, 'rgba(8,13,30,0.99)');
+  c.fillStyle = bg; c.fillRect(0, 0, 80, 80);
+  const halo = c.createRadialGradient(40, 42, 4, 40, 42, 34);
+  halo.addColorStop(0, hexA(col, 0.28)); halo.addColorStop(1, hexA(col, 0));
+  c.fillStyle = halo; c.fillRect(0, 0, 80, 80);
+  /* سایه‌ی زیر نماد */
+  c.fillStyle = 'rgba(0,0,0,0.35)';
+  c.beginPath(); c.ellipse(40, 61, 17, 4.5, 0, 0, Math.PI * 2); c.fill();
+
+  c.save(); c.translate(40, 40);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  switch (kind) {
+    case 'flashlight': {
+      c.rotate(-0.5);
+      c.fillStyle = '#3a4250'; icoRR(c, -17, -6, 22, 12, 3); c.fill();   // بدنه
+      c.fillStyle = '#2c3440'; c.fillRect(-17, -6, 4, 12);               // سرِ عقبی
+      c.fillStyle = col;       c.fillRect(5, -7.5, 7, 15);               // کله‌ی روشن
+      c.fillStyle = 'rgba(255,244,200,0.95)'; c.fillRect(12, -5.5, 3, 11); // شیشه
+      const beam = c.createLinearGradient(15, 0, 33, 0);                 // مخروط نور
+      beam.addColorStop(0, 'rgba(255,238,170,0.55)'); beam.addColorStop(1, 'rgba(255,238,170,0)');
+      c.fillStyle = beam;
+      c.beginPath(); c.moveTo(15, -6); c.lineTo(33, -13); c.lineTo(33, 13); c.lineTo(15, 6);
+      c.closePath(); c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.4)'; c.lineWidth = 1.4;
+      icoRR(c, -17, -6, 22, 12, 3); c.stroke();
+      break;
+    }
+    case 'battery': {
+      c.fillStyle = '#2c3440'; c.fillRect(-4, -16, 8, 4);                // نوک
+      c.fillStyle = '#39424f'; icoRR(c, -8, -12, 16, 26, 4); c.fill();   // بدنه
+      const inG = c.createLinearGradient(-8, 0, 8, 0);
+      inG.addColorStop(0, col); inG.addColorStop(0.5, '#a5e8b0'); inG.addColorStop(1, '#4a9a5c');
+      c.fillStyle = inG; icoRR(c, -5, -9, 10, 20, 3); c.fill();          // پوسته‌ی سبز
+      c.fillStyle = '#12301c';                                           // نشانِ برق
+      c.beginPath();
+      c.moveTo(2, -6); c.lineTo(-3, 1); c.lineTo(0, 1); c.lineTo(-2, 6);
+      c.lineTo(3, -1); c.lineTo(0, -1); c.closePath(); c.fill();
+      break;
+    }
+    case 'canned': {
+      c.fillStyle = '#8a97a8';                                            // بدنه‌ی حلب
+      icoRR(c, -11, -12, 22, 25, 3); c.fill();
+      c.fillStyle = col;                                                  // نوار برچسب
+      c.fillRect(-11, -6, 22, 11);
+      c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(-11, -6, 22, 1.5); c.fillRect(-11, 3.5, 22, 1.5);
+      c.fillStyle = '#c9d4e2';                                            // درِ بیضی
+      c.beginPath(); c.ellipse(0, -12, 11, 3.6, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1.3;
+      c.beginPath(); c.ellipse(0, -12, 11, 3.6, 0, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = '#fff8e8';                                            // ماهی روی برچسب
+      c.beginPath(); c.ellipse(-2, -0.5, 5.5, 3, -0.3, 0, Math.PI * 2); c.fill();
+      c.fillStyle = col;
+      c.beginPath(); c.moveTo(2.5, -2.5); c.lineTo(6.5, -0.5); c.lineTo(2.5, 1.5); c.closePath(); c.fill();
+      break;
+    }
+    case 'medkit': {
+      c.fillStyle = '#e8eef5'; icoRR(c, -13, -9, 26, 19, 4); c.fill();   // جعبه‌ی سفید
+      c.fillStyle = col; c.fillRect(-13, -9, 26, 5);                     // نوار بالایی
+      c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 1.4;
+      icoRR(c, -13, -9, 26, 19, 4); c.stroke();
+      c.fillStyle = '#e04b3a';                                           // صلیب قرمز
+      c.fillRect(-2.6, -4, 5.2, 12); c.fillRect(-7, 1, 14, 5.2);
+      c.fillStyle = '#c9d4e2'; c.fillRect(-9, -6.5, 6, 3);               // قفل‌گاه
+      break;
+    }
+    case 'vest': {
+      c.fillStyle = col;                                                  // تنه‌ی جلیقه
+      c.beginPath();
+      c.moveTo(-12, -10); c.lineTo(-5, -10); c.lineTo(-4, -5);
+      c.lineTo(4, -5); c.lineTo(5, -10); c.lineTo(12, -10);
+      c.lineTo(11, 12); c.lineTo(-11, 12); c.closePath(); c.fill();
+      c.fillStyle = '#4a7a9a';                                            // نوارهای زرهی
+      c.fillRect(-12, -10, 24, 4); c.fillRect(-11, 8, 22, 4);
+      c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1.3;
+      c.beginPath();
+      c.moveTo(-12, -10); c.lineTo(-5, -10); c.lineTo(-4, -5);
+      c.lineTo(4, -5); c.lineTo(5, -10); c.lineTo(12, -10);
+      c.lineTo(11, 12); c.lineTo(-11, 12); c.closePath(); c.stroke();
+      c.fillStyle = '#2c4a60';                                            // گره‌های شانه
+      circle2(c, -8, -7, 1.6); circle2(c, 8, -7, 1.6);
+      break;
+    }
+    case 'goldAmmo': {
+      for (const [dx, dy, a] of [[-7, 3, -0.35], [0, 0, -0.1], [7, -3, 0.15]]) {
+        c.save(); c.translate(dx, dy); c.rotate(a);
+        c.fillStyle = col; icoRR(c, -2.6, -13, 5.2, 17, 2.6); c.fill();  // غلاف طلایی
+        c.fillStyle = '#e8a13c'; c.beginPath();                          // نوکِ برنجی
+        c.moveTo(-2.6, -13); c.quadraticCurveTo(0, -18, 2.6, -13); c.closePath(); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(-1.8, -11, 1.4, 13); // برق طولی
+        c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 1;
+        icoRR(c, -2.6, -13, 5.2, 17, 2.6); c.stroke();
+        c.restore();
+      }
+      break;
+    }
+    case 'helmet': {
+      c.fillStyle = col;                                                  // گنبد فولادی
+      c.beginPath(); c.arc(0, 3, 13, Math.PI, 0); c.closePath(); c.fill();
+      c.fillStyle = '#8e9dac'; c.fillRect(-15, 2, 30, 4);                // لبه‌ی جلو
+      c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1.3;
+      c.beginPath(); c.arc(0, 3, 13, Math.PI, 0); c.stroke();
+      c.fillStyle = 'rgba(255,255,255,0.5)';                             // برقِ گنبد
+      c.beginPath(); c.ellipse(-4, -4, 4.5, 2.5, -0.6, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#6a788c'; c.fillRect(-10, 6, 20, 3);                // نوار پایین
+      break;
+    }
+  }
+  c.restore();
+  /* ذرات ستاره‌ای مثل کاشی‌های فروشگاه مرجع */
+  c.fillStyle = 'rgba(255,255,255,0.85)';
+  icoStar(c, 20, 19, 3.2); icoStar(c, 61, 57, 2.6); icoStar(c, 59, 22, 1.9);
+  c.restore();
+  /* لبه‌ی قاب */
+  c.strokeStyle = 'rgba(120,170,230,.3)'; c.lineWidth = 2;
+  icoRR(c, 5, 5, 70, 70, 10); c.stroke();
+}
+function circle2(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+
+/* ---------------------- ۶-۵) چراغ‌قوه ---------------------- */
+function toggleFlashlight() {
+  if (!state.torch.owned) {
+    if (canPlay()) setAnnounce('🔦 چراغ‌قوه نداری!', 'از پنل ساخت‌وساز بخرش (کلید J)', 1.8);
+    SFX.deny();
+    return;
+  }
+  if (!state.torch.on && state.torch.battery <= 0) {
+    setAnnounce('🔋 باتری تمام است!', 'باتری تازه از فروشگاه (کلید K) یا کوله‌پشتی', 1.8);
+    SFX.deny();
+    return;
+  }
+  state.torch.on = !state.torch.on;
+  SFX.click();
+  refreshGearHUD();
+}
+
+/* HUD چراغ‌قوه: دکمه + نوار باتری */
+function refreshGearHUD() {
+  const btn = $('btnFlash');
+  if (!btn) return;
+  btn.classList.toggle('nolight', !state.torch.owned || !state.torch.on);
+  btn.classList.toggle('dead', state.torch.owned && state.torch.battery <= 0);
+  $('battFill').style.width = clamp(state.torch.battery, 0, 100) + '%';
+}
+
+/* ---------------------- ۶-۶) تاریکی و دایره‌ی نور ---------------------- */
+/* لایه‌ی تاریکی: مهِ فصل ۲، قطع برق تصادفی و «آخرین شب».
+   نورها: محیطِ مهتابی + چراغ‌قوه‌ی بازیکن + دهانه‌ی اسلحه + برجک‌ها */
+const Dark = {
+  level: 0, target: 0,
+
+  /* شعاع نور محیطی (مهتاب/مه) — در قطع برق کامل کوچک می‌شود */
+  ambientR() {
+    if (this.level > 0.85) return 44;
+    return 128 + 132 * curCh().theme.darkBase;
+  },
+  /* شعاع چراغ‌قوه — تابع باتری + لرزش نور */
+  flashR() {
+    if (!state.torch.owned || !state.torch.on || state.torch.battery <= 0) return 0;
+    const r = 138 + 92 * (state.torch.battery / 100);
+    const flick = 0.93 + 0.07 * Math.sin(animTime * 17) + (Math.random() < 0.03 ? -0.16 : 0);
+    return Math.max(24, r * flick);
+  },
+  /* مرکز نور: بازیکن روی برج (کمی به سمت هدفش) */
+  lightXY() {
+    return {
+      x: TOWER.x + Math.cos(state.aimAngle) * 22,
+      y: TOWER_TOP_Y - 12 + Math.sin(state.aimAngle) * 16,
+    };
+  },
+
+  update(dt) {
+    /* هدف تاریکی لحظه‌ای: قطع برق > آخرین شب > مهِ فصل — روز/منو = صفر */
+    let t = curCh().theme.darkBase * (1 - state.dayness);
+    if (state.blackout.on) t = 1;
+    if (state.wave >= FINAL_WAVE && state.mode === 'playing') t = 1;
+    if (!(state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission')) t = 0;
+    this.target = t;
+    this.level += (this.target - this.level) * Math.min(1, dt * 2.4);
+
+    /* مصرف باتری وقتی چراغ در تاریکی روشن است */
+    if (state.torch.on && this.level > 0.25 && state.torch.battery > 0) {
+      state.torch.battery = Math.max(0, state.torch.battery - dt * 1.5);
+      if (state.torch.battery <= 0) {
+        setAnnounce('🔋 باتری چراغ‌قوه تمام شد!', 'از کوله باتری مصرف کن یا K بخر', 2.2);
+        SFX.deny();
+        refreshGearHUD();
+      }
+    }
+    /* ضربان قلب در تاریکیِ بی‌نور */
+    if (this.level > 0.8 && this.flashR() <= 0 && state.mode === 'playing') {
+      state.heartT -= dt;
+      if (state.heartT <= 0) { state.heartT = 1.25; SFX.heartbeat(); }
+    }
+  },
+
+  /* سوراخ کردن تاریکی با یک دایره‌ی نور نرم (روی بوم جدا — تا صحنه پاک نشود) */
+  punch(c, x, y, r, hard) {
+    if (r <= 5) return;
+    const g = c.createRadialGradient(x, y, r * 0.14, x, y, r);
+    g.addColorStop(0, 'rgba(0,0,0,' + (hard ? 0.98 : 0.85) + ')');
+    g.addColorStop(0.62, 'rgba(0,0,0,' + (hard ? 0.6 : 0.42) + ')');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g;
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+  },
+
+  render() {
+    if (this.level <= 0.04) return;
+    if (!(state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission')) return;
+    const a = clamp(this.level, 0, 1) * 0.94;
+    /* بوم جدا برای لایه‌ی تاریکی: سوراخ‌ها (نورها) این‌جا زده می‌شوند و بعد
+       کل لایه روی صحنه می‌نشیند — destination-out مستقیم روی بوم اصلی، خودِ
+       صحنه را هم پاک می‌کرد (باگ ۱۰٫۰) */
+    if (!this.cv) { this.cv = document.createElement('canvas'); this.cv.width = W; this.cv.height = H; }
+    const c = this.cv.getContext('2d');
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = 'rgba(3,6,15,' + a.toFixed(3) + ')';
+    c.fillRect(0, 0, W, H);
+    c.globalCompositeOperation = 'destination-out';
+    const L = this.lightXY();
+    this.punch(c, L.x, L.y, Math.max(this.ambientR(), this.flashR() + 26), false);  // نور محیطی
+    if (this.flashR() > 0) this.punch(c, L.x, L.y, this.flashR(), true);            // چراغ‌قوه
+    /* نورهای موقت: دهانه‌ی اسلحه و شلیک برجک‌ها */
+    if (state.muzzleGlow > 0) {
+      const m = gunMuzzle(WEAPONS[state.weapon].barrel);
+      this.punch(c, m.x, m.y, 84, true);
+    }
+    for (const t of state.turrets) {
+      if (t.flash > 0) this.punch(c, t.x, t.y - 12, 54, true);
+    }
+    /* نور گرمِ درِ برج در شب تاریک */
+    if (state.dayness < 0.5) this.punch(c, TOWER.x, GROUND_Y - 14, 42, false);
+    /* سیلوئت نگهبان در «آخرین شب» — تا در تاریکی هم قابل ردیابی باشد */
+    const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
+    if (boss) this.punch(c, boss.x, boss.y - 42, 76, true);
+    c.globalCompositeOperation = 'source-over';
+    ctx.drawImage(this.cv, 0, 0);
+  },
+};
+
+/* چشم‌های زامبی‌ها روی تاریکی (وقتی هیچ نوری نیست، بازهم دیده می‌شوند) */
+function drawDarkEyes() {
+  if (Dark.level < 0.55 || state.mode !== 'playing') return;
+  const a = clamp((Dark.level - 0.55) / 0.45, 0, 1);
+  ctx.save();
+  ctx.globalAlpha = a;
+  for (const z of state.zombies) {
+    if (z.dead) continue;
+    const s = (z.radius / 15) * (z.depth || 1);
+    const ex = z.x + z.dir * 4 * s, ey = z.y - 37 * s;
+    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
+    ctx.shadowBlur = 7 * s;
+    ctx.fillStyle = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
+    circle(ex, ey, 1.8 * s);
+    circle(ex + z.dir * 3.4 * s, ey - 0.6 * s, 1.8 * s);
+  }
+  ctx.restore();
+}
+
+/* ---------------------- ۶-۷) هوک به‌روزرسانی این بخش ---------------------- */
+UPDATE_HOOKS.push(function survivalUpdate(dt) {
+  Dark.update(dt);
+
+  /* نوار باتری هر ~۰٫۴ ثانیه تازه شود (مصرف پیوسته است) */
+  survivalUpdate._t = (survivalUpdate._t || 0) + dt;
+  if (survivalUpdate._t > 0.4) { survivalUpdate._t = 0; refreshGearHUD(); }
+
+  /* شفای تدریجی کنسرو (۳٫۷۵ جون در ثانیه) */
+  if (state.regen > 0 && state.tower.hp < state.tower.maxHp && canPlay()) {
+    const heal = Math.min(state.regen, dt * 3.75, state.tower.maxHp - state.tower.hp);
+    state.tower.hp += heal;
+    state.regen -= heal;
+    if (Math.random() < dt * 3) {
+      spawnParticles(TOWER.x + rand(-22, 22), TOWER_TOP_Y - rand(8, 42), 1, '#e8a13c',
+        { speed: 34, life: 0.7, size: 2, grav: -55 });
+    }
+    if (state.regen <= 0.01) state.regen = 0;
+  }
+
+  /* قطع برق زمان‌بندی‌شده‌ی وسط موج (فصل ۲ به بعد) */
+  const B = state.blackout;
+  if (state.mode === 'playing') {
+    B.waveT += dt;
+    if (!B.on) {
+      for (const ev of B.schedule) {
+        if (!ev.fired && B.waveT >= ev.at) {
+          ev.fired = true;
+          B.on = true;
+          B.until = B.waveT + ev.dur;
+          setAnnounce('⚠️ قطع برق!',
+            state.torch.owned ? 'چراغ‌قوه را روشن کن (L)' : 'دیدت محدود شد... فکر کنی نداری؟', 2);
+          SFX.powerDown();
+          Dark.level = Math.max(Dark.level, 0.6);   // با ضربه تیره شود
+          break;
+        }
+      }
+    } else if (B.waveT >= B.until) {
+      B.on = false;
+      setAnnounce('💡 برق برگشت', 'دید کامل شد', 1.4);
+      SFX.powerUp2();
+    }
+  }
+});
+
+/* ---------------------- ۶-۸) دستفروش مرموز (دزد شبانه) ---------------------- */
+/* هر روز (فقط در حالت day) صدا زده می‌شود: بعد از ۲ روزِ خالی، شانس ۴۰٪ */
+function peddlerRoll(force) {
+  if (force) {                                   // برای تست/API
+    state.peddler.here = true;
+    state.peddler.cd = 2;
+    state.peddler.stock = pickRareStock();
+    renderPeddlerStock();
+    return;
+  }
+  state.peddler.here = false;
+  if (state.peddler.cd > 0) { state.peddler.cd--; hidePeddlerPanel(); return; }
+  if (Math.random() < 0.4) {
+    state.peddler.here = true;
+    state.peddler.cd = 2;                        // دو روز بعد دوباره شانس
+    state.peddler.stock = pickRareStock();
+    setAnnounce('🕳 دستفروش مرموز رسید...', 'کالای کمیاب دارد — ولی ۳۰٪ شانس تقلبی بودن!', 2.8);
+    SFX.peddler();
+    renderPeddlerStock();
+  } else {
+    hidePeddlerPanel();
+  }
+}
+
+/* انتخاب ۱-۲ آیتم کمیاب تصادفی */
+function pickRareStock() {
+  const keys = Object.keys(RARE).sort(() => Math.random() - 0.5);
+  const n = Math.random() < 0.5 ? 1 : 2;
+  return keys.slice(0, n).map(k => ({ id: k, bought: false }));
+}
+
+function hidePeddlerPanel() { $('peddlerPanel').classList.add('hidden'); }
+
+/* پرتره‌ی دستفروش: شنل تیره + چشم‌های بنفش + فانوس */
+function drawPeddlerFace() {
+  const cv = $('pdFace');
+  if (!cv) return;
+  const c = cv.getContext('2d');
+  c.clearRect(0, 0, 92, 92);
+  const g = c.createRadialGradient(46, 34, 6, 46, 52, 62);
+  g.addColorStop(0, '#241a3e'); g.addColorStop(1, '#0a0714');
+  c.fillStyle = g; c.fillRect(0, 0, 92, 92);
+  /* شنل */
+  c.fillStyle = '#1c1430';
+  c.beginPath();
+  c.moveTo(18, 90); c.quadraticCurveTo(22, 42, 46, 32);
+  c.quadraticCurveTo(70, 42, 74, 90); c.closePath(); c.fill();
+  /* کلاه */
+  c.fillStyle = '#2a1f48';
+  c.beginPath();
+  c.moveTo(27, 48); c.quadraticCurveTo(46, 12, 65, 48);
+  c.quadraticCurveTo(46, 57, 27, 48); c.closePath(); c.fill();
+  /* چشم‌های بنفش درخشان */
+  c.save();
+  c.shadowColor = '#c08aff'; c.shadowBlur = 7;
+  c.fillStyle = '#d8b0ff';
+  circle2(c, 39, 45, 3); circle2(c, 53, 45, 3);
+  c.restore();
+  /* فانوس */
+  c.strokeStyle = '#7a5a20'; c.lineWidth = 1.6;
+  c.strokeRect(64, 58, 10, 14);
+  c.fillStyle = '#c9a24e'; c.fillRect(64, 58, 10, 14);
+  c.save();
+  c.shadowColor = '#ffd873'; c.shadowBlur = 9;
+  c.fillStyle = 'rgba(255,216,115,0.92)';
+  c.fillRect(66, 60, 6, 10);
+  c.restore();
+  c.strokeStyle = '#4a3a18'; c.lineWidth = 1.4;
+  c.beginPath(); c.moveTo(69, 58); c.lineTo(69, 50); c.stroke();
+}
+
+function initPeddlerUI() {
+  drawPeddlerFace();
+}
+
+/* رندر قفسه‌ی دستفروش (هر بار تازه) */
+function renderPeddlerStock() {
+  const box = $('pdStock');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!state.peddler.here) { hidePeddlerPanel(); return; }
+  for (const it of state.peddler.stock) {
+    if (it.bought) continue;                     // خریداری‌شده‌ها حذف می‌شوند
+    const r = RARE[it.id];
+    const el = document.createElement('div');
+    el.className = 'pd-item' + (state.coins < r.price ? ' poor' : '');
+    const cv = document.createElement('canvas');
+    cv.width = 80; cv.height = 80;
+    paintGearIcon(it.id, cv);
+    const info = document.createElement('div');
+    info.innerHTML = '<span class="pd-name">' + r.name + '</span><span class="pd-sub">' + r.desc + '</span>';
+    const price = document.createElement('span');
+    price.className = 'pd-price';
+    price.textContent = faNum(r.price);
+    el.appendChild(cv); el.appendChild(info); el.appendChild(price);
+    el.addEventListener('click', () => buyRare(it));
+    box.appendChild(el);
+  }
+  /* اگر هر دو خریداری شد، پنل بسته شود */
+  if (!box.children.length) { hidePeddlerPanel(); return; }
+  $('peddlerPanel').classList.remove('hidden');
+}
+
+/* خرید از دستفروش: ۳۰٪ تقلبی (سکه می‌سوزد) — ۷۰٪ واقعی و قدرتمند */
+function buyRare(it) {
+  if (it.bought || !state.peddler.here || !canPlay()) return;
+  const r = RARE[it.id];
+  if (state.coins < r.price) { SFX.deny(); return; }
+  state.coins -= r.price;
+  it.bought = true;
+  if (Math.random() < 0.3) {
+    /* کلک خوردی! کالای تقلبی — افکت + پیام */
+    SFX.scam();
+    const p = $('peddlerPanel');
+    p.classList.remove('scammed'); void p.offsetWidth; p.classList.add('scammed');
+    setAnnounce('🎭 بهت کلک زد!', 'کالا تقلبی بود — ' + faNum(r.price) + ' سکه‌ات پرت شد!', 3);
+    spawnParticles(150, 180, 18, '#9f8fd0', { speed: 170, life: 0.75, size: 2.6, grav: 280 });
+    renderPeddlerStock(); updateHUD(); saveGame();
+    return;
+  }
+  if (!giveItem(it.id)) {
+    state.coins += r.price;                      // کوله پر بود → پول برگشت
+    it.bought = false;
+    return;
+  }
+  SFX.buy();
+  setAnnounce('💎 ' + r.name + ' گرفتی!', 'از کوله‌پشتی مصرفش کن — ' + r.desc, 2.6);
+  renderPeddlerStock(); updateHUD(); saveGame();
+}
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۷: انتقال‌های بین فصل‌ها
+   ==================================================================
+   هر انتقال «سه فاز» دارد (هیچ فازی حذف نمی‌شود):
+     فاز ۱) افتتاحیه‌ی سینمایی (بدون کنترل): فروریختن برج / انفجار دیوار /
+             گلوله‌باران + ورود دراماتیک ارشان و وسیله‌ی فرار — با لرزش،
+             ذرات، دود، نور و حرکت دوربین (فاز ۱ روی همان میدان بازی رندر
+             می‌شود با شبه‌کات‌سین CS)
+     فاز ۲) بخش قابل‌کنترل (مینی‌گیم داخل همان صحنه): با کلیدهای جهت‌دار
+             می‌دود، می‌پرد (↑/Space) و خم می‌شود (↓)؛ دوربین/نور/اتمسفر
+             سینمایی فعال می‌ماند. در هر فرار یک «آیتم مخفی» وجود دارد.
+     فاز ۳) پایان‌بندی سینمایی (بدون کنترل): فرود/رسیدن دراماتیک + محو
+             → کارت فصل جدید → روزِ فصل بعد
+   سه انتقال:
+     فصل ۱→۲: فروریختن طبقه‌طبقه + ماشین ارشان + دویدن کنار ماشین در جاده
+     فصل ۲→۳: انفجار دیوار انبار + فرار از تونل تاریک (فقط نور چراغ‌قوه)
+     فصل ۳→۴: گلوله‌باران + زیپ‌لاین روی دره برفی/بارانی
+   ================================================================== */
+
+let TR = null;          // وضعیت انتقال فعال (null = انتقالی در جریان نیست)
+const PXM = 24;         // پیکسل به «متر» برای نمایش پیشرفت فرار
+
+/* ورودی مینی‌گیم */
+const mgKeys = { left: false, right: false, duck: false };
+
+/* ---------------------- ۷-۱) زیرنویس و ابزار مشترک ---------------------- */
+function setTransSub(txt, dur) {
+  if (!TR) return;
+  TR.sub = txt || '';
+  TR.subT = dur || 2.8;
+}
+/* زیرنویس‌های زمان‌دار فاز ۱: [شروع، پایان، متن] */
+function setTimedSubs(list, t) {
+  for (const s of list) {
+    if (t >= s[0] && t <= s[1] && TR.sub !== s[2]) setTransSub(s[2], s[1] - s[0]);
+  }
+}
+
+/* شروع انتقال از فصل fromCh (بعد از پاک‌سازی موج ۸ آن فصل) */
+function startTransition(fromCh) {
+  if (TR) return;
+  transitionHardReset();
+  TR = {
+    ch: clamp(fromCh, 1, 3),
+    phase: 1, t: 0, fade: 0, fadeWhite: false,
+    sub: '', subT: 0, ev: {}, _paused: false,
+  };
+  state.mode = 'transition';
+  state.mouse.down = false;
+  state.placing = null;
+  state.slowmo = 0;
+  state.powerTimers = { rapid: 0, freeze: 0 };
+  state.goingNight = false;
+  /* پاداش‌های معلق صحنه بلافاصله جمع شوند */
+  for (const c of state.coinsArr) collectCoin(c);
+  state.coinsArr = [];
+  state.powerups = [];
+  state.zombies = [];
+  state.bullets = [];
+  hideDayPanel();
+  hidePeddlerPanel();
+  hideAnnounce();
+  hideChapterCard();
+  $('wrap').classList.add('cine-mode');       // همه‌ی UI مخفی (حالت سینمایی کامل)
+  $('skipCs').classList.remove('hidden');     // دکمه‌ی «رد کردن»
+  setupTransitionIntro(TR.ch);
+  SFX.csRumble();
+  updateHUD();
+}
+
+/* پاک‌سازی کامل حالت انتقال */
+function transitionHardReset() {
+  TR = null;
+  CS = null;                                  // شبه‌کات‌سینِ فاز ۱ هم پاک شود
+  $('wrap').classList.remove('cine-mode');
+  $('skipCs').classList.add('hidden');
+}
+
+/* رد کردن انتقال: مستقیم فصل بعد (بدون آیتم مخفی) */
+function skipTransition() {
+  if (!TR) return;
+  SFX.click();
+  const ch = TR.ch;
+  transitionHardReset();
+  startChapter(ch + 1);
+}
+
+/* پایان انتقال → کارت فصل بعد */
+function finishTransition() {
+  const ch = TR ? TR.ch : 1;
+  transitionHardReset();
+  startChapter(ch + 1);
+}
+
+/* ---------------------- ۷-۲) فاز ۱ — افتتاحیه‌های سینمایی ---------------------- */
+/* شبه‌کات‌سین CS فقط برای داده‌های رندر (طبقه‌ها/ماشین/بازیکن) ساخته می‌شود؛
+   منطق زمانی این‌جاست */
+function setupTransitionIntro(ch) {
+  CS = {
+    t: 0, paused: false, drive: null, post: null,
+    zombies: [], car: null,
+    draw: {
+      floors: [{ a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }, { a: 1, dy: 0, rot: 0 }],
+      cracks: 0, rubble: 0, player: null,
+    },
+  };
+}
+
+/* زامبیِ راه‌رونده‌ی صحنه‌ی سینمایی (به سمت برج می‌خزد) */
+function makeCsWalkZombie(type, x) {
+  const T = ZTYPES[type];
+  return {
+    type, x, y: GROUND_Y + rand(-2, 6), dir: x < TOWER.x ? 1 : -1,
+    radius: T.r, speed: T.spdBase * 0.85, hp: 10, maxHp: 10,
+    walkPhase: rand(0, 6.28), attacking: false, attackAnim: 0, attackSide: 0,
+    lane: 0, depth: 1.05, yJit: rand(-3, 3), stagger: 0, chill: 0,
+    hitFlash: 0, dead: false, deathT: 0,
+  };
+}
+function csWalkStep(dt) {
+  for (const z of CS.zombies) {
+    z.walkPhase += dt * 5;
+    const dx = TOWER.x - z.x;
+    if (Math.abs(dx) > 118) z.x += Math.sign(dx) * z.speed * dt;
+  }
+}
+
+/* موج آجر/خاک حین فروریختن (با گیت زمانی) */
+function brickBurstStep(i, dt) {
+  TR.ev['burst' + i] = (TR.ev['burst' + i] || 0) + dt;
+  if (TR.ev['burst' + i] > 0.42) { TR.ev['burst' + i] = 0; csBrickBurst(i, 1); }
+}
+
+/* ---- زیرنویس‌های فاز ۱ هر فصل ---- */
+const SUBS_INTRO1 = [
+  [0.4, 2.0, 'زمین می‌لرزه... برجِ محله داره ترک می‌خوره!'],
+  [2.1, 3.5, 'طبقه‌ی اول فرو می‌ریزه!'],
+  [3.7, 5.0, 'طبقه‌ی دوم هم...!'],
+  [5.3, 5.9, 'بام می‌لغزه — بپر!'],
+  [6.2, 6.9, '— [ارشان]: ماشین! سوار شو!'],
+  [7.0, 7.7, '— [ارشان]: زامبی‌ها ماشین رو گرفتن... در رو باز کردم، بزن بیرون و کنار ماشین بدو!'],
+];
+const SUBS_INTRO2 = [
+  [0.4, 1.6, 'صدای پای گله‌ی بزرگ میاد...'],
+  [2.0, 3.4, '— [ارشان]: دیوار انبار منفجر شد! سردابه‌ش بازه — یه تونلِ زیرزمینی!'],
+  [3.6, 4.4, '— [ارشان]: برو تو! من پشتتم!'],
+  [4.6, 5.6, 'تاریکیِ تونل... فقط صدای نفسِ خودت...'],
+];
+const SUBS_INTRO3 = [
+  [0.4, 1.8, 'گلوله‌بارانِ پاسگاه شروع شده...'],
+  [2.0, 3.6, '— [ارشان]: قشونِ زامبی‌ها رسیگه! زیپ‌لاین رو ببین — تا برج مخابراتی!'],
+  [3.8, 4.6, '— [ارشان]: بالا بپر! سکوش آماده‌ست!'],
+  [4.8, 5.7, 'قلاب رو چسبوندی؟ نفس عمیق...'],
+  [5.9, 6.6, '— [ارشان]: بروووو!'],
+];
+
+/* ---- فاز ۱ فصل ۱→۲: فروریختن منطقیِ کندِ طبقه‌طبقه + ماشین ---- */
+function introUpdate1(dt) {
+  const t = TR.t;
+  const F = CS.draw.floors;
+  state.shake = Math.max(state.shake, Math.min(9, t * 3.4));
+  CS.draw.cracks = clamp(t / 2.0, 0, 1);
+  if (Math.random() < dt * 12) {
+    spawnParticles(TOWER.x + rand(-58, 58), GROUND_Y - rand(20, 180), 1,
+      'rgba(170,150,120,0.4)', { speed: 28, life: 1.3, size: 3, grav: -18 });
+  }
+  /* طبقه‌ی اول: ۲٫۰ تا ۳٫۶ — خرد/محو + نشستن طبقه‌های بالا */
+  if (t >= 2.0 && t < 3.6) {
+    if (!TR.ev.b1) { TR.ev.b1 = 1; SFX.csBoom(); state.shake = 12; }
+    F[0].a = clamp(1 - (t - 2.0) / 1.6, 0, 1);
+    F[1].dy = (t - 2.0) / 1.6 * 40;
+    F[2].dy = F[1].dy;
+    brickBurstStep(0, dt);
+  }
+  /* طبقه‌ی دوم: ۳٫۶ تا ۵٫۲ */
+  if (t >= 3.6 && t < 5.2) {
+    if (!TR.ev.b2) { TR.ev.b2 = 1; SFX.csBoom(); state.shake = 12; }
+    F[1].a = clamp(1 - (t - 3.6) / 1.6, 0, 1);
+    F[2].dy = 40 + (t - 3.6) / 1.6 * 38;
+    brickBurstStep(1, dt);
+  }
+  CS.draw.rubble = clamp((t - 2.0) / 3.4, 0, 1);
+  /* بازیکن روی بامِ نشسته */
+  if (t < 5.2) {
+    CS.draw.player = { x: TOWER.x, y: TOWER_TOP_Y + F[2].dy, aim: -0.9 };
+  } else if (t < 5.9) {
+    /* بام می‌لغزد و بازیکن جهش قوسی می‌زند */
+    F[2].rot = clamp((t - 5.2) / 1.4, 0, 1) * 0.42;
+    const k = clamp((t - 5.2) / 0.7, 0, 1);
+    CS.draw.player = {
+      x: TOWER.x - k * 66,
+      y: TOWER_TOP_Y + 40 - Math.sin(k * Math.PI) * 66 + k * 28,
+      rot: -k * 0.8, aim: -1.2,
+    };
+    if (!TR.ev.whistle) { TR.ev.whistle = 1; SFX.csWhistle(); }
+  }
+  /* ماشین ارشان از چپ می‌رسد */
+  if (t >= 4.2) {
+    const cx = clamp(-170 + (t - 4.2) * 240, -170, 316);
+    CS.car = { x: cx, y: GROUND_Y + 8, kick: 0, spin: t * 9, hand: t < 5.9 ? 1 : 0 };
+    if (!TR.ev.engine) { TR.ev.engine = 1; SFX.csEngine(); }
+  }
+  /* فرود روی ماشین */
+  if (t >= 5.9) {
+    CS.draw.player = { x: 330, y: GROUND_Y + 8 - 57, aim: 0.2 };
+    if (!TR.ev.landed) { TR.ev.landed = 1; SFX.csLand(); state.shake = 5; }
+  }
+  /* محو به سیاهی قبل از مینی‌گیم */
+  if (t >= 7.2) TR.fade = clamp((t - 7.2) / 0.55, 0, 1);
+  setTimedSubs(SUBS_INTRO1, t);
+}
+
+/* ---- فاز ۱ فصل ۲→۳: محاصره + انفجار دیوار + درِ سردابه ---- */
+function introUpdate2(dt) {
+  const t = TR.t;
+  /* گله از دو طرف می‌آید */
+  if (t < 2.2 && Math.random() < dt * 5.2) {
+    const type = Math.random() < 0.3 ? 'fast' : 'normal';
+    CS.zombies.push(makeCsWalkZombie(type, Math.random() < 0.5 ? -40 : W + 40));
+  }
+  csWalkStep(dt);
+  /* انفجار دیوار سمت چپ */
+  if (!TR.ev.boom && t >= 1.8) {
+    TR.ev.boom = 1;
+    SFX.csBoom();
+    state.shake = 13; state.flash = 0.9;
+    spawnParticles(200, GROUND_Y - 34, 34, '#ff9a3d', { speed: 300, life: 0.8, size: 3.4, grav: 320 });
+    spawnParticles(200, GROUND_Y - 28, 20, '#454a52', { speed: 170, life: 1.5, size: 4.2, grav: -22 });
+  }
+  /* بازیکن: روی برج → جهش به درِ سردابه */
+  if (t < 3.6) {
+    CS.draw.player = { x: TOWER.x, y: TOWER_TOP_Y, aim: -2.3 };
+  } else {
+    const k = clamp((t - 3.6) / 0.9, 0, 1);
+    CS.draw.player = {
+      x: TOWER.x - (TOWER.x - 200) * k,
+      y: TOWER_TOP_Y + (GROUND_Y - 6 - TOWER_TOP_Y) * k * k,
+      rot: k * 1.1, aim: -2.7,
+    };
+    if (k >= 1 && !TR.ev.hatch) {
+      TR.ev.hatch = 1;
+      SFX.csLand();
+      spawnParticles(200, GROUND_Y, 10, '#7a6a4c', { speed: 100, life: 0.5, size: 2.4, grav: 350, up: true });
+    }
+  }
+  if (t >= 5.6) TR.fade = clamp((t - 5.6) / 0.7, 0, 1);
+  setTimedSubs(SUBS_INTRO2, t);
+}
+
+/* ---- فاز ۱ فصل ۳→۴: گلوله‌باران + دکل زیپ‌لاین ---- */
+function introUpdate3(dt) {
+  const t = TR.t;
+  /* گلوله‌باران پس‌زمینه */
+  if (Math.random() < dt * 1.5) {
+    const bx = rand(60, W - 60), by = rand(60, GROUND_Y - 130);
+    spawnParticles(bx, by, 10, '#ff9a3d', { speed: 190, life: 0.6, size: 3, grav: 60 });
+    spawnParticles(bx, by, 6, '#454a52', { speed: 80, life: 1.7, size: 4.2, grav: -12 });
+    state.shake = Math.max(state.shake, 3);
+    if (Math.random() < 0.35) SFX.csBoom();
+  }
+  /* هجوم بزرگ */
+  if (t < 2.4 && Math.random() < dt * 6) {
+    const r = Math.random();
+    CS.zombies.push(makeCsWalkZombie(r < 0.22 ? 'tank' : (r < 0.55 ? 'fast' : 'normal'),
+      Math.random() < 0.5 ? -40 : W + 40));
+  }
+  csWalkStep(dt);
+  /* بازیکن: برج → جهش به سکوی دکل → چسبیدن به کابل */
+  if (t < 4.0) {
+    CS.draw.player = { x: TOWER.x, y: TOWER_TOP_Y, aim: 0.5 };
+  } else if (t < 5.0) {
+    const k = clamp((t - 4.0) / 0.85, 0, 1);
+    CS.draw.player = {
+      x: TOWER.x + (772 - TOWER.x) * k,
+      y: TOWER_TOP_Y - Math.sin(k * Math.PI) * 84 + (GROUND_Y - 150 - TOWER_TOP_Y) * k,
+      rot: 0.4, aim: 0.3,
+    };
+    if (!TR.ev.jumpSfx) { TR.ev.jumpSfx = 1; SFX.csWhoosh(); }
+  } else {
+    CS.draw.player = { x: 772, y: GROUND_Y - 150, aim: 0 };
+    if (!TR.ev.clamp) { TR.ev.clamp = 1; SFX.click(); }
+  }
+  if (t >= 6.0) TR.fade = clamp((t - 6.0) / 0.65, 0, 1);
+  setTimedSubs(SUBS_INTRO3, t);
+}
+
+/* اسباب فاز ۱ که روی میدان بازی رسم می‌شود (از drawChapterProps صدا زده می‌شود) */
+function drawTransitionIntroProps() {
+  if (!TR || TR.phase !== 1 || !CS) return;
+  const d = state.dayness;
+  if (TR.ch === 2 && TR.ev.boom) {
+    /* درِ سردابه‌ی باز + نور گرمش */
+    const hx = 200, hy = GROUND_Y;
+    ctx.fillStyle = '#14100a';
+    rr(hx - 34, hy - 12, 68, 12, 3); ctx.fill();
+    ctx.fillStyle = '#3a2c14';
+    ctx.save(); ctx.translate(hx, hy - 12);
+    ctx.rotate(-0.5);
+    rr(0, -5, 40, 10, 3); ctx.fill();
+    ctx.restore();
+    const glow = ctx.createRadialGradient(hx, hy - 12, 4, hx, hy - 12, 48);
+    glow.addColorStop(0, 'rgba(255,200,110,' + (0.34 + 0.12 * Math.sin(animTime * 3)).toFixed(2) + ')');
+    glow.addColorStop(1, 'rgba(255,200,110,0)');
+    ctx.fillStyle = glow; circle(hx, hy - 12, 48);
+  }
+  if (TR.ch === 3) {
+    /* دکل زیپ‌لاین + سکو + کابل به بیرونِ راست */
+    const mx = 772, my = GROUND_Y;
+    ctx.strokeStyle = mixHex('#2c3038', '#6a7078', d); ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(mx - 14, my); ctx.lineTo(mx, my - 150);
+    ctx.moveTo(mx + 14, my); ctx.lineTo(mx, my - 150);
+    ctx.stroke();
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(mx - 12, my - 44); ctx.lineTo(mx + 12, my - 44);
+    ctx.moveTo(mx - 9, my - 94); ctx.lineTo(mx + 9, my - 94);
+    ctx.stroke();
+    ctx.fillStyle = mixHex('#3a4048', '#7d8890', d);
+    rr(mx - 18, my - 158, 36, 8, 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(200,210,220,0.7)'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(mx + 10, my - 152);
+    ctx.quadraticCurveTo((mx + W) / 2, my - 178, W + 30, my - 168);
+    ctx.stroke();
+  }
+}
+
+/* ---------------------- ۷-۳) فاز ۲ — موتور مینی‌گیم فرار ---------------------- */
+/* انواع موانع: «پرش» = باید بپری • «خم» = باید زیرش خم شوی */
+const OBTYPE = {
+  rubble: 'jump', pothole: 'jump', grabber: 'jump', barrel: 'jump', pit: 'jump', pylon: 'jump',
+  sign: 'duck', beam: 'duck', flyer: 'duck',
+};
+
+const MG = {
+  cfg: null, scroll: 0, speed: 0, obs: [], nextObs: 520,
+  pl: { y: 0, vy: 0, duck: false, ground: true, inv: 0, run: 0 },
+  hits: 0, hidden: null, hidePlayer: false, outroPlayer: null, t2: 0,
+  reset(cfg) {
+    this.cfg = cfg;
+    this.scroll = 0; this.speed = cfg.speed0;
+    this.obs = []; this.nextObs = 560;
+    this.pl = { y: 0, vy: 0, duck: false, ground: true, inv: 0, run: 0 };
+    this.hits = 0;
+    this.hidePlayer = false;
+    this.outroPlayer = null;
+    this.t2 = 0;
+    this.hidden = { x: cfg.goalM * PXM * cfg.hidden.at, id: cfg.hidden.id, floatY: cfg.hidden.floatY, got: false };
+    for (const s of cfg.subs) s.done = false;
+  },
+};
+
+/* ورودی مینی‌گیم (از listener های بخش ۲) */
+function mgJump() {
+  if (!TR || TR.phase !== 2) return;
+  const pl = MG.pl;
+  if (pl.ground) {
+    pl.ground = false;
+    pl.vy = MG.cfg.jumpV;
+    SFX.csWhoosh();
+  }
+}
+function mgDuck(on) { if (TR && TR.phase === 2) mgKeys.duck = !!on; }
+function mgNudge(d) {
+  if (!TR || TR.phase !== 2) return;
+  mgKeys.left = d < 0;
+  mgKeys.right = d > 0;
+}
+
+/* شروع فاز ۲ */
+function mgBegin() {
+  TR.phase = 2;
+  TR.t = 0;
+  TR.fade = 1;                       // با سیاهی کوتاه شروع می‌شود
+  TR.fadeWhite = false;
+  MG.reset(MGCFG[TR.ch]);
+  setTransSub(MGCFG[TR.ch].startSub, 3.2);
+}
+
+function mgUpdate(dt) {
+  const cfg = MG.cfg;
+  TR.fade = Math.max(0, TR.fade - dt * 1.9);
+  MG.t2 += dt;
+
+  /* سرعت: رشد خودکار + فرمان ←/→ */
+  let nudge = 0;
+  if (mgKeys.left) nudge = -1;
+  else if (mgKeys.right) nudge = 1;
+  MG.speed = clamp(MG.speed + (cfg.accel + nudge * 210) * dt, cfg.speedMin, cfg.speedMax);
+  MG.scroll += MG.speed * dt;
+
+  /* فیزیک بازیکن */
+  const pl = MG.pl;
+  pl.inv = Math.max(0, pl.inv - dt);
+  if (!pl.ground) {
+    pl.vy += cfg.grav * dt;
+    pl.y += pl.vy * dt;
+    if (pl.y >= 0) {
+      pl.y = 0; pl.vy = 0; pl.ground = true;
+      SFX.csThud();
+      spawnParticles(360, cfg.baseY, 5, '#8a7a5c', { speed: 70, life: 0.35, size: 2, grav: 300, up: true });
+    }
+  }
+  pl.duck = !!mgKeys.duck && pl.ground;
+  pl.run += dt * (7 + MG.speed * 0.013);
+
+  /* تولید موانع تا جلوتر از صفحه */
+  while (MG.nextObs < MG.scroll + W + 160) {
+    const type = cfg.obstacles[irand(0, cfg.obstacles.length - 1)];
+    MG.obs.push({ wx: MG.nextObs, type, hit: false });
+    MG.nextObs += rand(cfg.obsGap[0], cfg.obsGap[1]) + MG.speed * 0.3;
+  }
+
+  /* برخورد: بازیکن روی x=۳۶۰ صفحه است */
+  const PX = 360;
+  for (const o of MG.obs) {
+    if (o.hit) continue;
+    const sx = o.wx - MG.scroll;
+    if (sx < -140) { o.hit = true; continue; }         // رد شد
+    if (Math.abs(sx - PX) < 25 && pl.inv <= 0) {
+      const need = OBTYPE[o.type];
+      if ((need === 'jump' && pl.y > -36) || (need === 'jumpclear' && pl.y > -36) ||
+          (need === 'duck' && !pl.duck)) {
+        mgHit(o);
+      }
+    }
+  }
+
+  /* آیتم مخفی: در اوج پرش قابل برداشتن است (پاداش دقت) */
+  const H = MG.hidden;
+  if (H && !H.got) {
+    const sx = H.x - MG.scroll;
+    if (Math.abs(sx - PX) < 34 && pl.y < -52) {
+      H.got = true;
+      giveItem(H.id);
+      SFX.csGift();
+      setTransSub('💎 آیتم مخفی پیدا شد! (' + (GEAR[H.id] || RARE[H.id]).name + ')', 2.6);
+      spawnParticles(PX, cfg.baseY + pl.y - 40, 22, (GEAR[H.id] || RARE[H.id]).color,
+        { speed: 190, life: 0.8, size: 2.8, grav: 260 });
+    }
+  }
+
+  /* مصرف باتری چراغ‌قوه در تونل */
+  if (cfg.battDrain && state.torch.owned && state.torch.battery > 0) {
+    state.torch.battery = Math.max(0, state.torch.battery - cfg.battDrain * dt);
+    if (state.torch.battery <= 0) setTransSub('🔋 باتری چراغ‌قوه تمام شد... پابه‌پا برو!', 2.2);
+  }
+
+  /* خط‌های رادیویی ارشان */
+  for (const s of cfg.subs) {
+    if (!s.done && MG.scroll / PXM >= s.atM) {
+      s.done = true;
+      setTransSub(s.txt, s.dur || 3);
+      SFX.peddler();
+    }
+  }
+
+  /* پایان مسیر → فاز ۳ */
+  if (MG.scroll >= cfg.goalM * PXM) mgOutro();
+}
+
+/* برخورد با مانع: سرعت می‌گیرد + لرزش + جرقه */
+function mgHit(o) {
+  o.hit = true;
+  MG.hits++;
+  MG.pl.inv = 1.15;
+  MG.speed = Math.max(MG.cfg.speedMin, MG.speed * 0.7);
+  state.shake = 7;
+  state.flash = 0.75;
+  SFX.csThud();
+  spawnParticles(360, MG.cfg.baseY - 22, 12, '#e06a5a', { speed: 160, life: 0.5, size: 2.6, grav: 420 });
+  setTransSub(MG.cfg.hitSubs[irand(0, MG.cfg.hitSubs.length - 1)], 1.5);
+}
+
+/* شروع فاز ۳ */
+function mgOutro() {
+  TR.phase = 3;
+  TR.t = 0;
+  TR.ev = {};
+  MG.obs = [];
+  setTransSub(MGCFG[TR.ch].outroSub, 2.6);
+  SFX.clear();
+}
+
+/* فاز ۳ مشترک: حرکت خودکار + محوِ پایانی */
+function mgOutroUpdate(dt) {
+  const cfg = MG.cfg;
+  MG.scroll += Math.min(MG.speed + 130, cfg.speedMax + 170) * dt;
+  MG.pl.run += dt * 12;
+  MG.pl.ground = true;
+  MG.pl.y = 0;
+  cfg.outroUpdate && cfg.outroUpdate(dt);
+  TR.fade = Math.max(TR.fade, clamp((TR.t - (cfg.outroDur - 1.15)) / 1.0, 0, 1));
+}
+
+/* ---------------------- ۷-۴) حلقه به‌روزرسانی انتقال ---------------------- */
+function updateTransition(dt) {
+  if (!TR || TR._paused) return;
+  TR.t += dt;
+  /* زیرنویس/لرزش/فلش مشترک */
+  if (TR.subT > 0) TR.subT -= dt;
+  state.shake = Math.max(0, state.shake - dt * 22);
+  state.flash = Math.max(0, state.flash - dt * 2.2);
+  state.comboPop = Math.max(0, state.comboPop - dt);
+
+  if (TR.phase === 1) {
+    if (TR.ch === 1) introUpdate1(dt);
+    else if (TR.ch === 2) introUpdate2(dt);
+    else introUpdate3(dt);
+    if (TR.t >= TRCFG[TR.ch].introDur) mgBegin();
+  } else if (TR.phase === 2) {
+    mgUpdate(dt);
+  } else {
+    mgOutroUpdate(dt);
+    if (TR.t >= MG.cfg.outroDur) finishTransition();
+  }
+  updateParticles(dt);
+  updateTexts(dt);
+}
+
+/* زمان‌بندی فاز ۱ هر فصل (فاز ۳ در MGCFG.outroDur) */
+const TRCFG = {
+  1: { introDur: 7.9 },
+  2: { introDur: 6.6 },
+  3: { introDur: 6.9 },
+};
+
+/* ---------------------- ۷-۵) رندر انتقال ---------------------- */
+/* فاز ۱ = صحنه‌ی عادی بازی + شبه‌کات‌سین؛ فاز ۲/۳ = صحنه‌ی اختصاصی مینی‌گیم */
+function renderTransition() {
+  if (!TR) return;
+  if (TR.phase === 1) return;                 // رندر عادی + CS
+  renderMG();
+}
+
+/* بازیکنِ دونده (پرش/خم/آویزان) — رسم مشترک هر سه تم */
+function drawRunner(x, gy, mode) {
+  const pl = MG.pl;
+  const hang = mode === 'hang';
+  const duck = pl.duck;
+  if (!hang) {
+    const sh = clamp(1 + pl.y / 170, 0.35, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.beginPath(); ctx.ellipse(x, gy + 3, 13 * sh, 4 * sh, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.save();
+  ctx.translate(x, gy + pl.y + (hang && duck ? 22 : 0));
+  if (duck && !hang) ctx.scale(1, 0.7);
+  if (MG.outroPlayer && MG.outroPlayer.rot) ctx.rotate(MG.outroPlayer.rot);
+  const run = pl.run;
+  const legA = pl.ground && !duck ? Math.sin(run) * 13 : (duck ? 4 : -7);
+  /* پاها */
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (hang) {
+    ctx.moveTo(0, -14); ctx.lineTo(-4 + Math.sin(run * 0.7) * 3, 9);
+    ctx.moveTo(0, -14); ctx.lineTo(5 - Math.sin(run * 0.7) * 3, 9);
+  } else {
+    ctx.moveTo(-3, -13); ctx.lineTo(-3 + legA, -1);
+    ctx.moveTo(3, -13); ctx.lineTo(3 - legA, -1);
+  }
+  ctx.stroke();
+  /* بدن + کوله پشتی */
+  ctx.fillStyle = '#3d6db5'; rr(-8, -27, 16, 16, 5); ctx.fill();
+  ctx.fillStyle = '#26324d'; ctx.fillRect(-8, -14, 16, 3);
+  ctx.fillStyle = '#6a4a2c'; rr(-14, -26, 6, 11, 2); ctx.fill();
+  /* سر */
+  ctx.fillStyle = '#f0c49a'; circle(2, -32, 6);
+  ctx.fillStyle = '#5a3d28';
+  ctx.beginPath(); ctx.arc(2, -32, 6, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d2433'; circle(4.4, -33, 1.1); circle(0.8, -33, 1.1);
+  /* بازوها */
+  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  if (hang) {
+    ctx.moveTo(-3, -24); ctx.lineTo(1, -41);
+    ctx.moveTo(4, -24); ctx.lineTo(7, -41);
+  } else if (!pl.ground) {
+    ctx.moveTo(-4, -24); ctx.lineTo(-12, -34);
+    ctx.moveTo(4, -24); ctx.lineTo(12, -34);
+  } else {
+    ctx.moveTo(-3, -24); ctx.lineTo(-3 - legA * 0.7, -16);
+    ctx.moveTo(4, -24); ctx.lineTo(4 + legA * 0.7, -16);
+  }
+  ctx.stroke();
+  /* اسلحه روی شانه */
+  ctx.strokeStyle = '#2b2f38'; ctx.lineWidth = 3.4;
+  ctx.beginPath(); ctx.moveTo(-6, -24); ctx.lineTo(9, -31); ctx.stroke();
+  ctx.restore();
+  /* چراغ‌قوه به کمر (اگر دارد) */
+  if (state.torch.owned) {
+    ctx.fillStyle = state.torch.on ? '#ffe9a0' : '#8a7a50';
+    circle(x - 12, gy + pl.y - 18 + (hang && duck ? 22 : 0), 2.6);
+  }
+}
+
+/* آیتم مخفی: جعبه‌ی کوچک درخشان معلق */
+function drawHiddenPickup(sx, sy, id) {
+  const def = GEAR[id] || RARE[id];
+  const col = (def && def.color) || '#ffd873';
+  ctx.save();
+  ctx.translate(sx, sy + Math.sin(animTime * 2.6) * 5);
+  const g2 = ctx.createRadialGradient(0, 0, 3, 0, 0, 30);
+  g2.addColorStop(0, hexA(col, 0.5)); g2.addColorStop(1, hexA(col, 0));
+  ctx.fillStyle = g2; circle(0, 0, 30);
+  ctx.fillStyle = '#2c3440'; rr(-11, -10, 22, 20, 3); ctx.fill();
+  ctx.fillStyle = col; rr(-8, -7, 16, 14, 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; circle(-3, -3, 2);
+  ctx.restore();
+}
+
+/* ---------------------- ۷-۶) تم‌های مینی‌گیم ---------------------- */
+/* === تم جاده (فصل ۱→۲): دویدن کنار ماشین ارشان === */
+function roadBG(scroll, gy) {
+  const g = ctx.createLinearGradient(0, -20, 0, gy);
+  g.addColorStop(0, '#050a18'); g.addColorStop(0.55, '#0d1834'); g.addColorStop(1, '#1c2a4e');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, gy + 20);
+  ctx.fillStyle = '#efe6c4'; circle(118, 62, 25);
+  ctx.fillStyle = 'rgba(120,110,80,0.22)'; circle(110, 56, 5); circle(126, 70, 3.4);
+  /* افق شهر با پارالاکس کند */
+  const m = W + 80, off = scroll * 0.16;
+  ctx.fillStyle = '#0b1226';
+  for (const b of SKYLINE) {
+    const sx = (((b.x - off) % m) + m) % m - 40;
+    ctx.fillRect(sx, gy - b.h * 0.66, b.w, b.h * 0.66);
+  }
+  /* جاده */
+  const rg = ctx.createLinearGradient(0, gy, 0, H);
+  rg.addColorStop(0, '#23262c'); rg.addColorStop(1, '#14161b');
+  ctx.fillStyle = rg; ctx.fillRect(-20, gy, W + 40, H - gy + 20);
+  ctx.fillStyle = '#2e3238'; ctx.fillRect(-20, gy, W + 40, 5);
+  ctx.fillStyle = 'rgba(245,205,90,0.9)';
+  const dash = 46, gap = 34, mm = dash + gap, ph = scroll % mm;
+  for (let x = -mm; x < W + mm; x += mm) { rr(x + ph, gy + 44, dash, 6, 3); ctx.fill(); }
+  /* اجزای کنار جاده (درخت/چراغ/بوته/سنگ — از بخش رانندگی ۸٫۰) */
+  for (const p of DRIVE_PROPS) {
+    const sx = p.wx - scroll * 0.98;
+    if (sx > -90 && sx < W + 90) drawRoadProp(p, sx);
+  }
+}
+function roadObs(o, sx, gy) {
+  const d = 0;
+  if (o.type === 'rubble') {
+    ctx.fillStyle = '#6e5a44';
+    rr(sx - 20, gy - 26, 40, 26, 3); ctx.fill();
+    ctx.fillStyle = '#8a6f52';
+    ctx.fillRect(sx - 14, gy - 34, 16, 9); ctx.fillRect(sx + 2, gy - 30, 12, 7);
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2;
+    ctx.strokeRect(sx - 20, gy - 26, 40, 26);
+    ctx.beginPath(); ctx.moveTo(sx - 6, gy - 26); ctx.lineTo(sx - 2, gy - 34); ctx.stroke();
+  } else if (o.type === 'pothole') {
+    ctx.fillStyle = '#0a0b0e';
+    ctx.beginPath(); ctx.ellipse(sx, gy + 6, 26, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#3a3d44'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(sx, gy + 6, 26, 9, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#2c3038';
+    for (const dx of [-18, 12]) ctx.fillRect(sx + dx, gy - 4, 8, 5);
+  } else if (o.type === 'grabber') {
+    /* زامبی یورغ‌زننده از کانال — باید از رویش بپری */
+    ctx.save();
+    ctx.translate(sx, gy);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 2, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
+    const lun = Math.sin(animTime * 8) * 4;
+    ctx.scale(-1, 1);
+    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-3, -12); ctx.lineTo(-6, -1); ctx.moveTo(3, -12); ctx.lineTo(6, -1); ctx.stroke();
+    ctx.fillStyle = '#4a5d73'; rr(-8, -28, 16, 17, 4); ctx.fill();
+    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-4, -24); ctx.lineTo(12, -30 - lun); ctx.moveTo(4, -24); ctx.lineTo(13, -24 + lun); ctx.stroke();
+    ctx.fillStyle = '#7fa657'; circle(2, -33, 6.4);
+    ctx.save(); ctx.shadowColor = '#ff4b3e'; ctx.shadowBlur = 5;
+    ctx.fillStyle = '#ff4b3e'; circle(4.5, -34, 1.5); circle(7.6, -34.5, 1.5); ctx.restore();
+    ctx.restore();
+  } else if (o.type === 'sign') {
+    /* تابلوی افتاده — از زیرش رد شو (خم شو) */
+    ctx.strokeStyle = '#4a4a52'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(sx - 34, gy); ctx.lineTo(sx - 22, gy - 44); ctx.stroke();
+    ctx.fillStyle = '#2c3f70';
+    ctx.save();
+    ctx.translate(sx - 22, gy - 44);
+    ctx.rotate(0.28);
+    rr(0, -16, 58, 22, 3); ctx.fill();
+    ctx.fillStyle = '#ffd873'; ctx.fillRect(6, -10, 40, 3.5);
+    ctx.fillStyle = '#8fa3cf'; ctx.fillRect(6, -4, 28, 3);
+    ctx.restore();
+    ctx.strokeStyle = '#ffb03c'; ctx.lineWidth = 2;    // هشدار
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(sx - 8, gy - 52); ctx.lineTo(sx + 12, gy - 44); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+function roadProps(scroll, gy) {
+  /* ماشین ارشان جلوتر — چرخ‌ها با اسکرول می‌چرخند */
+  const carX = 612 + (TR.phase === 3 ? Math.max(0, TR.t - 0.5) * 250 : Math.sin(animTime * 0.8) * 6);
+  drawCar({ x: carX, y: gy + 8, kick: 0, spin: scroll * 0.055, hand: 0 });
+  /* دود اگزوز */
+  if (Math.random() < 0.16) {
+    spawnParticles(carX - 78, gy - 10, 1, 'rgba(120,120,130,0.4)',
+      { speed: 26, life: 0.9, size: 3.2, grav: -16 });
+  }
+  /* دو زامبی تعقیب‌کننده پشت سر */
+  for (const [zx, sp] of [[102, 1], [58, 0.8]]) {
+    const z = {
+      type: 'normal', x: zx, y: gy + 4, dir: 1, radius: 15,
+      walkPhase: animTime * 6 * sp, attacking: false, attackAnim: 0,
+      attackSide: 0, lane: 0, depth: 1, yJit: 0, stagger: 0, chill: 0,
+      hitFlash: 0, dead: false, deathT: 0,
+    };
+    drawZombie(z);
+  }
+}
+function roadOutroUpdate(dt) {
+  /* پرش به ماشین و رفتن */
+  if (TR.t >= 1.3 && !TR.ev.inCar) {
+    TR.ev.inCar = 1;
+    MG.hidePlayer = true;
+    SFX.csLand();
+    spawnParticles(612, GROUND_Y - 40, 10, '#c9b38a', { speed: 120, life: 0.5, size: 2.4, grav: 300 });
+  }
+}
+function roadOutroDraw(gy) {
+  if (TR.t > 0.6 && TR.t < 1.6) {
+    /* جهش بازیکن به ماشین */
+    const k = clamp((TR.t - 0.6) / 0.7, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.translate(360 + (612 - 360) * k, gy - 20 - Math.sin(k * Math.PI) * 64 + k * 10);
+    ctx.rotate(k * 0.5);
+    ctx.fillStyle = '#3d6db5'; rr(-8, -20, 16, 16, 5); ctx.fill();
+    ctx.fillStyle = '#f0c49a'; circle(2, -25, 6);
+    ctx.restore();
+  }
+}
+
+/* === تم تونل (فصل ۲→۳): تاریکی + فقط نور چراغ‌قوه === */
+function tunnelBG(scroll, gy) {
+  ctx.fillStyle = '#020309';
+  ctx.fillRect(-20, -20, W + 40, H + 40);
+  /* قوس‌های تونل */
+  const spacing = 200, off = scroll * 0.85;
+  ctx.strokeStyle = '#161e2c'; ctx.lineWidth = 5;
+  for (let i = -1; i < W / spacing + 2; i++) {
+    const sx = i * spacing - (off % spacing);
+    ctx.beginPath();
+    ctx.moveTo(sx - 46, H);
+    ctx.quadraticCurveTo(sx - 46, gy - 155, sx, gy - 155);
+    ctx.quadraticCurveTo(sx + 46, gy - 155, sx + 46, H);
+    ctx.stroke();
+  }
+  /* کف تونل + ریل */
+  ctx.fillStyle = '#0b0e15'; ctx.fillRect(-20, gy, W + 40, H - gy + 20);
+  ctx.strokeStyle = '#1e2836'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-20, gy + 20); ctx.lineTo(W + 20, gy + 20); ctx.stroke();
+  ctx.fillStyle = '#151d29';
+  const ph = (scroll * 1.0) % 60;
+  for (let x = -60; x < W + 60; x += 60) ctx.fillRect(x + ph, gy + 34, 26, 4);
+  /* لوله‌های بالای تونل */
+  ctx.strokeStyle = '#131a26'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(-20, gy - 148); ctx.lineTo(W + 20, gy - 148); ctx.stroke();
+  ctx.strokeStyle = '#1b2534'; ctx.lineWidth = 2;
+  for (let x = -40 - (scroll * 0.85 % 90); x < W + 40; x += 90) {
+    ctx.beginPath(); ctx.moveTo(x, gy - 148); ctx.lineTo(x, gy - 160); ctx.stroke();
+  }
+}
+function tunnelObs(o, sx, gy) {
+  if (o.type === 'pit') {
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(sx, gy + 5, 25, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#232c3c'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(sx, gy + 5, 25, 8, 0, 0, Math.PI * 2); ctx.stroke();
+  } else if (o.type === 'barrel') {
+    ctx.fillStyle = '#3a3038';
+    rr(sx - 13, gy - 28, 26, 28, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(sx - 13, gy - 19, 26, 3);
+    ctx.fillStyle = '#e8a13c';
+    ctx.fillRect(sx - 13, gy - 24, 26, 4);          // نوار خطر
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.2;
+    rr(sx - 13, gy - 28, 26, 28, 4); ctx.stroke();
+  } else if (o.type === 'beam') {
+    /* تیرآهن فولادی — خم شو! */
+    ctx.fillStyle = '#2c3440';
+    ctx.fillRect(sx - 30, gy - 62, 60, 16);
+    ctx.fillStyle = '#3a4452';
+    ctx.fillRect(sx - 30, gy - 62, 60, 4);
+    ctx.fillStyle = '#ffb03c';                       // راه‌راه هشدار
+    for (let i = 0; i < 5; i++) ctx.fillRect(sx - 26 + i * 12, gy - 54, 7, 6);
+    ctx.strokeStyle = '#1a2028'; ctx.lineWidth = 2;
+    ctx.strokeRect(sx - 30, gy - 62, 60, 16);
+    /* مهارهای کناری */
+    ctx.strokeStyle = '#232c3c'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(sx - 28, gy - 46); ctx.lineTo(sx - 34, gy);
+    ctx.moveTo(sx + 28, gy - 46); ctx.lineTo(sx + 34, gy);
+    ctx.stroke();
+  }
+}
+function tunnelProps(scroll, gy) {
+  /* ارشان با فانوس جلوتر (سایه‌ی روشن) */
+  ctx.save();
+  ctx.translate(560, gy);
+  const lg = ctx.createRadialGradient(0, -26, 3, 0, -26, 54);
+  lg.addColorStop(0, 'rgba(255,210,130,0.20)'); lg.addColorStop(1, 'rgba(255,210,130,0)');
+  ctx.fillStyle = lg; circle(0, -26, 54);
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  const run = animTime * 9;
+  ctx.beginPath();
+  ctx.moveTo(-3, -13); ctx.lineTo(-3 + Math.sin(run) * 10, -1);
+  ctx.moveTo(3, -13); ctx.lineTo(3 - Math.sin(run) * 10, -1);
+  ctx.stroke();
+  ctx.fillStyle = '#4a7a4a'; rr(-8, -28, 16, 16, 5); ctx.fill();     // کاپشن سبز ارشان
+  ctx.fillStyle = '#f0c49a'; circle(2, -33, 6);
+  ctx.fillStyle = '#7a2a2a';
+  ctx.beginPath(); ctx.arc(2, -33, 6.2, Math.PI, Math.PI * 2); ctx.fill();  // کلاه قرمز
+  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(4, -24); ctx.lineTo(13, -30); ctx.stroke();  // فانوس در دست
+  ctx.fillStyle = '#ffd873';
+  ctx.save(); ctx.shadowColor = '#ffd873'; ctx.shadowBlur = 8;
+  circle(14, -31, 3.4); ctx.restore();
+  ctx.restore();
+}
+function tunnelOutroUpdate(dt) {
+  if (TR.t >= 1.4 && !TR.ev.run) {
+    TR.ev.run = 1;
+    setTransSub('— نورِ آخر تونل... بزن بیرون!', 2);
+  }
+}
+function tunnelOutroDraw(gy) {
+  /* چرخنده‌ی نور آخر تونل */
+  const r = 30 + clamp(TR.t / 1.8, 0, 1) * 560;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g2 = ctx.createRadialGradient(W + 40, gy - 30, 10, W + 40, gy - 30, r);
+  g2.addColorStop(0, 'rgba(255,250,235,0.95)');
+  g2.addColorStop(0.4, 'rgba(255,240,210,0.5)');
+  g2.addColorStop(1, 'rgba(255,240,210,0)');
+  ctx.fillStyle = g2;
+  circle(W + 40, gy - 30, r);
+  ctx.restore();
+}
+
+/* === تم زیپ‌لاین (فصل ۳→۴): دره برفی و بارانی === */
+function ziplineBG(scroll, gy) {
+  const g = ctx.createLinearGradient(0, -20, 0, H);
+  g.addColorStop(0, '#0a101e'); g.addColorStop(0.5, '#1a2438'); g.addColorStop(1, '#2c3a52');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H + 40);
+  /* ابرهای تند طوفان */
+  for (const c of CLOUDS) {
+    const m = W + 300;
+    const x = (((c.x - animTime * c.v * 2.2) % m) + m) % m - 150;
+    ctx.fillStyle = 'rgba(16,22,36,0.85)';
+    cloudBlob(x, c.y, c.s * 0.9, 'rgba(16,22,36,0.85)');
+  }
+  /* کوهستان دور (پارالاکس) */
+  const off = scroll * 0.22;
+  ctx.fillStyle = '#131b2c';
+  ctx.beginPath(); ctx.moveTo(-20, gy + 60);
+  for (let i = 0; i < 16; i++) {
+    const x = i * 92 - (off % 92);
+    ctx.lineTo(x + 46, gy - 44 - ((i * 41) % 66));
+    ctx.lineTo(x + 92, gy + 34);
+  }
+  ctx.lineTo(W + 20, gy + 60); ctx.closePath(); ctx.fill();
+  /* دره + رودخانه زیر پا */
+  ctx.fillStyle = '#0b1220'; ctx.fillRect(-20, gy + 58, W + 40, H - gy);
+  const wsh = Math.sin(animTime * 1.8) * 5;
+  ctx.fillStyle = 'rgba(120,160,210,0.10)';
+  ctx.fillRect(-20, gy + 84 + wsh, W + 40, 12);
+  ctx.fillStyle = 'rgba(150,190,235,0.07)';
+  ctx.fillRect(-20, gy + 96 - wsh, W + 40, 8);
+  /* برف ریزان (تندتر از صحنه‌ی بازی) */
+  for (const f of SNOW_FLAKES) {
+    const m = W + 40;
+    const x = (((f.x - animTime * 34) % m) + m) % m - 20 + Math.sin(animTime * f.sw + f.ph) * 20;
+    const y = (f.y0 + animTime * f.v * 1.5) % (H + 24) - 12;
+    ctx.fillStyle = 'rgba(235,244,252,0.8)';
+    ctx.beginPath(); ctx.arc(x, y, f.r, 0, Math.PI * 2); ctx.fill();
+  }
+  /* کابل زیپ‌لاین (موج ملایم) */
+  ctx.strokeStyle = 'rgba(205,215,228,0.85)'; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(-20, gy - 38 + Math.sin(animTime * 1.3) * 2);
+  ctx.quadraticCurveTo(W / 2, gy - 46, W + 20, gy - 40);
+  ctx.stroke();
+  /* مهارهای عمودی از دره تا کابل */
+  const m2 = 340, ph2 = scroll % m2;
+  ctx.strokeStyle = 'rgba(70,85,110,0.55)'; ctx.lineWidth = 2.6;
+  for (let x = -m2; x < W + m2; x += m2) {
+    const sx = x - ph2;
+    ctx.beginPath(); ctx.moveTo(sx, gy - 40); ctx.lineTo(sx, gy + 60); ctx.stroke();
+    ctx.fillStyle = 'rgba(70,85,110,0.55)';
+    ctx.fillRect(sx - 5, gy + 54, 10, 8);
+  }
+}
+function ziplineObs(o, sx, gy) {
+  if (o.type === 'pylon') {
+    /* تیرک شکسته از دره بالا آمده — بپر از رویش */
+    ctx.strokeStyle = '#2e3a4e'; ctx.lineWidth = 7; ctx.lineCap = 'butt';
+    ctx.beginPath();
+    ctx.moveTo(sx, gy + 56);
+    ctx.lineTo(sx - 6, gy - 10);
+    ctx.lineTo(sx + 4, gy - 34);
+    ctx.stroke();
+    ctx.strokeStyle = '#46536a'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(sx - 3, gy + 18); ctx.lineTo(sx + 7, gy - 6);
+    ctx.moveTo(sx - 2, gy + 36); ctx.lineTo(sx - 9, gy + 10);
+    ctx.stroke();
+    ctx.fillStyle = '#ffb03c';
+    circle(sx + 4, gy - 34, 3);                      // چراغ هشدار
+  } else if (o.type === 'flyer') {
+    /* زامبی پرنده — خم شو! */
+    ctx.save();
+    ctx.translate(sx, gy - 46);
+    ctx.scale(-1, 1);
+    const flap = Math.sin(animTime * 10) * 8;
+    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-2, -8); ctx.lineTo(-16, -8 - flap);    // بال‌های باز
+    ctx.moveTo(2, -8); ctx.lineTo(15, -8 + flap * 0.6);
+    ctx.stroke();
+    ctx.fillStyle = '#4a5d73'; rr(-8, -14, 16, 14, 4); ctx.fill();
+    ctx.fillStyle = '#7fa657'; circle(3, -18, 6);
+    ctx.save(); ctx.shadowColor = '#ff4b3e'; ctx.shadowBlur = 6;
+    ctx.fillStyle = '#ff4b3e'; circle(5, -19, 1.6); circle(8, -19.5, 1.6); ctx.restore();
+    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-4, -2); ctx.lineTo(-9, 8); ctx.moveTo(4, -2); ctx.lineTo(9, 8); ctx.stroke();
+    ctx.restore();
+    /* ردِ پرواز */
+    ctx.strokeStyle = 'rgba(200,220,240,0.18)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(sx - 70, gy - 70); ctx.quadraticCurveTo(sx - 30, gy - 40, sx, gy - 46); ctx.stroke();
+  }
+}
+function ziplineProps(scroll, gy) {
+  /* دسته‌ی زیپ‌لاین روی کابل بالای بازیکن */
+  ctx.fillStyle = '#3a4250';
+  rr(352, gy - 46, 16, 10, 3); ctx.fill();
+  ctx.fillStyle = '#ffb03c';
+  circle(360, gy - 41, 2.2);
+  /* جرقه‌ی اصطکاک کابل */
+  if (Math.random() < 0.2) {
+    spawnParticles(360 - MG.speed * 0.05, gy - 44, 1, '#ffd88a',
+      { speed: 60, life: 0.3, size: 1.6, grav: 200 });
+  }
+}
+function ziplineOutroUpdate(dt) {
+  /* رها کردن کابل + فرود غلتکی روی برف */
+  if (TR.t >= 0.45 && !TR.ev.release) {
+    TR.ev.release = 1;
+    SFX.csWhistle();
+  }
+  if (TR.ev.release) {
+    const k = clamp((TR.t - 0.45) / 0.85, 0, 1);
+    MG.outroPlayer = {
+      x: 360 + k * 430,
+      y: 330 + (470 - 330) * k * k,
+      rot: k * Math.PI * 2.2,
+    };
+    if (k >= 1 && !TR.ev.landed) {
+      TR.ev.landed = 1;
+      MG.outroPlayer.y = 470;
+      MG.outroPlayer.rot = 0;
+      SFX.csLand();
+      state.shake = 6;
+      spawnParticles(790, 470, 22, 'rgba(235,244,252,0.9)', { speed: 190, life: 0.7, size: 2.8, grav: 240, up: true });
+      setTransSub('— [ارشان]: رسیدیم... به آخرین برج.', 2.4);
+    }
+  }
+}
+function ziplineOutroDraw(gy) {
+  /* سکوی مخابراتی مقصد در راست */
+  ctx.fillStyle = '#2c3648';
+  rr(836, 424, 120, 14, 3); ctx.fill();
+  ctx.fillStyle = '#3a4254';
+  ctx.fillRect(846, 438, 12, 44); ctx.fillRect(932, 438, 12, 44);
+  /* دکل پس‌زمینه با چراغ قرمز */
+  ctx.strokeStyle = '#243044'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(886, 424); ctx.lineTo(886, 316);
+  ctx.moveTo(866, 424); ctx.lineTo(886, 348);
+  ctx.moveTo(906, 424); ctx.lineTo(886, 348);
+  ctx.stroke();
+  ctx.save();
+  ctx.shadowColor = '#ff4b3e'; ctx.shadowBlur = 8;
+  ctx.fillStyle = 'rgba(255,75,62,' + (0.5 + 0.5 * Math.sin(animTime * 3)) + ')';
+  circle(886, 314, 3);
+  ctx.restore();
+}
+
+/* تاریکیِ تونل: فقط دایره‌ی نور چراغ‌قوه دور دونده */
+function renderTunnelDark(gy) {
+  const x = 360, y = gy + MG.pl.y - 24;
+  let r;
+  if (state.torch.owned && state.torch.on && state.torch.battery > 0) {
+    r = 118 + 78 * state.torch.battery / 100;
+  } else if (state.torch.owned) {
+    r = 56;
+  } else {
+    r = 42;
+  }
+  r *= 0.92 + 0.08 * Math.sin(animTime * 19);
+  /* بوم جدا برای تاریکی تونل — سوراخِ نور این‌جا زده می‌شود تا موانعِ داخل
+     دایره‌ی نور دیده بمانند (destination-out مستقیم صحنه را هم پاک می‌کرد) */
+  if (!Dark.cv) { Dark.cv = document.createElement('canvas'); Dark.cv.width = W; Dark.cv.height = H; }
+  const c = Dark.cv.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, W, H);
+  c.fillStyle = 'rgba(1,2,8,0.94)';
+  c.fillRect(0, 0, W, H);
+  c.globalCompositeOperation = 'destination-out';
+  const g2 = c.createRadialGradient(x, y, r * 0.12, x, y, r);
+  g2.addColorStop(0, 'rgba(0,0,0,0.98)');
+  g2.addColorStop(0.6, 'rgba(0,0,0,0.5)');
+  g2.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g2;
+  c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+  c.globalCompositeOperation = 'source-over';
+  ctx.drawImage(Dark.cv, 0, 0);
+  /* گرمای نور روی خود بازیکن */
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g3 = ctx.createRadialGradient(x, y, 2, x, y, Math.min(r, 72));
+  g3.addColorStop(0, 'rgba(255,225,160,0.15)');
+  g3.addColorStop(1, 'rgba(255,225,160,0)');
+  ctx.fillStyle = g3;
+  circle(x, y, Math.min(r, 72));
+  ctx.restore();
+}
+
+/* ---------------------- ۷-۷) پیکربندی سه مینی‌گیم ---------------------- */
+const MGCFG = {
+  1: {
+    theme: 'road', baseY: GROUND_Y,
+    goalM: 240, speed0: 265, speedMin: 180, speedMax: 470, accel: 15,
+    jumpV: -600, grav: 1500, obsGap: [330, 540],
+    obstacles: ['rubble', 'grabber', 'pothole', 'sign', 'rubble', 'grabber'],
+    hidden: { id: 'medkit', at: 0.45, floatY: -118 },
+    battDrain: 0,
+    startSub: '— [ارشان]: کنار ماشین بدو! سرعتت رو کم نکن!',
+    outroDur: 3.4,
+    outroSub: '— [ارشان]: انبارهای مه‌گرفته جلوته... بپر توی ماشین!',
+    hitSubs: ['آخ! مواظب باش!', 'برخوردی! سرعت گیر کرد!', 'حواست کجاست؟!'],
+    subs: [
+      { atM: 62,  txt: '— [ارشان]: زامبی‌ها پشت سرمون‌ان! بدو!' },
+      { atM: 118, txt: '— [تو]: نفس... نفس... هنوز کیلومتره؟!' },
+      { atM: 176, txt: '— [ارشان]: جلو یه منطقه‌ی مه‌گرفته‌ست... برج بعدی همون‌جاست!' },
+    ],
+    drawBG: roadBG, drawObs: roadObs, drawProps: roadProps,
+    outroUpdate: roadOutroUpdate, outroDraw: roadOutroDraw,
+  },
+  2: {
+    theme: 'tunnel', baseY: 458,
+    goalM: 200, speed0: 235, speedMin: 150, speedMax: 400, accel: 13,
+    jumpV: -560, grav: 1450, obsGap: [300, 480],
+    obstacles: ['pit', 'beam', 'barrel', 'pit', 'beam', 'barrel'],
+    hidden: { id: 'goldAmmo', at: 0.6, floatY: -112 },
+    battDrain: 1.15,                        // باتری چراغ‌قوه در تونل خالی می‌شود
+    startSub: '— [ارشان]: فقط نور چراغ‌قوه‌ت! تیرآهن‌ها رو خم شو رد شو!',
+    outroDur: 3.4,
+    outroSub: '— [ارشان]: نور آخر تونل! بزن بیرون!',
+    hitSubs: ['صدای برخورد در تاریکی!', 'چیزی ندیدی؟! مواظب باش!', 'آخ! پاته؟!'],
+    subs: [
+      { atM: 50,  txt: '— [ارشان]: رادیو می‌گه پاسگاه نظامی چند کیلومتر جلوتره...' },
+      { atM: 100, txt: '— [تو]: این تونل تا کجا ادامه داره؟' },
+      { atM: 150, txt: '— [ارشان]: ساکت باش... صدای چیزی میاد...' },
+    ],
+    drawBG: tunnelBG, drawObs: tunnelObs, drawProps: tunnelProps,
+    outroUpdate: tunnelOutroUpdate, outroDraw: tunnelOutroDraw,
+  },
+  3: {
+    theme: 'zipline', baseY: 330,
+    goalM: 260, speed0: 300, speedMin: 210, speedMax: 500, accel: 16,
+    jumpV: -540, grav: 1350, obsGap: [340, 540],
+    obstacles: ['pylon', 'flyer', 'pylon', 'flyer', 'pylon'],
+    hidden: { id: 'battery', at: 0.55, floatY: -96 },
+    battDrain: 0,
+    startSub: '— [ارشان]: به کابل بچسب! تیرک‌ها رو بپر، زامبی‌های پرنده رو خم شو رد شو!',
+    outroDur: 3.8,
+    outroSub: '— [ارشان]: سکوی مخابراتی! آماده‌ی فرود باش!',
+    hitSubs: ['نصفه‌شب تو برف خوردی!', 'برخورد! کابل رو محکم بگیر!', 'حواست به تیرک‌ها باشه!'],
+    subs: [
+      { atM: 65,  txt: '— [ارشان]: دره رو ببین... عمیقه! ول نکن!' },
+      { atM: 130, txt: '— [تو]: باد داره منو هی می‌کوبه!' },
+      { atM: 195, txt: '— [ارشان]: چراغ قرمز رو می‌بینی؟ همون برجِ آخره!' },
+    ],
+    drawBG: ziplineBG, drawObs: ziplineObs, drawProps: ziplineProps,
+    outroUpdate: ziplineOutroUpdate, outroDraw: ziplineOutroDraw,
+  },
+};
+
+/* ---------------------- ۷-۸) رندر مینی‌گیم (فاز ۲ و ۳) ---------------------- */
+function renderMG() {
+  if (!TR || !MG.cfg) return;
+  const cfg = MG.cfg;
+  const gy = cfg.baseY;
+  const scroll = MG.scroll;
+  const mode = cfg.theme === 'zipline' ? 'hang' : 'run';
+
+  cfg.drawBG(scroll, gy);
+
+  /* موانع */
+  for (const o of MG.obs) {
+    const sx = o.wx - scroll;
+    if (sx > -100 && sx < W + 100) cfg.drawObs(o, sx, gy);
+  }
+  /* آیتم مخفی */
+  const H = MG.hidden;
+  if (H && !H.got) {
+    const sx = H.x - scroll;
+    if (sx > -70 && sx < W + 70) drawHiddenPickup(sx, gy + H.floatY, H.id);
+  }
+
+  /* اجزای تم (ماشین/ارشان/کابل) */
+  cfg.drawProps(scroll, gy);
+
+  /* بازیکن */
+  if (!MG.hidePlayer) {
+    if (MG.outroPlayer) {
+      ctx.save();
+      ctx.translate(MG.outroPlayer.x, MG.outroPlayer.y);
+      if (MG.outroPlayer.rot) ctx.rotate(MG.outroPlayer.rot);
+      ctx.fillStyle = '#3d6db5'; rr(-8, -27, 16, 16, 5); ctx.fill();
+      ctx.fillStyle = '#f0c49a'; circle(2, -32, 6);
+      ctx.fillStyle = '#5a3d28';
+      ctx.beginPath(); ctx.arc(2, -32, 6, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    } else {
+      drawRunner(360, gy, mode);
+    }
+  }
+
+  /* تاریکی تونل روی همه‌چیز (بعد از موانع = موانع در تاریکی پنهان‌اند) */
+  if (cfg.theme === 'tunnel' && TR.phase === 2) renderTunnelDark(gy);
+
+  /* فاز ۳: پایان‌بندی اختصاصی */
+  if (TR.phase === 3 && cfg.outroDraw) cfg.outroDraw(gy);
+}
+
+/* لایه‌ی رویی انتقال: نوار سینما + زیرنویس + پیشرفت + راهنما + محو */
+function drawTransitionOverlay() {
+  if (state.mode !== 'transition' || !TR) return;
+  /* نوارهای سینمایی */
+  const L = Math.round(30 * clamp(TR.t / 0.5, 0, 1));
+  if (L > 0) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, L);
+    ctx.fillRect(0, H - L, W, L);
+  }
+  /* زیرنویس فعلی */
+  if (TR.subT > 0 && TR.sub) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 14.5px Tahoma, sans-serif';
+    const a = Math.min(1, TR.subT / 0.3);
+    ctx.globalAlpha = a;
+    const tw = ctx.measureText(TR.sub).width + 30;
+    ctx.fillStyle = 'rgba(0,0,0,0.68)';
+    rr(W / 2 - tw / 2, H - L - 42, tw, 27, 13); ctx.fill();
+    ctx.fillStyle = '#f3e9cf';
+    ctx.fillText(TR.sub, W / 2, H - L - 28);
+    ctx.globalAlpha = 1;
+  }
+  /* نوار پیشرفت فاز ۲ + راهنمای کنترل */
+  if (TR.phase === 2 && MG.cfg) {
+    const cfg = MG.cfg;
+    const distM = MG.scroll / PXM;
+    const pct = clamp(distM / cfg.goalM, 0, 1);
+    const bw = 430, bx = (W - bw) / 2, by = 54;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 13px Tahoma, sans-serif';
+    ctx.fillStyle = '#e8ecf5';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 6;
+    ctx.fillText('فرار — ' + faNum(Math.round(cfg.goalM - distM)) + ' متر مانده', W / 2, by - 14);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(5,9,22,0.92)';
+    rr(bx, by, bw, 14, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,216,115,0.55)'; ctx.lineWidth = 1.5;
+    rr(bx, by, bw, 14, 7); ctx.stroke();
+    const fw = (bw - 6) * pct;
+    if (fw > 4) {
+      const fg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+      fg.addColorStop(0, '#f0b53c'); fg.addColorStop(1, '#ffd873');
+      ctx.fillStyle = fg;
+      rr(bx + 3, by + 3, fw, 8, 4); ctx.fill();
+    }
+    /* نشان بازیکن + مقصد */
+    ctx.fillStyle = '#e8563f';
+    rr(bx + 3 + Math.max(0, fw - 8), by + 1.5, 15, 11, 3); ctx.fill();
+    drawMiniTower(bx + bw + 22, by + 14);
+    /* راهنمای کنترل (۵ ثانیه‌ی اول) */
+    const k = clamp(MG.t2 / 0.5, 0, 1) * clamp((5.6 - MG.t2) / 0.8, 0, 1);
+    if (k > 0.03) {
+      ctx.globalAlpha = k;
+      const hw = 470, hx = (W - hw) / 2, hy = by + 26;
+      ctx.fillStyle = 'rgba(4,7,18,0.94)';
+      rr(hx, hy, hw, 34, 17); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,216,115,0.6)'; ctx.lineWidth = 1.6;
+      rr(hx, hy, hw, 34, 17); ctx.stroke();
+      ctx.font = 'bold 13.5px Tahoma, sans-serif';
+      ctx.fillStyle = '#ffd873';
+      ctx.fillText('پرش', hx + hw - 130, hy + 17);
+      ctx.fillStyle = '#8fd6ff';
+      ctx.fillText('خم‌شدن', hx + 168, hy + 17);
+      ctx.fillStyle = '#c3cdea';
+      ctx.font = 'bold 12px Tahoma, sans-serif';
+      ctx.fillText('↑ یا Space', hx + hw - 74, hy + 17);
+      ctx.fillText('↓', hx + 108, hy + 17);
+      ctx.fillStyle = '#c3cdea';
+      ctx.font = 'bold 11.5px Tahoma, sans-serif';
+      ctx.fillText('سرعت: ←/→      (لمس صفحه = پرش)', W / 2 - 60, hy + 17);
+      ctx.globalAlpha = 1;
+    }
+    /* شمارنده‌ی برخوردها */
+    if (MG.hits > 0) {
+      ctx.font = 'bold 11px Tahoma, sans-serif';
+      ctx.fillStyle = 'rgba(255,150,140,0.85)';
+      ctx.textAlign = 'left';
+      ctx.fillText('برخورد: ' + faNum(MG.hits), 14, H - L - 18);
+      ctx.textAlign = 'center';
+    }
+  }
+  /* محوی فاز (سیاه یا سفید) */
+  if (TR.fade > 0.003) {
+    ctx.fillStyle = TR.fadeWhite
+      ? 'rgba(245,248,252,' + TR.fade.toFixed(3) + ')'
+      : 'rgba(0,0,0,' + TR.fade.toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۸: کات‌سین افتتاحیه + تنظیمات
+   ==================================================================
+   کات‌سین افتتاحیه فقط بعد از «بازی جدید» یک‌بار پخش می‌شود:
+     ۵ صحنه‌ی Canvas (شهر خالی با مه / خیابان متروک / ساخت برج /
+     شبِ محاصره / رادیو و نقشه‌ی راه پناهگاه) + زیرنویس فارسیِ متن داستان.
+   روایت صوتی کاملاً اختیاری است: فایل narration.mp3 (مثلاً از ElevenLabs)
+   کنار بازی گذاشته شود پخش می‌شود؛ اگر نبود/لود نشد، بازی بدون خطا
+   فقط با زیرنویس ادامه پیدا می‌کند (تگ <audio> در HTML هست).
+   ================================================================== */
+
+let INTRO = null;      // وضعیت کات‌سین افتتاحیه
+
+/* ---------------------- ۸-۱) صحنه‌ها و زیرنویس‌ها ---------------------- */
+const INTRO_SCENES = [
+  { dur: 9,  draw: introScCity },      // ۱: شهر در غروبِ خالی‌شدن
+  { dur: 9,  draw: introScStreet },    // ۲: خیابان متروک
+  { dur: 9,  draw: introScBuild },     // ۳: ساخت برج
+  { dur: 10, draw: introScNight },     // ۴: شبِ محاصره
+  { dur: 11, draw: introScRadio },     // ۵: رادیو + نقشه‌ی پناهگاه
+];
+
+/* زیرنویس‌ها: [زمان شروع جهانی، پایان، متن] — کل ~۴۴ ثانیه */
+const INTRO_SUBS = [
+  [0.0,  4.4,  'چند ماه پیش، یک ویروس ناشناخته از آزمایشگاهی در حومه‌ی شهر نشت کرد...'],
+  [4.6,  9.0,  'ظرف چند هفته، شهر خالی شد.'],
+  [9.2,  13.6, 'تو و دوستت، ارشان، از آخرین کسایی بودید که در محله ماندید —'],
+  [13.8, 18.0, 'نه چون شجاع بودید؛ چون جایی برای رفتن نداشتید.'],
+  [18.2, 22.6, 'با هرچه در دستتان رسید، بالای ساختمانی نیمه‌ویران برجی ساختید؛'],
+  [22.8, 27.0, 'فقط برای یک شب بیشتر دوام بیاورید.'],
+  [27.2, 31.4, 'اما شب‌ها تمام نمی‌شوند...'],
+  [31.6, 36.2, 'ارشان رادیویی قدیمی پیدا کرده؛ صدایی مرموز می‌گوید:'],
+  [36.4, 39.6, '«پناهگاهی هنوز باز است، آن‌طرف شهر.»'],
+  [39.8, 44.0, 'برج به برج، شب به شب — تا پناهگاه.'],
+];
+const INTRO_TOTAL = 44;
+
+/* ---------------------- ۸-۲) اجرا/توقف/رد کردن ---------------------- */
+function startIntroCine() {
+  introHardReset();
+  INTRO = { t: 0, idx: 0, _paused: false };
+  state.mode = 'intro';
+  state.mouse.down = false;
+  hideOverlays();
+  hideDayPanel();
+  hidePeddlerPanel();
+  hideAnnounce();
+  $('wrap').classList.add('cine-mode');
+  $('skipCs').classList.remove('hidden');
+  tryPlayNarration();
+}
+
+/* روایت اختیاری — هر خطایی بی‌صدا بلعیده می‌شود (فایل نبود = فقط زیرنویس) */
+function tryPlayNarration() {
+  try {
+    const a = $('narrAudio');
+    if (!a) return;
+    a.volume = 0.95;
+    a.currentTime = 0;
+    const p = a.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* بدون روایت ادامه بده */ }
+}
+function stopNarration() {
+  try { const a = $('narrAudio'); if (a) a.pause(); } catch (e) {}
+}
+
+function updateIntro(dt) {
+  if (!INTRO || INTRO._paused) return;
+  INTRO.t += dt;
+  const S = INTRO_SCENES[INTRO.idx];
+  if (INTRO.t >= S.dur) {
+    INTRO.idx++;
+    INTRO.t = 0;
+    if (INTRO.idx >= INTRO_SCENES.length) { endIntro(); return; }
+    SFX.csWhoosh();
+  }
+  /* غبار/کاغذ صحنه‌ها */
+  updateParticles(dt);
+  updateTexts(dt);
+}
+
+function skipIntro() {
+  if (!INTRO) return;
+  SFX.click();
+  endIntro();
+}
+
+function endIntro() {
+  stopNarration();
+  INTRO = null;
+  $('wrap').classList.remove('cine-mode');
+  $('skipCs').classList.add('hidden');
+  doFade(() => {
+    startGame();
+    setAnnounce('🧟 شب اول شروع شد!', 'برای شلیک کلیک کن — هدف: ' + faNum(FINAL_WAVE) + ' شب زنده موندی', 3);
+  }, 0.5);
+}
+
+function introHardReset() {
+  INTRO = null;
+  stopNarration();
+  $('wrap').classList.remove('cine-mode');
+}
+
+/* زمان جهانی کات‌سین (برای زیرنویس‌ها) */
+function introGlobalT() {
+  let T = 0;
+  for (let i = 0; i < INTRO.idx; i++) T += INTRO_SCENES[i].dur;
+  return T + INTRO.t;
+}
+
+/* ---------------------- ۸-۳) رندر کات‌سین ---------------------- */
+function renderIntro() {
+  if (!INTRO) return;
+  const S = INTRO_SCENES[INTRO.idx];
+  if (S) S.draw(INTRO.t);
+  /* محوِ ورود هر صحنه */
+  const a = 1 - clamp(INTRO.t / 0.6, 0, 1);
+  if (a > 0.01) {
+    ctx.fillStyle = 'rgba(0,0,0,' + a.toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  /* ویگنت سینمایی */
+  const vg = ctx.createRadialGradient(W / 2, H * 0.45, H * 0.4, W / 2, H * 0.5, H * 0.85);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+  /* زیرنویس فعلی */
+  const T = introGlobalT();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 15px Tahoma, sans-serif';
+  for (const s of INTRO_SUBS) {
+    if (T < s[0] || T > s[1]) continue;
+    const al = clamp(Math.min((T - s[0]) / 0.35, (s[1] - T) / 0.35), 0, 1);
+    ctx.globalAlpha = al;
+    const tw = ctx.measureText(s[2]).width + 34;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    rr(W / 2 - tw / 2, H - 66, tw, 28, 14); ctx.fill();
+    ctx.fillStyle = '#f3e9cf';
+    ctx.fillText(s[2], W / 2, H - 52);
+    ctx.globalAlpha = 1;
+  }
+  /* نوارهای سینمایی */
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, 28);
+  ctx.fillRect(0, H - 28, W, 28);
+  /* راهنمای رد کردن (چند ثانیه‌ی اول) */
+  if (T < 5) {
+    ctx.globalAlpha = clamp(1 - T / 5, 0, 1) * 0.8;
+    ctx.font = 'bold 11.5px Tahoma, sans-serif';
+    ctx.fillStyle = '#c3cdea';
+    ctx.textAlign = 'left';
+    ctx.fillText('⏭ رد کردن', 16, H - 44);
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* --- صحنه ۱: شهر در غروبِ خالی‌شدن + کلاغ‌ها + مه --- */
+function introScCity(t) {
+  const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
+  g.addColorStop(0, '#2c1e4a'); g.addColorStop(0.45, '#7a3a52');
+  g.addColorStop(0.8, '#c46a4a'); g.addColorStop(1, '#e8a05c');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, GROUND_Y + 20);
+  /* خورشیدِ در حال غروب */
+  const sg = ctx.createRadialGradient(700, 296, 12, 700, 296, 130);
+  sg.addColorStop(0, 'rgba(255,205,125,0.5)'); sg.addColorStop(1, 'rgba(255,205,125,0)');
+  ctx.fillStyle = sg; circle(700, 296, 130);
+  ctx.fillStyle = '#ffd88a'; circle(700, 296, 33);
+  /* کلاغ‌ها */
+  ctx.strokeStyle = 'rgba(20,12,26,0.8)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  for (let i = 0; i < 4; i++) {
+    const cx = ((i * 260 + t * 46) % (W + 120)) - 60;
+    const cy = 80 + i * 34 + Math.sin(t * 2 + i) * 8;
+    const fl = Math.sin(t * 7 + i * 2) * 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - 7, cy + fl); ctx.quadraticCurveTo(cx, cy - 4, cx + 7, cy + fl);
+    ctx.stroke();
+  }
+  /* افق شهر */
+  ctx.fillStyle = '#1a1226';
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h * 0.8, b.w, b.h * 0.8);
+  ctx.fillStyle = '#241832';
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h * 0.8, b.w, 3);
+  /* مه زرد روی زمین */
+  const fog = ctx.createLinearGradient(0, GROUND_Y - 80, 0, GROUND_Y);
+  fog.addColorStop(0, 'rgba(196,155,110,0)');
+  fog.addColorStop(1, 'rgba(196,155,110,0.38)');
+  ctx.fillStyle = fog; ctx.fillRect(-20, GROUND_Y - 80, W + 40, 80);
+  /* زمین خالی */
+  ctx.fillStyle = '#241a20'; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+  /* کاغذهای ول‌گذشته */
+  ctx.fillStyle = 'rgba(220,205,180,0.5)';
+  for (let i = 0; i < 6; i++) {
+    const x = ((i * 173 + t * 55) % (W + 60)) - 30;
+    const y = GROUND_Y - 14 - (i % 3) * 20 - Math.abs(Math.sin(t * 1.7 + i)) * 16;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 3 + i) * 0.8);
+    ctx.fillRect(-3, -2, 6, 4);
+    ctx.restore();
+  }
+}
+
+/* --- صحنه ۲: خیابان متروک با چراغ سوسوزن و ماشین رهاشده --- */
+function introScStreet(t) {
+  const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
+  g.addColorStop(0, '#060a1c'); g.addColorStop(0.5, '#0e1834'); g.addColorStop(1, '#1e2c50');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, GROUND_Y + 20);
+  /* ماه */
+  ctx.fillStyle = '#efe6c4'; circle(180, 84, 30);
+  ctx.fillStyle = 'rgba(120,110,80,0.2)'; circle(172, 78, 5); circle(190, 92, 3.6);
+  /* افق */
+  ctx.fillStyle = '#0b1226';
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h * 0.9, b.w, b.h * 0.9);
+  /* زمین/آسفالت */
+  ctx.fillStyle = '#191d24'; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+  ctx.fillStyle = 'rgba(230,200,120,0.5)';
+  for (let x = ((t * 26) % 56) - 56; x < W + 56; x += 56) ctx.fillRect(x, GROUND_Y + 34, 30, 4);
+  /* چراغ خیابان — یکی سوسو می‌زند */
+  for (const [lx, flick] of [[300, true], [660, false]]) {
+    ctx.strokeStyle = '#2c3038'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(lx, GROUND_Y); ctx.lineTo(lx, GROUND_Y - 92);
+    ctx.quadraticCurveTo(lx, GROUND_Y - 102, lx + 18, GROUND_Y - 100); ctx.stroke();
+    const on = flick ? (Math.sin(t * 13) > -0.25 ? 1 : 0.12) : 1;
+    const lg = ctx.createRadialGradient(lx + 18, GROUND_Y - 96, 4, lx + 18, GROUND_Y - 96, 70);
+    lg.addColorStop(0, 'rgba(255,220,140,' + (0.5 * on) + ')');
+    lg.addColorStop(1, 'rgba(255,220,140,0)');
+    ctx.fillStyle = lg; circle(lx + 18, GROUND_Y - 96, 70);
+    ctx.fillStyle = 'rgba(255,235,170,' + on + ')';
+    circle(lx + 18, GROUND_Y - 96, 3.4);
+  }
+  /* ماشین رهاشده با لاستیک خالی */
+  ctx.save();
+  ctx.translate(560, GROUND_Y + 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, 4, 62, 9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#22262e';
+  rr(-56, -26, 112, 22, 8); ctx.fill();
+  ctx.fillStyle = '#191d24';
+  ctx.beginPath();
+  ctx.moveTo(-30, -26); ctx.lineTo(-20, -48); ctx.lineTo(22, -48); ctx.lineTo(34, -26);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#0d1016';
+  circle(-34, -2, 11); circle(34, -2, 11);         // لاستیک‌های خوابیده
+  ctx.restore();
+  /* کاغذهای بادکن */
+  ctx.fillStyle = 'rgba(220,205,180,0.42)';
+  for (let i = 0; i < 8; i++) {
+    const x = ((i * 131 + t * 80) % (W + 80)) - 40;
+    const y = GROUND_Y - 10 - (i % 4) * 26 - Math.abs(Math.sin(t * 2.2 + i * 1.7)) * 30;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 4 + i) * 1.1);
+    ctx.fillRect(-3, -2, 6, 4);
+    ctx.restore();
+  }
+}
+
+/* --- صحنه ۳: ساخت برج در شب (آجرچین‌های خسته) --- */
+function introScBuild(t) {
+  const k = clamp(t / 8.2, 0, 1);            // پیشرفت ساخت
+  const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
+  g.addColorStop(0, '#060a1c'); g.addColorStop(0.55, '#101c3c'); g.addColorStop(1, '#223258');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, GROUND_Y + 20);
+  /* ماه در حال بالا آمدن */
+  const my = 150 - k * 74;
+  ctx.fillStyle = '#efe6c4'; circle(790, my, 28);
+  /* افق */
+  ctx.fillStyle = '#0b1226';
+  for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h * 0.85, b.w, b.h * 0.85);
+  /* زمین */
+  ctx.fillStyle = '#1c222c'; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+  /* برج نیمه‌ساخته: طبقه‌ها به‌ترتیب با پیشرفت */
+  const cx = TOWER.x;
+  const built = k * 3;                        // چند طبقه ساخته شده
+  const widths = [136, 124, 112];
+  const cols = [
+    ['#82705a', '#6e5a44', '#4d3f2f'],
+    ['#b25a47', '#a04b3a', '#7c3527'],
+    ['#4f83b5', '#41729f', '#2f557c'],
+  ];
+  for (let i = 0; i < 3; i++) {
+    const f = clamp(built - i, 0, 1);
+    if (f <= 0.02) continue;
+    const hw = widths[i] / 2;
+    const yB = GROUND_Y - i * TOWER.floorH;
+    const h = TOWER.floorH * f;
+    const gr = ctx.createLinearGradient(cx - hw, 0, cx + hw, 0);
+    gr.addColorStop(0, cols[i][0]); gr.addColorStop(0.55, cols[i][1]); gr.addColorStop(1, cols[i][2]);
+    ctx.fillStyle = gr;
+    ctx.fillRect(cx - hw, yB - h, hw * 2, h);
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1.4;
+    /* درزهای آجرچینی تا ارتفاع ساخته‌شده */
+    ctx.beginPath();
+    for (let ry = 0; ry < h; ry += 13) {
+      ctx.moveTo(cx - hw + 3, yB - ry); ctx.lineTo(cx + hw - 3, yB - ry);
+      const off = (ry / 13 % 2) * 11;
+      for (let bx = cx - hw + off + 22; bx < cx + hw - 6; bx += 22) {
+        ctx.moveTo(bx, yB - ry); ctx.lineTo(bx, yB - Math.min(ry + 13, h));
+      }
+    }
+    ctx.stroke();
+  }
+  /* داربست کنار برج */
+  ctx.strokeStyle = '#4a3b2a'; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  const sx2 = cx + 78;
+  ctx.moveTo(sx2, GROUND_Y); ctx.lineTo(sx2, GROUND_Y - 200 * k - 20);
+  ctx.moveTo(sx2 + 26, GROUND_Y); ctx.lineTo(sx2 + 26, GROUND_Y - 200 * k - 20);
+  for (let i = 0; i < 7; i++) {
+    const yy = GROUND_Y - i * 30;
+    if (yy < GROUND_Y - 200 * k - 20) break;
+    ctx.moveTo(sx2, yy); ctx.lineTo(sx2 + 26, yy);
+    ctx.moveTo(sx2, yy - 15); ctx.lineTo(sx2 + 26, yy);
+  }
+  ctx.stroke();
+  /* نردبان */
+  ctx.strokeStyle = '#6a5a44'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 86, GROUND_Y); ctx.lineTo(cx - 86, GROUND_Y - 196 * k - 18);
+  ctx.moveTo(cx - 74, GROUND_Y); ctx.lineTo(cx - 74, GROUND_Y - 196 * k - 18);
+  for (let yy = GROUND_Y - 12; yy > GROUND_Y - 196 * k - 18; yy -= 16) {
+    ctx.moveTo(cx - 86, yy); ctx.lineTo(cx - 74, yy);
+  }
+  ctx.stroke();
+  /* دو دوستِ آجرچین: تیر چوبی بلند را با هم جابه‌جا می‌کنند */
+  const walk = Math.sin(t * 0.5) * 60;
+  drawIntroWorker(cx - 60 + walk, GROUND_Y, '#3d6db5');
+  drawIntroWorker(cx - 24 + walk, GROUND_Y, '#4a7a4a');
+  ctx.strokeStyle = '#6a4a2c'; ctx.lineWidth = 3.6; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - 66 + walk, GROUND_Y - 26); ctx.lineTo(cx - 18 + walk, GROUND_Y - 26);
+  ctx.stroke();
+}
+function drawIntroWorker(x, y, jacket) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-3, -12); ctx.lineTo(-4, -1); ctx.moveTo(3, -12); ctx.lineTo(4, -1);
+  ctx.stroke();
+  ctx.fillStyle = jacket; rr(-7, -25, 14, 14, 4); ctx.fill();
+  ctx.fillStyle = '#f0c49a'; circle(1, -30, 5);
+  ctx.fillStyle = '#5a3d28';
+  ctx.beginPath(); ctx.arc(1, -30, 5, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(3, -22); ctx.lineTo(9, -27); ctx.stroke();
+  ctx.restore();
+}
+
+/* --- صحنه ۴: شبِ محاصره — برج آماده و زامبی‌ها می‌آیند --- */
+function introScNight(t) {
+  /* از موتور اصلی بازی استفاده می‌کنیم: آسمان/برج/بازیکن زنده‌اند */
+  drawSky();
+  drawClouds();
+  drawSkyline();
+  drawHills();
+  drawPuddles();
+  drawGrass();
+  drawDecals();
+  drawTree(88, 0.95, false);
+  drawTree(874, 0.7, false);
+  drawLamps();
+  drawTrap();
+  drawTower();
+  drawPlayer();
+  /* دسته‌ی زامبی از دو طرف — با زمان نزدیک می‌شوند */
+  const k = clamp(t / 9, 0, 1);
+  const zs = [
+    { x0: -60,  type: 'normal' }, { x0: -190, type: 'fast' },
+    { x0: -320, type: 'normal' }, { x0: W + 60, type: 'normal' },
+    { x0: W + 190, type: 'tank' }, { x0: W + 330, type: 'fast' },
+  ];
+  for (let i = 0; i < zs.length; i++) {
+    const z = zs[i];
+    const target = z.x0 < 0 ? 150 + i * 24 : W - 150 - (i - 3) * 24;
+    const x = z.x0 + (target - z.x0) * k;
+    const zz = {
+      type: z.type, x, y: GROUND_Y + rand(-1, 1), dir: z.x0 < 0 ? 1 : -1,
+      radius: ZTYPES[z.type].r, walkPhase: t * 4 + i * 1.7,
+      attacking: false, attackAnim: 0, attackSide: 0, lane: 0, depth: 1,
+      yJit: (i % 3) * 2 - 2, stagger: 0, chill: 0, hitFlash: 0, dead: false, deathT: 0,
+    };
+    drawZombie(zz);
+  }
+  drawFireflies();
+  drawShootingStar();
+}
+
+/* --- صحنه ۵: رادیو + نقشه‌ی راه پناهگاه --- */
+function introScRadio(t) {
+  ctx.fillStyle = '#04050c';
+  ctx.fillRect(-20, -20, W + 40, H + 40);
+  /* هاله‌ی گرم رادیو */
+  const rx = 300, ry = 300;
+  const rg = ctx.createRadialGradient(rx, ry, 8, rx, ry, 200);
+  rg.addColorStop(0, 'rgba(255,190,110,0.22)');
+  rg.addColorStop(1, 'rgba(255,190,110,0)');
+  ctx.fillStyle = rg; circle(rx, ry, 200);
+  /* ارشان: سایه‌ی کلاه‌قرمز که رادیو را گرفته */
+  ctx.save();
+  ctx.translate(170, 420);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(30, 4, 34, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#101422'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(18, -14); ctx.lineTo(14, 0); ctx.moveTo(34, -14); ctx.lineTo(38, 0);
+  ctx.stroke();
+  ctx.fillStyle = '#101826'; rr(8, -34, 40, 22, 6); ctx.fill();
+  ctx.fillStyle = '#0d1420'; circle(28, -40, 8);
+  ctx.fillStyle = '#5e1f28';
+  ctx.beginPath(); ctx.arc(28, -40, 8.4, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillRect(19, -41, 18, 3);
+  /* دست‌ها به سمت رادیو */
+  ctx.strokeStyle = '#0d1420'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(20, -28); ctx.lineTo(66, -40); ctx.moveTo(38, -26); ctx.lineTo(72, -34); ctx.stroke();
+  ctx.restore();
+  /* رادیوی قدیمی: جعبه چوبی + آنتن + صفحه‌ی سوسوزن */
+  ctx.save();
+  ctx.translate(rx, ry);
+  ctx.fillStyle = '#3a2c1a';
+  rr(-46, -34, 92, 68, 8); ctx.fill();
+  ctx.strokeStyle = '#1c1408'; ctx.lineWidth = 2.4;
+  rr(-46, -34, 92, 68, 8); ctx.stroke();
+  /* آنتن */
+  ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(30, -34); ctx.lineTo(52, -84); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(38, -34); ctx.lineTo(58, -74); ctx.stroke();
+  /* صفحه‌ی فرکانس */
+  const dial = 0.55 + 0.45 * Math.sin(t * 2.4);
+  ctx.fillStyle = '#c9a24e';
+  rr(-34, -22, 68, 30, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(40,26,8,0.9)';
+  rr(-30, -18, 60, 22, 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,220,140,' + dial + ')'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const fx = -24 + i * 10;
+    ctx.moveTo(fx, -8); ctx.lineTo(fx + 3, -14);
+  }
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,90,70,0.9)';
+  circle(-24 + ((t * 12) % 56), -11, 2);       // عقربه‌ی فرکانس
+  /* دکمه‌ها */
+  ctx.fillStyle = '#8a7a5c';
+  for (let i = 0; i < 3; i++) circle(-20 + i * 20, 20, 4);
+  /* موج‌های رادیویی */
+  ctx.strokeStyle = 'rgba(140,190,255,0.35)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) {
+    const ph = (t * 0.8 + i * 0.33) % 1;
+    ctx.globalAlpha = (1 - ph) * 0.5;
+    ctx.beginPath();
+    ctx.arc(46, -20, 20 + ph * 130, -0.9, 0.6);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+  /* نقشه‌ی راه: ۴ برج + مسیر نقطه‌چین تا پناهگاه */
+  const mk = clamp((t - 1.5) / 6, 0, 1);
+  ctx.save();
+  ctx.translate(650, 300);
+  ctx.rotate(-0.06);
+  ctx.fillStyle = 'rgba(210,190,150,0.9)';
+  rr(-120, -90, 240, 180, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(90,70,40,0.6)'; ctx.lineWidth = 2;
+  rr(-120, -90, 240, 180, 6); ctx.stroke();
+  ctx.fillStyle = 'rgba(120,100,60,0.25)';       // لکه‌های کاغذ کهنه
+  circle(-80, -50, 18); circle(70, 40, 14); circle(30, -60, 10);
+  /* مسیر نقطه‌چین */
+  ctx.strokeStyle = 'rgba(90,60,30,0.75)';
+  ctx.lineWidth = 2.4;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(-95, 55);
+  ctx.lineTo(-40, 10); ctx.lineTo(10, 48); ctx.lineTo(60, -18); ctx.lineTo(95, -55);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  /* برج‌ها به‌ترتیب روشن می‌شوند */
+  const towers = [[-95, 55], [-40, 10], [10, 48], [60, -18]];
+  for (let i = 0; i < 4; i++) {
+    const on = mk > i * 0.24 + 0.05;
+    ctx.strokeStyle = on ? '#e8a13c' : 'rgba(90,70,40,0.5)';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(towers[i][0] - 5, towers[i][1] + 8);
+    ctx.lineTo(towers[i][0], towers[i][1] - 10);
+    ctx.lineTo(towers[i][0] + 5, towers[i][1] + 8);
+    ctx.closePath();
+    on ? ctx.fill() : ctx.stroke();
+  }
+  /* نشان پناهگاه */
+  if (mk > 0.85) {
+    const pulse = 0.6 + 0.4 * Math.sin(t * 4);
+    ctx.save();
+    ctx.shadowColor = '#7be389'; ctx.shadowBlur = 12 * pulse;
+    ctx.fillStyle = '#7be389';
+    ctx.beginPath();
+    ctx.moveTo(95, -66); ctx.lineTo(99, -54); ctx.lineTo(107, -54);
+    ctx.lineTo(101, -47); ctx.lineTo(103, -38); ctx.lineTo(95, -44);
+    ctx.lineTo(87, -38); ctx.lineTo(89, -47); ctx.lineTo(83, -54);
+    ctx.lineTo(91, -54); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#3a5a2c';
+    ctx.font = 'bold 12px Tahoma, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('پناهگاه', 95, -20);
+  }
+  ctx.restore();
+}
+
+/* ---------------------- ۸-۴) تنظیمات (SETT) ---------------------- */
+const SETT_KEY = 'ttb3_settings_v1';
+let SETT = { sfx: true, music: true, shake: true, vol: 55 };
+
+function loadSettings() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SETT_KEY));
+    if (d && typeof d === 'object') SETT = Object.assign(SETT, d);
+  } catch (e) {}
+  applySettings();
+}
+function saveSettings() {
+  try { localStorage.setItem(SETT_KEY, JSON.stringify(SETT)); } catch (e) {}
+}
+function applySettings() {
+  Snd.muted = !SETT.sfx;
+  if (Snd.master) Snd.master.gain.value = SETT.sfx ? (SETT.vol / 100) * 0.9 : 0;
+  Snd.musicOn = !!SETT.music;
+  if (Snd.musicGain && Snd.ctx) Snd.setMusic(SETT.music);
+  /* آیکون‌های بی‌صدا */
+  for (const id of ['btnMute', 'btnMute0', 'btnMute2']) {
+    const b = $(id);
+    if (!b) continue;
+    b.textContent = SETT.sfx
+      ? (id === 'btnMute2' ? '🔊 صدا روشن' : '🔊')
+      : (id === 'btnMute2' ? '🔇 صدا خاموش' : '🔇');
+  }
+  updateSettingsUI();
+}
+
+function initSettingsUI() {
+  loadSettings();
+  $('setSfx').addEventListener('change', e => { SETT.sfx = e.target.checked; saveSettings(); applySettings(); if (SETT.sfx) SFX.click(); });
+  $('setMusic').addEventListener('change', e => { SETT.music = e.target.checked; saveSettings(); applySettings(); });
+  $('setShake').addEventListener('change', e => { SETT.shake = e.target.checked; saveSettings(); });
+  $('setVol').addEventListener('input', e => { SETT.vol = +e.target.value; saveSettings(); applySettings(); });
+  updateSettingsUI();
+}
+function updateSettingsUI() {
+  $('setSfx').checked = !!SETT.sfx;
+  $('setMusic').checked = !!SETT.music;
+  $('setShake').checked = !!SETT.shake;
+  $('setVol').value = SETT.vol;
+}
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۹: «آخرین شب» و صحنه‌ی پیروزی
+   ==================================================================
+   موج ۳۳ (پایان فصل ۴) = آخرین موج کل بازی:
+     - فروشگاه/ساخت‌وساز قفل است؛ فقط موجودی کوله‌پشتی و برج
+     - برق کاملاً قطع است؛ تنها چراغ‌قوه کار می‌کند؛ اگر باتری
+       تمام شود چند لحظه صفحه تقریباً کاملاً تاریک می‌شود (فقط
+       چشم‌های زامبی‌ها و برقِ آسمان دیده می‌شود)
+     - باس «نگهبانِ آخرین شب» با الگوی حمله‌ی خاص:
+         · پرتاب آوار به سمت بام (گلوله‌ات می‌تواند آوار را بترکاند)
+         · فراخوان زامبی‌های سریع
+         · فاز خشم زیر ۴۰٪ جون (سریع‌تر و پرتابِ بیشتر)
+     - رد شدن از این موج = صحنه‌ی سحرِ پیروزی + پایان واقعی بازی
+   ================================================================== */
+
+let VC = null;      // وضعیت صحنه‌ی پیروزی (victory cinematic)
+
+/* ---------------------- ۹-۱) هوک باس: الگوی حمله ---------------------- */
+UPDATE_HOOKS.push(function bossUpdate(dt) {
+  if (state.mode !== 'playing' || state.wave < FINAL_WAVE) return;
+  const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
+  if (boss) {
+    if (!boss.ai) boss.ai = { throwT: 3.6, summonT: 11, rage: false };
+    const ai = boss.ai;
+    const rage = boss.hp < boss.maxHp * 0.4;
+    if (rage && !ai.rage) {
+      ai.rage = true;
+      boss.speed *= 1.5;
+      setAnnounce('🔥 نگهبان خشمگین شد!', 'سریع‌تر و پرتاب‌هایش بیشتر شد — مراقب بام باش!', 2.4);
+      SFX.roar();
+      state.shake = 10;
+    }
+    /* پرتاب آوار به سمت بام برج */
+    ai.throwT -= dt;
+    if (ai.throwT <= 0 && Math.abs(boss.x - TOWER.x) > 150) {
+      ai.throwT = rage ? 2.7 : 4.2;
+      bossThrowDebris(boss);
+    }
+    /* فراخوان زامبی‌های سریع */
+    ai.summonT -= dt;
+    if (ai.summonT <= 0 && state.zombies.filter(z => !z.dead).length < 7) {
+      ai.summonT = rage ? 9 : 13;
+      setAnnounce('💀 نگهبان فراخوان می‌کند!', 'زامبی‌های سریع در راه‌اند — جلویشون رو بگیر!', 1.8);
+      SFX.roar();
+      for (let i = 0; i < 3; i++) spawnZombie('fast');
+    }
+  }
+  /* فیزیک آوار پرتابی + برخوردها */
+  for (const p of state.projectiles) {
+    if (p.dead) continue;
+    p.vy += 700 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.rot += p.vr * dt;
+    /* برخورد با برج: آسیب به بام */
+    if (Math.abs(p.x - TOWER.x) < 40 && p.y > TOWER_TOP_Y - 26 && p.y < GROUND_Y) {
+      p.dead = true;
+      damageTower(16, p.x);
+      debrisBurst(p.x, p.y);
+      continue;
+    }
+    if (p.y > GROUND_Y) { p.dead = true; debrisBurst(p.x, GROUND_Y); continue; }
+    if (p.x < -70 || p.x > W + 70) { p.dead = true; continue; }
+    /* گلوله‌ی بازیکن/برجک‌ها می‌تواند آوار را در هوا بترکاند */
+    for (const b of state.bullets) {
+      if (b.dead) continue;
+      const dx = b.x - p.x, dy = b.y - p.y;
+      const rr2 = (p.r + b.r + 5) * (p.r + b.r + 5);
+      if (dx * dx + dy * dy < rr2) {
+        b.dead = true;
+        p.dead = true;
+        debrisBurst(p.x, p.y);
+        addText(p.x, p.y - 22, 'ترکید! 💥', '#ffb347', 13);
+        break;
+      }
+    }
+  }
+  state.projectiles = state.projectiles.filter(p => !p.dead);
+});
+
+/* پرتاب یک تکه آوار با قوس به سمت بام برج */
+function bossThrowDebris(boss) {
+  const T = 1.35;                                   // زمان پرواز
+  const tx = TOWER.x + rand(-12, 12), ty = TOWER_TOP_Y - 4;
+  const ox = boss.x, oy = boss.y - 60;
+  state.projectiles.push({
+    x: ox, y: oy,
+    vx: (tx - ox) / T,
+    vy: (ty - oy - 0.5 * 700 * T * T) / T,
+    r: 13, rot: 0, vr: rand(-6, 6), dead: false,
+  });
+  SFX.csCrash();
+  state.shake = Math.max(state.shake, 2.5);
+  /* ژست پرتاب: جرقه از دست نگهبان */
+  spawnParticles(ox + Math.sign(TOWER.x - ox) * 20, oy, 10, '#8a7a5c',
+    { speed: 120, life: 0.45, size: 2.6, grav: 420 });
+}
+
+/* انفجار آوار */
+function debrisBurst(x, y) {
+  SFX.csBoom();
+  state.shake = Math.max(state.shake, 6);
+  spawnParticles(x, y, 18, '#8a7a5c', { speed: 200, life: 0.6, size: 3, grav: 500 });
+  spawnParticles(x, y, 8, '#ff9a3d', { speed: 160, life: 0.5, size: 2.4, grav: 400 });
+}
+
+/* رسم آوار پرتابی (روی صحنه، بعد از گلوله‌ها) */
+function drawDebris() {
+  for (const p of state.projectiles) {
+    if (p.dead) continue;
+    /* هاله‌ی خطر نارنجی */
+    const g2 = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r * 2.6);
+    g2.addColorStop(0, 'rgba(255,150,60,0.25)');
+    g2.addColorStop(1, 'rgba(255,150,60,0)');
+    ctx.fillStyle = g2;
+    circle(p.x, p.y, p.r * 2.6);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = '#6a5a44';
+    rr(-p.r, -p.r * 0.8, p.r * 2, p.r * 1.6, 3); ctx.fill();
+    ctx.fillStyle = '#8a7a5c';
+    ctx.fillRect(-p.r * 0.5, -p.r * 0.6, p.r, p.r * 0.7);
+    ctx.strokeStyle = '#ff9a3d'; ctx.lineWidth = 1.6;      // ترک‌های آتشین
+    ctx.beginPath();
+    ctx.moveTo(-p.r * 0.6, -p.r * 0.3); ctx.lineTo(0, p.r * 0.2); ctx.lineTo(p.r * 0.5, -p.r * 0.4);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* ---------------------- ۹-۲) صحنه‌ی پیروزی (سحرِ پناهگاه) ---------------------- */
+/* بعد از مرگ نگهبان: اسلوموشن + بارش طلایی + طلوع + آمدن ارشان با رادیو */
+function startVictoryCine() {
+  if (state.mode === 'victorycine') return;
+  VC = { t: 0, radio: false };
+  state.mode = 'victorycine';
+  state.mouse.down = false;
+  state.placing = null;
+  state.slowmo = 1.6;                        // شروعِ سینماییِ کند
+  state.dayTarget = 1;                       // سحر می‌شود
+  $('lockBadge').classList.add('hidden');
+  hideDayPanel();
+  hidePeddlerPanel();
+  hideAnnounce();
+  SFX.slowmo();
+}
+
+function updateVictoryCine(dt) {
+  if (!VC) return;
+  VC.t += dt;
+  state.shake = Math.max(0, state.shake - dt * 22);
+  state.flash = Math.max(0, state.flash - dt * 2.2);
+  state.comboPop = Math.max(0, state.comboPop - dt);
+  updateParticles(dt);
+  updateTexts(dt);
+  /* بارش طلایی اولِ صحنه */
+  if (VC.t < 2.4 && Math.random() < dt * 20) {
+    spawnParticles(rand(0, W), -8, 1, '#ffd873',
+      { speed: 26, life: 2.4, size: 2.4, grav: 110 });
+  }
+  /* صدای رادیو در سحر */
+  if (!VC.radio && VC.t > 3.2) {
+    VC.radio = true;
+    SFX.peddler();
+  }
+  if (VC.t > 4.6) {
+    wipeSave();                              // پایان بازی — سیو پاک شود
+    victory();
+  }
+}
+
+function renderVictoryCine() {
+  if (!VC) return;
+  /* صحنه‌ی عادی (بدون زامبی) در نورِ طلوع */
+  drawSky();
+  drawClouds();
+  ctx.save(); ctx.translate(-menuPar(12), 0); drawSkyline(); ctx.restore();
+  ctx.save(); ctx.translate(-menuPar(26), 0); drawHills(); ctx.restore();
+  drawPuddles();
+  drawGrass();
+  drawDecals();
+  drawTree(88, 0.95, !!curCh().theme.deadTrees);
+  drawTree(874, 0.7, !!curCh().theme.deadTrees);
+  drawLamps();
+  drawTrap();
+  drawTower();
+  drawChapterProps();
+  drawPlayer();
+  /* ارشان با رادیو از چپ می‌آید */
+  if (VC.t > 2.6) {
+    const k = clamp((VC.t - 2.6) / 2.0, 0, 1);
+    const ax = -46 + k * (TOWER.x - 130 + 46);
+    drawArshanWithRadio(ax, GROUND_Y);
+  }
+  drawShootingStar();
+  drawFireflies();
+  drawParticles();
+  drawTexts();
+  /* زیرنویس */
+  if (VC.t > 2.9 && VC.t < 4.6) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 15px Tahoma, sans-serif';
+    const txt = '— [ارشان]: شنیدی؟! پناهگاه هنوز بازه... فقط چند کیلومتر مانده.';
+    const tw = ctx.measureText(txt).width + 34;
+    ctx.fillStyle = 'rgba(0,0,0,0.66)';
+    rr(W / 2 - tw / 2, H - 64, tw, 28, 14); ctx.fill();
+    ctx.fillStyle = '#f3e9cf';
+    ctx.fillText(txt, W / 2, H - 50);
+  }
+  /* محو به سفیدیِ سحر */
+  const a = clamp((VC.t - 4.0) / 0.7, 0, 1);
+  if (a > 0) {
+    ctx.fillStyle = 'rgba(255,250,240,' + a.toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+/* ارشان: کاپشن سبز + کلاه قرمز + رادیو با نور و موج */
+function drawArshanWithRadio(x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-4, -13); ctx.lineTo(-5, -1);
+  ctx.moveTo(4, -13); ctx.lineTo(5, -1);
+  ctx.stroke();
+  ctx.fillStyle = '#4a7a4a'; rr(-9, -28, 18, 16, 5); ctx.fill();      // کاپشن سبز
+  ctx.fillStyle = '#f0c49a'; circle(2, -33, 6.4);
+  ctx.fillStyle = '#7a2a2a';
+  ctx.beginPath(); ctx.arc(2, -33, 6.6, Math.PI, Math.PI * 2); ctx.fill();   // کلاه قرمز
+  ctx.fillRect(-5, -34, 14, 3);
+  ctx.fillStyle = '#1d2433'; circle(4.6, -34, 1.1); circle(0.8, -34, 1.1);
+  /* رادیو در دست + نورش */
+  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(5, -25); ctx.lineTo(15, -30); ctx.stroke();
+  ctx.fillStyle = '#3a2c1a';
+  rr(12, -38, 16, 12, 3); ctx.fill();
+  const gl = ctx.createRadialGradient(20, -32, 2, 20, -32, 26);
+  gl.addColorStop(0, 'rgba(255,210,130,0.35)');
+  gl.addColorStop(1, 'rgba(255,210,130,0)');
+  ctx.fillStyle = gl; circle(20, -32, 26);
+  ctx.strokeStyle = 'rgba(140,190,255,0.4)'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(20, -32, 12 + (animTime * 26 % 18), -0.9, 0.5); ctx.stroke();
+  ctx.restore();
+}
+/* ==================================================================
+   سه طبقه تا بقا — نسخه‌ی ۸٫۰ — منطق بازی (بخش ۳)
+     ۱۵) رابط کاربری (HUD / نوار سلاح / نوار باس / پنل مکعبی + تولتیپ)
+     ۱۶) حلقه اصلی و راه‌اندازی + رابط دیباگ/تست
+   تازه‌های ۸٫۰ در این بخش:
+     - آیکون‌های پنل ساخت‌وساز = اسپرایت‌های «مکعب پیکسل‌آرت» از پیش
+       تولیدشده (CUBE_SPRITES — جاسازی‌شده به‌صورت data-URI در فایل تک‌فایل)
+     - حلقه‌ی اصلی حالت cutscene را هم به‌روزرسانی می‌کند
+   ================================================================== */
+
+/* ---------------------- ۱۵) رابط کاربری ---------------------- */
+function showScreen(id) { $(id).classList.remove('hidden'); }
+function hideScreen(id) { $(id).classList.add('hidden'); }
+function hideOverlays() {
+  ['startScreen', 'howtoScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen',
+   'settingsScreen', 'aboutScreen', 'confirmBox']      // (۱۰٫۰)
+    .forEach(hideScreen);
+}
+
+function pauseGame() {
+  if (!canPlay()) return;
+  state.prevMode = state.mode; state.mode = 'paused';
+  showScreen('pauseScreen');
+  $('btnPause').textContent = '▶ ادامه';
+}
+function resumeGame() {
+  if (state.mode !== 'paused') return;
+  state.mode = state.prevMode || 'playing';
+  hideScreen('pauseScreen');
+  $('btnPause').textContent = '⏸ توقف';
+}
+
+/* قطع/وصل صدا — همه‌ی دکمه‌های صدا هم‌زمان به‌روز می‌شوند
+   (۱۰٫۰) با تنظیمات SETT هم‌گام است و بلندی صدا از آن‌جا می‌آید */
+function toggleSound() {
+  Snd.init();
+  SETT.sfx = !SETT.sfx;
+  saveSettings();
+  applySettings();
+  if (SETT.sfx) SFX.click();
+}
+
+/* ---------- پنل ساخت‌وساز آیکونی (۵٫۰ / بازطراحی ۹٫۰) ----------
+   ترتیب گروه «ارتقاء» مطابق تصویر مرجع کاربر است: قلب (تعمیر)،
+   کفش (سرعت شلیک — ۹٫۰)، سپر (جون)، گلوله (ارتقای اسلحه)، تله.
+   متن توضیح فقط در تولتیپِ hover دیده می‌شود؛ روی کاشی فقط آیکون + قیمت. */
+const BUILD_DEFS = [
+  { grp: 'ارتقاء' },
+  { kind: 'repair', key: '۶', codes: ['Digit6', 'Numpad6'], name: 'تعمیر برج',    desc: '۵۰٪ جون برج را همان‌جا برمی‌گرداند' },
+  { kind: 'speed',  key: 'H', codes: ['KeyH'],              name: 'سرعت شلیک',   desc: 'نرخ شلیک همه‌ی سلاح‌ها ۸٪ سریع‌تر در هر سطح (حداکثر ۶ سطح)' },
+  { kind: 'health', key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
+  { kind: 'weapon', key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
+  { kind: 'trap',   key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
+  { grp: 'سلاح‌ها' },
+  { kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید کلید ۲' },
+  { kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید کلید ۳' },
+  { grp: 'برجک‌ها' },
+  { kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
+  { kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
+  { kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
+  { kind: 'turretUp',key: 'T', codes: ['KeyT'],              name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
+  { grp: 'وسایل بقی' },                                   /* (۱۰٫۰) — به کوله‌پشتی می‌روند */
+  { kind: 'flashlight', key: 'J', codes: ['KeyJ'], name: 'چراغ‌قوه',
+    desc: 'با L روشن/خاموش می‌شود — دید در مه و قطع برق (باتری مصرف می‌کند)' },
+  { kind: 'battery',    key: 'K', codes: ['KeyK'], name: 'باتری',
+    desc: '+۵۰٪ شارژ چراغ‌قوه — داخل کوله‌پشتی ذخیره می‌شود' },
+  { kind: 'canned',     key: 'C', codes: ['KeyC'], name: 'کنسرو',
+    desc: 'شفای تدریجی ۴۵ جون در ۱۲ ثانیه — با کلیک/کلید کوله مصرف می‌شود' },
+  { kind: 'medkit',     key: 'V', codes: ['KeyV'], name: 'کیت کمک‌های اولیه',
+    desc: '۷۰ جون برج را فوراً برمی‌گرداند — با کلیک/کلید کوله مصرف می‌شود' },
+];
+/* نگاشت کلیدهای فیزیکی به آیتم خرید (برای خرید سریع با کیبورد) */
+const KEY2KIND = {};
+BUILD_DEFS.forEach(d => { if (d.codes) d.codes.forEach(c => KEY2KIND[c] = d.kind); });
+
+/* ---------- آیکون‌های فروشگاه (۹٫۰) ----------
+   کاشی‌ها مستقیماً از تصویر مرجع کاربر برش خورده‌اند (۹ کاشی واقعی:
+   قلب/کفش/سپر/گلوله/مینی‌گان/تک‌تیرانداز/برجک‌ها) + دو کاشی ترکیبی
+   هم‌سبک (تله خار و شاتگان دکلوله). سبک کاریکاتوریِ نرم است، پس با
+   هموارسازی رسم می‌شوند (نه پیکسل‌آرت تیز). */
+
+/* رسم آیکون آیتم روی بوم کوچک: گوشه‌های گرد + اسپرایت نرم */
+function paintIcon(kind, cv) {
+  cv.width = 88; cv.height = 88;                 // ۲ برابرِ نمایش ۴۴px برای تیزی رتینا
+  const c = cv.getContext('2d');
+  const im = CUBE_IMGS[kind];
+  c.clearRect(0, 0, 88, 88);
+  if (im && im.complete && im.naturalWidth) {
+    c.imageSmoothingEnabled = true;              // کاشی‌های کاریکاتوریِ نرم
+    c.imageSmoothingQuality = 'high';
+    /* گوشه‌های گرد مثل کاشی‌های فروشگاه مرجع */
+    if (c.roundRect) { c.beginPath(); c.roundRect(2, 2, 84, 84, 10); c.clip(); }
+    c.drawImage(im, 2, 2, 84, 84);
+    /* خط لبه‌ی ظریف برای جدا شدن از پس‌زمینه‌ی پنل */
+    c.strokeStyle = 'rgba(120,170,230,.28)';
+    c.lineWidth = 2;
+    c.strokeRect(2, 2, 84, 84);
+  } else {
+    /* جای‌نگهدار تا بارگذاری تصویر */
+    c.fillStyle = 'rgba(42,58,94,.85)';
+    c.fillRect(18, 18, 52, 52);
+    c.strokeStyle = 'rgba(255,216,115,.4)'; c.lineWidth = 2;
+    c.strokeRect(18, 18, 52, 52);
+  }
+}
+
+/* بازرسم کاشی بعد از بارگذاری تصویرش (data-URI ها async دیکود می‌شوند) */
+function repaintCubeIcons(kind) {
+  const el = $('bp-' + kind);
+  if (!el) return;
+  const cv = el.querySelector('.bp-ic');
+  if (cv) paintIcon(kind, cv);
+}
+
+/* وضعیت لحظه‌ای آیتم برای تولتیپ (قیمت/سطح/مالکیت...) */
+function tileStatus(kind) {
+  /* (۱۰٫۰) وسایل بقی */
+  if (kind === 'flashlight') {
+    return state.torch.owned
+      ? 'خریده شد ✅ (کلید L روشن/خاموش) — باتری: ' + faNum(Math.round(state.torch.battery)) + '٪'
+      : 'برای مه و قطع برق لازمش داری';
+  }
+  if (kind === 'battery' || kind === 'canned' || kind === 'medkit') {
+    const g = GEAR[kind];
+    return 'داخل کوله: ' + faNum(state.backpack.filter(s => s && s.id === kind).length)
+      + ' • قیمت: ' + faNum(g.price) + ' سکه';
+  }
+  if (kind === 'shotgun' || kind === 'mg') {
+    return WEAPONS[kind].owned ? 'خریده شد ✅' : 'قفل — بعد از خرید، کلید ' + faNum(kind === 'shotgun' ? 2 : 3);
+  }
+  if (kind === 'repair') {
+    return state.tower.hp >= state.tower.maxHp - 0.5
+      ? 'برج سرِ سلامتی است'
+      : 'جون برج: ' + faNum(Math.ceil(state.tower.hp)) + '/' + faNum(state.tower.maxHp);
+  }
+  if (kind === 'gatling' || kind === 'sniper' || kind === 'frost') {
+    const cnt = state.turrets.filter(t => t.type === kind).length;
+    return (cnt ? faNum(cnt) + ' عدد فعال • ' : '') + 'قیمت: ' + faNum(TURRETS[kind].price) + ' سکه';
+  }
+  const u = UPGRADES[kind], lvl = state.upgrades[kind];
+  if (lvl >= u.max) return 'حداکثر ✅';
+  return 'سطح ' + faNum(lvl) + '/' + faNum(u.max) + ' • قیمت بعدی: ' + faNum(priceOf(kind)) + ' سکه';
+}
+
+/* تولتیپ کاشی‌ها: نمایش کنار پنل (جای متن‌های حذف‌شده) */
+function showTip(d, el) {
+  const tip = $('bpTip');
+  tip.innerHTML = '<b>' + d.name + '</b><span>' + d.desc + '</span>' +
+    '<span class="t-status">' + tileStatus(d.kind) + '</span>';
+  tip.style.display = 'block';
+  positionTip(el);
+}
+function positionTip(el) {
+  const tip = $('bpTip');
+  const wrapR = $('wrap').getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const left = r.left - wrapR.left - tip.offsetWidth - 10;
+  const top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6);
+  tip.style.left = Math.max(4, left) + 'px';
+  tip.style.top = top + 'px';
+}
+function hideTip() { $('bpTip').style.display = 'none'; }
+
+/* ساخت یک‌بارِ کاشی‌های پنل در شروع صفحه (۵٫۰: آیکونی) */
+function buildPanelInit() {
+  const list = $('bpList');
+  BUILD_DEFS.forEach((d) => {
+    if (d.grp) {                              // عنوان گروه
+      const g = document.createElement('div');
+      g.className = 'bp-grp';
+      g.textContent = d.grp;
+      list.appendChild(g);
+      return;
+    }
+    const el = document.createElement('div');
+    el.className = 'bp-tile';
+    el.id = 'bp-' + d.kind;
+    /* آیکون Canvas با اسپرایت مکعب پیکسل‌آرت (۸٫۰) */
+    const cv = document.createElement('canvas');
+    cv.className = 'bp-ic';
+    paintIcon(d.kind, cv);
+    el.appendChild(cv);
+    /* کلید میان‌بر */
+    if (d.key) {
+      const k = document.createElement('span');
+      k.className = 'bp-key'; k.textContent = d.key;
+      el.appendChild(k);
+    }
+    /* پین‌های سطح برای آیتم‌های ارتقایی */
+    const u = UPGRADES[d.kind];
+    if (u && u.max) {
+      const lv = document.createElement('span');
+      lv.className = 'bp-lv'; lv.id = 'bp-' + d.kind + '-lv';
+      for (let i = 0; i < u.max; i++) lv.appendChild(document.createElement('i'));
+      el.appendChild(lv);
+    }
+    /* قیمت */
+    const price = document.createElement('span');
+    price.className = 'bp-price'; price.id = 'bp-' + d.kind + '-cost';
+    el.appendChild(price);
+
+    el.addEventListener('click', () => buy(d.kind));   /* (۱۰٫۰) مسیر یکسان خرید: قفل آخرین شب + سیو */
+    el.addEventListener('mouseenter', () => showTip(d, el));
+    el.addEventListener('mouseleave', hideTip);
+    list.appendChild(el);
+  });
+  /* کلیک روی سربرگ = جمع/باز کردن پنل */
+  $('bpHead').addEventListener('click', toggleBuildPanel);
+}
+
+/* تنظیم مستقیم وضعیت پنل ساخت‌وساز (۶٫۰):
+   شب (شروع موج) خودکار جمع می‌شود تا زامبی‌های سمت راست دیده و شلیک شوند؛
+   روز (پس از پاک‌سازی موج) خودکار باز می‌شود برای خرید و نصب. */
+function setBuildPanel(collapsed, silent) {
+  const p = $('buildPanel');
+  if (p.classList.contains('collapsed') === collapsed) return;
+  p.classList.toggle('collapsed', collapsed);
+  $('bpChev').textContent = collapsed ? '▸' : '▾';
+  if (collapsed) hideTip();                 // تولتیپ باز مانده نباشد
+  if (!silent) SFX.click();
+}
+
+function toggleBuildPanel() {
+  setBuildPanel(!$('buildPanel').classList.contains('collapsed'));
+}
+
+/* به‌روزرسانی وضعیت کاشی‌های پنل (قیمت/سطح/قابلیت خرید — ۵٫۰ آیکونی) */
+function refreshBuildPanel() {
+  for (const d of BUILD_DEFS) {
+    if (!d.kind) continue;
+    const item = $('bp-' + d.kind);
+    if (!item) continue;
+    const cost = $('bp-' + d.kind + '-cost');
+    item.classList.remove('deny');
+
+    /* --- سلاح‌های یک‌بار خرید --- */
+    if (d.kind === 'shotgun' || d.kind === 'mg') {
+      const owned = WEAPONS[d.kind].owned;
+      item.classList.toggle('max', owned);
+      cost.textContent = owned ? '✅' : faNum(UPGRADES[d.kind].price);
+      item.classList.toggle('poor', !owned && state.coins < UPGRADES[d.kind].price);
+      continue;
+    }
+
+    /* --- تعمیر سریع --- */
+    if (d.kind === 'repair') {
+      const full = state.tower.hp >= state.tower.maxHp - 0.5;
+      item.classList.toggle('max', full);
+      cost.textContent = full ? '✅' : faNum(UPGRADES.repair.price);
+      item.classList.toggle('poor', !full && state.coins < UPGRADES.repair.price);
+      continue;
+    }
+
+    /* --- برجک‌های دفاعی: خرید → حالت نصب (۴٫۰) --- */
+    if (d.kind === 'gatling' || d.kind === 'sniper' || d.kind === 'frost') {
+      const def = TURRETS[d.kind];
+      const maxed = state.turrets.length >= MAX_TURRETS;
+      const isPlacing = state.placing && state.placing.type === d.kind;
+      item.classList.toggle('placing', !!isPlacing);
+      item.classList.toggle('max', maxed && !isPlacing);
+      cost.textContent = maxed && !isPlacing ? '✅' : faNum(def.price);
+      item.classList.toggle('poor', !maxed && !isPlacing && state.coins < def.price);
+      continue;
+    }
+
+    /* --- (۱۰٫۰) وسایل بقی: چراغ‌قوه یک‌بار خرید؛ بقیه تکراری‌اند --- */
+    if (d.kind === 'flashlight' || d.kind === 'battery' || d.kind === 'canned' || d.kind === 'medkit') {
+      const g = GEAR[d.kind];
+      const owned = d.kind === 'flashlight' && state.torch.owned;
+      item.classList.toggle('max', owned);
+      cost.textContent = owned ? '✅' : faNum(g.price);
+      item.classList.toggle('poor', !owned && state.coins < g.price);
+      continue;
+    }
+
+    /* --- ارتقاهای سطح‌دار (اسلحه/جون/تله/برجک‌ها) --- */
+    const u = UPGRADES[d.kind], lvl = state.upgrades[d.kind];
+    const maxed = lvl >= u.max;
+    item.classList.toggle('max', maxed);
+    cost.textContent = maxed ? '✅' : faNum(priceOf(d.kind));
+    item.classList.toggle('poor', !maxed && state.coins < priceOf(d.kind));
+    /* پین‌های سطح روشن/خاموش */
+    const lv = $('bp-' + d.kind + '-lv');
+    if (lv) Array.from(lv.children).forEach((pip, i) => pip.classList.toggle('on', i < lvl));
+  }
+}
+
+/* به‌روزرسانی HUD (نوار جون، سکه، موج + باقی‌مانده‌ی موج) + نوار سلاح + پنل ساخت */
+function updateHUD() {
+  const t = state.tower, ratio = t.hp / t.maxHp;
+  const fill = $('healthFill');
+  fill.style.width = (ratio * 100).toFixed(1) + '%';
+  fill.className = ratio > 0.5 ? '' : (ratio > 0.25 ? 'mid' : 'low');
+  $('healthText').textContent = faNum(Math.ceil(t.hp)) + '/' + faNum(t.maxHp);
+  $('coinText').textContent = faNum(state.coins);
+  /* (۱۰٫۰) نمایش فصل + شماره‌ی موج درون‌فصلی */
+  const wl = waveLabel();
+  if (state.mode === 'playing') {
+    const rem = state.spawn.queue.length + state.zombies.filter(z => !z.dead).length;
+    $('waveText').textContent = wl + ' • ' + faNum(rem) + ' باقی';
+  } else if (state.mode === 'day') {
+    $('waveText').textContent = '☀️ ' + wl;
+  } else {
+    $('waveText').textContent = wl;
+  }
+  refreshWeaponBar();
+  refreshBuildPanel();
+  refreshGearHUD();                            // (۱۰٫۰) چراغ‌قوه/باتری
+}
+
+/* نوار سلاح: هایلایتِ سلاح فعال + قفل/قیمتِ سلاح‌های نخریده */
+function refreshWeaponBar() {
+  document.querySelectorAll('#weaponBar .wslot').forEach(el => {
+    const id = el.dataset.w;
+    el.classList.toggle('active', state.weapon === id && WEAPONS[id].owned);
+    const locked = !WEAPONS[id].owned;
+    el.classList.toggle('locked', locked);
+    const info = el.querySelector('.wlockinfo');
+    if (info) info.style.display = locked ? 'flex' : 'none';
+  });
+}
+
+/* نوار جون پادشاه زامبی‌ها (فقط وقتی زنده است نمایش داده می‌شود) */
+let bossBarVisible = false;
+function updateBossBar() {
+  const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
+  const el = $('bossBar');
+  if (boss) {
+    el.style.display = 'block';
+    $('bossFill').style.width = (clamp(boss.hp / boss.maxHp, 0, 1) * 100).toFixed(1) + '%';
+    bossBarVisible = true;
+  } else if (bossBarVisible) {
+    el.style.display = 'none';
+    bossBarVisible = false;
+  }
+}
+
+/* ---------------------- ۱۶) حلقه اصلی و راه‌اندازی ---------------------- */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.05); // سقف dt برای جلوگیری از پرش فیزیک
+  last = now;
+  animTime += dt;                                // زمان نمایشی همیشه جلو می‌رود
+
+  /* اسلوموشن سینمایی (۳٫۰): زمان بازی کند می‌شود ولی رندر عادی می‌ماند */
+  let dtG = dt;
+  if (state.slowmo > 0) {
+    dtG = dt * 0.3;
+    state.slowmo = Math.max(0, state.slowmo - dt);
+  }
+
+  if (state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day') update(dtG);
+  else if (state.mode === 'cutscene') updateCutscene(dtG);   // رویداد داستانی (۷٫۰)
+  else if (state.mode === 'transition') updateTransition(dtG);   // (۱۰٫۰) انتقال بین فصل‌ها
+  else if (state.mode === 'intro') updateIntro(dtG);             // (۱۰٫۰) کات‌سین افتتاحیه
+  else if (state.mode === 'victorycine') updateVictoryCine(dtG); // (۱۰٫۰) صحنه‌ی پیروزی
+  else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
+  else if (state.mode === 'start') updateMenuScene(dtG);
+  /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */
+
+  /* جلوه‌های محیطی (شهاب و رعدوبرق) در همه‌ی حالت‌ها جریان دارند */
+  updateShootingStar(dt);
+  updateLightning(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+
+function init() {
+  /* اتصال دکمه‌های منو و اورلی‌ها */
+  $('btnStart').addEventListener('click', startNewGame);   // (۱۰٫۰) تأیید پاک‌کردن سیو + کات‌سین افتتاحیه
+  $('btnHowto').addEventListener('click', () => { SFX.click(); showScreen('howtoScreen'); });
+  $('closeHowto').addEventListener('click', () => { SFX.click(); hideScreen('howtoScreen'); });
+  $('btnContinue').addEventListener('click', continueGame);           // (۱۰٫۰)
+  $('btnSettings').addEventListener('click', () => { SFX.click(); showScreen('settingsScreen'); });
+  $('closeSettings').addEventListener('click', () => { SFX.click(); hideScreen('settingsScreen'); });
+  $('btnAbout').addEventListener('click', () => { SFX.click(); showScreen('aboutScreen'); });
+  $('closeAbout').addEventListener('click', () => { SFX.click(); hideScreen('aboutScreen'); });
+  $('btnWipe').addEventListener('click', () => askConfirm('همه‌ی پیشرفتت پاک بشه؟', wipeSaveAndUI));
+  $('cfNo').addEventListener('click', () => { SFX.click(); hideScreen('confirmBox'); });
+  $('btnFlash').addEventListener('click', () => toggleFlashlight());  // (۱۰٫۰)
+  $('btnMute0').addEventListener('click', toggleSound);
+  $('btnMute').addEventListener('click', toggleSound);
+  $('btnMute2').addEventListener('click', toggleSound);
+  $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
+  $('btnPause').addEventListener('click', () => {
+    if (state.mode === 'paused') resumeGame(); else pauseGame();
+  });
+  $('btnResume').addEventListener('click', resumeGame);
+  $('btnRestart0').addEventListener('click', startGame);
+  /* (۱۰٫۰) باخت: «تلاش دوباره» از آخرین سیو (اگر بود) وگرنه شروع تازه */
+  $('btnRestart1').addEventListener('click', retryFromSave);
+  $('btnRestart2').addEventListener('click', startGame);
+
+  /* کلیک روی اسلات‌های نوار سلاح */
+  document.querySelectorAll('#weaponBar .wslot').forEach(el => {
+    el.addEventListener('click', () => selectWeapon(el.dataset.w));
+  });
+
+  buildPanelInit();    // پنل ساخت‌وساز آیکونیِ کنار نقشه
+  initBackpackUI();   // (۱۰٫۰) کوله‌پشتی ۶ جا
+  initPeddlerUI();    // (۱۰٫۰) پنل دستفروش مرموز
+  initSettingsUI();   // (۱۰٫۰) تنظیمات + لود SETT
+  refreshMenuContinue();   // (۱۰٫۰) فعال/غیرفعال‌کردن «ادامه‌ی بازی»
+  initMenuZ();         // زامبی‌های تزئینیِ صحنه‌ی منو
+  $('wrap').classList.add('menu-mode');   // در منو، HUD/پنل‌ها مخفی‌اند (۵٫۰)
+  updateHUD();
+  requestAnimationFrame(frame);
+}
+init();
+
+/* رابط اشکال‌زدایی/تست خودکار — برای توسعه‌های بعدی در دسترس است */
+window.GAME = {
+  state, startGame, startWave, spawnZombie, damageTower, selectWeapon, WEAPONS, ZTYPES, WAVES,
+  TURRETS, MAX_TURRETS,
+  endWave: waveComplete,             /* شبیه‌سازی پایان موج → صبح (۵٫۰) */
+  startNight,                        /* شبیه‌سازی کلیک «شب شود» (۵٫۰) */
+  setBuildPanel,                     /* جمع/باز کردن پنل ساخت‌وساز (۶٫۰) */
+  /* --- رویداد داستانی (۷٫۰) --- */
+  playCutscene: playTowerCollapseCutscene,   /* اجرای دستی کات‌سین */
+  skipCutscene,                              /* رد کردن کات‌سین */
+  getCutscene() { return CS; },              /* وضعیت لحظه‌ای کات‌سین */
+  getDrive() { return CS && CS.drive; },     /* وضعیت بخش رانندگی (۸٫۰) */
+  csGoto(t) {                                /* پرش زمانی برای تست فریم‌ها */
+    if (!CS) return;
+    /* شبیه‌سازی گام‌به‌گام تا لحظه‌ی هدف تا همه‌ی رویدادهای میانی
+       (سقوط، عبور ماشین، تصادم‌ها، رانندگی...) دقیقاً رخ بدهند.
+       ۸٫۰: کات‌سین طولانی‌تر شد (بخش رانندگی) → سقف گام‌ها بیشتر */
+    CS.paused = false;
+    let guard = 0;
+    while (CS && CS.t < t - (1 / 30) && guard++ < 1600) updateCutscene(1 / 30);
+    if (CS) {
+      const rest = t - CS.t;
+      if (rest > 0) updateCutscene(Math.min(rest, 0.05));
+      CS.paused = true;                      // فریز روی همین فریم
+    }
+  },
+  csResume() { if (CS) CS.paused = false; }, /* ادامه‌ی عادی جریان */
+  giveCoins(n) { state.coins += n; updateHUD(); },
+  spawnType(type) { spawnZombie(type); },
+  hurt(n) { damageTower(n, TOWER.x + 10); },
+  hurtBoss(n) {
+    const b = state.zombies.find(z => z.type === 'boss' && !z.dead);
+    if (b) { b.hp -= n; if (b.hp <= 0) killZombie(b); }
+  },
+  /* خرید و نصبِ مستقیم برجک بدون کلیک (برای تست) */
+  placeTurret(type, x, y) {
+    state.turrets.push({ type, x, y, cd: 0.3,
+      aim: x < TOWER.x ? 0 : Math.PI, spin: 0, flash: 0, recoil: 0, hover: false, bob: rand(0, 6.28) });
+    refreshBuildPanel();
+  },
+  /* شبیه‌سازی کلیک در حالت نصب (برای تست) */
+  clickPlace(x, y) { state.mouse.x = x; state.mouse.y = y; handlePlaceClick(); },
+  attemptBuy,
+  /* ---- (۱۰٫۰) رابط تست/دیباگ نسخه‌ی فصل‌ها ---- */
+  v10: {
+    CHAPTERS, FINAL_WAVE, WAVES_PER_CH, waveChapter, waveInChapter, buildWaveQueue,
+    startChapter, startTransition, skipTransition,
+    saveGame, loadSaveData, applySave, wipeSave, continueGame, retryFromSave,
+    startNewGame, startIntroCine, skipIntro,
+    giveItem, useItem, buy, buyRare, GEAR, RARE, toggleFlashlight,
+    setBlackout(on) { state.blackout.on = !!on; },
+    setBattery(n) { state.torch.battery = n; },
+    peddlerVisit() { peddlerRoll(true); },
+    mgJump, mgDuck, mgNudge,
+    trGoto(t) {                              /* پرش زمانی قطعی برای تست فریم‌های انتقال */
+      if (!TR) return;
+      TR._paused = false;
+      let guard = 0;
+      while (TR && TR.t < t - 1 / 30 && guard++ < 4200) updateTransition(1 / 30);
+      if (TR) TR._paused = true;
+    },
+    trResume() { if (TR) TR._paused = false; },
+    introGoto(t) {                           /* پرش زمانی برای تست کات‌سین افتتاحیه — با زمانِ جهانی */
+      if (!INTRO) return;
+      INTRO._paused = false;
+      let guard = 0;
+      while (INTRO && introGlobalT() < t - 1 / 30 && guard++ < 4200) updateIntro(1 / 30);
+      if (INTRO) INTRO._paused = true;
+    },
+    get TR() { return TR; },
+    get INTRO() { return INTRO; },
+    get Dark() { return Dark; },
+    get CHT() { return curCh(); },
+  },
+  /* انداختن دستی جعبه‌ی قدرت (برای تست) */
+  dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },
+  /* پرش سریع به موج n (برای تست) */
+  skipToWave(n) {
+    n = clamp(n, 1, FINAL_WAVE);              // (۱۰٫۰) ۳۳ موج
+    if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
+    if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
+    if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
+    state.zombies = []; state.bullets = []; state.coinsArr = [];
+    state.wave = n - 1;
+    state.chapter = waveChapter(n);           /* (۱۰٫۰) فصل هماهنگ شود */
+    state.towerVariant = state.chapter - 1;
+    state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
+    if (state.mode === 'playing') waveComplete();
+    else if (!['start', 'gameover', 'victory', 'paused'].includes(state.mode)) {
+      state.mode = 'intermission'; state.intermission = 0.3;
+    }
+  },
+  /* شبیه‌سازی برد (برای تست) — از هر حالتی کار می‌کند */
+  win() {
+    if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
+    if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
+    if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
+    state.wave = FINAL_WAVE;                             /* (۱۰٫۰) شبیه‌سازی برد = پایانِ آخرین شب */
+    state.chapter = 4;
+    state.towerVariant = 3;
+    state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
+    state.zombies = []; state.bullets = [];
+    state.mode = 'playing';          // حتی از وقفه هم برد شبیه‌سازی شود
+    waveComplete();
+  },
+};

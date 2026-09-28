@@ -70,10 +70,12 @@ const CS_CAPS = [
   [9.5, 12.6, 'فرمان با توست! گاز بده تا برج جدید'],
 ];
 
-/* --- پوسته‌های برج: برج اول و برج دومِ شهر سوخته ---
-   drawTower این رنگ‌ها را می‌خواند؛ اندازه‌ی برج در هر دو یکی است. */
+/* --- پوسته‌های برج (۱۰٫۰): هر فصل رنگ و جنس خودش را دارد ---
+   ۰=محله‌ی قدیمی (آجری/آبی) • ۱=انبارها (فولادی/زنگاری/خردلی)
+   ۲=پاسگاه (سنگ‌خزه/فیروزه — برج دوم سابق) • ۳=مخابرات (لاجوردی/یخی)
+   drawTower این رنگ‌ها را می‌خواند؛ اندازه‌ی برج در همه یکی است. */
 const TOWER_SKINS = [
-  { /* برج اول — سنگی/آجری/آبی (ظاهر اصلی بازی) */
+  { /* فصل ۱ — محله‌ی قدیمی: سنگی/آجری/آبی (ظاهر اصلی بازی) */
     floors: [
       { light: '#82705a', base: '#6e5a44', dark: '#4d3f2f', edge: '#453a2c' },
       { light: '#b25a47', base: '#a04b3a', dark: '#7c3527', edge: '#6e2f24' },
@@ -84,7 +86,18 @@ const TOWER_SKINS = [
     banner: ['#a12a20', '#c23a2c'], bannerMark: '#7a1f18',
     doorFrame: ['#8a7a5e', '#bfae8e'], pole: ['#4a3b2a', '#7a6244'],
   },
-  { /* برج دوم — سنگ‌خزه/فیروزه/زرشکی (پس از کات‌سین، در شهر سوخته) */
+  { /* فصل ۲ — منطقه‌ی انبارها: فولادی/صناعتی/زنگاری (۱۰٫۰) */
+    floors: [
+      { light: '#7a8496', base: '#5f6a7d', dark: '#434c5e', edge: '#3a4254' },
+      { light: '#5d84a6', base: '#4c7191', dark: '#375873', edge: '#2f4c63' },
+      { light: '#b07838', base: '#9a662e', dark: '#75491d', edge: '#663f1a' },
+    ],
+    plinth: ['#2c3038', '#6a7078'], batt: ['#4c7191', '#7fa5c4'],
+    flag: '#e8a13c', flagMark: '#3a2c14',
+    banner: ['#75491d', '#96682c'], bannerMark: '#3a2c14',
+    doorFrame: ['#4c5566', '#7d8896'], pole: ['#333a44', '#5d666f'],
+  },
+  { /* فصل ۳ — پاسگاه نظامی: سنگ‌خزه/فیروزه/زرشکی (برج دوم سابق — ۷٫۰) */
     floors: [
       { light: '#6b7a5e', base: '#57644b', dark: '#3e4835', edge: '#39422e' },
       { light: '#3f8d86', base: '#357871', dark: '#265a55', edge: '#22504b' },
@@ -94,6 +107,17 @@ const TOWER_SKINS = [
     flag: '#3f8d86', flagMark: '#ffd873',
     banner: ['#274f4a', '#3f8d86'], bannerMark: '#173b37',
     doorFrame: ['#5a5446', '#8f8871'], pole: ['#3a3529', '#615a48'],
+  },
+  { /* فصل ۴ — برج مخابراتی: لاجوردی/یخی/کمرنگ (۱۰٫۰) */
+    floors: [
+      { light: '#5b6a84', base: '#48566e', dark: '#333e52', edge: '#2c3648' },
+      { light: '#8fb4d9', base: '#7299c2', dark: '#527495', edge: '#466382' },
+      { light: '#c8d4e2', base: '#aebbc9', dark: '#8c99a8', edge: '#7a8694' },
+    ],
+    plinth: ['#242c3a', '#5a6578'], batt: ['#527495', '#8fb4d9'],
+    flag: '#7fd8ff', flagMark: '#0e2a3a',
+    banner: ['#527495', '#7299c2'], bannerMark: '#1c3040',
+    doorFrame: ['#3a4254', '#6a7584'], pole: ['#2c3648', '#4d5a6b'],
   },
 ];
 
@@ -918,9 +942,10 @@ function drawDriveScene() {
   }
 }
 
-/* یک جزء کنار راه: چراغ‌برق / درخت / بوته / سنگ / مانعِ راه‌بندی */
+/* یک جزء کنار راه: چراغ‌برق / درخت / بوته / سنگ / مانعِ راه‌بندی
+   (۱۰٫۰) در انتقال‌های فصل، CS.drive وجود ندارد → dr ممکن است null باشد */
 function drawRoadProp(p, sx) {
-  const dr = CS.drive;
+  const dr = CS && CS.drive;
   const d = state.dayness;
   if (p.kind === 'lamp') {
     ctx.strokeStyle = mixHex('#151d33', '#3a4457', d); ctx.lineWidth = 3.6; ctx.lineCap = 'round';
@@ -955,7 +980,7 @@ function drawRoadProp(p, sx) {
     ctx.lineTo(sx + 10 * p.s, GROUND_Y + 3);
     ctx.closePath(); ctx.fill();
   } else if (p.kind === 'barrier') {
-    const hit = !!dr.hits[p.wx];
+    const hit = !!(dr && dr.hits && dr.hits[p.wx]);
     ctx.save();
     ctx.translate(sx, GROUND_Y + 2);
     if (hit) { ctx.rotate(0.42); ctx.translate(6, 2); }
@@ -1110,5 +1135,10 @@ function drawCutscene() {
   }
 }
 
-/* اتصال دکمه‌ی «رد کردن» (عنصر در HTML موجود است) */
-$('skipCs').addEventListener('click', skipCutscene);
+/* اتصال دکمه‌ی «رد کردن» (عنصر در HTML موجود است) — (۱۰٫۰):
+   در هر حالت سینمایی، عملِ مناسب همان حالت انجام می‌شود */
+$('skipCs').addEventListener('click', () => {
+  if (state.mode === 'intro') skipIntro();
+  else if (state.mode === 'transition') skipTransition();
+  else skipCutscene();
+});

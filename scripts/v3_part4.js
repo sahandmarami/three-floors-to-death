@@ -12,7 +12,8 @@
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreen(id) { $(id).classList.add('hidden'); }
 function hideOverlays() {
-  ['startScreen', 'howtoScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen']
+  ['startScreen', 'howtoScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen',
+   'settingsScreen', 'aboutScreen', 'confirmBox']      // (۱۰٫۰)
     .forEach(hideScreen);
 }
 
@@ -29,14 +30,14 @@ function resumeGame() {
   $('btnPause').textContent = '⏸ توقف';
 }
 
-/* قطع/وصل صدا — همه‌ی دکمه‌های صدا هم‌زمان به‌روز می‌شوند */
+/* قطع/وصل صدا — همه‌ی دکمه‌های صدا هم‌زمان به‌روز می‌شوند
+   (۱۰٫۰) با تنظیمات SETT هم‌گام است و بلندی صدا از آن‌جا می‌آید */
 function toggleSound() {
   Snd.init();
-  const m = Snd.toggleMute();
-  $('btnMute').textContent = m ? '🔇' : '🔊';
-  $('btnMute0').textContent = m ? '🔇' : '🔊';
-  $('btnMute2').textContent = m ? '🔇 صدا خاموش' : '🔊 صدا روشن';
-  if (!m) SFX.click();
+  SETT.sfx = !SETT.sfx;
+  saveSettings();
+  applySettings();
+  if (SETT.sfx) SFX.click();
 }
 
 /* ---------- پنل ساخت‌وساز آیکونی (۵٫۰ / بازطراحی ۹٫۰) ----------
@@ -58,6 +59,15 @@ const BUILD_DEFS = [
   { kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
   { kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
   { kind: 'turretUp',key: 'T', codes: ['KeyT'],              name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
+  { grp: 'وسایل بقی' },                                   /* (۱۰٫۰) — به کوله‌پشتی می‌روند */
+  { kind: 'flashlight', key: 'J', codes: ['KeyJ'], name: 'چراغ‌قوه',
+    desc: 'با L روشن/خاموش می‌شود — دید در مه و قطع برق (باتری مصرف می‌کند)' },
+  { kind: 'battery',    key: 'K', codes: ['KeyK'], name: 'باتری',
+    desc: '+۵۰٪ شارژ چراغ‌قوه — داخل کوله‌پشتی ذخیره می‌شود' },
+  { kind: 'canned',     key: 'C', codes: ['KeyC'], name: 'کنسرو',
+    desc: 'شفای تدریجی ۴۵ جون در ۱۲ ثانیه — با کلیک/کلید کوله مصرف می‌شود' },
+  { kind: 'medkit',     key: 'V', codes: ['KeyV'], name: 'کیت کمک‌های اولیه',
+    desc: '۷۰ جون برج را فوراً برمی‌گرداند — با کلیک/کلید کوله مصرف می‌شود' },
 ];
 /* نگاشت کلیدهای فیزیکی به آیتم خرید (برای خرید سریع با کیبورد) */
 const KEY2KIND = {};
@@ -104,6 +114,17 @@ function repaintCubeIcons(kind) {
 
 /* وضعیت لحظه‌ای آیتم برای تولتیپ (قیمت/سطح/مالکیت...) */
 function tileStatus(kind) {
+  /* (۱۰٫۰) وسایل بقی */
+  if (kind === 'flashlight') {
+    return state.torch.owned
+      ? 'خریده شد ✅ (کلید L روشن/خاموش) — باتری: ' + faNum(Math.round(state.torch.battery)) + '٪'
+      : 'برای مه و قطع برق لازمش داری';
+  }
+  if (kind === 'battery' || kind === 'canned' || kind === 'medkit') {
+    const g = GEAR[kind];
+    return 'داخل کوله: ' + faNum(state.backpack.filter(s => s && s.id === kind).length)
+      + ' • قیمت: ' + faNum(g.price) + ' سکه';
+  }
   if (kind === 'shotgun' || kind === 'mg') {
     return WEAPONS[kind].owned ? 'خریده شد ✅' : 'قفل — بعد از خرید، کلید ' + faNum(kind === 'shotgun' ? 2 : 3);
   }
@@ -178,7 +199,7 @@ function buildPanelInit() {
     price.className = 'bp-price'; price.id = 'bp-' + d.kind + '-cost';
     el.appendChild(price);
 
-    el.addEventListener('click', () => attemptBuy(d.kind));
+    el.addEventListener('click', () => buy(d.kind));   /* (۱۰٫۰) مسیر یکسان خرید: قفل آخرین شب + سیو */
     el.addEventListener('mouseenter', () => showTip(d, el));
     el.addEventListener('mouseleave', hideTip);
     list.appendChild(el);
@@ -242,6 +263,16 @@ function refreshBuildPanel() {
       continue;
     }
 
+    /* --- (۱۰٫۰) وسایل بقی: چراغ‌قوه یک‌بار خرید؛ بقیه تکراری‌اند --- */
+    if (d.kind === 'flashlight' || d.kind === 'battery' || d.kind === 'canned' || d.kind === 'medkit') {
+      const g = GEAR[d.kind];
+      const owned = d.kind === 'flashlight' && state.torch.owned;
+      item.classList.toggle('max', owned);
+      cost.textContent = owned ? '✅' : faNum(g.price);
+      item.classList.toggle('poor', !owned && state.coins < g.price);
+      continue;
+    }
+
     /* --- ارتقاهای سطح‌دار (اسلحه/جون/تله/برجک‌ها) --- */
     const u = UPGRADES[d.kind], lvl = state.upgrades[d.kind];
     const maxed = lvl >= u.max;
@@ -262,16 +293,19 @@ function updateHUD() {
   fill.className = ratio > 0.5 ? '' : (ratio > 0.25 ? 'mid' : 'low');
   $('healthText').textContent = faNum(Math.ceil(t.hp)) + '/' + faNum(t.maxHp);
   $('coinText').textContent = faNum(state.coins);
+  /* (۱۰٫۰) نمایش فصل + شماره‌ی موج درون‌فصلی */
+  const wl = waveLabel();
   if (state.mode === 'playing') {
     const rem = state.spawn.queue.length + state.zombies.filter(z => !z.dead).length;
-    $('waveText').textContent = 'موج ' + faNum(clamp(state.wave, 1, TOTAL_WAVES)) + '/' + faNum(TOTAL_WAVES) + ' • ' + faNum(rem) + ' باقی';
+    $('waveText').textContent = wl + ' • ' + faNum(rem) + ' باقی';
   } else if (state.mode === 'day') {
-    $('waveText').textContent = '☀️ روز • موج ' + faNum(clamp(state.wave, 1, TOTAL_WAVES)) + '/' + faNum(TOTAL_WAVES);
+    $('waveText').textContent = '☀️ ' + wl;
   } else {
-    $('waveText').textContent = 'موج ' + faNum(clamp(state.wave, 1, TOTAL_WAVES)) + '/' + faNum(TOTAL_WAVES);
+    $('waveText').textContent = wl;
   }
   refreshWeaponBar();
   refreshBuildPanel();
+  refreshGearHUD();                            // (۱۰٫۰) چراغ‌قوه/باتری
 }
 
 /* نوار سلاح: هایلایتِ سلاح فعال + قفل/قیمتِ سلاح‌های نخریده */
@@ -317,6 +351,9 @@ function frame(now) {
 
   if (state.mode === 'playing' || state.mode === 'intermission' || state.mode === 'day') update(dtG);
   else if (state.mode === 'cutscene') updateCutscene(dtG);   // رویداد داستانی (۷٫۰)
+  else if (state.mode === 'transition') updateTransition(dtG);   // (۱۰٫۰) انتقال بین فصل‌ها
+  else if (state.mode === 'intro') updateIntro(dtG);             // (۱۰٫۰) کات‌سین افتتاحیه
+  else if (state.mode === 'victorycine') updateVictoryCine(dtG); // (۱۰٫۰) صحنه‌ی پیروزی
   else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
   else if (state.mode === 'start') updateMenuScene(dtG);
   /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */
@@ -330,9 +367,17 @@ function frame(now) {
 
 function init() {
   /* اتصال دکمه‌های منو و اورلی‌ها */
-  $('btnStart').addEventListener('click', startGame);
+  $('btnStart').addEventListener('click', startNewGame);   // (۱۰٫۰) تأیید پاک‌کردن سیو + کات‌سین افتتاحیه
   $('btnHowto').addEventListener('click', () => { SFX.click(); showScreen('howtoScreen'); });
   $('closeHowto').addEventListener('click', () => { SFX.click(); hideScreen('howtoScreen'); });
+  $('btnContinue').addEventListener('click', continueGame);           // (۱۰٫۰)
+  $('btnSettings').addEventListener('click', () => { SFX.click(); showScreen('settingsScreen'); });
+  $('closeSettings').addEventListener('click', () => { SFX.click(); hideScreen('settingsScreen'); });
+  $('btnAbout').addEventListener('click', () => { SFX.click(); showScreen('aboutScreen'); });
+  $('closeAbout').addEventListener('click', () => { SFX.click(); hideScreen('aboutScreen'); });
+  $('btnWipe').addEventListener('click', () => askConfirm('همه‌ی پیشرفتت پاک بشه؟', wipeSaveAndUI));
+  $('cfNo').addEventListener('click', () => { SFX.click(); hideScreen('confirmBox'); });
+  $('btnFlash').addEventListener('click', () => toggleFlashlight());  // (۱۰٫۰)
   $('btnMute0').addEventListener('click', toggleSound);
   $('btnMute').addEventListener('click', toggleSound);
   $('btnMute2').addEventListener('click', toggleSound);
@@ -342,7 +387,8 @@ function init() {
   });
   $('btnResume').addEventListener('click', resumeGame);
   $('btnRestart0').addEventListener('click', startGame);
-  $('btnRestart1').addEventListener('click', startGame);
+  /* (۱۰٫۰) باخت: «تلاش دوباره» از آخرین سیو (اگر بود) وگرنه شروع تازه */
+  $('btnRestart1').addEventListener('click', retryFromSave);
   $('btnRestart2').addEventListener('click', startGame);
 
   /* کلیک روی اسلات‌های نوار سلاح */
@@ -351,6 +397,10 @@ function init() {
   });
 
   buildPanelInit();    // پنل ساخت‌وساز آیکونیِ کنار نقشه
+  initBackpackUI();   // (۱۰٫۰) کوله‌پشتی ۶ جا
+  initPeddlerUI();    // (۱۰٫۰) پنل دستفروش مرموز
+  initSettingsUI();   // (۱۰٫۰) تنظیمات + لود SETT
+  refreshMenuContinue();   // (۱۰٫۰) فعال/غیرفعال‌کردن «ادامه‌ی بازی»
   initMenuZ();         // زامبی‌های تزئینیِ صحنه‌ی منو
   $('wrap').classList.add('menu-mode');   // در منو، HUD/پنل‌ها مخفی‌اند (۵٫۰)
   updateHUD();
@@ -401,14 +451,49 @@ window.GAME = {
   /* شبیه‌سازی کلیک در حالت نصب (برای تست) */
   clickPlace(x, y) { state.mouse.x = x; state.mouse.y = y; handlePlaceClick(); },
   attemptBuy,
+  /* ---- (۱۰٫۰) رابط تست/دیباگ نسخه‌ی فصل‌ها ---- */
+  v10: {
+    CHAPTERS, FINAL_WAVE, WAVES_PER_CH, waveChapter, waveInChapter, buildWaveQueue,
+    startChapter, startTransition, skipTransition,
+    saveGame, loadSaveData, applySave, wipeSave, continueGame, retryFromSave,
+    startNewGame, startIntroCine, skipIntro,
+    giveItem, useItem, buy, buyRare, GEAR, RARE, toggleFlashlight,
+    setBlackout(on) { state.blackout.on = !!on; },
+    setBattery(n) { state.torch.battery = n; },
+    peddlerVisit() { peddlerRoll(true); },
+    mgJump, mgDuck, mgNudge,
+    trGoto(t) {                              /* پرش زمانی قطعی برای تست فریم‌های انتقال */
+      if (!TR) return;
+      TR._paused = false;
+      let guard = 0;
+      while (TR && TR.t < t - 1 / 30 && guard++ < 4200) updateTransition(1 / 30);
+      if (TR) TR._paused = true;
+    },
+    trResume() { if (TR) TR._paused = false; },
+    introGoto(t) {                           /* پرش زمانی برای تست کات‌سین افتتاحیه — با زمانِ جهانی */
+      if (!INTRO) return;
+      INTRO._paused = false;
+      let guard = 0;
+      while (INTRO && introGlobalT() < t - 1 / 30 && guard++ < 4200) updateIntro(1 / 30);
+      if (INTRO) INTRO._paused = true;
+    },
+    get TR() { return TR; },
+    get INTRO() { return INTRO; },
+    get Dark() { return Dark; },
+    get CHT() { return curCh(); },
+  },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },
   /* پرش سریع به موج n (برای تست) */
   skipToWave(n) {
-    n = clamp(n, 1, TOTAL_WAVES);
+    n = clamp(n, 1, FINAL_WAVE);              // (۱۰٫۰) ۳۳ موج
     if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
+    if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
+    if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
     state.zombies = []; state.bullets = []; state.coinsArr = [];
     state.wave = n - 1;
+    state.chapter = waveChapter(n);           /* (۱۰٫۰) فصل هماهنگ شود */
+    state.towerVariant = state.chapter - 1;
     state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
     if (state.mode === 'playing') waveComplete();
     else if (!['start', 'gameover', 'victory', 'paused'].includes(state.mode)) {
@@ -418,7 +503,11 @@ window.GAME = {
   /* شبیه‌سازی برد (برای تست) — از هر حالتی کار می‌کند */
   win() {
     if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
-    state.wave = TOTAL_WAVES;
+    if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
+    if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
+    state.wave = FINAL_WAVE;                             /* (۱۰٫۰) شبیه‌سازی برد = پایانِ آخرین شب */
+    state.chapter = 4;
+    state.towerVariant = 3;
     state.spawn = { queue: [], timer: 0, interval: 1, bossDelay: false };
     state.zombies = []; state.bullets = [];
     state.mode = 'playing';          // حتی از وقفه هم برد شبیه‌سازی شود

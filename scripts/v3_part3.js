@@ -110,7 +110,9 @@ function updateLightning(dt) {
   }
   L.t -= dt;
   if (L.t <= 0) {
-    L.a = 0.9; L.t = rand(13, 30);
+    L.a = 0.9;
+    const Lr = curCh().theme.lightning || [13, 30];   // (۱۰٫۰) فصل ۴: آسمان خشمگین‌تر
+    L.t = rand(Lr[0], Lr[1]);
     SFX.thunder();
   }
   if (L.a > 0) L.a = Math.max(0, L.a - dt * 2.6);
@@ -176,10 +178,11 @@ function update(dt) {
       if (state.spawn.timer <= 0) {
         const next = state.spawn.queue[0];
         if (next === 'boss' && !state.spawn.bossDelay) {
-          /* ورود سینمایی پادشاه: تأخیر + زلزله + غرش */
+          /* ورود سینمایی باس: تأخیر + زلزله + غرش — (۱۰٫۰) نگهبانِ آخرین شب */
           state.spawn.bossDelay = true;
           state.spawn.timer = 2.4;
-          setAnnounce('زمین می‌لرزه... 👑', 'پادشاه زامبی‌ها داره میاد!', 2.2);
+          setAnnounce(state.wave >= FINAL_WAVE ? '🌑 زمین می‌لرزه...' : 'زمین می‌لرزه... 👑',
+            state.wave >= FINAL_WAVE ? 'نگهبانِ آخرین شب داره میاد!' : 'پادشاه زامبی‌ها داره میاد!', 2.2);
           state.shake = Math.min(12, state.shake + 8);
           SFX.roar();
         } else {
@@ -227,6 +230,7 @@ function update(dt) {
   }
   updateParticles(dt); updateTexts(dt); updateZaps(dt);
   updateAnnounce(dt);
+  hooksUpdate(dt);                           // (۱۰٫۰) چراغ‌قوه/قطع برق/شفای تدریجی/کارت فصل/باس
 }
 
 /* افکت‌ها پس از پایان بازی (برد/باخت) همچنان تمام شوند */
@@ -278,7 +282,7 @@ function updateMenuScene(dt) {
 function updateAnnounce(dt) {
   const el = $('announce');
   if (state.mode === 'intermission') {
-    $('announceBig').textContent = 'موج بعدی: ' + faNum(state.wave + 1);
+    $('announceBig').textContent = 'موج بعدی: ' + faNum(waveInChapter(state.wave + 1));
     $('announceSub').textContent = 'شروع در ' + faNum(Math.max(1, Math.ceil(state.intermission))) + ' ثانیه — 🛠 فرصت ارتقا!';
     el.style.opacity = 1;
   } else if (announceTimer > 0) {
@@ -313,7 +317,7 @@ function gameOver() {
   /* آوار و گردوخاک سقوط برج */
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 36, '#8a6f52', { speed: 260, life: 0.9, size: 3.5, grav: 600 });
   spawnParticles(TOWER.x, TOWER_TOP_Y + 40, 16, '#e04b3a', { speed: 200, life: 0.7, size: 3, grav: 600 });
-  $('goSubtitle').textContent = 'برج سقوط کرد... تا موج ' + faNum(state.wave) + ' از ' + faNum(TOTAL_WAVES) + ' دووم آوردی.';
+  $('goSubtitle').textContent = 'برج سقوط کرد... تا ' + faNum(state.wave) + ' شب از ' + faNum(FINAL_WAVE) + ' دووم آوردی.';
   $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) +
     '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
     '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
@@ -335,7 +339,8 @@ function victory() {
   spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 20, '#7bd389', { speed: 200, life: 1.0, size: 2.6, grav: 350 });
   $('vStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه: <b>' + faNum(state.stats.earned) +
     '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
-    '</b> &nbsp;|&nbsp; ❤️ جون باقی‌مانده: <b>' + faNum(Math.ceil(state.tower.hp)) + '</b>';
+    '</b> &nbsp;|&nbsp; ❤️ جون باقی‌مانده: <b>' + faNum(Math.ceil(state.tower.hp)) +
+    '</b> &nbsp;|&nbsp; 🌙 شب‌های زنده‌ماندن: <b>' + faNum(FINAL_WAVE) + '/' + faNum(FINAL_WAVE) + '</b>';
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
   SFX.victory();
@@ -369,31 +374,24 @@ function mixHex(a, b, t) {
 
 /* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها
    (۵٫۰: با dayness به آسمان روشن روز و خورشید گذار می‌کند)
-   (۶٫۰: گرادیان چهارلایه + ستاره‌های درشتِ چهارپر + ماه/خورشید پرجزئیات) */
+   (۶٫۰: گرادیان چهارلایه + ستاره‌های درشتِ چهارپر + ماه/خورشید پرجزئیات)
+   (۱۰٫۰) پالت آسمان از تنظیمات فصل خوانده می‌شود — محله‌ی آجری،
+     انبارهای مه‌گرفته، پاسگاه سرخ‌وشب و قله‌ی بارانی هرکدام آسمان خودشان را دارند */
 function drawSky() {
   const d = state.dayness;                  // ۰ = شب کامل، ۱ = روز کامل
-  const v1 = state.towerVariant === 1;      // (۸٫۰) شهر سوخته: آسمانِ متمایز — سرخ‌وشب/دودی
+  const th = curCh().theme;
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
-  if (v1) {
-    /* برج دوم: شبِ بنفش-سرخ + روزِ دودیِ سپیا — فضای کاملاً متفاوت */
-    g.addColorStop(0,    mixHex('#170b1c', '#7a6a58', d));
-    g.addColorStop(0.42, mixHex('#241028', '#96816a', d));
-    g.addColorStop(0.78, mixHex('#3a1626', '#b39a7d', d));
-    g.addColorStop(1,    mixHex('#4a1c28', '#cdb08c', d));
-  } else {
-    g.addColorStop(0,    mixHex('#05091a', '#5aa9e0', d));
-    g.addColorStop(0.42, mixHex('#0d1734', '#93cdf0', d));
-    g.addColorStop(0.78, mixHex('#182550', '#c9e6f6', d));
-    g.addColorStop(1,    mixHex('#233865', '#e9f3fa', d));
-  }
+  const stops = [0, 0.42, 0.78, 1];
+  th.sky.forEach((s, i) => g.addColorStop(stops[i], mixHex(s[0], s[1], d)));
   ctx.fillStyle = g;
   ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
 
-  /* برج دوم: افق دودیِ شهر سوخته — همیشه کمی نارنجی/خاکستری */
-  if (v1) {
+  /* افق دودی/مه‌آلود فصل‌های خرابه و انبار (۱۰٫۰) */
+  if (th.smoke) {
+    const a = th.smoke.a[0] + (th.smoke.a[1] - th.smoke.a[0]) * d;
     const sm = ctx.createLinearGradient(0, GROUND_Y - 170, 0, GROUND_Y);
-    sm.addColorStop(0, 'rgba(150,85,55,0)');
-    sm.addColorStop(1, 'rgba(150,85,55,' + (0.15 + 0.15 * (1 - d)).toFixed(2) + ')');
+    sm.addColorStop(0, 'rgba(' + th.smoke.c + ',0)');
+    sm.addColorStop(1, 'rgba(' + th.smoke.c + ',' + a.toFixed(2) + ')');
     ctx.fillStyle = sm;
     ctx.fillRect(-20, GROUND_Y - 170, W + 40, 170);
   }
@@ -424,11 +422,13 @@ function drawSky() {
     }
   }
 
-  /* ماه شب (۸٫۰: برج دوم = ماهِ خونیِ بزرگ در سمت راست — حال‌وهوای متفاوت) */
+  /* ماه شب — (۱۰٫۰) جایگاه/اندازه/رنگ ماهِ هر فصل از تنظیمات فصل
+     (فصل ۳: ماه خونیِ بزرگ سمت راست؛ فصل ۴: ماه رنگ‌پریده پشت ابرها) */
   if (d < 0.98) {
-    const blood = v1;
-    const mx = blood ? 806 : 176, my = blood ? 96 : 88, mr = blood ? 44 : 37;
-    ctx.globalAlpha = 1 - d;
+    const M = th.moon;
+    const blood = !!M.blood;
+    const mx = M.x, my = M.y, mr = M.r;
+    ctx.globalAlpha = (1 - d) * (M.dim || 1);
     const gcol = blood ? '224,84,64' : '244,238,210';
     const glow = ctx.createRadialGradient(mx, my, mr * 0.45, mx, my, mr * (blood ? 3.6 : 3));
     glow.addColorStop(0, 'rgba(' + gcol + ',' + (blood ? 0.4 : 0.34) + ')');
@@ -508,7 +508,10 @@ function cloudBlob(x, y, s, col) {
    (۶٫۰: سوسوی مستقل پنجره‌ها + دکل آنتن با چراغ قرمز + مهِ پایه‌ی ساختمان‌ها) */
 function drawSkyline() {
   const d = state.dayness;
-  if (state.towerVariant === 1) { drawRuinedSkyline(d); return; }   // شهر سوخته (۷٫۰)
+  const sk = curCh().theme.skyline;           // (۱۰٫۰) افقِ مخصوص هر فصل
+  if (sk === 'ruin') { drawRuinedSkyline(d); return; }            // پاسگاه نظامی (۷٫۰)
+  if (sk === 'warehouse') { drawWarehouseSkyline(d); return; }    // منطقه‌ی انبارها (۱۰٫۰)
+  if (sk === 'mountain') { drawMountainSkyline(d); return; }      // برج مخابراتی (۱۰٫۰)
   ctx.fillStyle = mixHex('#0b1226', '#6a7d96', d);
   for (const b of SKYLINE) ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
   /* لبه‌ی روشن‌ترِ پشت‌بام‌ها برای جدا شدن از آسمان */
@@ -557,23 +560,23 @@ function drawSkyline() {
    (۶٫۰: نور تاجِ تپه‌ها + خاک گرادیانی + لبه‌ی چمن + مسیر فرسوده‌ی زامبی‌ها + گل‌ها) */
 function drawHills() {
   const d = state.dayness;
-  const v1 = state.towerVariant === 1;        // شهر سوخته: تپه‌ها و زمینِ خاکستر (۷٫۰)
-  ctx.fillStyle = v1 ? mixHex('#242028', '#8d7f6c', d) : mixHex('#16244a', '#8fae6e', d); drawHillRow(HILLS1);
-  strokeCrest(HILLS1, v1 ? mixHex('#3a3440', '#a8977f', d) : mixHex('#2c4272', '#b7d193', d));
-  ctx.fillStyle = v1 ? mixHex('#1c1820', '#7c6e5c', d) : mixHex('#101d3d', '#7a9a5e', d); drawHillRow(HILLS2);
-  strokeCrest(HILLS2, v1 ? mixHex('#302a34', '#97866f', d) : mixHex('#263a63', '#a5c180', d));
+  const GC = curCh().theme.ground;           // (۱۰٫۰) رنگ تپه/زمین هر فصل
+  ctx.fillStyle = mixHex(GC.h1[0], GC.h1[1], d); drawHillRow(HILLS1);
+  strokeCrest(HILLS1, mixHex(GC.h1c[0], GC.h1c[1], d));
+  ctx.fillStyle = mixHex(GC.h2[0], GC.h2[1], d); drawHillRow(HILLS2);
+  strokeCrest(HILLS2, mixHex(GC.h2c[0], GC.h2c[1], d));
 
-  /* زمین: خاک با گرادیان عمقی (برج دوم: خاکسترِ سوخته — ۷٫۰) */
+  /* زمین: خاک با گرادیان عمقی */
   const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-  gg.addColorStop(0, v1 ? mixHex('#2a2118', '#6b5a44', d) : mixHex('#1e2815', '#587a3d', d));
-  gg.addColorStop(1, v1 ? mixHex('#120e0a', '#3a3227', d) : mixHex('#0c110a', '#2c3f21', d));
+  gg.addColorStop(0, mixHex(GC.soil[0], GC.soil[1], d));
+  gg.addColorStop(1, mixHex(GC.soilD[0], GC.soilD[1], d));
   ctx.fillStyle = gg;
   ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
 
-  /* نوار چمنِ بالای زمین + لبه‌ی ناهموارِ تیغه‌ها (برج دوم: خاکستر — ۷٫۰) */
-  ctx.fillStyle = v1 ? mixHex('#3a3125', '#7d6d54', d) : mixHex('#273418', '#6f964b', d);
+  /* نوار چمنِ بالای زمین + لبه‌ی ناهموارِ تیغه‌ها */
+  ctx.fillStyle = mixHex(GC.grass[0], GC.grass[1], d);
   ctx.fillRect(-20, GROUND_Y - 2, W + 40, 9);
-  ctx.strokeStyle = v1 ? mixHex('#4a4030', '#948266', d) : mixHex('#33451f', '#82b25c', d);
+  ctx.strokeStyle = mixHex(GC.blade[0], GC.blade[1], d);
   ctx.lineWidth = 1.4; ctx.lineCap = 'round';
   ctx.beginPath();
   for (const e of GRASS_EDGE) {
@@ -604,8 +607,8 @@ function drawHills() {
   ctx.fillStyle = 'rgba(120,105,80,0.35)';
   for (const p of PEBBLES) circle(p.x, GROUND_Y + p.dy, p.r);
 
-  /* گل‌های کوچک فقط کنار برج اول؛ برج دوم: رد سوختگی (۷٫۰) */
-  if (v1) {
+  /* گل‌های کوچک فقط محله‌ی قدیمی؛ فصل خرابه: رد سوختگی (۱۰٫۰) */
+  if (GC.scorch) {
     for (const f of FLOWERS) {
       const x = f.x, y = GROUND_Y + f.dy;
       ctx.fillStyle = 'rgba(18,12,9,0.55)';
@@ -802,7 +805,9 @@ function drawMuzzleGlow() {
 function drawFireflies() {
   const nf = 1 - state.dayness;             // با طلوع محو می‌شوند
   if (nf < 0.1) return;
-  const ember = state.towerVariant === 1;   // (۷٫۰) برج دوم: اخگرهای بالاخره به‌جای کرم شب‌تاب
+  const th = curCh().theme;                  // (۱۰٫۰)
+  if (th.fog > 0.4 || th.snow) return;      // انبار مه‌گرفته و قله‌ی برفی: کرم شب‌تاب نیست
+  const ember = !!th.emberEyes;              // فصل خرابه: اخگر به‌جای کرم شب‌تاب
   for (const f of FIREFLIES) {
     const x = f.cx + Math.sin(animTime * f.sp + f.ph) * f.rx;
     let y = f.cy + Math.sin(animTime * f.sp * 1.7 + f.ph * 2) * f.ry;
@@ -823,7 +828,7 @@ const ASH_FLAKES = Array.from({ length: 46 }, () => ({
   ph: srand() * 6.28, r: 0.9 + srand() * 1.5,
 }));
 function drawAsh() {
-  if (state.towerVariant !== 1) return;
+  if (!curCh().theme.ash) return;           // (۱۰٫۰) فقط فصل خرابه‌ها
   const d = state.dayness;
   const a0 = 0.2 + 0.18 * (1 - d);
   for (const f of ASH_FLAKES) {
@@ -1382,9 +1387,9 @@ function drawZombie(z) {
     ctx.lineTo(9, -42 + bob * 0.5); ctx.closePath(); ctx.fill();
   }
 
-  /* چشم‌های درخشان (قرمز؛ پادشاه بنفش؛ برج دوم: اخگریِ نارنجی — ۸٫۰) */
+  /* چشم‌های درخشان (قرمز؛ نگهبان بنفش؛ فصل خرابه: اخگریِ نارنجی — ۸٫۰) */
   if (!z.dead) {
-    const emberE = state.towerVariant === 1 && z.type !== 'boss';
+    const emberE = !!curCh().theme.emberEyes && z.type !== 'boss';   // (۱۰٫۰)
     ctx.save();
     ctx.shadowColor = z.type === 'boss' ? '#c44dff' : (emberE ? '#ff8a3c' : '#ff4b3e');
     ctx.shadowBlur = 5 * s;
@@ -1823,7 +1828,7 @@ function drawCinematic() {
    متفاوتِ شهر سوخته. بعد از صحنه و قبل از UI رسم می‌شود (بدون لرزش). */
 function drawColorGrade() {
   const d = state.dayness;
-  const v1 = state.towerVariant === 1;
+  const v1 = curCh().theme.grade === 'ember';   // (۱۰٫۰) فصل خرابه: تینت اخگری — بقیه: سرمای آبی
   /* وینیت نرم همیشه — شب عمیق‌تر (شهر سوخته: کمی شدیدتر) */
   const vg = ctx.createRadialGradient(W / 2, H * 0.46, H * 0.36, W / 2, H * 0.55, H * 0.88);
   const va = (v1 ? 0.13 : 0.10) + 0.16 * (1 - d);
@@ -1855,8 +1860,16 @@ function drawColorGrade() {
 function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.save();
-  if (state.shake > 0.2) ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
-  if (CS && CS.drive) {
+  if (state.shake > 0.2 && SETT.shake) ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+  /* (۱۰٫۰) حالت‌های تمام‌صحنه: افتتاحیه / انتقال فصل / صحنه‌ی پیروزی
+     (فاز ۱ انتقال روی همان میدان بازی رندر می‌شود → شاخه‌ی عادی) */
+  if (state.mode === 'intro') {
+    renderIntro();                             // کات‌سین افتتاحیه — روایت داستان
+  } else if (state.mode === 'victorycine') {
+    renderVictoryCine();                       // صحنه‌ی سحرِ پیروزی
+  } else if (state.mode === 'transition' && TR && TR.phase !== 1) {
+    renderTransition();                        // فاز ۲/۳ انتقال — صحنه‌ی اختصاصی مینی‌گیم
+  } else if (CS && CS.drive) {
     /* ---- صحنه‌ی رانندگی کات‌سین (۸٫۰): جاده به‌جای میدان نبرد ---- */
     drawSky();
     drawClouds();
@@ -1865,21 +1878,24 @@ function render() {
   } else {
   drawSky();
   drawClouds();
-  drawSkyline();
-  drawHills();
+  /* (۱۰٫۰) پارالاکس ملایم منو: افق و تپه‌ها با ماوس کمی جابه‌جا می‌شوند */
+  ctx.save(); ctx.translate(-menuPar(12), 0); drawSkyline(); ctx.restore();
+  ctx.save(); ctx.translate(-menuPar(26), 0); drawHills(); ctx.restore();
   drawPuddles();
   drawGrass();
   drawAsh();                                  // بارش خاکسترِ شهر سوخته (۸٫۰)
+  drawChapterWeather();                        // (۱۰٫۰) مه انبارها / برف قله — و مهِ آرام منو
   drawDecals();
   drawLightning();
-  drawTree(88, 0.95, state.towerVariant === 1);   // (۸٫۰) درخت سوخته در برج دوم
-  drawTree(874, 0.7, state.towerVariant === 1);
+  drawTree(88, 0.95, !!curCh().theme.deadTrees);   // (۱۰٫۰) درخت سوخته در فصل خرابه‌ها
+  drawTree(874, 0.7, !!curCh().theme.deadTrees);
   drawLamps();
   drawMuzzleGlow();
   drawShootingStar();
   drawFireflies();
   drawTrap();
   drawTower();
+  drawChapterProps();                          // (۱۰٫۰) اسباب‌متعلقات فصل (جعبه/کیسه‌شن/برف) + صحنه‌های انتقال
   if (CS) drawRubble(CS.draw.rubble);        // توده‌ی آوار زیر برج حین کات‌سین (۷٫۰)
   /* زامبی‌ها و برجک‌ها بر اساس عمق (y) با هم مرتب می‌شوند تا ردیف‌های عقب
      پشت سر جلو دیده شوند و برجک‌ها هم در جای درستِ خودشان بایستند (۴٫۰) */
@@ -1905,12 +1921,15 @@ function render() {
   drawPlacing();                              // شبحِ نصب برجک روی همه‌چیز (۴٫۰)
   drawPowerTimers();
   for (const b of state.bullets) drawBullet(b);
+  drawDebris();                                // (۱۰٫۰) آوار پرتابی نگهبانِ آخرین شب
   for (const c of state.coinsArr) drawCoin(c);
   drawPowerups();
   drawZaps();
   }
   drawParticles();
   drawTexts();
+  Dark.render();                               // (۱۰٫۰) تاریکی/مه دید + دایره‌ی نور چراغ‌قوه
+  drawDarkEyes();                              // (۱۰٫۰) چشم‌های زامبی‌ها در تاریکی
   ctx.restore();
   /* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم */
   drawColorGrade();
@@ -1923,5 +1942,6 @@ function render() {
   drawVignette();
   drawFreezeOverlay();
   drawCinematic();
-  drawCutscene();                              // لایه‌ی کات‌سین: سینما/زیرنویس/سیاهی (۷٫۰)
+  if (CS && state.mode === 'cutscene') drawCutscene();   // لایه‌ی کات‌سین (۷٫۰) — (۱۰٫۰) فقط در حالت cutscene
+  drawTransitionOverlay();                     // (۱۰٫۰) نوار سینما/زیرنویس/پیشرفتِ انتقال فصل‌ها
 }

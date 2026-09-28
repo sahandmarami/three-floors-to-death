@@ -206,6 +206,7 @@ const GROUND_STREAKS = Array.from({ length: 12 }, () => ({
    AudioContext فقط بعد از اولین تعامل کاربر ساخته می‌شود (سیاست مرورگرها). */
 const Snd = {
   ctx: null, master: null, noiseBuf: null, muted: false, ready: false,
+  musicOn: true, musicGain: null,       // (۱۰٫۰) کلید موسیقی محیطی (پد + باد)
 
   init() {
     if (this.ready) return;
@@ -214,7 +215,7 @@ const Snd = {
       if (!AC) return;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
-      this.master.gain.value = this.muted ? 0 : 0.5;
+      this.master.gain.value = this.muted ? 0 : (typeof SETT !== 'undefined' ? (SETT.vol / 100) * 0.9 : 0.5);   // (۱۰٫۰) بلندی از تنظیمات
       this.master.connect(this.ctx.destination);
       /* بافر نویز سفید یک‌ثانیه‌ای (برای شلیک/برخورد/باد/رعد) */
       this.noiseBuf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
@@ -225,6 +226,16 @@ const Snd = {
     } catch (e) { /* مرورگر بدون صدا */ }
   },
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  /* (۱۰٫۰) روشن/خاموش کردن موسیقی محیطی با رمپ نرم */
+  setMusic(on) {
+    this.musicOn = on;
+    if (this.musicGain && this.ctx) {
+      try {
+        this.musicGain.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.musicGain.gain.linearRampToValueAtTime(on ? 1 : 0.0001, this.ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
+  },
   toggleMute() {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.5;
@@ -267,7 +278,11 @@ const Snd = {
   /* موسیقی محیطیِ شب: درونِ بم + باد + نُت‌های پراکنده‌ی دل‌انگیز */
   startAmbient() {
     try {
-      const dg = this.ctx.createGain(); dg.gain.value = 0.045; dg.connect(this.master);
+      /* (۱۰٫۰) گیت موسیقی: پد و باد از این‌جا رد می‌شوند تا از تنظیمات خاموش شوند */
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = this.musicOn === false ? 0.0001 : 1;
+      this.musicGain.connect(this.master);
+      const dg = this.ctx.createGain(); dg.gain.value = 0.045; dg.connect(this.musicGain);
       const o1 = this.ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = 55;
       const o2 = this.ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 110;
       const lfo = this.ctx.createOscillator(); lfo.frequency.value = 0.09;
@@ -279,12 +294,12 @@ const Snd = {
       const wind = this.ctx.createBufferSource(); wind.buffer = this.noiseBuf; wind.loop = true;
       const wf = this.ctx.createBiquadFilter(); wf.type = 'lowpass'; wf.frequency.value = 260;
       const wg = this.ctx.createGain(); wg.gain.value = 0.02;
-      wind.connect(wf); wf.connect(wg); wg.connect(this.master); wind.start();
+      wind.connect(wf); wf.connect(wg); wg.connect(this.musicGain); wind.start();
       this.pluck();
     } catch (e) {}
   },
   pluck() {
-    if (!this.ready) return;
+    if (!this.ready || this.musicOn === false) return;   // (۱۰٫۰) با موسیقی خاموش، نت‌ها هم خاموش
     const notes = [220, 246.9, 261.6, 329.6, 392];
     const f = notes[Math.floor(rand(0, notes.length))];
     this.tone({ type: 'sine', f0: f, dur: 2.4, vol: 0.05, att: 0.5 });
@@ -422,6 +437,16 @@ const state = {
   cutsceneDone: false,                     // آیا رویداد داستانی فروریختن انجام شده؟ (۷٫۰)
   weaponSpent: 0,                          // جمع پول خرج‌شده برای اسلحه‌ها (۸٫۰ — مبنای غرامت کات‌سین)
   stats: { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 },
+  /* ---- (۱۰٫۰) فصل‌ها، کوله‌پشتی، چراغ‌قوه، دستفروش، قطع برق، باس ---- */
+  chapter: 1,                                        // فصل فعال ۱..۴
+  backpack: [null, null, null, null, null, null],    // کوله‌پشتی ۶ جا (وسایل بقا)
+  torch: { owned: false, on: false, battery: 0 },     // (۱۰٫۰) چراغ‌قوه — نام torch تا با فلش قرمزِ آسیب (state.flash) قاطی نشود
+  buffs: { vest: false, goldAmmo: false, helmet: false },  // آیتم‌های کمیاب فعال‌شده
+  regen: 0,                                          // جون باقی‌مانده‌ی شفای تدریجی کنسرو
+  peddler: { cd: 0, here: false, stock: [] },         // دستفروش مرموز (دزد شبانه)
+  blackout: { on: false, waveT: 0, schedule: [], until: 0 },  // قطع برق وسط موج
+  projectiles: [],                                   // آوار پرتابی نگهبانِ آخرین شب
+  cardT: 0,                                          // تایمر نمایش کارت فصل جدید
 };
 
 let animTime = 0;                          // زمان نمایشی (همیشه جلو می‌رود؛ برای سوسو ستاره‌ها و پرچم)
@@ -465,6 +490,12 @@ canvas.addEventListener('pointerdown', e => {
     return;
   }
   if (e.button !== 0) return;
+  /* (۱۰٫۰) مینی‌گیم فرار (انتقال بین فصل‌ها): کلیک/لمس = پرش */
+  if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
+    mgJump();
+    e.preventDefault();
+    return;
+  }
   /* (۸٫۰) بخش رانندگی کات‌سین: لمس نیمه‌ی راست = گاز، چپ = ترمز */
   if (CS && CS.drive && !CS.drive.ended) {
     const right = p.x > W / 2;
@@ -502,6 +533,14 @@ window.addEventListener('keydown', e => {
     else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { CS.drive.keys.b = true; e.preventDefault(); }
     return;                                   // در رانندگی، کلیدهای دیگر کاری نکنند
   }
+  /* (۱۰٫۰) مینی‌گیم فرار در انتقال فصل‌ها: پرش/خم‌شدن/سرعت */
+  if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
+    if (e.code === 'ArrowUp' || e.code === 'Space') { mgJump(); e.preventDefault(); }
+    else if (e.code === 'ArrowDown') { mgDuck(true); e.preventDefault(); }
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { mgNudge(-1); e.preventDefault(); }
+    else if (e.code === 'ArrowRight' || e.code === 'KeyD') { mgNudge(1); e.preventDefault(); }
+    return;
+  }
   if (e.key === 'Escape') {
     if (!$('howtoScreen').classList.contains('hidden')) hideScreen('howtoScreen');
     else if (state.placing) cancelPlacement(true);      // اول لغو نصب برجک (۴٫۰)
@@ -520,14 +559,25 @@ window.addEventListener('keydown', e => {
     selectWeapon('shotgun');
   } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
     selectWeapon('mg');
+  } else if (e.key === 'l' || e.key === 'L') {
+    toggleFlashlight();                       // (۱۰٫۰) چراغ‌قوه
+  } else if (typeof BPKEYS !== 'undefined' && BPKEYS[e.code]) {
+    useItem(BPKEYS[e.code] - 1);              // (۱۰٫۰) مصرف آیتم کوله‌پشتی (Q..U)
   } else {
-    /* خرید سریع از پنل ساخت‌وساز — کلید هر آیتم در BUILD_DEFS است (۴-۹، ۰ و T) */
+    /* خرید سریع از پنل ساخت‌وساز — کلید هر آیتم در BUILD_DEFS است (۴-۹، ۰ و T)
+       (۱۰٫۰) از مسیر buy(): قفل آخرین شب + سیو بعد از خرید */
     const kind = KEY2KIND[e.code];
-    if (kind) attemptBuy(kind);
+    if (kind) buy(kind);
   }
 });
 /* (۸٫۰) رها کردن کلیدهای گاز/ترمز رانندگی */
 window.addEventListener('keyup', e => {
+  /* (۱۰٫۰) رها کردن کلیدهای مینی‌گیم فرار (خم‌شدن + سرعت) */
+  if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
+    if (e.code === 'ArrowDown') { mgDuck(false); return; }
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') { mgNudge(0); return; }
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') { mgNudge(0); return; }
+  }
   if (!(CS && CS.drive)) return;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') CS.drive.keys.a = false;
   else if (e.code === 'ArrowLeft' || e.code === 'KeyA') CS.drive.keys.b = false;
@@ -643,9 +693,11 @@ function waveComplete() {
   updateHUD();
 }
 
-/* پنل روز: دکمه‌ی شروع شب + راهنما (۵٫۰) */
+/* پنل روز: دکمه‌ی شروع شب + راهنما (۵٫۰) — (۱۰٫۰) برچسب موج درون‌فصلی/آخرین شب */
 function showDayPanel() {
-  $('btnNight').innerHTML = '🌙 شب شود — موج ' + faNum(state.wave + 1);
+  $('btnNight').innerHTML = (state.wave + 1 >= FINAL_WAVE)
+    ? '🌑 آخرین شب'
+    : '🌙 شب شود — موج ' + faNum(waveInChapter(state.wave + 1));
   $('dayPanel').classList.remove('hidden');
 }
 function hideDayPanel() { $('dayPanel').classList.add('hidden'); }
@@ -695,7 +747,9 @@ function spawnZombie(type) {
    (سلاح‌های ساچمه‌ای به‌ازای هر سطح +۱ می‌گیرند و تک‌گلوله‌ای +۲) */
 function weaponDmg(w, extra) {
   const L = state.upgrades.weapon + (extra || 0);
-  return w.dmg + L * (w.pellets > 1 ? 1 : 2);
+  let d = w.dmg + L * (w.pellets > 1 ? 1 : 2);
+  if (state.buffs && state.buffs.goldAmmo) d = Math.round(d * 1.25);   // (۱۰٫۰) فشنگ‌های طلایی
+  return d;
 }
 
 /* محل دهانه‌ی اسلحه (نوک لوله در بالای برج) — طول لوله به سلاح بستگی دارد */
@@ -906,7 +960,7 @@ function killZombie(z) {
     SFX.slowmo();
     spawnParticles(z.x, z.y - 60, 40, '#ffd873', { speed: 300, life: 1.0, size: 3.5, grav: 400 });
     spawnParticles(z.x, z.y - 60, 24, '#e8563f', { speed: 240, life: 0.8, size: 3, grav: 400 });
-    setAnnounce('👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
+    setAnnounce(state.wave >= FINAL_WAVE ? '🌑 نگهبان از پا درآمد!' : '👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
     SFX.bossDie();
   }
 }
@@ -932,6 +986,8 @@ function bumpCombo() {
 /* کاهش جون برج (کوبیدن پایه توسط زامبی‌ها) */
 function damageTower(amount, srcX) {
   if (state.mode !== 'playing') return;
+  /* (۱۰٫۰) جلیقه‌ی ضدّ دندان: آسیب به برج ۲۵٪ کمتر */
+  if (state.buffs && state.buffs.vest) amount = Math.max(1, Math.round(amount * 0.75));
   state.tower.hp = Math.max(0, state.tower.hp - amount);
   state.flash = 1;
   state.shake = Math.min(10, state.shake + 3);
