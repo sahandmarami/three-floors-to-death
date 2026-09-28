@@ -1,12 +1,13 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۲٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
+   سه طبقه تا بقا — نسخه‌ی ۱۳٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
    ==================================================================
-   - VOICE (۱۲٫۰ بازطراحی کامل — جایگزین کلیپ‌های رباتیِ espeak):
-     · اگر مرورگر/گوشی «صدای فارسی» داشته باشد (اندروید/کروم معمول):
-       همان لحظه همان متنِ محاوره‌ای با صدای طبیعی خوانده می‌شود.
-     · وگرنه: «صدای شخصیت» — بلیپ‌های کوتاهِ نرمِ هم‌زمان با ماشین‌نویس
-       (سبک بازی‌های داستانی؛ هر شخصیت زیر و بمِ خودش را دارد).
-     · بدون هیچ فایل صوتی جاسازی‌شده — فایل بازی ~۷۰۰KB سبک‌تر شد.
+   - VOICE (۱۳٫۰ بازطراحی کامل — صدای طبیعیِ همیشگی):
+     · ۳۳ کلیپ MP3 با «صدای نورال فارسی» از پیش ساخته و داخل همین فایل
+       جاسازی شده (VOICES13) — روی هر گوشی/مرورگری پخش می‌شود؛ نه رباتیک،
+       نه وابسته به صدای سیستم، نه نیازمند اینترنت.
+     · هر خط گفتگو «کلید صدا» دارد (v)؛ اگر کلیپ نبود → صدای فارسی سیستم
+       (Web Speech) → «صدای شخصیت» (بلیپ‌های نرم).
+     · مدت واقعی هر کلیپ در داده هست → ماشین‌نویس دقیقاً هم‌زمان صدا تمام می‌شود.
    - MUSIC: آهنگساز الگویی با Web Audio (۵ قطعه) — ۱۲٫۰:
      · رفع «انباشت نُت» بعد از لگ: زمان‌بند جاافتاده را همگام می‌کند.
      · کراس‌فید نرم‌تر (۱٫۱s خاموش + ۱٫۶s روشن) — تعویض آهنگ نرم می‌شود.
@@ -18,25 +19,75 @@
 /* ---------------------- ۱۰-۱) صدای گفتار ---------------------- */
 const VOICE = {
   faVoice: null, _voicesBound: false,
-  mode: 'off',        // 'tts' | 'blip' | 'off'  (وضعیت خطِ فعلی)
+  mode: 'off',        // 'clip' | 'tts' | 'blip' | 'off'  (وضعیت خطِ فعلی)
   speaking: false,    // همین الان دارد حرف می‌زند؟
-  dur: 0,             // تخمین مدت خط (ثانیه)
+  dur: 0,             // مدت خط (ثانیه) — با کلیپ = مدت واقعی
   _safety: null,      // تایمر مهلت ایمنی (رویدادهای onend کروم گاهی نمی‌آیند)
   _blipT: 0,          // گیت زمانی بلیپ‌ها
+  _bufs: {},          // کش بوم‌های دیکد‌شده‌ی کلیپ‌ها
+  _src: null,         // بوم در حال پخش
+  _gain: null,        // گین مستقل گفتار
 
-  /* پروفایل صوتی شخصیت‌ها: p=پیچ، r=سرعت، f=فرکانس پایه‌ی بلیپ، w=موج */
+  /* پروفایل صوتی شخصیت‌ها: p=پیچ، r=سرعت، f=فرکانس پایه‌ی بلیپ، w=موج، g=گین کلیپ */
   profile(who) {
     return {
-      n: { p: 0.92, r: 0.95, f: 262, w: 'sine' },      // راوی — گرم و آرام
-      a: { p: 1.3,  r: 1.12, f: 415, w: 'triangle' },  // ارشان — تیز و شبدیز
-      p: { p: 1.0,  r: 1.0,  f: 330, w: 'triangle' },  // بازیکن
-      r: { p: 0.88, r: 1.05, f: 208, w: 'square' },    // رادیو — فلزی
-      b: { p: 0.45, r: 0.78, f: 131, w: 'sawtooth' },  // نگهبان — بم و غرم‌ود
-      d: { p: 1.18, r: 1.06, f: 294, w: 'triangle' },  // دستفروش
-    }[who] || { p: 1, r: 1, f: 320, w: 'triangle' };
+      n: { p: 0.92, r: 0.95, f: 262, w: 'sine',      g: 1.0 },  // راوی — گرم و آرام
+      a: { p: 1.3,  r: 1.12, f: 415, w: 'triangle', g: 1.0 },  // ارشان — تیز و شبدیز
+      p: { p: 1.0,  r: 1.0,  f: 330, w: 'triangle', g: 1.0 },  // بازیکن
+      r: { p: 0.88, r: 1.05, f: 208, w: 'square',    g: 1.1 },  // رادیو — فلزی
+      b: { p: 0.45, r: 0.78, f: 131, w: 'sawtooth',  g: 1.2 },  // نگهبان — بم و غرم‌ود
+      d: { p: 1.18, r: 1.06, f: 294, w: 'triangle', g: 1.0 },  // دستفروش
+    }[who] || { p: 1, r: 1, f: 320, w: 'triangle', g: 1 };
   },
 
-  /* پیدا کردن صدای فارسی سیستم (اندروید/کروم معمولا دارد) */
+  /* ---------- (۱۳٫۰) پخش کلیپ جاسازی‌شده ---------- */
+  _ensureGain() {
+    if (!Snd.ready || !Snd.ctx) return false;
+    if (!this._gain) {
+      this._gain = Snd.ctx.createGain();
+      this._gain.gain.value = 1;
+      this._gain.connect(Snd.master || Snd.ctx.destination);
+    }
+    return true;
+  },
+  /* دیکد تنبل + کش؛ بوم آماده یا null */
+  _buf(key) {
+    const meta = (typeof VOICES13 !== 'undefined') && VOICES13[key];
+    if (!meta) return null;
+    if (this._bufs[key] !== undefined) return this._bufs[key];   // ممکن است nullِ درصف دیکد باشد
+    if (!Snd.ready || !Snd.ctx || !window.fetch) return null;
+    this._bufs[key] = null;                                     // «در صف» — دوباره دیکد نکن
+    fetch(meta.a).then(r => r.arrayBuffer()).then(ab => {
+      if (!Snd.ctx) return;
+      return Snd.ctx.decodeAudioData(ab);
+    }).then(buf => {
+      if (buf) this._bufs[key] = buf;
+    }).catch(() => {});
+    return null;                                                // این بار هنوز آماده نیست
+  },
+  _playClip(key, who) {
+    if (!this._ensureGain()) return false;
+    const buf = this._buf(key);
+    if (!buf) return false;
+    try {
+      const src = Snd.ctx.createBufferSource();
+      src.buffer = buf;
+      const g = Snd.ctx.createGain();
+      const vol = (typeof SETT !== 'undefined' ? SETT.vol / 100 : 0.55) * (this.profile(who).g || 1);
+      g.gain.value = Math.max(0.02, vol);
+      src.connect(g); g.connect(this._gain);
+      src.onended = () => { if (this._src === src) { this._src = null; this.speaking = false; } };
+      src.start();
+      this._src = src;
+      return true;
+    } catch (e) { return false; }
+  },
+  /* پیش‌بارگیری چند کلیپ پس از اولین ژست کاربر (شروع روان افتتاحیه) */
+  warmup() {
+    ['i1n1', 'i2n1', 'i3a1', 'i4p1'].forEach(k => this._buf(k));
+  },
+
+  /* پیدا کردن صدای فارسی سیستم (جایگزین وقتی کلیپی نیست) */
   initVoices() {
     if (this._voicesBound) return this.faVoice;
     this._voicesBound = true;
@@ -56,15 +107,27 @@ const VOICE = {
     return this.faVoice;
   },
 
-  /* پخش یک خط — خروجی: تخمین مدت (ثانیه) */
-  speak(text, who) {
+  /* پخش یک خط — v = کلید کلیپ (اختیاری) — خروجی: مدت (ثانیه) */
+  speak(text, who, v) {
     this.stop();
     if (!text) return 0;
     const pr = this.profile(who);
+    const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
+    /* ۱) کلیپ نورالِ جاسازی‌شده (۱۳٫۰) — مدتِ واقعی از داده */
+    if (!muted && v && (typeof VOICES13 !== 'undefined') && VOICES13[v]) {
+      this.dur = VOICES13[v].d;
+      if (this._playClip(v, who)) {
+        this.mode = 'clip';
+        this.speaking = true;
+        try { MUSIC.duck(this.dur, 0.35); } catch (e) {}
+        return this.dur;
+      }
+      /* کلیپ هنوز دیکد نشده؟ — خط را با همان مدت ادامه بده؛ صدا دفعه‌ی بعد می‌آید */
+      this._warmKey = v;
+    }
     const words = String(text).trim().split(/\s+/).length;
     this.dur = clamp(0.65 + words * (0.46 / pr.r), 1.1, 7.5);
-    const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
-    /* صدای طبیعی فارسی سیستم */
+    /* ۲) صدای فارسی سیستم */
     if (!muted && this.initVoices() && window.speechSynthesis) {
       try {
         const u = new SpeechSynthesisUtterance(text);
@@ -81,7 +144,7 @@ const VOICE = {
         return this.dur;
       } catch (e) { /* می‌رویم سراغ بلیپ */ }
     }
-    /* صدای شخصیت: بلیپ‌ها با ماشین‌نویس (DLG.blip صدا می‌زند) */
+    /* ۳) صدای شخصیت: بلیپ‌ها با ماشین‌نویس (DLG.blip صدا می‌زند) */
     this.mode = muted ? 'off' : 'blip';
     this.speaking = !muted;
     return this.dur;
@@ -106,6 +169,12 @@ const VOICE = {
     clearTimeout(this._safety);
     this.speaking = false;
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    /* (۱۳٫۰) توقف کلیپ در حال پخش + برگشت موسیقی */
+    if (this._src) {
+      try { this._src.onended = null; this._src.stop(); } catch (e) {}
+      this._src = null;
+    }
+    try { MUSIC.duckClear(); } catch (e) {}
   },
 };
 VOICE.initVoices();
@@ -409,7 +478,7 @@ const DLG = {
   _line() {
     const L = this.lines[this.idx];
     this.chars = 0; this.t = 0; this.lineT = 0; this.holdT = 0;
-    this.voiceDur = VOICE.speak(L.text, L.who);
+    this.voiceDur = VOICE.speak(L.text, L.who, L.v);
     const w = DLG_WHO[L.who] || DLG_WHO.n;
     $('dlgWho').textContent = w.name;
     $('dlgWho').style.color = w.color;
@@ -471,9 +540,9 @@ const DLG = {
 };
 
 /* صدای کوتاه حین گیم‌پلی (بدون بلوک ورودی): صدا + زیرنویس اعلان
-   (۱۲٫۰) bark(who, text, title, sub, dur) — متن با صدای خود شخصیت خوانده می‌شود */
-function bark(who, text, title, sub, dur) {
-  const d = (who && text && !(typeof SETT !== 'undefined' && !SETT.sfx)) ? VOICE.speak(text, who) : 0;
+   (۱۳٫۰) bark(v, who, text, title, sub, dur) — v = کلید کلیپ صدا */
+function bark(v, who, text, title, sub, dur) {
+  const d = (who && text && !(typeof SETT !== 'undefined' && !SETT.sfx)) ? VOICE.speak(text, who, v) : 0;
   setAnnounce(title || '', sub || '', dur || Math.max(1.8, d + 0.4));
   return d;
 }
@@ -603,8 +672,8 @@ UPDATE_HOOKS.push(function audioUpdate(dt) {
      در همه‌ی حالت‌ها (منو/توقف/سینمایی/باخت) رفتار درست داشته باشد */
 });
 
-/* دیباگ API */
+/* دیباگ API — (۱۳٫۰) رابط کامل GAME.v13 در part4 تعریف می‌شود */
 Object.assign((typeof GAME !== 'undefined' ? GAME : window), {
   VOICE, MUSIC, DLG,
-  say(text, who) { return VOICE.speak(text, who || 'n'); },
+  say(text, who, v) { return VOICE.speak(text, who || 'n', v); },
 });

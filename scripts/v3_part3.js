@@ -185,8 +185,11 @@ function update(dt) {
           /* ورود سینمایی باس: تأخیر + زلزله + غرش — (۱۰٫۰) نگهبانِ آخرین شب */
           state.spawn.bossDelay = true;
           state.spawn.timer = 2.4;
-          setAnnounce(state.wave >= FINAL_WAVE ? '🌑 زمین می‌لرزه...' : 'زمین می‌لرزه... 👑',
-            state.wave >= FINAL_WAVE ? 'نگهبانِ آخرین شب داره میاد!' : 'پادشاه زامبی‌ها داره میاد!', 2.2);
+          if (state.wave >= FINAL_WAVE) {
+            try { bark('fbw2', 'a', 'نگهبانِ آخرین شب داره میاد!', '🌑 زمین می‌لرزه...', 'نگهبانِ آخرین شب داره میاد!', 2.6); } catch (e) {
+              setAnnounce('🌑 زمین می‌لرزه...', 'نگهبانِ آخرین شب داره میاد!', 2.2);
+            }
+          } else setAnnounce('زمین می‌لرزه... 👑', 'پادشاه زامبی‌ها داره میاد!', 2.2);
           state.shake = Math.min(12, state.shake + 8);
           SFX.roar();
         } else {

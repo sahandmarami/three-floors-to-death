@@ -387,7 +387,7 @@ const SFX = {
 };
 
 /* فعال‌سازی صدا با اولین تعامل کاربر (سیاست autoplay مرورگرها) */
-const armAudio = () => { Snd.init(); Snd.resume(); };
+const armAudio = () => { Snd.init(); Snd.resume(); try { VOICE.warmup(); } catch (e) {} };
 window.addEventListener('pointerdown', armAudio, { passive: true });
 window.addEventListener('keydown', armAudio);
 
@@ -624,7 +624,7 @@ function startGame() {
   hideDayPanel();                          // پنل روز مطمئناً بسته باشد (۵٫۰)
   $('wrap').classList.remove('menu-mode'); // HUD و پنل‌ها برگردند (۵٫۰)
   setBuildPanel(false, true);              // پنل ساخت‌وساز در شروع باز باشد (۶٫۰)
-  $('btnPause').textContent = '⏸ توقف';
+  setPauseIcon(false);   // (۱۳٫۰) ریل چپ
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   updateHUD(); refreshBuildPanel(); refreshWeaponBar();
@@ -967,7 +967,7 @@ function killZombie(z) {
     setAnnounce(state.wave >= FINAL_WAVE ? '🌑 نگهبان از پا درآمد!' : '👑 پادشاه کشته شد!', 'برج پابرجایی!', 2.2);
     SFX.bossDie();
     /* (۱۲٫۰) آخرین کلمه‌ی نگهبان — فقط در «آخرین شب»، با صدای خودش */
-    if (state.wave >= FINAL_WAVE) { try { VOICE.speak('نمی‌شه... تمومش کردی...', 'b'); } catch (e) {} }
+    if (state.wave >= FINAL_WAVE) { try { VOICE.speak('نمی‌شه... تمومش کردی...', 'b', 'fbd1'); } catch (e) {} }
   }
 }
 
@@ -1352,12 +1352,14 @@ function denyBPItem(kind) {
   SFX.deny();
 }
 
-/* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی کاشیِ سلاح در پنل ساخت‌وساز — ۱۲٫۰) */
+/* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی کاشیِ سلاح در پنل ساخت‌وساز — ۱۲٫۰)
+   (۱۳٫۰) اعلان کوتاه بالای برج — چیپ HUD حذف شده است */
 function selectWeapon(id) {
   if (!WEAPONS[id].owned) { SFX.deny(); denyBPItem(id); return; }
   if (state.weapon === id) return;
   state.weapon = id;
   SFX.click();
+  try { addText(TOWER.x, TOWER_TOP_Y - 52, '🔫 ' + WEAPONS[id].name, '#8fd6ff', 14); } catch (e) {}
   updateHUD();
 }
 

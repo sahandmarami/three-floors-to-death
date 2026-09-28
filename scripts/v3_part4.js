@@ -13,7 +13,7 @@ function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreen(id) { $(id).classList.add('hidden'); }
 function hideOverlays() {
   ['startScreen', 'howtoScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen',
-   'settingsScreen', 'aboutScreen', 'confirmBox']      // (۱۰٫۰)
+   'settingsScreen', 'aboutScreen', 'confirmBox', 'saveCodeScreen']      // (۱۰٫۰ + ۱۳٫۰)
     .forEach(hideScreen);
 }
 
@@ -21,13 +21,18 @@ function pauseGame() {
   if (!canPlay()) return;
   state.prevMode = state.mode; state.mode = 'paused';
   showScreen('pauseScreen');
-  $('btnPause').textContent = '▶ ادامه';
+  setPauseIcon(true);
 }
 function resumeGame() {
   if (state.mode !== 'paused') return;
   state.mode = state.prevMode || 'playing';
   hideScreen('pauseScreen');
-  $('btnPause').textContent = '⏸ توقف';
+  setPauseIcon(false);
+}
+/* (۱۳٫۰) آیکون دکمه‌ی توقف در ریل چپ */
+function setPauseIcon(paused) {
+  const b = $('ctlPause');
+  if (b) b.textContent = paused ? '▶' : '⏸';
 }
 
 /* قطع/وصل صدا — همه‌ی دکمه‌های صدا هم‌زمان به‌روز می‌شوند
@@ -200,18 +205,17 @@ function buildPanelInit() {
       k.className = 'bp-key'; k.textContent = d.key;
       el.appendChild(k);
     }
-    /* پین‌های سطح برای آیتم‌های ارتقایی */
-    const u = UPGRADES[d.kind];
-    if (u && u.max) {
-      const lv = document.createElement('span');
-      lv.className = 'bp-lv'; lv.id = 'bp-' + d.kind + '-lv';
-      for (let i = 0; i < u.max; i++) lv.appendChild(document.createElement('i'));
-      el.appendChild(lv);
-    }
-    /* قیمت */
+    /* قیمت — و زیر آن (۱۳٫۰) نوار سطح ارتقا (جای نقطه‌های نامرئی) */
     const price = document.createElement('span');
     price.className = 'bp-price'; price.id = 'bp-' + d.kind + '-cost';
     el.appendChild(price);
+    const u0 = UPGRADES[d.kind];
+    if (u0 && u0.max) {
+      const lv = document.createElement('span');
+      lv.className = 'bp-lv'; lv.id = 'bp-' + d.kind + '-lv';
+      for (let i = 0; i < u0.max; i++) lv.appendChild(document.createElement('i'));
+      el.appendChild(lv);
+    }
 
     el.addEventListener('click', () => buy(d.kind));   /* مسیر یکسان خرید: قفل آخرین شب + سیو */
     el.addEventListener('mouseenter', () => showTip(d, el));
@@ -302,7 +306,8 @@ function refreshBuildPanel() {
   }
 }
 
-/* به‌روزرسانی HUD (نوار جون، سکه، موج، سلاحِ در دست) + پنل ساخت */
+/* به‌روزرسانی HUD (نوار جون، سکه، موج) + پنل ساخت
+   (۱۳٫۰) سلاحِ در دست دیگر در HUD نیست — کاشی طلایی پنل + نوشته‌ی شناور بالای برج */
 function updateHUD() {
   const t = state.tower, ratio = t.hp / t.maxHp;
   const fill = $('healthFill');
@@ -310,9 +315,6 @@ function updateHUD() {
   fill.className = ratio > 0.5 ? '' : (ratio > 0.25 ? 'mid' : 'low');
   $('healthText').textContent = faNum(Math.ceil(t.hp)) + '/' + faNum(t.maxHp);
   $('coinText').textContent = faNum(state.coins);
-  /* (۱۲٫۰) سلاحِ در دست — نوار سلاح پایین حذف شد */
-  const wEl = $('weaponText');
-  if (wEl) wEl.textContent = WEAPONS[state.weapon] ? WEAPONS[state.weapon].name : 'تپانچه';
   /* فصل + شماره‌ی موج درون‌فصلی */
   const wl = waveLabel();
   if (state.mode === 'playing') {
@@ -396,19 +398,20 @@ function init() {
   $('closeAbout').addEventListener('click', () => { SFX.click(); hideScreen('aboutScreen'); });
   $('btnWipe').addEventListener('click', () => askConfirm('همه‌ی پیشرفتت پاک بشه؟', wipeSaveAndUI));
   $('cfNo').addEventListener('click', () => { SFX.click(); hideScreen('confirmBox'); });
-  $('btnFlash').addEventListener('click', () => toggleFlashlight());
-  $('btnMute0').addEventListener('click', toggleSound);
-  $('btnMute').addEventListener('click', toggleSound);
-  $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
-  $('btnPause').addEventListener('click', () => {
+  /* (۱۳٫۰) ریل کنترل گوشه‌ی چپ: چراغ / صدا / توقف */
+  $('ctlFlash').addEventListener('click', () => toggleFlashlight());
+  $('ctlMute').addEventListener('click', toggleSound);
+  $('ctlPause').addEventListener('click', () => {
     if (state.mode === 'paused') resumeGame(); else pauseGame();
   });
+  $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
   $('btnResume').addEventListener('click', resumeGame);
   $('btnRestart0').addEventListener('click', startGame);
   /* (۱۲٫۰) باخت: «ادامه از آخرین روز» (از آخرین سیو) و «شروع از اول» */
   $('btnRetryDay').addEventListener('click', retryFromSave);
   $('btnRestart1').addEventListener('click', startGame);
   $('btnRestart2').addEventListener('click', startGame);
+  initSaveCodeUI();   // (۱۳٫۰) صفحه‌ی کد سیو
 
   buildPanelInit();    // پنل ساخت‌وساز تب‌دار (۱۲٫۰)
   initBackpackUI();   // کوله‌پشتی ۶ جا
@@ -520,6 +523,18 @@ window.GAME = {
     startDefeatCine, finishDefeatCine, skipDefeatCine, defeatHardReset,
     BP_TABS, setBPTab, get tab() { return BP_TAB; },
     retryFromSave,
+  },
+  /* ---- (۱۳٫۰) رابط تست صدا/سیو/ریل چپ ---- */
+  v13: {
+    get VOICES() { return (typeof VOICES13 !== 'undefined') ? VOICES13 : null; },
+    get clipCount() { return (typeof VOICES13 !== 'undefined') ? Object.keys(VOICES13).length : 0; },
+    exportSaveCode, importSaveCode,
+    STORE: (typeof STORE !== 'undefined' ? STORE : null),
+    storageOK: () => (typeof STORE !== 'undefined') && STORE.ok,
+    decodedClips: () => Object.keys(VOICE._bufs).filter(k => VOICE._bufs[k]),
+    ctlRail: () => document.getElementById('ctlRail'),
+    warmup: () => VOICE.warmup(),
+    toastSaved,
   },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },

@@ -402,11 +402,11 @@ function toggleFlashlight() {
 
 /* HUD چراغ‌قوه: دکمه + نوار باتری */
 function refreshGearHUD() {
-  const btn = $('btnFlash');
+  const btn = $('ctlFlash');
   if (!btn) return;
   btn.classList.toggle('nolight', !state.torch.owned || !state.torch.on);
   btn.classList.toggle('dead', state.torch.owned && state.torch.battery <= 0);
-  $('battFill').style.width = clamp(state.torch.battery, 0, 100) + '%';
+  $('ctlBattFill').style.width = clamp(state.torch.battery, 0, 100) + '%';
 }
 
 /* ---------------------- ۶-۶) تاریکی و دایره‌ی نور ---------------------- */
@@ -569,7 +569,7 @@ UPDATE_HOOKS.push(function survivalUpdate(dt) {
           B.on = true;
           B.until = B.waveT + ev.dur;
           SFX.powerDown();
-          try { bark('p', 'وای... برق رفت! چراغ‌قوه رو روشن کن!', '🔌 برق رفت!',
+          try { bark('sbo1', 'p', 'وای... برق رفت! چراغ‌قوه رو روشن کن!', '🔌 برق رفت!',
             state.torch.owned ? 'چراغ‌قوه رو روشن کن — کلید L!' : 'چراغ‌قوه نداری؟! — از تب «بقا» بخر', 2.6); } catch (e) {}
           Dark.level = Math.max(Dark.level, 0.6);   // با ضربه تیره شود
           break;
@@ -601,7 +601,7 @@ function peddlerRoll(force) {
     state.peddler.stock = pickRareStock();
     setAnnounce('🕳 دستفروش مرموز رسید...', 'کالای کمیاب دارد — ولی ۳۰٪ شانس تقلبی بودن!', 2.8);
     SFX.peddler();
-    try { bark('d', 'کالای کمیاب دارم... فقط، برای تو.', '🕳 دستفروش مرموز رسید...', 'کالای کمیاب — ۳۰٪ شانس تقلبی بودن!', 4); } catch (e) {}
+    try { bark('spd1', 'd', 'کالای کمیاب دارم... فقط، برای تو.', '🕳 دستفروش مرموز رسید...', 'کالای کمیاب — ۳۰٪ شانس تقلبی بودن!', 4); } catch (e) {}
     renderPeddlerStock();
   } else {
     hidePeddlerPanel();

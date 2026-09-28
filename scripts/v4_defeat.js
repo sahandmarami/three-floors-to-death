@@ -43,6 +43,8 @@ const DF_CAPS = [
 /* شروع کات‌سین باخت — از gameOver() صدا می‌شود */
 function startDefeatCine() {
   if (state.mode === 'defeatcine' || state.mode === 'gameover') return;
+  /* (۱۳٫۰) صدای راوی هنگام شروع سقوط برج */
+  try { VOICE.speak('برج فرو ریخت... زامبی‌ها همه‌جا هستند.', 'n', 'fdf1'); } catch (e) {}
   const alive = state.zombies.filter(z => !z.dead);
   /* نزدیک‌ترین‌ها بالا می‌روند (حداکثر ۶) — بقیه به سمت برج می‌دوند */
   const near = alive.slice().sort((a, b) => Math.abs(a.x - TOWER.x) - Math.abs(b.x - TOWER.x)).slice(0, 6);

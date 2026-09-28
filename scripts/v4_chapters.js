@@ -206,7 +206,7 @@ function startGame() {
   $('wrap').classList.remove('menu-mode', 'cs-mode', 'cine-mode');
   $('lockBadge').classList.add('hidden'); // (۱۰٫۰)
   setBuildPanel(false, true);
-  $('btnPause').textContent = '⏸ توقف';
+  setPauseIcon(false);   // (۱۳٫۰) ریل چپ
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   updateHUD(); refreshBuildPanel(); refreshWeaponBar();
@@ -390,8 +390,54 @@ function hideChapterCard() {
   state.cardT = 0;
 }
 
-/* ---------------------- ۵-۵) سیستم سیو localStorage ---------------------- */
+/* ---------------------- ۵-۵) سیستم سیو localStorage (۱۳٫۰ مقاوم‌سازی) ---------------------- */
 const SAVE_KEY = 'ttb3_save_v1';
+
+/* (۱۳٫۰) لایه‌ی ذخیره‌سازی مقاوم: اگر localStorage در دسترس نباشد
+   (مرورگر خصوصی / وب‌ویو / مرورگر درون‌اپ)، بازی نه قفل می‌شود نه
+   بی‌صدا سیو را می‌بلعد — حافظه‌ی موقت جایگزین می‌شود + هشدار منو
+   + «کد سیو» برای انتقال دستی پیشرفت. */
+const STORE = {
+  ok: true, mem: {},
+  _check() {
+    try {
+      localStorage.setItem('__ttb3_probe', '1');
+      localStorage.removeItem('__ttb3_probe');
+      this.ok = true;
+    } catch (e) { this.ok = false; }
+    return this.ok;
+  },
+  get(k) {
+    if (this.ok) { try { return localStorage.getItem(k); } catch (e) { return (k in this.mem) ? this.mem[k] : null; } }
+    return (k in this.mem) ? this.mem[k] : null;
+  },
+  set(k, v) {
+    if (this.ok) {
+      try { localStorage.setItem(k, v); return true; } catch (e) { this.ok = false; }
+    }
+    this.mem[k] = v;
+    return this.mem[k] === v;
+  },
+  del(k) {
+    if (this.ok) { try { localStorage.removeItem(k); } catch (e) {} }
+    delete this.mem[k];
+  },
+};
+STORE._check();
+
+/* (۱۳٫۰) اعلان کوچک «ذخیره شد» — فقط روز/وقفه، حداکثر هر ۳۰ ثانیه */
+let _toastSavedAt = -1e9;
+function toastSaved() {
+  if (!(state.mode === 'day' || state.mode === 'intermission')) return;
+  const now = performance.now();
+  if (now - _toastSavedAt < 30000) return;
+  _toastSavedAt = now;
+  const el = $('saveToast');
+  if (!el) return;
+  el.classList.add('show');
+  clearTimeout(toastSaved._t);
+  toastSaved._t = setTimeout(() => el.classList.remove('show'), 1400);
+}
 
 /* عکس‌الوضعتی که ذخیره می‌شود: فصل/موج بعدی، جون، سکه، سلاح‌ها و ارتقاها،
    محتویات کوله‌پشتی، باتری چراغ‌قوه، دستفروش و آمار */
@@ -417,15 +463,27 @@ function collectSave() {
 }
 
 function saveGame() {
-  if (state.mode === 'gameover' || state.mode === 'victory' || state.mode === 'defeatcine') return;
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(collectSave())); } catch (e) {}
+  if (state.mode === 'gameover' || state.mode === 'victory' || state.mode === 'defeatcine') return false;
+  const ok = STORE.set(SAVE_KEY, JSON.stringify(collectSave()));
   refreshMenuContinue();
+  if (ok) toastSaved();
+  return ok;
+}
+
+/* (۱۳٫۰) ذخیره‌سازی دوره‌ای در روز/وقفه — هر ۱۰ ثانیه؛ حتی اگر
+   رویدادهای پایان موج/خرید از دست برود، سیو تازه می‌ماند.
+   (ثبت هوک پایین‌تر — بعد از تعریف UPDATE_HOOKS) */
+let _autoSaveT = 0;
+function autoSaveTick(dt) {
+  if (!(state.mode === 'day' || state.mode === 'intermission')) { _autoSaveT = 0; return; }
+  _autoSaveT += dt;
+  if (_autoSaveT >= 10) { _autoSaveT = 0; try { saveGame(); } catch (e) {} }
 }
 
 /* خواندن امن سیو: ساختار نامعتبر = null (بدون کرش) */
 function loadSaveData() {
   try {
-    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    const d = JSON.parse(STORE.get(SAVE_KEY));
     if (!d || d.v !== 1) return null;
     if (!CHAPTERS[(d.chapter | 0) - 1]) return null;
     if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > FINAL_WAVE) return null;
@@ -436,39 +494,44 @@ function loadSaveData() {
 
 /* اعمال سیو روی state (بعد از ریست کامل) — مقاوم در برابر داده‌های ناقص
    (۱۲٫۰) در پایان، سیو دوباره نوشته می‌شود تا اگر ریستِ داخلی چیزی پاک
-   کرد، «ادامه‌ی بازی» هرگز بی‌سیو نماند (رفع باگ دکمه‌ی خاموش‌مانده) */
+   کرد، «ادامه‌ی بازی» هرگز بی‌سیو نماند (رفع باگ دکمه‌ی خاموش‌مانده)
+   (۱۳٫۰) کل بدنه در try/finally — حتی اگر داده‌ی سیو ناقص باشد،
+   بازنویسی سیو هرگز از دست نمی‌رود */
 function applySave(d) {
-  startGame();
-  state.chapter = clamp(d.chapter | 0, 1, 4);
-  state.towerVariant = state.chapter - 1;
-  state.wave = clamp(d.wave | 0, 1, FINAL_WAVE) - 1;   // enterDay با +1 ادامه می‌دهد
-  state.coins = Math.max(0, d.coins | 0);
-  state.tower.maxHp = Math.max(100, d.maxHp | 0);
-  state.tower.hp = clamp(d.hp | 0, 1, state.tower.maxHp);
-  state.upgrades = Object.assign({ weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 }, d.upgrades);
-  WEAPONS.shotgun.owned = !!(d.owned && d.owned.shotgun);
-  WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
-  state.weapon = (d.weapon && WEAPONS[d.weapon]) ? d.weapon : 'pistol';
-  state.weaponSpent = d.weaponSpent | 0;
-  state.backpack = (d.backpack || []).slice(0, 6)
-    .map(id => ((id && GEAR[id]) || (id && RARE[id])) ? { id } : null);
-  while (state.backpack.length < 6) state.backpack.push(null);
-  state.torch = {
-    owned: !!(d.flash && d.flash.owned),
-    on: false,
-    battery: clamp((d.flash && d.flash.battery) | 0, 0, 100),
-  };
-  state.buffs = Object.assign({ vest: false, goldAmmo: false, helmet: false }, d.buffs);
-  state.peddler = { cd: d.peddlerCd | 0, here: false, stock: [] };
-  state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
-  state.intermission = 0;
-  state.dayness = 1; state.dayTarget = 1;
-  updateHUD(); refreshBackpack(); refreshGearHUD();
-  saveGame();                        // (۱۲٫۰) سیو بلافاصله بازنویسی شود
+  try {
+    startGame();
+    state.chapter = clamp(d.chapter | 0, 1, 4);
+    state.towerVariant = state.chapter - 1;
+    state.wave = clamp(d.wave | 0, 1, FINAL_WAVE) - 1;   // enterDay با +1 ادامه می‌دهد
+    state.coins = Math.max(0, d.coins | 0);
+    state.tower.maxHp = Math.max(100, d.maxHp | 0);
+    state.tower.hp = clamp(d.hp | 0, 1, state.tower.maxHp);
+    state.upgrades = Object.assign({ weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 }, d.upgrades);
+    WEAPONS.shotgun.owned = !!(d.owned && d.owned.shotgun);
+    WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
+    state.weapon = (d.weapon && WEAPONS[d.weapon]) ? d.weapon : 'pistol';
+    state.weaponSpent = d.weaponSpent | 0;
+    state.backpack = (d.backpack || []).slice(0, 6)
+      .map(id => ((id && GEAR[id]) || (id && RARE[id])) ? { id } : null);
+    while (state.backpack.length < 6) state.backpack.push(null);
+    state.torch = {
+      owned: !!(d.flash && d.flash.owned),
+      on: false,
+      battery: clamp((d.flash && d.flash.battery) | 0, 0, 100),
+    };
+    state.buffs = Object.assign({ vest: false, goldAmmo: false, helmet: false }, d.buffs);
+    state.peddler = { cd: d.peddlerCd | 0, here: false, stock: [] };
+    state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
+    state.intermission = 0;
+    state.dayness = 1; state.dayTarget = 1;
+    updateHUD(); refreshBackpack(); refreshGearHUD();
+  } finally {
+    saveGame();                      // (۱۳٫۰) حتی در صورت خطا هم سیو بازنویسی می‌شود
+  }
 }
 
 function wipeSave() {
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  STORE.del(SAVE_KEY);
   refreshMenuContinue();
 }
 function wipeSaveAndUI() {
@@ -481,12 +544,76 @@ function wipeSaveAndUI() {
 /* فعال/غیرفعال‌شدن دکمه‌ی «ادامه‌ی بازی» منو */
 function refreshMenuContinue() {
   const btn = $('btnContinue');
+  const warn = $('storageWarn');
+  if (warn) warn.classList.toggle('hidden', STORE.ok);   // (۱۳٫۰) هشدار مرورگرِ ذخیره‌نکردن
   if (!btn) return;
   const d = loadSaveData();
   btn.disabled = !d;
   btn.textContent = d
     ? '▶ ادامه — فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave))
     : '▶ ادامه‌ی بازی (سیوی نیست)';
+}
+
+/* ---------------------- (۱۳٫۰) کد سیو: انتقال دستی پیشرفت ----------------------
+   حتی اگر مرورگر localStorage را نپذیرد یا فایل بازی جابه‌جا شود،
+   پیشرفت با این کدِ متنی ذخیره/برمی‌گردد. */
+function exportSaveCode() {
+  const raw = STORE.get(SAVE_KEY);
+  if (!raw) return null;
+  try { return 'TTB13.' + btoa(unescape(encodeURIComponent(raw))); } catch (e) { return null; }
+}
+function importSaveCode(code) {
+  try {
+    const c = String(code || '').trim();
+    if (c.indexOf('TTB13.') !== 0) return false;
+    const raw = decodeURIComponent(escape(atob(c.slice(6))));
+    const d = JSON.parse(raw);
+    if (!d || d.v !== 1 || !CHAPTERS[(d.chapter | 0) - 1]) return false;
+    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > FINAL_WAVE) return false;
+    STORE.set(SAVE_KEY, raw);
+    refreshMenuContinue();
+    return true;
+  } catch (e) { return false; }
+}
+/* صفحه‌ی کد سیو: گرفتن/بارگذاری */
+function initSaveCodeUI() {
+  let mode = 'export';
+  const open = (m) => {
+    mode = m;
+    SFX.click();
+    $('scTitle').textContent = m === 'export' ? '📤 کد سیو' : '📥 بارگذاری کد سیو';
+    $('scHint').textContent = m === 'export'
+      ? 'این کد را جایی امن ذخیره کن (یادداشت/پیام به خودت) — با «بارگذاری کد» پیشرفتت برمی‌گردد'
+      : 'کد سیو را این‌جا بچسبان و «تأیید» را بزن';
+    $('scText').value = m === 'export' ? (exportSaveCode() || '— سیوی برای ساختن کد نیست؛ اول بازی را شروع کن —') : '';
+    $('scText').readOnly = (m === 'export');
+    $('scText').style.direction = 'ltr';
+    showScreen('saveCodeScreen');
+    if (m === 'export') setTimeout(() => { try { $('scText').select(); } catch (e) {} }, 60);
+  };
+  const bs = $('btnSaveCode'), bl = $('btnLoadCode'), bd = $('scDone'), bc = $('scCopy');
+  if (bs) bs.addEventListener('click', () => open('export'));
+  if (bl) bl.addEventListener('click', () => open('import'));
+  if (bc) bc.addEventListener('click', () => {
+    const t = $('scText');
+    try {
+      t.select();
+      const okc = document.execCommand('copy');
+      if (!okc && navigator.clipboard) navigator.clipboard.writeText(t.value);
+      setAnnounce('📋 کپی شد', 'کد سیو در حافظه است', 1.8);
+    } catch (e) {}
+  });
+  if (bd) bd.addEventListener('click', () => {
+    SFX.click();
+    if (mode === 'import') {
+      if (importSaveCode($('scText').value)) {
+        hideScreen('saveCodeScreen');
+        setAnnounce('📥 سیو بارگذاری شد!', 'از منو «ادامه» را بزن', 3);
+      } else {
+        setAnnounce('❌ کد معتبر نیست', 'کل کد را بدون تغییر کپی کن', 2.6);
+      }
+    } else hideScreen('saveCodeScreen');
+  });
 }
 
 /* ادامه از سیو: دقیقاً از روزِ موجِ ذخیره‌شده */
@@ -537,7 +664,7 @@ function exitToMenu() {
   state.bossBar && ($('bossBar').style.display = 'none');
   bossBarVisible = false;
   $('lockBadge').classList.add('hidden');
-  $('btnPause').textContent = '⏸ توقف';
+  setPauseIcon(false);   // (۱۳٫۰) ریل چپ
   $('wrap').classList.add('menu-mode');
   $('wrap').classList.remove('cs-mode', 'cine-mode');
   initMenuZ();                       // صحنه‌ی زنده‌ی منو
@@ -610,6 +737,8 @@ const UPDATE_HOOKS = [];
 const RENDER_HOOKS = [];
 function hooksUpdate(dt) { for (const f of UPDATE_HOOKS) f(dt); }
 function hooksRender() { for (const f of RENDER_HOOKS) f(); }
+
+UPDATE_HOOKS.push(autoSaveTick);   // (۱۳٫۰) سیو دوره‌ای روز/وقفه
 
 /* هوک فصل‌ها: تایمر کارت فصل */
 UPDATE_HOOKS.push(function chaptersUpdate(dt) {

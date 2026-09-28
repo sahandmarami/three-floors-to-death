@@ -85,22 +85,28 @@ window.addEventListener('load', () => {
   });
   /* دکمه‌ی تمام‌صفحه کنار دکمه‌های HUD (لمسی) */
   if (IS_TOUCH) {
-    const bar = document.querySelector('#hud .hud-group:last-child');
-    if (bar) {
+    const rail = $('ctlRail');
+    if (rail) {
       const fs = document.createElement('button');
-      fs.className = 'hud-btn';
+      fs.className = 'ctl-btn';
       fs.id = 'btnFull';
       fs.title = 'تمام‌صفحه';
       fs.textContent = '⛶';
       fs.addEventListener('click', toggleFullscreen);
-      bar.appendChild(fs);
+      rail.appendChild(fs);
     }
   }
 });
 
-/* سیو خودکار وقتی کاربر می‌رود بیرون/صفحه را می‌بندد */
+/* سیو خودکار وقتی کاربر می‌رود بیرون/صفحه را می‌بندد
+   (۱۳٫۰) pagehide هم اضافه شد — روی موبایل از visibilitychange مطمئن‌تر است */
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) return;
+  if (['playing', 'day', 'intermission'].includes(state.mode)) {
+    try { saveGame(); } catch (e) {}
+  }
+});
+window.addEventListener('pagehide', () => {
   if (['playing', 'day', 'intermission'].includes(state.mode)) {
     try { saveGame(); } catch (e) {}
   }

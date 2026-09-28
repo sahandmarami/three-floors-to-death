@@ -1,0 +1,611 @@
+     1→/* ==================================================================
+     2→   سه طبقه تا بقا — نسخه‌ی ۱۲٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
+     3→   ==================================================================
+     4→   - VOICE (۱۲٫۰ بازطراحی کامل — جایگزین کلیپ‌های رباتیِ espeak):
+     5→     · اگر مرورگر/گوشی «صدای فارسی» داشته باشد (اندروید/کروم معمول):
+     6→       همان لحظه همان متنِ محاوره‌ای با صدای طبیعی خوانده می‌شود.
+     7→     · وگرنه: «صدای شخصیت» — بلیپ‌های کوتاهِ نرمِ هم‌زمان با ماشین‌نویس
+     8→       (سبک بازی‌های داستانی؛ هر شخصیت زیر و بمِ خودش را دارد).
+     9→     · بدون هیچ فایل صوتی جاسازی‌شده — فایل بازی ~۷۰۰KB سبک‌تر شد.
+    10→   - MUSIC: آهنگساز الگویی با Web Audio (۵ قطعه) — ۱۲٫۰:
+    11→     · رفع «انباشت نُت» بعد از لگ: زمان‌بند جاافتاده را همگام می‌کند.
+    12→     · کراس‌فید نرم‌تر (۱٫۱s خاموش + ۱٫۶s روشن) — تعویض آهنگ نرم می‌شود.
+    13→     · حین «توقف» موسیقی و امبینت کامل خاموش می‌شود.
+    14→   - DLG: سیستم گفتگو — پرتره + ماشین‌نویس همگام با صدا + کلیک ادامه.
+    15→     (۱۲٫۰: رفع باگ متنِ سیاهِ نامرئی — متن همیشه روشن و خوانا)
+    16→   ================================================================== */
+    17→
+    18→/* ---------------------- ۱۰-۱) صدای گفتار ---------------------- */
+    19→const VOICE = {
+    20→  faVoice: null, _voicesBound: false,
+    21→  mode: 'off',        // 'tts' | 'blip' | 'off'  (وضعیت خطِ فعلی)
+    22→  speaking: false,    // همین الان دارد حرف می‌زند؟
+    23→  dur: 0,             // تخمین مدت خط (ثانیه)
+    24→  _safety: null,      // تایمر مهلت ایمنی (رویدادهای onend کروم گاهی نمی‌آیند)
+    25→  _blipT: 0,          // گیت زمانی بلیپ‌ها
+    26→
+    27→  /* پروفایل صوتی شخصیت‌ها: p=پیچ، r=سرعت، f=فرکانس پایه‌ی بلیپ، w=موج */
+    28→  profile(who) {
+    29→    return {
+    30→      n: { p: 0.92, r: 0.95, f: 262, w: 'sine' },      // راوی — گرم و آرام
+    31→      a: { p: 1.3,  r: 1.12, f: 415, w: 'triangle' },  // ارشان — تیز و شبدیز
+    32→      p: { p: 1.0,  r: 1.0,  f: 330, w: 'triangle' },  // بازیکن
+    33→      r: { p: 0.88, r: 1.05, f: 208, w: 'square' },    // رادیو — فلزی
+    34→      b: { p: 0.45, r: 0.78, f: 131, w: 'sawtooth' },  // نگهبان — بم و غرم‌ود
+    35→      d: { p: 1.18, r: 1.06, f: 294, w: 'triangle' },  // دستفروش
+    36→    }[who] || { p: 1, r: 1, f: 320, w: 'triangle' };
+    37→  },
+    38→
+    39→  /* پیدا کردن صدای فارسی سیستم (اندروید/کروم معمولا دارد) */
+    40→  initVoices() {
+    41→    if (this._voicesBound) return this.faVoice;
+    42→    this._voicesBound = true;
+    43→    try {
+    44→      const ss = window.speechSynthesis;
+    45→      if (!ss) return null;
+    46→      const pick = () => {
+    47→        const vs = ss.getVoices() || [];
+    48→        this.faVoice = vs.find(v => (v.lang || '').toLowerCase().startsWith('fa')) || null;
+    49→        return this.faVoice;
+    50→      };
+    51→      pick();
+    52→      if (!this.faVoice && typeof ss.onvoiceschanged !== 'undefined') {
+    53→        ss.addEventListener('voiceschanged', pick, { once: false });
+    54→      }
+    55→    } catch (e) { this.faVoice = null; }
+    56→    return this.faVoice;
+    57→  },
+    58→
+    59→  /* پخش یک خط — خروجی: تخمین مدت (ثانیه) */
+    60→  speak(text, who) {
+    61→    this.stop();
+    62→    if (!text) return 0;
+    63→    const pr = this.profile(who);
+    64→    const words = String(text).trim().split(/\s+/).length;
+    65→    this.dur = clamp(0.65 + words * (0.46 / pr.r), 1.1, 7.5);
+    66→    const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
+    67→    /* صدای طبیعی فارسی سیستم */
+    68→    if (!muted && this.initVoices() && window.speechSynthesis) {
+    69→      try {
+    70→        const u = new SpeechSynthesisUtterance(text);
+    71→        u.voice = this.faVoice;
+    72→        u.lang = this.faVoice.lang || 'fa-IR';
+    73→        u.rate = pr.r; u.pitch = pr.p;
+    74→        u.volume = clamp((typeof SETT !== 'undefined' ? SETT.vol : 55) / 100, 0, 1);
+    75→        const fin = () => { this.speaking = false; clearTimeout(this._safety); };
+    76→        u.onend = fin; u.onerror = fin;
+    77→        speechSynthesis.speak(u);
+    78→        this.mode = 'tts';
+    79→        this.speaking = true;
+    80→        this._safety = setTimeout(fin, (this.dur + 2.4) * 1000);
+    81→        return this.dur;
+    82→      } catch (e) { /* می‌رویم سراغ بلیپ */ }
+    83→    }
+    84→    /* صدای شخصیت: بلیپ‌ها با ماشین‌نویس (DLG.blip صدا می‌زند) */
+    85→    this.mode = muted ? 'off' : 'blip';
+    86→    this.speaking = !muted;
+    87→    return this.dur;
+    88→  },
+    89→
+    90→  /* بلیپِ یک «هجا» — از DLG.update با هر حرفِ تازه صدا می‌شود */
+    91→  blip(who) {
+    92→    if (this.mode !== 'blip' || !Snd.ready || Snd.muted) return;
+    93→    const t = performance.now();
+    94→    if (t - this._blipT < 64) return;             // حداکثر ~۱۵ بلیپ در ثانیه
+    95→    this._blipT = t;
+    96→    const pr = this.profile(who);
+    97→    const f = pr.f * rand(0.9, 1.14);
+    98→    try {
+    99→      Snd.tone({ type: pr.w, f0: f, f1: f * 0.82, dur: 0.05, vol: 0.06 });
+   100→    } catch (e) {}
+   101→  },
+   102→  /* متن تمام شد → بلیپ‌ها هم تمام */
+   103→  finishBlips() { if (this.mode === 'blip') this.speaking = false; },
+   104→
+   105→  stop() {
+   106→    clearTimeout(this._safety);
+   107→    this.speaking = false;
+   108→    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+   109→  },
+   110→};
+   111→VOICE.initVoices();
+   112→
+   113→/* ---------------------- ۱۰-۲) موسیقی الگویی ---------------------- */
+   114→/* آهنگساز کوچک روی Web Audio: هر قطعه = پیشروی آکورد + بیس + درام +
+   115→   آرپژ + ملودی. زمان‌بندی با lookahead ۲۸۰ms.
+   116→   (۱۲٫۰) رفع انباشت نُت: اگر زمان‌بند جا بیفتد (لگ/تب فعال/مکث)،
+   117→   به «الان» همگام می‌شود و نُت‌های عقب‌مانده را با هم نمی‌ریزد. */
+   118→const MUSIC = {
+   119→  track: null, _want: null, gain: null, duckG: null,
+   120→  bpm: 120, step: 0, nextT: 0, timer: null, _fadeT: null, _lastAmb: 1,
+   121→
+   122→  _ensure() {
+   123→    if (!Snd.ready || !Snd.ctx) return false;
+   124→    if (!this.gain) {
+   125→      this.gain = Snd.ctx.createGain(); this.gain.gain.value = 0.0001;
+   126→      this.duckG = Snd.ctx.createGain(); this.duckG.gain.value = 1;
+   127→      this.gain.connect(this.duckG); this.duckG.connect(Snd.musicGain || Snd.master);
+   128→    }
+   129→    return true;
+   130→  },
+   131→  nf(m) { return 440 * Math.pow(2, (m - 69) / 12); },
+   132→
+   133→  /* ---------- سازها (همه یک‌نُتِ زمان‌بندی‌شده) ---------- */
+   134→  osc(t, f, dur, vol, type, cut, att) {
+   135→    try {
+   136→      const o = Snd.ctx.createOscillator(), g = Snd.ctx.createGain();
+   137→      o.type = type || 'sine'; o.frequency.value = f;
+   138→      if (cut) { const fl = Snd.ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = cut; o.connect(fl); fl.connect(g); }
+   139→      else o.connect(g);
+   140→      g.gain.setValueAtTime(0.0001, t);
+   141→      g.gain.exponentialRampToValueAtTime(vol, t + (att || 0.012));
+   142→      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+   143→      g.connect(this.gain);
+   144→      o.start(t); o.stop(t + dur + 0.05);
+   145→    } catch (e) {}
+   146→  },
+   147→  nz(t, dur, vol, hp) {
+   148→    try {
+   149→      const s = Snd.ctx.createBufferSource(); s.buffer = Snd.noiseBuf; s.loop = true;
+   150→      const f = Snd.ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp || 6000;
+   151→      const g = Snd.ctx.createGain();
+   152→      g.gain.setValueAtTime(vol, t);
+   153→      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+   154→      s.connect(f); f.connect(g); g.connect(this.gain);
+   155→      s.start(t); s.stop(t + dur + 0.05);
+   156→    } catch (e) {}
+   157→  },
+   158→  kick(t, v) { try {
+   159→    const o = Snd.ctx.createOscillator(), g = Snd.ctx.createGain();
+   160→    o.type = 'sine';
+   161→    o.frequency.setValueAtTime(165, t);
+   162→    o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+   163→    g.gain.setValueAtTime(v || 0.5, t);
+   164→    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+   165→    o.connect(g); g.connect(this.gain); o.start(t); o.stop(t + 0.25);
+   166→  } catch (e) {} },
+   167→  snare(t, v) { this.nz(t, 0.13, v || 0.2, 1500); this.osc(t, 190, 0.07, (v || 0.2) * 0.5, 'triangle'); },
+   168→  pad(t, midis, dur, vol) {
+   169→    for (const m of midis) {
+   170→      const f = this.nf(m);
+   171→      this.osc(t, f * 0.996, dur, vol, 'sawtooth', 850, dur * 0.3);
+   172→      this.osc(t, f * 1.004, dur, vol * 0.8, 'sawtooth', 900, dur * 0.32);
+   173→    }
+   174→  },
+   175→  pluck(t, m, dur, vol) { this.osc(t, this.nf(m), dur, vol, 'triangle', 2600); this.osc(t, this.nf(m) * 2, dur * 0.6, vol * 0.3, 'sine', 4000); },
+   176→  bass(t, m, dur, vol) { this.osc(t, this.nf(m), dur, vol, 'sawtooth', 300); this.osc(t, this.nf(m), dur, vol * 0.6, 'sine'); },
+   177→
+   178→  /* ---------- قطعه‌ها: ۴ میزان × ۱۶ گام = حلقه‌ی ۶۴گامی ---------- */
+   179→  TRACKS: {
+   180→    menu: {
+   181→      bpm: 72, vol: 0.9,
+   182→      chords: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]],
+   183→      roots: [45, 41, 48, 43],
+   184→      bassPat: [[0, 0, 6], [8, 0, 4], [12, 7, 3]],
+   185→      drums: { kick: [0, 8], hat: [4, 12] },
+   186→      mel: [[0, 0, 69, 4, 0.10], [0, 6, 72, 3, 0.09], [0, 12, 71, 4, 0.08],
+   187→            [1, 0, 72, 4, 0.10], [1, 4, 69, 3, 0.09], [1, 10, 65, 5, 0.08],
+   188→            [2, 0, 67, 4, 0.10], [2, 4, 64, 3, 0.09], [2, 10, 72, 5, 0.08],
+   189→            [3, 0, 71, 4, 0.10], [3, 6, 67, 3, 0.08], [3, 12, 62, 4, 0.07]],
+   190→      padVol: 0.035, melInst: 'pluck', arp: null,
+   191→    },
+   192→    day: {
+   193→      bpm: 96, vol: 1,
+   194→      chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]],
+   195→      roots: [48, 43, 45, 41],
+   196→      bassPat: [[0, 0, 4], [6, 0, 2], [8, 7, 4], [14, 12, 2]],
+   197→      drums: { kick: [0], hat: [2, 6, 10, 14] },
+   198→      mel: [[0, 0, 72, 3, 0.08], [0, 4, 76, 3, 0.07], [0, 8, 79, 4, 0.08],
+   199→            [1, 2, 74, 3, 0.07], [1, 8, 71, 4, 0.08],
+   200→            [2, 0, 72, 3, 0.08], [2, 6, 69, 3, 0.07], [2, 10, 76, 4, 0.08],
+   201→            [3, 0, 77, 4, 0.09], [3, 8, 72, 6, 0.07]],
+   202→      padVol: 0.028, melInst: 'pluck', arp: { steps: [0, 2, 4, 6, 8, 10, 12, 14], vol: 0.05 },
+   203→    },
+   204→    night: {
+   205→      bpm: 128, vol: 1,
+   206→      chords: [[62, 65, 69], [58, 62, 65], [57, 60, 65], [60, 64, 67]],
+   207→      roots: [38, 34, 41, 36],
+   208→      bassPat: [[0, 0, 2], [2, 12, 1], [4, 0, 2], [6, 12, 1], [8, 0, 2], [10, 7, 1], [12, 0, 2], [14, 12, 2]],
+   209→      drums: { kick: [0, 4, 8, 12], snare: [4, 12], hat: [2, 6, 10, 14], ohat: 0 },
+   210→      mel: [[2, 0, 74, 3, 0.09], [2, 3, 72, 2, 0.08], [2, 6, 70, 2, 0.08], [2, 10, 69, 4, 0.09],
+   211→            [3, 0, 67, 3, 0.08], [3, 4, 72, 3, 0.08], [3, 10, 74, 4, 0.09]],
+   212→      padVol: 0.03, melInst: 'pluck', arp: { steps: [0, 2, 4, 6, 8, 10, 12, 14], vol: 0.045 },
+   213→    },
+   214→    boss: {
+   215→      bpm: 140, vol: 1.05,
+   216→      chords: [[60, 63, 66], [60, 63, 66], [56, 60, 63], [58, 62, 65]],
+   217→      roots: [36, 36, 32, 34],
+   218→      bassPat: [[0, 0, 1], [1, 0, 1], [2, 0, 1], [3, 12, 1], [4, 0, 1], [5, 0, 1], [6, 0, 1], [7, 10, 1],
+   219→                [8, 0, 1], [9, 0, 1], [10, 0, 1], [11, 12, 1], [12, 0, 1], [13, 3, 1], [14, 0, 2], [15, 0, 1]],
+   220→      drums: { kick: [0, 4, 8, 12, 14], snare: [4, 12], hat: [2, 6, 10, 14] },
+   221→      mel: [[0, 8, 75, 2, 0.08], [0, 10, 74, 2, 0.08], [0, 12, 72, 3, 0.09],
+   222→            [2, 0, 70, 2, 0.08], [2, 2, 70, 2, 0.08], [2, 4, 69, 4, 0.09],
+   223→            [3, 0, 67, 4, 0.1], [3, 8, 63, 6, 0.08]],
+   224→      padVol: 0.032, melInst: 'pluck', arp: null, stab: [[63, 66, 70]],
+   225→    },
+   226→    victory: {
+   227→      bpm: 110, vol: 1,
+   228→      chords: [[60, 64, 67], [65, 69, 72], [55, 59, 62], [60, 64, 67]],
+   229→      roots: [48, 53, 43, 48],
+   230→      bassPat: [[0, 0, 4], [4, 7, 2], [8, 0, 4], [12, 12, 4]],
+   231→      drums: { kick: [0, 8], snare: [4, 12], hat: [2, 6, 10, 14] },
+   232→      mel: [[0, 0, 72, 4, 0.11], [0, 4, 76, 3, 0.1], [0, 8, 79, 6, 0.11],
+   233→            [1, 0, 77, 4, 0.1], [1, 6, 81, 4, 0.1],
+   234→            [2, 0, 79, 4, 0.1], [2, 4, 74, 3, 0.09], [2, 8, 71, 4, 0.09],
+   235→            [3, 0, 72, 8, 0.12]],
+   236→      padVol: 0.04, melInst: 'pluck', arp: { steps: [0, 2, 4, 6, 8, 10, 12, 14], vol: 0.05 },
+   237→    },
+   238→  },
+   239→
+   240→  /* ---------- تغییر قطعه با کراس‌فید نرم (۱۲٫۰) ---------- */
+   241→  set(name) {
+   242→    if (this.track === name || this._want === name) return;   // در حال رفتن به همان قطعه
+   243→    this._want = name;
+   244→    if (!this._ensure()) { this.track = name; return; }       // صدا هنوز نیست — فقط ثبت
+   245→    const t = Snd.ctx.currentTime;
+   246→    try {
+   247→      this.gain.gain.cancelScheduledValues(t);
+   248→      this.gain.gain.setValueAtTime(Math.max(0.0001, this.gain.gain.value), t);
+   249→      this.gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+   250→    } catch (e) {}
+   251→    clearTimeout(this._fadeT);
+   252→    this._fadeT = setTimeout(() => { this._start(name); }, 1120);
+   253→  },
+   254→  _start(name) {
+   255→    this.track = (this.TRACKS[name] ? name : this._want) || 'menu';
+   256→    this._want = this.track;
+   257→    if (!this._ensure()) return;
+   258→    this.step = 0;
+   259→    this.nextT = Snd.ctx.currentTime + 0.08;
+   260→    const T = this.TRACKS[this.track];
+   261→    try {
+   262→      const t = Snd.ctx.currentTime;
+   263→      this.gain.gain.cancelScheduledValues(t);
+   264→      this.gain.gain.setValueAtTime(0.0001, t);
+   265→      this.gain.gain.exponentialRampToValueAtTime(0.9 * (T.vol || 1), t + 1.6);
+   266→    } catch (e) {}
+   267→    if (!this.timer) this.timer = setInterval(() => this._tick(), 70);
+   268→  },
+   269→  /* محو کامل و توقف (صفحه‌ی باخت) */
+   270→  fadeStop() {
+   271→    if (!this.track && !this.timer) return;
+   272→    this._want = null;
+   273→    this.track = null;
+   274→    if (this.gain && Snd.ctx) {
+   275→      try {
+   276→        const t = Snd.ctx.currentTime;
+   277→        this.gain.gain.cancelScheduledValues(t);
+   278→        this.gain.gain.setValueAtTime(Math.max(0.0001, this.gain.gain.value), t);
+   279→        this.gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+   280→      } catch (e) {}
+   281→    }
+   282→    clearTimeout(this._fadeT);
+   283→    this._fadeT = setTimeout(() => {
+   284→      if (this.timer) { clearInterval(this.timer); this.timer = null; }
+   285→    }, 1250);
+   286→  },
+   287→  stop() {
+   288→    clearTimeout(this._fadeT); clearTimeout(this._duckT);
+   289→    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+   290→    if (this.gain && Snd.ctx) { try { this.gain.gain.value = 0.0001; } catch (e) {} }
+   291→    this.track = null; this._want = null;
+   292→  },
+   293→  /* موسیقی حین گفتار آرام شود */
+   294→  duck(dur, level) {
+   295→    if (!this.gain || !Snd.ctx) return;
+   296→    clearTimeout(this._duckT);
+   297→    try {
+   298→      const t = Snd.ctx.currentTime;
+   299→      this.duckG.gain.cancelScheduledValues(t);
+   300→      this.duckG.gain.setValueAtTime(Math.max(0.0001, this.duckG.gain.value), t);
+   301→      this.duckG.gain.exponentialRampToValueAtTime(level || 0.4, t + 0.25);
+   302→    } catch (e) {}
+   303→  },
+   304→  duckClear() {
+   305→    if (!this.gain || !Snd.ctx) return;
+   306→    try {
+   307→      const t = Snd.ctx.currentTime;
+   308→      this.duckG.gain.cancelScheduledValues(t);
+   309→      this.duckG.gain.setValueAtTime(Math.max(0.0001, this.duckG.gain.value), t);
+   310→      this.duckG.gain.exponentialRampToValueAtTime(1, t + 0.5);
+   311→    } catch (e) {}
+   312→  },
+   313→
+   314→  /* زمان‌بند: گام‌های آینده را می‌سازد — (۱۲٫۰) ضد انباشت */
+   315→  _tick() {
+   316→    if (!Snd.ready || !Snd.ctx || !this.track) return;
+   317→    const T = this.TRACKS[this.track];
+   318→    if (!T) return;
+   319→    const spb = 60 / T.bpm / 4;                       // طول یک گام ۱۶م
+   320→    const now = Snd.ctx.currentTime;
+   321→    /* اگر زمان‌بند جا افتاد (لگ فریم/تب مخفی)، عقب نمی‌ماند و انباشت نمی‌کند */
+   322→    if (this.nextT < now - 0.12) this.nextT = now + 0.05;
+   323→    let guard = 0;
+   324→    while (this.nextT < now + 0.28 && guard++ < 22) {
+   325→      const t = this.nextT, s = this.step % 64, bar = (s / 16) | 0, st = s % 16;
+   326→      if (t >= now - 0.02) {
+   327→        /* پد: ابتدای هر میزان */
+   328→        if (st === 0) this.pad(t, T.chords[bar], spb * 16 * 0.98, T.padVol);
+   329→        /* بیس */
+   330→        for (const [gs, off, len] of T.bassPat) if (gs === st) this.bass(t, T.roots[bar] + off, spb * len * 0.95, 0.16);
+   331→        /* درام */
+   332→        if (T.drums.kick && T.drums.kick.includes(st)) this.kick(t, 0.5);
+   333→        if (T.drums.snare && T.drums.snare.includes(st)) this.snare(t, 0.2);
+   334→        if (T.drums.hat && T.drums.hat.includes(st)) this.nz(t, 0.03, 0.05 + (st % 4 ? 0 : 0.03), 8000);
+   335→        /* آرپژ */
+   336→        if (T.arp && T.arp.steps.includes(st)) {
+   337→          const ch = T.chords[bar];
+   338→          this.osc(t, this.nf(ch[(st / 2 + bar) % ch.length] + 12), spb * 1.8, T.arp.vol, 'square', 3200);
+   339→        }
+   340→        /* فزع‌آوات باس */
+   341→        if (T.stab && st === 6) for (const m of T.stab[0]) this.osc(t, this.nf(m), spb * 3, 0.07, 'sawtooth', 2200);
+   342→        /* ملودی */
+   343→        for (const [mb, ms, note, len, vol] of T.mel) if (mb === bar && ms === st) {
+   344→          if (T.melInst === 'pluck') this.pluck(t, note, spb * len, vol);
+   345→        }
+   346→      }
+   347→      this.step++;
+   348→      this.nextT += spb;
+   349→    }
+   350→  },
+   351→
+   352→  /* نگاشت حالت بازی → قطعه (هر فریم صدا زده می‌شود؛ ارزان است) */
+   353→  update() {
+   354→    if (!Snd.ready) { if (this._want) this._start(this._want); return; }
+   355→    let want = 'menu';
+   356→    const m = state.mode;
+   357→    if (m === 'start' || m === 'intro') want = 'menu';
+   358→    else if (m === 'day' || m === 'intermission') want = 'day';
+   359→    else if (m === 'playing') want = state.wave >= FINAL_WAVE ? 'boss' : 'night';
+   360→    else if (m === 'transition' || m === 'cutscene') want = 'night';
+   361→    else if (m === 'victorycine' || m === 'victory') want = 'victory';
+   362→    else if (m === 'defeatcine' || m === 'gameover') want = null;    // سکوت سینمایی (۱۲٫۰)
+   363→    else if (m === 'paused') want = this.track || 'menu';
+   364→    if (want === null) this.fadeStop();
+   365→    else if (this.track !== want || this._want !== want) this.set(want);
+   366→    /* (۱۲٫۰) توقف = موسیقی کاملاً خاموش */
+   367→    if (this.gain && Snd.ctx) {
+   368→      try {
+   369→        const target = (m === 'paused') ? 0.0001
+   370→          : (this.TRACKS[this.track] ? 0.9 * this.TRACKS[this.track].vol : 0.9);
+   371→        const cur = this.gain.gain.value;
+   372→        if (Math.abs(cur - target) > 0.05) this.gain.gain.setTargetAtTime(target, Snd.ctx.currentTime, 0.4);
+   373→      } catch (e) {}
+   374→    }
+   375→    /* (۱۲٫۰) امبینتِ پد/باد هم حین توقف خاموش شود */
+   376→    if (Snd.musicGain && Snd.ctx && Snd.musicOn !== false) {
+   377→      const amb = (m === 'paused') ? 0.0001 : 1;
+   378→      if (this._lastAmb !== amb) {
+   379→        this._lastAmb = amb;
+   380→        try { Snd.musicGain.gain.setTargetAtTime(amb, Snd.ctx.currentTime, 0.3); } catch (e) {}
+   381→      }
+   382→    }
+   383→  },
+   384→};
+   385→
+   386→/* ---------------------- ۱۰-۳) سیستم گفتگو ---------------------- */
+   387→/* خط‌ها: {who:'n|a|p|r|b|d', text} — پرتره + ماشین‌نویسِ همگام با صدا +
+   388→   کلیک/Space برای ادامه. فقط در حالت‌های غیرقابل‌بازی (سینمایی). */
+   389→const DLG_WHO = {
+   390→  n: { name: 'راوی',        color: '#ffd9a0' },
+   391→  a: { name: 'ارشان',       color: '#ffb03c' },
+   392→  p: { name: 'تو',          color: '#8fd6ff' },
+   393→  r: { name: '📻 رادیو',    color: '#a8e4a0' },
+   394→  b: { name: 'نگهبان',      color: '#c44dff' },
+   395→  d: { name: 'دستفروش',     color: '#d8a3ff' },
+   396→};
+   397→
+   398→const DLG = {
+   399→  active: false, lines: [], idx: 0, chars: 0, t: 0,
+   400→  lineT: 0, voiceDur: 0, holdT: 0, onDone: null, doneFired: false,
+   401→
+   402→  start(lines, onDone) {
+   403→    if (!lines || !lines.length) { if (onDone) onDone(); return; }
+   404→    this.lines = lines; this.idx = 0; this.onDone = onDone;
+   405→    this.active = true; this.doneFired = false;
+   406→    $('dlgBox').classList.remove('hidden');
+   407→    this._line();
+   408→  },
+   409→  _line() {
+   410→    const L = this.lines[this.idx];
+   411→    this.chars = 0; this.t = 0; this.lineT = 0; this.holdT = 0;
+   412→    this.voiceDur = VOICE.speak(L.text, L.who);
+   413→    const w = DLG_WHO[L.who] || DLG_WHO.n;
+   414→    $('dlgWho').textContent = w.name;
+   415→    $('dlgWho').style.color = w.color;
+   416→    $('dlgText').textContent = '';
+   417→    $('dlgText').style.color = '';              /* (۱۲٫۰) رنگ از CSS روشن — متن سیاهِ نامرئی رفع شد */
+   418→    $('dlgPortrait').style.outlineColor = w.color;
+   419→    $('dlgPortrait').style.boxShadow = '0 0 14px ' + w.color + '55, inset 0 0 22px rgba(0,0,0,0.4)';
+   420→  },
+   421→  update(dt) {
+   422→    if (!this.active) return;
+   423→    const L = this.lines[this.idx];
+   424→    const full = L.text.length;
+   425→    this.t += dt;
+   426→    /* سرعت ماشین‌نویس: متن همزمان با صدا تمام شود */
+   427→    const vDur = this.voiceDur || Math.max(1.2, full / 26);
+   428→    const cps = full / Math.max(0.9, vDur * 0.9);
+   429→    if (this.chars < full) {
+   430→      this.lineT += dt * cps;
+   431→      const nc = Math.min(full, Math.floor(this.lineT));
+   432→      if (nc !== this.chars) {
+   433→        this.chars = nc;
+   434→        $('dlgText').textContent = L.text.slice(0, nc);
+   435→        if (VOICE.mode === 'blip') VOICE.blip(L.who);       /* صدای شخصیت */
+   436→      }
+   437→    } else {
+   438→      if (VOICE.mode === 'blip') VOICE.finishBlips();
+   439→      this.holdT += dt;
+   440→      /* بعد از پایان صدا کمی مکث، بعد خط بعد */
+   441→      if (!VOICE.speaking && this.holdT > 0.12 && this.t > vDur * 0.55) this._next();
+   442→      else if (this.t > vDur + 2.4) this._next();           /* مهلت ایمنی */
+   443→    }
+   444→    /* پرتره‌ی سخنگو (با دهانِ متحرک حین صدا) */
+   445→    drawPortrait($('dlgPortrait'), L.who, VOICE.speaking || this.chars < full, this.t);
+   446→  },
+   447→  _next() {
+   448→    this.idx++;
+   449→    if (this.idx >= this.lines.length) this._finish();
+   450→    else { SFX.click(); this._line(); }
+   451→  },
+   452→  _finish() {
+   453→    VOICE.stop();
+   454→    this.active = false;
+   455→    $('dlgBox').classList.add('hidden');
+   456→    if (!this.doneFired) { this.doneFired = true; const f = this.onDone; this.onDone = null; if (f) f(); }
+   457→  },
+   458→  /* کلیک/Space: متن کامل شود یا خط بعد */
+   459→  advance() {
+   460→    if (!this.active) return false;
+   461→    const L = this.lines[this.idx];
+   462→    if (this.chars < L.text.length) {
+   463→      this.chars = L.text.length;
+   464→      this.lineT = this.chars;
+   465→      $('dlgText').textContent = L.text;
+   466→      if (VOICE.mode === 'blip') VOICE.finishBlips();
+   467→    } else this._next();
+   468→    return true;
+   469→  },
+   470→  skip() { if (this.active) { this.doneFired = true; this._finish(); } },
+   471→};
+   472→
+   473→/* صدای کوتاه حین گیم‌پلی (بدون بلوک ورودی): صدا + زیرنویس اعلان
+   474→   (۱۲٫۰) bark(who, text, title, sub, dur) — متن با صدای خود شخصیت خوانده می‌شود */
+   475→function bark(who, text, title, sub, dur) {
+   476→  const d = (who && text && !(typeof SETT !== 'undefined' && !SETT.sfx)) ? VOICE.speak(text, who) : 0;
+   477→  setAnnounce(title || '', sub || '', dur || Math.max(1.8, d + 0.4));
+   478→  return d;
+   479→}
+   480→
+   481→/* ---------------------- ۱۰-۴) پرتره‌ی شخصیت‌ها (Canvas) ---------------------- */
+   482→function drawPortrait(cv, who, talking, t) {
+   483→  if (!cv) return;
+   484→  const c = cv.getContext('2d');
+   485→  const S = cv.width;                                  // ۹۶
+   486→  c.clearRect(0, 0, S, S);
+   487→  /* پس‌زمینه: دایره‌ی تیره + وینیت */
+   488→  const bg = c.createRadialGradient(S / 2, S * 0.42, 8, S / 2, S / 2, S * 0.62);
+   489→  bg.addColorStop(0, 'rgba(40,46,64,0.95)');
+   490→  bg.addColorStop(1, 'rgba(12,14,22,0.98)');
+   491→  c.fillStyle = bg;
+   492→  c.beginPath(); c.arc(S / 2, S / 2, S * 0.48, 0, Math.PI * 2); c.fill();
+   493→  c.save();
+   494→  c.translate(S / 2, S / 2 + 2 + (talking ? Math.sin(t * 9) * 1.2 : 0));
+   495→  const bob = talking ? Math.sin(t * 9) : 0;
+   496→  const F = '#f0c49a';                                  // رنگ پوست
+   497→  function mouth(open) {
+   498→    c.fillStyle = '#3a1f22';
+   499→    if (open > 0.15) { c.beginPath(); c.ellipse(0, 13, 4.2, 3.2 * open, 0, 0, Math.PI * 2); c.fill(); }
+   500→    else { c.fillRect(-3.6, 12, 7.2, 1.8); }
+   501→  }
+   502→  function eyes(x1, x2, y, r, col) {
+   503→    c.fillStyle = col || '#fff';
+   504→    circle2(c, x1, y, r); circle2(c, x2, y, r);
+   505→    c.fillStyle = '#1a1f2c';
+   506→    circle2(c, x1 + 0.7, y, r * 0.5); circle2(c, x2 + 0.7, y, r * 0.5);
+   507→  }
+   508→  if (who === 'a') {                                    // ارشان: کلاه قرمز + خال خال
+   509→    c.fillStyle = '#4a7a4a'; rr2(c, -17, -8, 34, 26, 9); c.fill();     // کاپشن
+   510→    c.fillStyle = F; circle2(c, 0, -2, 15);
+   511→    c.fillStyle = '#7a2a2a';                                           // کلاه
+   512→    c.beginPath(); c.arc(0, -2, 15.6, Math.PI * 0.98, Math.PI * 2.02); c.fill();
+   513→    c.fillRect(-16, -5, 32, 5);
+   514→    c.fillStyle = '#7a2a2a'; circle2(c, -15, -4, 2.4);                 // دکمه کلاه
+   515→    eyes(-5.5, 5.5, -3, 3, '#fff');
+   516→    c.fillStyle = 'rgba(180,110,70,0.55)';                              // خال
+   517→    circle2(c, -8, 4, 0.9); circle2(c, 8, 4, 0.9); circle2(c, -6, 6, 0.9);
+   518→    mouth(0.5 + bob * 0.5);
+   519→  } else if (who === 'p') {                             // بازیکن: کلاه‌کاپیشنی آبی
+   520→    c.fillStyle = '#3a5a8a'; rr2(c, -17, -8, 34, 26, 9); c.fill();
+   521→    c.fillStyle = F; circle2(c, 0, -2, 14);
+   522→    c.fillStyle = '#2c3e5c';                                           // کلاه‌کاپ
+   523→    c.beginPath(); c.arc(0, -3, 14.8, Math.PI * 0.95, Math.PI * 2.05); c.fill();
+   524→    c.fillStyle = '#1d2433'; circle2(c, 7.5, -13, 4.6);                 // سوراخ کلاه
+   525→    c.fillStyle = '#8fd6ff'; circle2(c, 8.6, -13.4, 2.2);
+   526→    eyes(-5.5, 5.5, -3, 2.8, '#e8f2ff');
+   527→    mouth(0.4 + bob * 0.45);
+   528→  } else if (who === 'r') {                             // رادیوی قدیمی
+   529→    c.fillStyle = '#5a4228'; rr2(c, -20, -16, 40, 34, 6); c.fill();
+   530→    c.fillStyle = '#6e5233'; rr2(c, -17, -13, 34, 12, 4); c.fill();    // بلندگو
+   531→    c.strokeStyle = '#3a2a18'; c.lineWidth = 1;
+   532→    for (let i = -14; i <= 14; i += 4) { c.beginPath(); c.moveTo(i, -12); c.lineTo(i, -2); c.stroke(); }
+   533→    c.fillStyle = '#d8ccb0'; circle2(c, -8, 8, 5);                      // صفحه‌ی فرکانس
+   534→    c.strokeStyle = '#c05a3a'; c.lineWidth = 1.6;
+   535→    c.beginPath(); c.moveTo(-8, 8); c.lineTo(-4 + Math.sin(t * 2) * 2, 6); c.stroke();
+   536→    c.fillStyle = '#2a2f3a'; circle2(c, 9, 8, 4.6);
+   537→    c.fillStyle = (t % 0.7 < 0.35) ? '#ffb03c' : '#7a5a2e'; circle2(c, 9, 8, 2);  // LED
+   538→    c.strokeStyle = '#c8c8c8'; c.lineWidth = 1.4;                        // آنتن
+   539→    c.beginPath(); c.moveTo(14, -14); c.lineTo(22, -26); c.stroke();
+   540→  } else if (who === 'b') {                             // نگهبان: شاخ‌دار
+   541→    c.fillStyle = '#241019'; circle2(c, 0, 0, 17);
+   542→    c.fillStyle = '#170a10';
+   543→    c.beginPath(); c.moveTo(-14, -10); c.lineTo(-20, -26); c.lineTo(-8, -13); c.closePath(); c.fill();
+   544→    c.beginPath(); c.moveTo(14, -10); c.lineTo(20, -26); c.lineTo(8, -13); c.closePath(); c.fill();
+   545→    c.shadowColor = '#c44dff'; c.shadowBlur = 8;
+   546→    c.fillStyle = '#c44dff';
+   547→    circle2(c, -6, -2, 2.6); circle2(c, 6, -2, 2.6);
+   548→    c.shadowBlur = 0;
+   549→    c.fillStyle = '#0d060a'; mouth(0.6 + bob * 0.4);
+   550→    c.fillStyle = '#3f151d'; rr2(c, -18, 8, 36, 10, 4); c.fill();       // شانه‌ها
+   551→  } else if (who === 'd') {                             // دستفروش: هودی + فانوس
+   552→    c.fillStyle = '#2a2036';                                            // هودی
+   553→    c.beginPath(); c.arc(0, 0, 18, Math.PI * 0.9, Math.PI * 2.1); c.fill();
+   554→    c.fillRect(-18, 0, 36, 18);
+   555→    c.fillStyle = '#120d18'; c.beginPath(); c.ellipse(0, 2, 11, 13, 0, 0, Math.PI * 2); c.fill();
+   556→    c.fillStyle = '#ffd873';                                            // چشم‌های فانوسی
+   557→    c.shadowColor = '#ffd873'; c.shadowBlur = 6;
+   558→    circle2(c, -4, 0, 1.8); circle2(c, 4, 0, 1.8);
+   559→    c.shadowBlur = 0;
+   560→    c.fillStyle = '#8a7a4a'; circle2(c, 16, 10, 6);                     // فانوس
+   561→    c.fillStyle = '#ffe9a0'; circle2(c, 16, 10, 3.4);
+   562→    c.strokeStyle = '#5a4a2a'; c.lineWidth = 1.4;
+   563→    c.beginPath(); c.moveTo(16, 2); c.lineTo(16, 4); c.stroke();
+   564→  } else {                                              // راوی: کتابِ داستانِ باز
+   565→    c.save();
+   566→    c.rotate(-0.08);
+   567→    c.fillStyle = '#5a3d2a';                            // جلد کتاب
+   568→    rr2(c, -19, -14, 38, 28, 3); c.fill();
+   569→    c.fillStyle = '#e8dcc0';                            // دو صفحه‌ی باز
+   570→    c.beginPath(); c.moveTo(-1, -12); c.quadraticCurveTo(-11, -16, -16, -10);
+   571→    c.lineTo(-16, 10); c.quadraticCurveTo(-11, 5, -1, 9); c.closePath(); c.fill();
+   572→    c.beginPath(); c.moveTo(1, -12); c.quadraticCurveTo(11, -16, 16, -10);
+   573→    c.lineTo(16, 10); c.quadraticCurveTo(11, 5, 1, 9); c.closePath(); c.fill();
+   574→    c.strokeStyle = 'rgba(90,61,42,0.5)'; c.lineWidth = 1;   // خطوط متن
+   575→    for (let i = 0; i < 3; i++) {
+   576→      c.beginPath(); c.moveTo(-13, -6 + i * 5); c.lineTo(-4, -4 + i * 5); c.stroke();
+   577→      c.beginPath(); c.moveTo(4, -4 + i * 5); c.lineTo(13, -6 + i * 5); c.stroke();
+   578→    }
+   579→    c.strokeStyle = '#3a2418'; c.lineWidth = 1.6;       // عطف کتاب
+   580→    c.beginPath(); c.moveTo(0, -12); c.lineTo(0, 9); c.stroke();
+   581→    c.restore();
+   582→    c.fillStyle = 'rgba(232,217,176,0.7)';              // هاله‌ی خاطره
+   583→    c.font = 'bold 10px Tahoma'; c.textAlign = 'center'; c.textBaseline = 'middle';
+   584→    c.fillText('· · ·', 0, 22);
+   585→  }
+   586→  c.restore();
+   587→}
+   588→function circle2(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+   589→function rr2(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+   590→
+   591→/* ---------------------- ۱۰-۵) ورودی گفتگو + هوک‌ها ---------------------- */
+   592→window.addEventListener('pointerdown', (e) => {
+   593→  if (DLG.active) { DLG.advance(); e.stopPropagation(); e.preventDefault(); }
+   594→}, true);
+   595→window.addEventListener('keydown', (e) => {
+   596→  if (DLG.active && (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowDown')) {
+   597→    DLG.advance(); e.preventDefault(); e.stopPropagation();
+   598→  }
+   599→}, true);
+   600→
+   601→UPDATE_HOOKS.push(function audioUpdate(dt) {
+   602→  /* (۱۲٫۰) MUSIC.update از خود حلقه‌ی اصلی هر فریم صدا زده می‌شود تا
+   603→     در همه‌ی حالت‌ها (منو/توقف/سینمایی/باخت) رفتار درست داشته باشد */
+   604→});
+   605→
+   606→/* دیباگ API */
+   607→Object.assign((typeof GAME !== 'undefined' ? GAME : window), {
+   608→  VOICE, MUSIC, DLG,
+   609→  say(text, who) { return VOICE.speak(text, who || 'n'); },
+   610→});
+   611→
