@@ -27,14 +27,16 @@ const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه �
 /* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
    normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰
    (۵٫۰: سکه‌ها تقریباً دوبرابر شد تا خرید راحت‌تر باشد) */
+/* (۱۵٫۰) «سختیِ ملایم‌تر» — بازی روی گوشی سخت از کار درمی‌آمد:
+   جون/آسیب زامبی‌ها کمی کم شد و فاصله‌ی تولدها بازتر */
 const ZTYPES = {
-  normal: { r: 15, hpBase: 9,  hpWave: 2.6, spdBase: 27, spdWave: 7.5, bite: 1.0, dmg: 6,  coins: [5, 7],
+  normal: { r: 15, hpBase: 8,  hpWave: 2.4, spdBase: 27, spdWave: 7.5, bite: 1.0, dmg: 5,  coins: [5, 7],
             skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
-  fast:   { r: 12, hpBase: 6,  hpWave: 1.7, spdBase: 64, spdWave: 9.5, bite: 0.7, dmg: 4,  coins: [4, 5],
+  fast:   { r: 12, hpBase: 5,  hpWave: 1.6, spdBase: 64, spdWave: 9.5, bite: 0.7, dmg: 3,  coins: [4, 5],
             skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
-  tank:   { r: 22, hpBase: 50, hpWave: 11,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 14, coins: [12, 16],
+  tank:   { r: 22, hpBase: 46, hpWave: 10,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 11, coins: [12, 16],
             skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
-  boss:   { r: 50, hpBase: 3600, hpWave: 0, spdBase: 12, spdWave: 1,   bite: 1.8, dmg: 55, coins: [80, 100],
+  boss:   { r: 50, hpBase: 3200, hpWave: 0, spdBase: 12, spdWave: 1,   bite: 1.8, dmg: 48, coins: [80, 100],
             skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
@@ -74,7 +76,7 @@ const UPGRADES = {
   turretUp:{ name: 'ارتقای برجک‌ها',   base: 90, growth: 1.55, max: 5 },  // +۲۲٪ دمیج و +۱۰٪ سرعت شلیک برجک‌ها در هر سطح
   shotgun: { price: 120 },                          // خرید یک‌باره
   mg:      { price: 260 },                          // خرید یک‌باره
-  repair:  { price: 30, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
+  repair:  { price: 25, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه (۱۵٫۰ ارزان‌تر)
 };
 
 /* برجک‌های دفاعی خودکار (۴٫۰) — روی زمین نصب می‌شوند و خودشان به زامبی‌ها شلیک می‌کنند:
@@ -92,7 +94,7 @@ const MAX_TURRETS = 6;                       // حداکثر تعداد برجک
 
 /* جعبه‌های قدرت (۳٫۰) — از زامبی‌های کشته‌شده می‌افتند و به بازیکن پرو می‌کنند */
 const PTYPES = {
-  medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 20 },
+  medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 24 },
   rapid:  { name: 'شلیک سریع',    color: '#ffd873', dur: 8 },
   freeze: { name: 'انجماد',       color: '#8fd6ff', dur: 5 },
   coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 15 },

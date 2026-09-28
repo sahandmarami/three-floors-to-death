@@ -417,9 +417,10 @@ function init() {
   $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
   $('btnResume').addEventListener('click', resumeGame);
   $('btnRestart0').addEventListener('click', startGame);
-  /* (۱۲٫۰) باخت: «ادامه از آخرین روز» (از آخرین سیو) و «شروع از اول» */
+  /* (۱۵٫۰) باخت: «تلاش دوباره» (سیو با همه‌ی وسایل) و «منوی اصلی» —
+     دیگر «شروع از اول» نیست؛ سیو پاک نمی‌شود */
   $('btnRetryDay').addEventListener('click', retryFromSave);
-  $('btnRestart1').addEventListener('click', startGame);
+  $('btnRestart1').addEventListener('click', exitToMenu);
   $('btnRestart2').addEventListener('click', startGame);
   initSaveCodeUI();   // (۱۳٫۰) صفحه‌ی کد سیو
 

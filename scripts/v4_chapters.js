@@ -29,12 +29,13 @@ function chance(p) { return Math.random() < p; }
 
 /* تنظیمات کامل هر فصل:
    mulHp/mulSpd/mulCount = ضریب سختی دشمن‌ها • unlock = موجِ درون‌فصلیِ ورود انواع
-   blackout = تعداد قطع‌برق‌های تصادفی هر شب • theme = پالت و حال‌وهوای صحنه */
+   blackout = تعداد قطع‌برق‌های تصادفی هر شب • theme = پالت و حال‌وهوای صحنه
+   (۱۵٫۰) همه‌ی ضرایب سختی ~۱۵٪ ملایم‌تر شدند — بازخورد «سخت است» */
 const CHAPTERS = [
   { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
     name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
     waves: WAVES_PER_CH,
-    mulHp: 1.15, mulSpd: 1.05, mulCount: 1.18,
+    mulHp: 1.00, mulSpd: 1.00, mulCount: 1.08,
     unlock: { fast: 3, tank: 6 },
     blackout: null,
     theme: {
@@ -54,7 +55,7 @@ const CHAPTERS = [
   { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
     name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
     waves: WAVES_PER_CH,
-    mulHp: 1.50, mulSpd: 1.13, mulCount: 1.30,
+    mulHp: 1.30, mulSpd: 1.08, mulCount: 1.18,
     unlock: { fast: 1, tank: 3 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -75,7 +76,7 @@ const CHAPTERS = [
   { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
     name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
     waves: WAVES_PER_CH,
-    mulHp: 1.90, mulSpd: 1.21, mulCount: 1.45,
+    mulHp: 1.58, mulSpd: 1.14, mulCount: 1.28,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 0, max: 1 },
     theme: {
@@ -97,7 +98,7 @@ const CHAPTERS = [
   { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
     name: 'برج مخابراتی', sub: 'آخرین قله',
     waves: WAVES_PER_CH,
-    mulHp: 2.40, mulSpd: 1.29, mulCount: 1.60,
+    mulHp: 1.92, mulSpd: 1.20, mulCount: 1.38,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -148,10 +149,11 @@ function buildWaveQueue(w) {
   return q;
 }
 
-/* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر */
+/* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر
+   (۱۵٫۰) کمی بازتر — فشار هجوم روی گوشی قابل‌تحمل شد */
 function spawnInterval(w) {
   const ch = waveChapter(w), wv = waveInChapter(w);
-  return clamp(2.0 - wv * 0.13 - (ch - 1) * 0.2, 0.5, 2.0);   // (۱۱٫۰) فشرده‌تر
+  return clamp(2.15 - wv * 0.12 - (ch - 1) * 0.16, 0.6, 2.15);
 }
 
 /* ---------------------- ۵-۳) بازنویسی جریان اصلی ---------------------- */
@@ -161,7 +163,7 @@ function startGame() {
   state.mode = 'intermission';
   state.prevMode = null;
   state.time = 0; state.wave = 0;
-  state.coins = 30;                       // سرمایه‌ی شروع
+  state.coins = 40;                       // سرمایه‌ی شروع (۱۵٫۰ کمی بیشتر)
   state.dayness = 0; state.dayTarget = 0; state.goingNight = false;
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 };
@@ -246,16 +248,17 @@ function startWave(n) {
   }
   SFX.dusk();
   setBuildPanel(true, true);             // شب: پنل جمع
-  if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفماع باید رفته باشد
+  if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفروع باید رفته باشد
   hidePeddlerPanel();
   $('bpHead').classList.remove('attention');
+  saveGame();                             // (۱۵٫۰) سیوِ شروع موج: با باخت، خریدهای همین روز هم می‌ماند
   updateHUD();
 }
 
 /* پایان موج: جایزه + مسیر جدید (انتقال فصل / روز / پیروزی) */
 function waveComplete() {
   if (state.wave >= FINAL_WAVE) { startVictoryCine(); return; }   // برد واقعی (۱۰٫۰)
-  const bonus = 12 + state.wave * 4;
+  const bonus = 14 + state.wave * 4;      // (۱۵٫۰) جایزه‌ی کمی بیشتر — اقتصاد نفس‌گیرتر
   state.coins += bonus;
   state.stats.earned += bonus;
   addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
@@ -446,7 +449,9 @@ function toastSaved() {
 }
 
 /* عکس‌الوضعتی که ذخیره می‌شود: فصل/موج بعدی، جون، سکه، سلاح‌ها و ارتقاها،
-   محتویات کوله‌پشتی، باتری چراغ‌قوه، دستفروش و آمار */
+   محتویات کوله‌پشتی، باتری چراغ‌قوه، دستفروش و آمار
+   (۱۵٫۰) برجک‌های نصب‌شده هم ذخیره می‌شوند — با باخت/ادامه، «وسایلی که
+   ساخته‌ای» از بین نمی‌رود (بازخورد کاربر) */
 function collectSave() {
   return {
     v: 1,
@@ -459,6 +464,7 @@ function collectSave() {
     upgrades: Object.assign({}, state.upgrades),
     weapon: state.weapon,
     owned: { shotgun: WEAPONS.shotgun.owned, mg: WEAPONS.mg.owned },
+    turrets: state.turrets.map(t => ({ t: t.type, x: Math.round(t.x), y: Math.round(t.y) })),
     backpack: state.backpack.map(s => (s ? s.id : null)),
     flash: { owned: state.torch.owned, battery: Math.round(state.torch.battery) },
     buffs: Object.assign({}, state.buffs),
@@ -517,6 +523,15 @@ function applySave(d) {
     WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
     state.weapon = (d.weapon && WEAPONS[d.weapon]) ? d.weapon : 'pistol';
     state.weaponSpent = d.weaponSpent | 0;
+    /* (۱۵٫۰) برجک‌های نصب‌شده برمی‌گردند — فقط نوع/جای معتبر، حداکثر MAX_TURRETS */
+    state.turrets = (Array.isArray(d.turrets) ? d.turrets : [])
+      .filter(tr => tr && TURRETS[tr.t] && isFinite(tr.x) && isFinite(tr.y))
+      .slice(0, MAX_TURRETS)
+      .map(tr => ({
+        type: tr.t, x: clamp(tr.x, 26, W - 200), y: clamp(tr.y, GROUND_Y - 34, GROUND_Y + 16),
+        cd: 0.45, aim: tr.x < TOWER.x ? 0 : Math.PI,
+        spin: 0, flash: 0, recoil: 0, hover: false, bob: rand(0, 6.28),
+      }));
     state.backpack = (d.backpack || []).slice(0, 6)
       .map(id => ((id && GEAR[id]) || (id && RARE[id])) ? { id } : null);
     while (state.backpack.length < 6) state.backpack.push(null);
@@ -530,7 +545,7 @@ function applySave(d) {
     state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
     state.intermission = 0;
     state.dayness = 1; state.dayTarget = 1;
-    updateHUD(); refreshBackpack(); refreshGearHUD();
+    updateHUD(); refreshBackpack(); refreshGearHUD(); refreshBuildPanel();
   } finally {
     saveGame();                      // (۱۳٫۰) حتی در صورت خطا هم سیو بازنویسی می‌شود
   }
@@ -680,7 +695,8 @@ function exitToMenu() {
   updateHUD();
 }
 
-/* بعد از باخت: تلاش دوباره از آخرین سیو (وگرنه شروع تازه) */
+/* بعد از باخت: تلاش دوباره از آخرین سیو — وسایل ساخته‌شده همه با تو می‌مانند
+   (۱۵٫۰) سیو در شروع هر موج هم گرفته می‌شود؛ اگر سیو نبود: شروع تازه */
 function retryFromSave() {
   const d = loadSaveData();
   SFX.click();
@@ -690,7 +706,7 @@ function retryFromSave() {
     state.mode = 'day';
     enterDay();
     setAnnounce('🔄 تلاش دوباره',
-      'از آخرین سیو: فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)), 2.6);
+      'همه‌ی وسایلت همین است — فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)), 2.6);
   } else {
     startGame();
   }

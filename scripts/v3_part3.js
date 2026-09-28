@@ -334,10 +334,10 @@ function gameOver() {
 function legacyGameOver() {
   if (state.mode === 'gameover') return;
   state.mode = 'gameover';
-  $('goSubtitle').textContent = 'برج سقوط کرد... تا ' + faNum(state.wave) + ' شب از ' + faNum(FINAL_WAVE) + ' دووم آوردی.';
-  $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) +
-    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
-    '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
+  try { SFX.defeatSting(); } catch (e) {}      // (۱۵٫۰) صدای باخت، نه دیالوگ
+  $('goSubtitle').textContent = 'تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دوام آوردی';
+  $('goStats').innerHTML = 'کشتار: <b>' + faNum(state.stats.kills) +
+    '</b> &nbsp;•&nbsp; بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b>';
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
   SFX.gameover();

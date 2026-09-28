@@ -236,12 +236,12 @@ body{display:flex;align-items:center;justify-content:center}
 #bpTip b{display:block;color:#ffd873;font-size:12px;margin-bottom:2px}
 #bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
 
-/* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب ----------
-   (۱۴٫۰) از بالای صفحه به «پایین‌وسط» منتقل شد: قبلاً در ارتفاع کم
-   (گوشی) اعلانِ «صبح شد!» روی دکمه و راهنمایش می‌افتاد؛ حالا دور از
-   اعلان، کوله‌پشتی و پنل‌ها — و روی گوشی زیر انگشت هم هست. */
-#dayPanel{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);z-index:6;
-  display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+/* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============
+       (۱۵٫۰) از «پایین‌وسط» به «پایین‌راست» منتقل شد: در ارتفاع کم
+       (گوشی) دقیقاً روی برج می‌افتاد و بد دیده می‌شد؛ حالا گوشه‌ی آزادِ
+       صفحه است — دور از برج، کوله‌پشتی (پایین‌چپ) و ریل چپ. */
+#dayPanel{position:absolute;bottom:64px;right:16px;z-index:6;
+  display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}
 #btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:15.5px;font-weight:bold;
   color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:999px;
   padding:10px 34px;box-shadow:0 4px 22px rgba(240,180,60,.4);
@@ -249,7 +249,8 @@ body{display:flex;align-items:center;justify-content:center}
 #btnNight:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.07)}
 @keyframes nightGlow{0%,100%{box-shadow:0 4px 18px rgba(240,180,60,.32)}50%{box-shadow:0 4px 30px rgba(240,180,60,.62)}}
 #dpHint{font-size:10.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.72);
-  border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92}
+  border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92;
+  max-width:250px;text-align:center}
 
 /* ---------- ۵٫۶) کات‌سین داستانی (۷٫۰) ----------
    حین کات‌سین، پنل روز/پنل ساخت‌وساز مخفی می‌شوند تا صحنه سینمایی
@@ -311,7 +312,7 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes titleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .menu-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:24px}
 .btn-big{font-size:20px;padding:15px 52px}
-.ver{margin-top:16px;color:#7d8eaf;font-size:11.5px;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+/* (۱۵٫۰) متن نسخه از پایین منو حذف شد — درخواست کاربر */
 
 /* ---------- ۸) راهنمای بازی ---------- */
 .howto-panel{max-width:620px;text-align:center}
@@ -353,10 +354,12 @@ body{display:flex;align-items:center;justify-content:center}
 @keyframes bpkDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .bpk-slot.deny{animation:bpkDeny .3s;border-color:#e04b3a}
 
-/* --- پنل دستفروش مرموز (چپ نقشه، فقط روزها) --- */
-#peddlerPanel{position:absolute;top:60px;left:10px;width:178px;z-index:6;background:rgba(13,10,26,.92);
+/* --- پنل دستفروش مرموز (۱۵٫۰: بالاتر و کمی راست‌تر — گوشه‌اش دیگر
+   روی دکمه‌ی توقفِ ریل چپ نمی‌نشیند؛ فقط روزها) --- */
+#peddlerPanel{position:absolute;top:48px;left:66px;width:178px;z-index:6;background:rgba(13,10,26,.92);
   border:1px solid #4a3a6a;border-radius:12px;padding:8px;backdrop-filter:blur(4px);
   box-shadow:0 10px 34px rgba(0,0,0,.5);animation:pdIn .4s ease}
+#wrap.touch #peddlerPanel{left:72px}
 @keyframes pdIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 #peddlerPanel .pd-head{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:bold;color:#d8c9ff}
 #peddlerPanel .pd-face{width:46px;height:46px;border-radius:9px;background:#0a0818;border:1px solid #4a3a6a;flex:none}
@@ -526,7 +529,7 @@ body{display:flex;align-items:center;justify-content:center}
   <div id="bpTip"></div>
 
   <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============
-       (۶٫۰) بالای صفحه، زیر HUD — کف نقشه آزاد می‌ماند -->
+       (۱۵٫۰) پایین‌راست — دیگر روی برج نمی‌نشیند -->
   <div id="dayPanel" class="hidden">
     <button id="btnNight">🌙 شب شود</button>
     <span id="dpHint">زامبی نمی‌آید — ارتقا بخر و برجک بگذار</span>
@@ -599,7 +602,6 @@ body{display:flex;align-items:center;justify-content:center}
         <button class="mini-btn" id="btnSettings">⚙️ تنظیمات</button>
         <button class="mini-btn" id="btnAbout">ℹ️ درباره</button>
       </div>
-      <p class="ver">نسخه ۱۴</p>
     </div>
   </div>
 
@@ -646,15 +648,16 @@ body{display:flex;align-items:center;justify-content:center}
     </div>
   </div>
 
-  <!-- ============ صفحه باخت (۱۲٫۰: سینماییِ سقوط برج قبلش پخش می‌شود) ============ -->
+  <!-- ============ صفحه باخت (۱۵٫۰: ساده و تمیز — صدای باخت به‌جای
+        دیالوگ، بدون دکمه‌ی «رد کردن» و بدون آمارِ طولانی) ============ -->
   <div class="overlay hidden" id="gameoverScreen">
-    <div class="panel">
-      <h1>💀 برج فرو ریخت!</h1>
-      <p class="subtitle" id="goSubtitle">برج سقوط کرد...</p>
+    <div class="panel" style="max-width:400px">
+      <h1>💀 باختی!</h1>
+      <p class="subtitle" id="goSubtitle">تا شب ۱ از ۳۳ دوام آوردی</p>
       <p class="stat-line" id="goStats"></p>
       <div class="btn-row">
-        <button class="btn-main" id="btnRetryDay">🌅 ادامه از آخرین روز</button>
-        <button class="btn-sec" id="btnRestart1">🔄 شروع از اول</button>
+        <button class="btn-main" id="btnRetryDay">🌅 تلاش دوباره</button>
+        <button class="btn-sec" id="btnRestart1">🏠 منوی اصلی</button>
       </div>
     </div>
   </div>
@@ -699,7 +702,7 @@ body{display:flex;align-items:center;justify-content:center}
   <div class="overlay hidden" id="aboutScreen">
     <div class="panel" style="max-width:470px">
       <h2>ℹ️ درباره‌ی بازی</h2>
-      <p class="subtitle">سه طبقه تا بقا — نسخه‌ی ۱۴٫۰</p>
+      <p class="subtitle">سه طبقه تا بقا</p>
       <div class="howto" style="text-align:right">
         <div>یک ویروس ناشناخته شهر را خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتان دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیو خبر شنیدید برسید. ۴ فصل، ۳۳ شب، ۳ فرار سینمایی و یک «آخرین شب».</div>
         <div>همه‌چیز با <b>HTML5 Canvas</b> و جاوااسکریپت خالص در <b>یک فایل واحد</b> ساخته شده — گفتگوها هم با صدای فارسی داخل خود بازی جاسازی شده‌اند. 🧡</div>

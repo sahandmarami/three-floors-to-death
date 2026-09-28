@@ -28,14 +28,16 @@ const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه �
 /* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
    normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰
    (۵٫۰: سکه‌ها تقریباً دوبرابر شد تا خرید راحت‌تر باشد) */
+/* (۱۵٫۰) «سختیِ ملایم‌تر» — بازی روی گوشی سخت از کار درمی‌آمد:
+   جون/آسیب زامبی‌ها کمی کم شد و فاصله‌ی تولدها بازتر */
 const ZTYPES = {
-  normal: { r: 15, hpBase: 9,  hpWave: 2.6, spdBase: 27, spdWave: 7.5, bite: 1.0, dmg: 6,  coins: [5, 7],
+  normal: { r: 15, hpBase: 8,  hpWave: 2.4, spdBase: 27, spdWave: 7.5, bite: 1.0, dmg: 5,  coins: [5, 7],
             skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
-  fast:   { r: 12, hpBase: 6,  hpWave: 1.7, spdBase: 64, spdWave: 9.5, bite: 0.7, dmg: 4,  coins: [4, 5],
+  fast:   { r: 12, hpBase: 5,  hpWave: 1.6, spdBase: 64, spdWave: 9.5, bite: 0.7, dmg: 3,  coins: [4, 5],
             skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
-  tank:   { r: 22, hpBase: 50, hpWave: 11,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 14, coins: [12, 16],
+  tank:   { r: 22, hpBase: 46, hpWave: 10,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 11, coins: [12, 16],
             skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
-  boss:   { r: 50, hpBase: 3600, hpWave: 0, spdBase: 12, spdWave: 1,   bite: 1.8, dmg: 55, coins: [80, 100],
+  boss:   { r: 50, hpBase: 3200, hpWave: 0, spdBase: 12, spdWave: 1,   bite: 1.8, dmg: 48, coins: [80, 100],
             skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
@@ -75,7 +77,7 @@ const UPGRADES = {
   turretUp:{ name: 'ارتقای برجک‌ها',   base: 90, growth: 1.55, max: 5 },  // +۲۲٪ دمیج و +۱۰٪ سرعت شلیک برجک‌ها در هر سطح
   shotgun: { price: 120 },                          // خرید یک‌باره
   mg:      { price: 260 },                          // خرید یک‌باره
-  repair:  { price: 30, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه
+  repair:  { price: 25, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه (۱۵٫۰ ارزان‌تر)
 };
 
 /* برجک‌های دفاعی خودکار (۴٫۰) — روی زمین نصب می‌شوند و خودشان به زامبی‌ها شلیک می‌کنند:
@@ -93,7 +95,7 @@ const MAX_TURRETS = 6;                       // حداکثر تعداد برجک
 
 /* جعبه‌های قدرت (۳٫۰) — از زامبی‌های کشته‌شده می‌افتند و به بازیکن پرو می‌کنند */
 const PTYPES = {
-  medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 20 },
+  medkit: { name: 'کمک‌های اولیه', color: '#7be389', heal: 24 },
   rapid:  { name: 'شلیک سریع',    color: '#ffd873', dur: 8 },
   freeze: { name: 'انجماد',       color: '#8fd6ff', dur: 5 },
   coin:   { name: 'بار سکه',      color: '#f5c542', bonus: 15 },
@@ -1771,10 +1773,10 @@ function gameOver() {
 function legacyGameOver() {
   if (state.mode === 'gameover') return;
   state.mode = 'gameover';
-  $('goSubtitle').textContent = 'برج سقوط کرد... تا ' + faNum(state.wave) + ' شب از ' + faNum(FINAL_WAVE) + ' دووم آوردی.';
-  $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) +
-    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
-    '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
+  try { SFX.defeatSting(); } catch (e) {}      // (۱۵٫۰) صدای باخت، نه دیالوگ
+  $('goSubtitle').textContent = 'تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دوام آوردی';
+  $('goStats').innerHTML = 'کشتار: <b>' + faNum(state.stats.kills) +
+    '</b> &nbsp;•&nbsp; بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b>';
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
   SFX.gameover();
@@ -4676,12 +4678,13 @@ function chance(p) { return Math.random() < p; }
 
 /* تنظیمات کامل هر فصل:
    mulHp/mulSpd/mulCount = ضریب سختی دشمن‌ها • unlock = موجِ درون‌فصلیِ ورود انواع
-   blackout = تعداد قطع‌برق‌های تصادفی هر شب • theme = پالت و حال‌وهوای صحنه */
+   blackout = تعداد قطع‌برق‌های تصادفی هر شب • theme = پالت و حال‌وهوای صحنه
+   (۱۵٫۰) همه‌ی ضرایب سختی ~۱۵٪ ملایم‌تر شدند — بازخورد «سخت است» */
 const CHAPTERS = [
   { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
     name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
     waves: WAVES_PER_CH,
-    mulHp: 1.15, mulSpd: 1.05, mulCount: 1.18,
+    mulHp: 1.00, mulSpd: 1.00, mulCount: 1.08,
     unlock: { fast: 3, tank: 6 },
     blackout: null,
     theme: {
@@ -4701,7 +4704,7 @@ const CHAPTERS = [
   { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
     name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
     waves: WAVES_PER_CH,
-    mulHp: 1.50, mulSpd: 1.13, mulCount: 1.30,
+    mulHp: 1.30, mulSpd: 1.08, mulCount: 1.18,
     unlock: { fast: 1, tank: 3 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -4722,7 +4725,7 @@ const CHAPTERS = [
   { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
     name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
     waves: WAVES_PER_CH,
-    mulHp: 1.90, mulSpd: 1.21, mulCount: 1.45,
+    mulHp: 1.58, mulSpd: 1.14, mulCount: 1.28,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 0, max: 1 },
     theme: {
@@ -4744,7 +4747,7 @@ const CHAPTERS = [
   { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
     name: 'برج مخابراتی', sub: 'آخرین قله',
     waves: WAVES_PER_CH,
-    mulHp: 2.40, mulSpd: 1.29, mulCount: 1.60,
+    mulHp: 1.92, mulSpd: 1.20, mulCount: 1.38,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -4795,10 +4798,11 @@ function buildWaveQueue(w) {
   return q;
 }
 
-/* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر */
+/* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر
+   (۱۵٫۰) کمی بازتر — فشار هجوم روی گوشی قابل‌تحمل شد */
 function spawnInterval(w) {
   const ch = waveChapter(w), wv = waveInChapter(w);
-  return clamp(2.0 - wv * 0.13 - (ch - 1) * 0.2, 0.5, 2.0);   // (۱۱٫۰) فشرده‌تر
+  return clamp(2.15 - wv * 0.12 - (ch - 1) * 0.16, 0.6, 2.15);
 }
 
 /* ---------------------- ۵-۳) بازنویسی جریان اصلی ---------------------- */
@@ -4808,7 +4812,7 @@ function startGame() {
   state.mode = 'intermission';
   state.prevMode = null;
   state.time = 0; state.wave = 0;
-  state.coins = 30;                       // سرمایه‌ی شروع
+  state.coins = 40;                       // سرمایه‌ی شروع (۱۵٫۰ کمی بیشتر)
   state.dayness = 0; state.dayTarget = 0; state.goingNight = false;
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 };
@@ -4893,16 +4897,17 @@ function startWave(n) {
   }
   SFX.dusk();
   setBuildPanel(true, true);             // شب: پنل جمع
-  if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفماع باید رفته باشد
+  if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفروع باید رفته باشد
   hidePeddlerPanel();
   $('bpHead').classList.remove('attention');
+  saveGame();                             // (۱۵٫۰) سیوِ شروع موج: با باخت، خریدهای همین روز هم می‌ماند
   updateHUD();
 }
 
 /* پایان موج: جایزه + مسیر جدید (انتقال فصل / روز / پیروزی) */
 function waveComplete() {
   if (state.wave >= FINAL_WAVE) { startVictoryCine(); return; }   // برد واقعی (۱۰٫۰)
-  const bonus = 12 + state.wave * 4;
+  const bonus = 14 + state.wave * 4;      // (۱۵٫۰) جایزه‌ی کمی بیشتر — اقتصاد نفس‌گیرتر
   state.coins += bonus;
   state.stats.earned += bonus;
   addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
@@ -5093,7 +5098,9 @@ function toastSaved() {
 }
 
 /* عکس‌الوضعتی که ذخیره می‌شود: فصل/موج بعدی، جون، سکه، سلاح‌ها و ارتقاها،
-   محتویات کوله‌پشتی، باتری چراغ‌قوه، دستفروش و آمار */
+   محتویات کوله‌پشتی، باتری چراغ‌قوه، دستفروش و آمار
+   (۱۵٫۰) برجک‌های نصب‌شده هم ذخیره می‌شوند — با باخت/ادامه، «وسایلی که
+   ساخته‌ای» از بین نمی‌رود (بازخورد کاربر) */
 function collectSave() {
   return {
     v: 1,
@@ -5106,6 +5113,7 @@ function collectSave() {
     upgrades: Object.assign({}, state.upgrades),
     weapon: state.weapon,
     owned: { shotgun: WEAPONS.shotgun.owned, mg: WEAPONS.mg.owned },
+    turrets: state.turrets.map(t => ({ t: t.type, x: Math.round(t.x), y: Math.round(t.y) })),
     backpack: state.backpack.map(s => (s ? s.id : null)),
     flash: { owned: state.torch.owned, battery: Math.round(state.torch.battery) },
     buffs: Object.assign({}, state.buffs),
@@ -5164,6 +5172,15 @@ function applySave(d) {
     WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
     state.weapon = (d.weapon && WEAPONS[d.weapon]) ? d.weapon : 'pistol';
     state.weaponSpent = d.weaponSpent | 0;
+    /* (۱۵٫۰) برجک‌های نصب‌شده برمی‌گردند — فقط نوع/جای معتبر، حداکثر MAX_TURRETS */
+    state.turrets = (Array.isArray(d.turrets) ? d.turrets : [])
+      .filter(tr => tr && TURRETS[tr.t] && isFinite(tr.x) && isFinite(tr.y))
+      .slice(0, MAX_TURRETS)
+      .map(tr => ({
+        type: tr.t, x: clamp(tr.x, 26, W - 200), y: clamp(tr.y, GROUND_Y - 34, GROUND_Y + 16),
+        cd: 0.45, aim: tr.x < TOWER.x ? 0 : Math.PI,
+        spin: 0, flash: 0, recoil: 0, hover: false, bob: rand(0, 6.28),
+      }));
     state.backpack = (d.backpack || []).slice(0, 6)
       .map(id => ((id && GEAR[id]) || (id && RARE[id])) ? { id } : null);
     while (state.backpack.length < 6) state.backpack.push(null);
@@ -5177,7 +5194,7 @@ function applySave(d) {
     state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
     state.intermission = 0;
     state.dayness = 1; state.dayTarget = 1;
-    updateHUD(); refreshBackpack(); refreshGearHUD();
+    updateHUD(); refreshBackpack(); refreshGearHUD(); refreshBuildPanel();
   } finally {
     saveGame();                      // (۱۳٫۰) حتی در صورت خطا هم سیو بازنویسی می‌شود
   }
@@ -5327,7 +5344,8 @@ function exitToMenu() {
   updateHUD();
 }
 
-/* بعد از باخت: تلاش دوباره از آخرین سیو (وگرنه شروع تازه) */
+/* بعد از باخت: تلاش دوباره از آخرین سیو — وسایل ساخته‌شده همه با تو می‌مانند
+   (۱۵٫۰) سیو در شروع هر موج هم گرفته می‌شود؛ اگر سیو نبود: شروع تازه */
 function retryFromSave() {
   const d = loadSaveData();
   SFX.click();
@@ -5337,7 +5355,7 @@ function retryFromSave() {
     state.mode = 'day';
     enterDay();
     setAnnounce('🔄 تلاش دوباره',
-      'از آخرین سیو: فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)), 2.6);
+      'همه‌ی وسایلت همین است — فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)), 2.6);
   } else {
     startGame();
   }
@@ -9377,7 +9395,7 @@ function drawArshanWithRadio(x, y) {
   ctx.restore();
 }
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۲٫۰ — بخش ۱۲: کات‌سین باخت «سقوط برج»
+   سه طبقه تا بقا — نسخه‌ی ۱۵٫۰ — بخش ۱۲: کات‌سین باخت «سقوط برج»
    ==================================================================
    وقتی جون برج صفر می‌شود، بازی دیگر یک‌باره تمام نمی‌شود؛ اول
    سینماییِ واقعیِ نابودی پخش می‌شود:
@@ -9386,43 +9404,56 @@ function drawArshanWithRadio(x, y) {
      ۳) طبقه‌ی اول فرو می‌ریزد → طبقه‌ی دوم → بام می‌لغزد و کج می‌شود
         و روی زمین می‌کوبد (بازیکن همراهش می‌افتد و کنار می‌غلتد)
      ۴) زامبی‌ها روی توده‌ی آوار هجوم می‌آورند؛ غبار می‌نشیند
-     ۵) محوِ تیره → صفحه‌ی باخت با دو دکمه:
-        «ادامه از آخرین روز» (از آخرین سیو) و «شروع از اول»
-   - کات‌سین با دکمه‌ی «رد کردن» قابل عبور است.
+     ۵) محوِ تیره → صفحه‌ی باخت با دو دکمه: «تلاش دوباره» و «منوی اصلی»
+   - (۱۵٫۰ — بازخورد کاربر) هنگام سقوط برج «صدای باخت» پخش می‌شود،
+     نه دیالوگ/راوی؛ دکمه‌ی «رد کردن» هنگام باخت حذف شد؛ کات‌سین
+     ~۲۰٪ کوتاه‌تر و صفحه‌ی باخت ساده و بی‌شلوغی شد.
    - از موتور رسم فروریختن (CS.draw.floors/cracks/rubble — بخش ۴)
      دوباره استفاده می‌شود؛ همه‌چیز از t محاسبه می‌شود (تست‌پذیر).
    ================================================================== */
 
 let DF = null;        // وضعیت کات‌سین باخت (null = نیست)
 
-/* زمان‌بندی مراحل (ثانیه) */
+/* زمان‌بندی مراحل (ثانیه) — (۱۵٫۰) ~۲۰٪ فشرده‌تر */
 const DF_T = {
-  climbEnd: 1.7,      // پایان بالا آمدن زامبی‌ها
-  biteEnd: 2.5,       // گاز گرفتن پایه‌ها / ترک‌ها کامل
-  col1: 2.5, col1Dur: 0.5,     // فروریختن طبقه‌ی ۱
-  col2: 3.3, col2Dur: 0.5,     // فروریختن طبقه‌ی ۲
-  roofStart: 4.1, roofDur: 0.85,   // لغزیدن و کوبیدن بام روی زمین
-  playerDrop: 4.55, playerDur: 0.75,  // سقوط و غلتیدن بازیکن
-  swarm: 5.2,         // هجوم زامبی‌ها روی آوار
-  fadeStart: 5.6, fadeDur: 1.0,  // محو تیره
-  end: 6.8,           // پایان → صفحه‌ی باخت
+  climbEnd: 1.35,     // پایان بالا آمدن زامبی‌ها
+  biteEnd: 2.0,       // گاز گرفتن پایه‌ها / ترک‌ها کامل
+  col1: 2.0, col1Dur: 0.45,    // فروریختن طبقه‌ی ۱
+  col2: 2.65, col2Dur: 0.45,   // فروریختن طبقه‌ی ۲
+  roofStart: 3.3, roofDur: 0.7,    // لغزیدن و کوبیدن بام روی زمین
+  playerDrop: 3.7, playerDur: 0.65,  // سقوط و غلتیدن بازیکن
+  swarm: 4.25,        // هجوم زامبی‌ها روی آوار
+  fadeStart: 4.6, fadeDur: 0.8,  // محو تیره
+  end: 5.6,           // پایان → صفحه‌ی باخت
 };
 
-/* زیرنویس‌های کات‌سین باخت: [شروع، پایان، متن] */
+/* زیرنویس‌های کات‌سین باخت: [شروع، پایان، متن] — (۱۵٫۰) زمان‌بندی جدید */
 const DF_CAPS = [
-  [0.5, 1.9, 'زامبی‌ها دارن بالا می‌آن...!'],
-  [2.2, 2.45, 'پایه‌ها داره می‌شکنه...'],
-  [2.5, 2.9, 'طبقه‌ی اول فرو ریخت!'],
-  [3.3, 3.65, 'طبقه‌ی دوم هم...!'],
-  [4.1, 4.8, 'بام می‌لغزه...!'],
-  [5.2, 5.55, 'برج... از بین رفت.'],
+  [0.4, 1.5, 'زامبی‌ها دارن بالا می‌آن...!'],
+  [1.75, 2.0, 'پایه‌ها داره می‌شکنه...'],
+  [2.0, 2.35, 'طبقه‌ی اول فرو ریخت!'],
+  [2.65, 3.0, 'طبقه‌ی دوم هم...!'],
+  [3.3, 3.95, 'بام می‌لغزه...!'],
+  [4.25, 4.6, 'برج... از بین رفت.'],
 ];
+
+/* (۱۵٫۰) صدای باخت — به‌جای راوی/دیالوگ: پایین‌رویِ غمگین + غرش سقوط */
+SFX.defeatSting = function () {
+  try {
+    Snd.noise({ dur: 1.6, vol: 0.34, freq: 95, q: 0.35 });
+    [392, 311, 262, 196, 147].forEach((f, i) =>
+      Snd.tone({ type: 'triangle', f0: f, dur: 0.5, vol: 0.16, delay: i * 0.22 }));
+    Snd.tone({ type: 'sine', f0: 72, f1: 36, dur: 1.5, vol: 0.22, delay: 0.9 });
+  } catch (e) {}
+};
 
 /* شروع کات‌سین باخت — از gameOver() صدا می‌شود */
 function startDefeatCine() {
   if (state.mode === 'defeatcine' || state.mode === 'gameover') return;
-  /* (۱۳٫۰) صدای راوی هنگام شروع سقوط برج */
-  try { VOICE.speak('برج فرو ریخت... زامبی‌ها همه‌جا هستند.', 'n', 'fdf1'); } catch (e) {}
+  /* (۱۵٫۰) هیچ گفتگو/راوی‌ای پخش نمی‌شود — فقط «صدای باخت» */
+  try { VOICE.stop(); } catch (e) {}
+  try { DLG.skip(); } catch (e) {}
+  try { SFX.defeatSting(); } catch (e) {}
   const alive = state.zombies.filter(z => !z.dead);
   /* نزدیک‌ترین‌ها بالا می‌روند (حداکثر ۶) — بقیه به سمت برج می‌دوند */
   const near = alive.slice().sort((a, b) => Math.abs(a.x - TOWER.x) - Math.abs(b.x - TOWER.x)).slice(0, 6);
@@ -9461,7 +9492,7 @@ function startDefeatCine() {
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   setBuildPanel(true, true);                    // پنل جمع: حالت سینمایی
   $('wrap').classList.add('cs-mode');           // پنل‌ها/نوارها مخفی (CSS)
-  $('skipCs').classList.remove('hidden');       // دکمه‌ی «رد کردن»
+  /* (۱۵٫۰) دکمه‌ی «رد کردن» هنگام باخت دیگر نشان داده نمی‌شود */
   /* CS ساختگی برای drawTower / drawRubble / drawPlayer / drawTowerCracks
      (zombies/car خالی — رندرکننده‌ی موجودیت‌های کات‌سین به آن‌ها نگاه می‌کند) */
   CS = {
@@ -9477,7 +9508,7 @@ function startDefeatCine() {
   updateHUD();
 }
 
-/* پایان کات‌سین → صفحه‌ی باخت با «ادامه از آخرین روز» */
+/* پایان کات‌سین → صفحه‌ی باخت (۱۵٫۰: ساده — فقط یک خط آمار) */
 function finishDefeatCine() {
   if (!DF || DF.ended) return;
   DF.ended = true;
@@ -9488,11 +9519,10 @@ function finishDefeatCine() {
   $('wrap').classList.remove('cs-mode');
   $('skipCs').classList.add('hidden');
   hideAnnounce();
-  $('goSubtitle').textContent = 'برج فرو ریخت... تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دووم آوردی.';
-  $('goStats').innerHTML = '🧟 کشتار: <b>' + faNum(state.stats.kills) + '</b> &nbsp;|&nbsp; 💰 سکه جمع‌شده: <b>' + faNum(state.stats.earned) +
-    '</b> &nbsp;|&nbsp; 🔥 بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b> &nbsp;|&nbsp; 🛡 کشتار برجک‌ها: <b>' + faNum(state.stats.turKills) +
-    '</b> &nbsp;|&nbsp; 🔫 شلیک: <b>' + faNum(state.stats.shots) + '</b>';
-  /* دکمه‌ی «ادامه از آخرین روز» فقط وقتی سیو معتبری هست */
+  $('goSubtitle').textContent = 'تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دوام آوردی';
+  $('goStats').innerHTML = 'کشتار: <b>' + faNum(state.stats.kills) +
+    '</b> &nbsp;•&nbsp; بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b>';
+  /* «تلاش دوباره» فقط وقتی سیو معتبری هست (با سیوِ شروع موج تقریباً همیشه هست) */
   const hasSave = !!loadSaveData();
   $('btnRetryDay').classList.toggle('hidden', !hasSave);
   SFX.gameover();
@@ -10244,9 +10274,10 @@ function init() {
   $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
   $('btnResume').addEventListener('click', resumeGame);
   $('btnRestart0').addEventListener('click', startGame);
-  /* (۱۲٫۰) باخت: «ادامه از آخرین روز» (از آخرین سیو) و «شروع از اول» */
+  /* (۱۵٫۰) باخت: «تلاش دوباره» (سیو با همه‌ی وسایل) و «منوی اصلی» —
+     دیگر «شروع از اول» نیست؛ سیو پاک نمی‌شود */
   $('btnRetryDay').addEventListener('click', retryFromSave);
-  $('btnRestart1').addEventListener('click', startGame);
+  $('btnRestart1').addEventListener('click', exitToMenu);
   $('btnRestart2').addEventListener('click', startGame);
   initSaveCodeUI();   // (۱۳٫۰) صفحه‌ی کد سیو
 
