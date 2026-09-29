@@ -414,7 +414,7 @@ function init() {
   $('ctlPause').addEventListener('click', () => {
     if (state.mode === 'paused') resumeGame(); else pauseGame();
   });
-  $('btnNight').addEventListener('click', startNight);   // شروع شب (۵٫۰)
+  $('bpNight').addEventListener('click', startNight);   // (۱۶٫۰) شروع شب — دکمه‌ی داخل پنل ساخت‌وساز
   $('btnResume').addEventListener('click', resumeGame);
   $('btnRestart0').addEventListener('click', startGame);
   /* (۱۵٫۰) باخت: «تلاش دوباره» (سیو با همه‌ی وسایل) و «منوی اصلی» —

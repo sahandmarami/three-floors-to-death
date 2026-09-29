@@ -3,20 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۴٫۰: داستان بازنویسی‌شده با صدای نورال فارسی و متن هم‌زمان، دستفروش مرموزِ استوری‌مود، تب بقا با آیکون، رابط بدون هم‌پوشانی و بهینه برای موبایل و اندروید">
+<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۶٫۰: دکمه‌ی شروع شب داخل پنل ساخت‌وساز، کوله‌پشتی با قاب رنگی هر وسیله، و تاریکیِ لکه‌ایِ متغیر از فصل دو — بهینه برای موبایل و اندروید">
 <title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۴٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۱۶٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
-   تازه‌های ۱۴٫۰:
-     - دکمه‌ی «شب شود» به پایین‌وسط رفت — دیگر با اعلان «صبح شد!»
-       روی هم نمی‌افتند (بازخورد کاربر: متنی روی متن)
-     - کلاس dlg-on: هنگام گفتگوی داستانی، دکمه‌ی شب/اعلان/کوله/توست
-       مخفی می‌شوند — گفتگو همیشه تمیز دیده می‌شود
-     - منو و صفحه‌ها چابک‌تر: متن‌های اضافی حذف شدند
-     - جعبه‌ی گفتگو و اعلان در صفحه‌های کوتاه (گوشی) فشرده می‌شوند
-     - راهنمای چرخش گوشی تمام‌صفحه شد (portrait)
+   تازه‌های ۱۶٫۰ (بازخورد کاربر):
+     - «شب شود» دیگر دکمه‌ی شناورِ گوشه‌ی صفحه نیست — دکمه‌ی
+       طلاییِ خودِ پنل ساخت‌وساز شد (زیر سربرگ؛ باز و جمع)
+     - جاخاله‌های کوله‌پشتی خوشگل‌تر: قاب و هاله‌ی رنگی هر وسیله،
+       حذف جعبه‌درون‌جعبه، کی‌چیپ لطیف، «+» وسطِ جاخالیِ خالی
+     - تاریکی از فصل ۲ لکه‌ای و متغیر: پایه‌ی ملایم همه‌جا +
+       لکه‌های شناورِ تیره‌تر — بعضی جاها کمی، بعضی خیلی، بعضی روشن
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -55,8 +54,9 @@ body{display:flex;align-items:center;justify-content:center}
   #dlgText{font-size:13.5px;line-height:1.6;min-height:22px}
   #dlgBox{bottom:14px}
 }
-/* (۱۴٫۰) کلاس dlg-on: هنگام گفتگو، UIِ هم‌مکان مخفی — هیچ متنی روی متن نمی‌نشیند */
-#wrap.dlg-on #dayPanel,
+/* (۱۴٫۰) کلاس dlg-on: هنگام گفتگو، UIِ هم‌مکان مخفی — گفتگو تمیز بماند
+   (۱۶٫۰) پنل ساخت‌وساز می‌ماند ولی «شب شود»ی داخلش مخفی می‌شود */
+#wrap.dlg-on #bpNight,
 #wrap.dlg-on #announce,
 #wrap.dlg-on #backpackBar,
 #wrap.dlg-on #saveToast,
@@ -236,27 +236,24 @@ body{display:flex;align-items:center;justify-content:center}
 #bpTip b{display:block;color:#ffd873;font-size:12px;margin-bottom:2px}
 #bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
 
-/* ---------- ۵٫۵) پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============
-       (۱۵٫۰) از «پایین‌وسط» به «پایین‌راست» منتقل شد: در ارتفاع کم
-       (گوشی) دقیقاً روی برج می‌افتاد و بد دیده می‌شد؛ حالا گوشه‌ی آزادِ
-       صفحه است — دور از برج، کوله‌پشتی (پایین‌چپ) و ریل چپ. */
-#dayPanel{position:absolute;bottom:64px;right:16px;z-index:6;
-  display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}
-#btnNight{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:15.5px;font-weight:bold;
-  color:#141a2e;background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:999px;
-  padding:10px 34px;box-shadow:0 4px 22px rgba(240,180,60,.4);
-  transition:transform .15s,filter .15s;animation:nightGlow 1.6s ease-in-out infinite}
-#btnNight:hover{transform:translateY(-2px) scale(1.03);filter:brightness(1.07)}
-@keyframes nightGlow{0%,100%{box-shadow:0 4px 18px rgba(240,180,60,.32)}50%{box-shadow:0 4px 30px rgba(240,180,60,.62)}}
-#dpHint{font-size:10.5px;font-weight:bold;color:#e8ecf5;background:rgba(8,14,30,.72);
-  border:1px solid #26355c;border-radius:999px;padding:4px 12px;backdrop-filter:blur(4px);opacity:.92;
-  max-width:250px;text-align:center}
+/* ---------- ۵٫۵) (۱۶٫۰) «شب شود» داخل پنل ساخت‌وساز ============
+       بازخورد کاربر: دکمه‌ی شناورِ گوشه‌ی راست «بد دیده می‌شود و
+       زائد است» — مثل یک لایه‌ی چسبیده به صفحه بود. حالا شروع شب
+       دکمه‌ی طلاییِ خودِ پنل است: زیر سربرگ، همیشه سرِ جایش؛
+       پنلِ باز → نوار پهن، پنلِ جمع → قرص کوچک زیر سربرگ. */
+#bpNight{display:block;width:calc(100% - 12px);margin:6px 6px 0;padding:8px 10px;
+  font-family:inherit;font-size:12.5px;font-weight:bold;color:#1a1206;text-align:center;
+  background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:10px;cursor:pointer;
+  box-shadow:0 3px 14px rgba(240,180,60,.35),inset 0 1px 0 rgba(255,255,255,.45);
+  transition:filter .15s,transform .15s}
+#bpNight:hover{filter:brightness(1.08);transform:translateY(-1px)}
+#bpNight.hidden{display:none}
+#buildPanel.collapsed #bpNight{width:auto;margin:5px 6px 0;padding:7px 13px;font-size:11.5px}
 
 /* ---------- ۵٫۶) کات‌سین داستانی (۷٫۰) ----------
    حین کات‌سین، پنل روز/پنل ساخت‌وساز مخفی می‌شوند تا صحنه سینمایی
    تمیز بماند؛ HUD بالا می‌ماند تا بازیکن ببیند جون و سکه‌اش حفظ شده است. */
-#wrap.cs-mode #buildPanel,
-#wrap.cs-mode #dayPanel {display:none!important}
+#wrap.cs-mode #buildPanel {display:none!important}
 /* دکمه‌ی «رد کردن» گوشه‌ی صفحه (روی نوار سیاه سینمایی می‌نشیند) */
 #skipCs{position:absolute;bottom:9px;left:16px;z-index:9;pointer-events:auto;cursor:pointer;
   font-family:inherit;font-size:12.5px;font-weight:bold;color:#c3cdea;
@@ -327,32 +324,44 @@ body{display:flex;align-items:center;justify-content:center}
    نسخه‌ی ۱۳٫۰ — صدای نورال فارسی + ریل چپ + نوار ارتقا + سیو اطمینانی
    ================================================================== */
 
-/* --- کوله‌پشتی (۶ جا) پایین‌چپ — (۱۲٫۰) وقتی خالی است فقط یک قرص کوچک --- */
-#backpackBar{position:absolute;bottom:6px;left:10px;z-index:5;display:flex;gap:5px;align-items:center;
-  opacity:.92;transition:opacity .2s;pointer-events:none}
+/* --- کوله‌پشتی (۶ جا) پایین‌چپ — (۱۶٫۰) بازطراحی: جاخاله‌ی خوشگل ---
+   پیشتر آیکونِ رنگی داخل یک جعبه‌ی آبیِ دیگری می‌نشست (جعبه‌درون‌جعبه)
+   و همه‌ی جاخاله‌ها یک‌دست تیره و بی‌روح بودند. حالا:
+   • آیکونِ هر وسیله خودش قاب اسلات است (بدون جعبه‌ی دوم)
+   • قاب و هاله‌ی نور به رنگِ همان وسیله است (از JS ست می‌شود)
+   • جاخالیِ خالی = خط‌چین کم‌رنگ + «+» در وسط
+   • کی‌چیپ کوچک و لطیف، گوشه‌ی بالا-راست اسلات */
+#backpackBar{position:absolute;bottom:8px;left:12px;z-index:5;display:flex;gap:6px;align-items:center;
+  opacity:.94;transition:opacity .2s;pointer-events:none}
 #backpackBar:hover{opacity:1}
-.bpk-cap{font-size:9.5px;font-weight:bold;color:#9fb2dd;background:linear-gradient(180deg,rgba(20,32,66,.9),rgba(10,17,38,.9));
-  border:1px solid #3d548c;border-radius:8px;padding:4px 8px;pointer-events:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.bpk-cap{font-size:10px;font-weight:bold;color:#cdd9f4;background:linear-gradient(180deg,rgba(24,36,72,.92),rgba(11,18,40,.92));
+  border:1px solid #46609e;border-radius:10px;padding:5px 9px;pointer-events:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 3px 10px rgba(0,0,0,.35)}
 /* حالت خالی: جاخالی‌های خالیِ چسبیده رسم نمی‌شوند (ضدشلوغی ۱۲٫۰) */
 #backpackBar.compact #bpkSlots{display:none}
 #backpackBar.compact .bpk-cap{color:#ffd873;border-color:#e8b54a}
-#bpkSlots{display:flex;gap:4px}
-.bpk-slot{position:relative;width:46px;height:46px;background:linear-gradient(180deg,rgba(26,40,80,.9),rgba(10,17,38,.9));border:1.5px solid #33518f;
-  border-radius:9px;cursor:pointer;pointer-events:auto;display:flex;align-items:center;justify-content:center;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+#bpkSlots{display:flex;gap:6px}
+.bpk-slot{position:relative;width:50px;height:50px;border-radius:12px;cursor:pointer;pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;background:transparent;
+  border:1.5px solid #33518f;box-shadow:0 4px 12px rgba(0,0,0,.35);
   transition:border-color .15s,transform .15s,box-shadow .15s}
-.bpk-slot:hover{border-color:#e8b54a;transform:translateY(-2px)}
-.bpk-slot canvas{width:40px;height:40px;display:block}
-.bpk-slot.empty{border-style:dashed;opacity:.6}
-.bpk-slot.empty::after{content:'+';font-size:16px;color:#4d6aa8;font-weight:900}
-.bpk-slot .bpk-key{position:absolute;top:1px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
-  border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
+.bpk-slot:hover{transform:translateY(-2px) scale(1.04)}
+.bpk-slot canvas{width:46px;height:46px;display:block;border-radius:10px}
+.bpk-slot.empty{border-style:dashed;border-color:rgba(96,128,196,.7);box-shadow:inset 0 2px 10px rgba(2,6,16,.5);opacity:.88}
+.bpk-slot.empty canvas{opacity:0}
+.bpk-slot.empty::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:17px;color:#93a9d8;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.bpk-slot .bpk-key{position:absolute;top:-4px;right:-4px;font-size:8px;font-weight:bold;
+  background:linear-gradient(180deg,#2a3a68,#16224a);border:1px solid #46609e;border-radius:5px;
+  padding:0 4px;color:#cdd9f4;line-height:1.6;box-shadow:0 2px 5px rgba(0,0,0,.4)}
 .bpk-slot.ready{border-color:#5fae6a}
 @keyframes bpkReady{0%,100%{box-shadow:0 0 4px rgba(123,227,137,.25)}50%{box-shadow:0 0 12px rgba(123,227,137,.55)}}
 .bpk-slot.ready{animation:bpkReady 1.7s infinite}
 @keyframes bpkDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .bpk-slot.deny{animation:bpkDeny .3s;border-color:#e04b3a}
+/* لمس: جاخاله‌های بزرگ‌تر برای انگشت */
+#wrap.touch .bpk-slot{width:56px;height:56px}
+#wrap.touch .bpk-slot canvas{width:52px;height:52px}
 
 /* --- پنل دستفروش مرموز (۱۵٫۰: بالاتر و کمی راست‌تر — گوشه‌اش دیگر
    روی دکمه‌ی توقفِ ریل چپ نمی‌نشیند؛ فقط روزها) --- */
@@ -412,7 +421,7 @@ body{display:flex;align-items:center;justify-content:center}
 
 /* --- حالت سینمایی کامل (افتتاحیه/انتقال‌ها): همه‌ی UI مخفی --- */
 #wrap.cine-mode #hud, #wrap.cine-mode #buildPanel,
-#wrap.cine-mode #dayPanel, #wrap.cine-mode #backpackBar, #wrap.cine-mode #peddlerPanel,
+#wrap.cine-mode #backpackBar, #wrap.cine-mode #peddlerPanel,
 #wrap.cine-mode #bossBar, #wrap.cine-mode #lockBadge {display:none!important}
 /* در منو هم کوله/دستفروش/قفل مخفی باشند */
 #wrap.menu-mode #backpackBar, #wrap.menu-mode #peddlerPanel, #wrap.menu-mode #lockBadge,
@@ -518,22 +527,20 @@ body{display:flex;align-items:center;justify-content:center}
   <!-- (۱۲٫۰) نوار سلاح پایین حذف شد — انتخاب سلاح از تب «سلاح‌ها»ی پنل ساخت‌وساز یا کلید ۱/۲/۳ -->
 
   <!-- ============ پنل ساخت‌وساز تب‌دار (۱۲٫۰) ============
-       چهار تب: ارتقاء / سلاح‌ها / برجک‌ها / بقا — کاشی‌ها در JS ساخته می‌شوند. -->
+       چهار تب: ارتقاء / سلاح‌ها / برجک‌ها / بقا — کاشی‌ها در JS ساخته می‌شوند.
+       (۱۶٫۰) «شب شود» دکمه‌ی طلاییِ خودِ پنل است — زیر سربرگ؛
+       جای دکمه‌ی شناورِ گوشه‌ی راست را گرفت. -->
   <div id="buildPanel">
     <div class="bp-head" id="bpHead" title="خرید وسط بازی هم مجاز است — کلید B جمع/باز">
       🛠 ساخت‌وساز <span class="bp-chev" id="bpChev">▾</span>
     </div>
+    <button id="bpNight" class="hidden">🌙 شب شود</button>
     <div class="bp-tabs" id="bpTabs"></div>
     <div id="bpList"></div>
   </div>
   <div id="bpTip"></div>
 
-  <!-- ============ پنل روز (۵٫۰): دکمه‌ی شروع شب بعد از هر موج ============
-       (۱۵٫۰) پایین‌راست — دیگر روی برج نمی‌نشیند -->
-  <div id="dayPanel" class="hidden">
-    <button id="btnNight">🌙 شب شود</button>
-    <span id="dpHint">زامبی نمی‌آید — ارتقا بخر و برجک بگذار</span>
-  </div>
+  <!-- (۱۶٫۰) پنل روزِ شناور حذف شد — «شب شود» داخل پنل ساخت‌وساز است -->
 
   <!-- ============ (۱۰٫۰) پنل دستفروش مرموز — کنار فروشگاه، فقط بعضی روزها ============ -->
   <div id="peddlerPanel" class="hidden">
@@ -612,7 +619,7 @@ body{display:flex;align-items:center;justify-content:center}
       <p class="subtitle">چهار فصل، سی‌وشب زنده‌ماندن و رسیدن به پناهگاه</p>
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر — گلوله به <b>سر</b> زامبی بخورد، ضربه‌ی بحرانی می‌گیری</div>
-        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — ارتقا بخر و برجک بگذار، بعد با دکمه‌ی «شب شود» موج بعد را شروع کن</div>
+        <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — ارتقا بخر و برجک بگذار، بعد با دکمه‌ی طلاییِ «شب شود» (زیر سربرگِ پنل ساخت‌وساز) موج بعد را شروع کن</div>
         <div>🗺 <b>چهار فصل:</b> محله‌ی قدیمی → منطقه‌ی انبارها (مه‌گرفته) → پاسگاه نظامی (خرابه) → برج مخابراتی (برفی و بارونی)؛ هر فصل ۸ موج است و دشمن‌ها هر فصل سریع‌تر و چاق‌تر می‌شوند — جون، سکه، سلاح‌ها، ارتقاها و کوله‌پشتی‌ات بین فصل‌ها حفظ می‌شود</div>
         <div>🎬 <b>انتقال بین فصل‌ها:</b> برج می‌شکند و با ارشان فرار می‌کنی — اول صحنه‌ی سینمایی، بعد کنترل با تو (پرش: <b>↑ یا Space</b>، خم‌شدن زیر تیرآهن‌ها: <b>↓</b>، کم‌وزیاد کردن سرعت: <b>←/→</b>) و آخر دوباره صحنه‌ی سینمایی؛ توی هر فرار یک <b>آیتم مخفی</b> هم هست!</div>
         <div>🎒 <b>کوله‌پشتی (۶ جا):</b> «وسایل بقی» را از فروشگاه بخر و با کلیک روی جاخالی‌ها یا کلیدهای <b>Q W E R Y U</b> مصرف کن — کنسرو = شفای تدریجی، کیت = شفای فوری، باتری = شارژ چراغ‌قوه</div>

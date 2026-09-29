@@ -189,13 +189,18 @@ function initBackpackUI() {
   refreshBackpack();
 }
 
-/* به‌روزرسانی جاخالی‌ها (آیکون + حالت) — (۱۲٫۰) کوله‌ی خالی = فقط یک قرص کوچک */
+/* به‌روزرسانی جاخالی‌ها (آیکون + حالت) — (۱۲٫۰) کوله‌ی خالی = فقط یک قرص کوچک
+   (۱۶٫۰) قاب و هاله‌ی هر جاخالی به رنگِ همان وسیله ست می‌شود —
+   وسیله‌های آماده‌ی مصرف قاف سبز می‌گیرند (CSS)، بقیه رنگ خودشان را */
 function refreshBackpack() {
   const any = state.backpack.some(s => s);
   const bar = $('backpackBar');
   if (bar) bar.classList.toggle('compact', !any);
   const cap = $('bpkCap');
-  if (cap) cap.textContent = any ? '🎒 کوله' : '🎒 کوله خالی — خرید از تب «بقا»';
+  const n = state.backpack.filter(s => s).length;
+  if (cap) cap.textContent = any
+    ? '🎒 کوله ' + faNum(n) + '/' + faNum(6)
+    : '🎒 کوله خالی — خرید از تب «بقا»';
   for (let i = 0; i < 6; i++) {
     const el = $('bpk-' + i);
     if (!el) continue;
@@ -205,6 +210,15 @@ function refreshBackpack() {
     const usable = !!s && (GEAR[s.id] || (RARE[s.id] && !state.buffs[s.id]));
     el.classList.toggle('ready', usable);
     paintGearIcon(s ? s.id : null, cv);
+    /* (۱۶٫۰) قاب/هاله‌ی رنگی — سبزِ CSS برای آماده‌ها را با استایل
+       درون‌خطی له نمی‌کنیم؛ فقط غیرآماده‌ها رنگ خودشان را می‌گیرند */
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+    if (s && !usable) {
+      const col = GEAR_ICON_COLORS[s.id] || '#ffd873';
+      el.style.borderColor = col;
+      el.style.boxShadow = '0 0 12px ' + hexA(col, 0.32) + ',0 4px 12px rgba(0,0,0,.35)';
+    }
   }
 }
 
@@ -418,9 +432,50 @@ function refreshGearHUD() {
 
 /* ---------------------- ۶-۶) تاریکی و دایره‌ی نور ---------------------- */
 /* لایه‌ی تاریکی: مهِ فصل ۲، قطع برق تصادفی و «آخرین شب».
-   نورها: محیطِ مهتابی + چراغ‌قوه‌ی بازیکن + دهانه‌ی اسلحه + برجک‌ها */
+   نورها: محیطِ مهتابی + چراغ‌قوه‌ی بازیکن + دهانه‌ی اسلحه + برجک‌ها
+   (۱۶٫۰) تاریکیِ «لکه‌ای و متغیر» به‌جای پوششِ یکدستِ سنگین:
+   پایه‌ی ملایم همه‌جا + ابرهای شناورِ تیره‌تر — بازخورد کاربر:
+   «از فصل دو به بعد کلا تاریک نشود؛ متغیر باشد — بعضی جاها
+   یه‌قدر تاریک، بعضی جاها کامل، بعضی جاها اصلاً» */
 const Dark = {
-  level: 0, target: 0,
+  level: 0, target: 0, _blobs: null, _cl: null,
+
+  /* ابرِ لکه‌ای: اسپرایتی از ۷ گرادیانِ نرمِ روی‌هم — چون همه‌ی
+     گرادیان‌ها با شبه‌تصادفِ ثابت رسم می‌شوند، فقط یک بار در
+     هر اجرا ساخته می‌شود و بعد فقط drawImage (کارایی ۱۲٫۰) */
+  _cloud() {
+    if (this._cl) return this._cl;
+    const s = document.createElement('canvas');
+    s.width = 512; s.height = 512;
+    const c = s.getContext('2d');
+    let seed = 137;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 7; i++) {
+      const x = 96 + rnd() * 320, y = 96 + rnd() * 320, r = 88 + rnd() * 148;
+      const g = c.createRadialGradient(x, y, r * 0.14, x, y, r);
+      g.addColorStop(0, 'rgba(3,7,17,0.5)');
+      g.addColorStop(1, 'rgba(3,7,17,0)');
+      c.fillStyle = g; c.fillRect(0, 0, 512, 512);
+    }
+    this._cl = s;
+    return s;
+  },
+  /* میدانِ ۴ لکه‌ی شناور: هرکدام مقیاس/شدت/سرعتِ خودش را دارد —
+     کمتر و کوچک‌تر از پیش تا «جاهای بدون تاریکی» هم دیده شوند */
+  _field() {
+    if (this._blobs) return this._blobs;
+    const arr = [];
+    for (let i = 0; i < 4; i++) arr.push({
+      x: (i + 0.5) / 4 * W + (Math.random() - 0.5) * 160,
+      y: Math.random() * H,
+      sc: 0.62 + Math.random() * 0.5,
+      a: 0.42 + Math.random() * 0.28,
+      vx: (Math.random() - 0.5) * 9, vy: (Math.random() - 0.5) * 6,
+      ph: Math.random() * Math.PI * 2,
+    });
+    this._blobs = arr;
+    return arr;
+  },
 
   /* شعاع نور محیطی (مهتاب/مه) — در قطع برق کامل کوچک می‌شود */
   ambientR() {
@@ -450,6 +505,18 @@ const Dark = {
     if (!(state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission')) t = 0;
     this.target = t;
     this.level += (this.target - this.level) * Math.min(1, dt * 2.4);
+
+    /* (۱۶٫۰) دریفتِ آرامِ لکه‌های تاریکی — می‌آیند و می‌روند؛
+       تاریکی هیچ‌وقت ثابت و یکدست به چشم نمی‌آید */
+    if (this.level > 0.04) {
+      for (const b of this._field()) {
+        b.x += (b.vx + Math.sin(animTime * 0.13 + b.ph) * 7) * dt;
+        b.y += (b.vy + Math.cos(animTime * 0.11 + b.ph) * 5) * dt;
+        const m = 300 * b.sc;
+        if (b.x < -m) b.x = W + m; else if (b.x > W + m) b.x = -m;
+        if (b.y < -m) b.y = H + m; else if (b.y > H + m) b.y = -m;
+      }
+    }
 
     /* مصرف باتری وقتی چراغ در تاریکی روشن است */
     if (state.torch.on && this.level > 0.25 && state.torch.battery > 0) {
@@ -494,7 +561,7 @@ const Dark = {
   render() {
     if (this.level <= 0.04) return;
     if (!(state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission')) return;
-    const a = clamp(this.level, 0, 1) * 0.94;
+    const lv = clamp(this.level, 0, 1);
     /* بوم جدا برای لایه‌ی تاریکی: سوراخ‌ها (نورها) این‌جا زده می‌شوند و بعد
        کل لایه روی صحنه می‌نشیند — destination-out مستقیم روی بوم اصلی، خودِ
        صحنه را هم پاک می‌کرد (باگ ۱۰٫۰) */
@@ -502,8 +569,21 @@ const Dark = {
     const c = this.cv.getContext('2d');
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, W, H);
-    c.fillStyle = 'rgba(3,6,15,' + a.toFixed(3) + ')';
+    /* (۱۶٫۰) ترکیبِ لکه‌ای:
+       • پایه: پوششِ ملایم همه‌جا (فصل ۲ ~۰٫۲؛ جاهای خالی تقریباً روشن)
+       • قطع برق/آخرین شب: پایه سنگین‌تر + لکه‌های قوی‌تر
+       • لکه‌ها: ۴ ابر با آلفا/مقیاس متفاوت → بعضی نقاط تاریکِ کامل */
+    const heavy = (state.blackout.on || (state.wave >= FINAL_WAVE && state.mode === 'playing')) ? 1 : 0;
+    const base = lv * (0.26 + 0.38 * heavy);
+    c.fillStyle = 'rgba(4,8,18,' + base.toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
+    const ps = Math.min(1.3, lv / 0.5) * (heavy ? 1.45 : 1);
+    for (const b of this._field()) {
+      const w = 512 * b.sc, h = 512 * b.sc;
+      c.globalAlpha = Math.min(0.52, b.a * ps);
+      c.drawImage(this._cloud(), b.x - w / 2, b.y - h / 2, w, h);
+    }
+    c.globalAlpha = 1;
     c.globalCompositeOperation = 'destination-out';
     const L = this.lightXY();
     this.punch(c, L.x, L.y, Math.max(this.ambientR(), this.flashR() + 26), false);  // نور محیطی

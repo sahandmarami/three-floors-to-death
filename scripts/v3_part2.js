@@ -697,14 +697,15 @@ function waveComplete() {
   updateHUD();
 }
 
-/* پنل روز: دکمه‌ی شروع شب + راهنما (۵٫۰) — (۱۰٫۰) برچسب موج درون‌فصلی/آخرین شب */
+/* پنل روز (۱۶٫۰): «شب شود» حالا دکمه‌ی طلاییِ داخل پنل ساخت‌وساز است
+   (زیر سربرگ) — برچسب موج درون‌فصلی/آخرین شب (۱۰٫۰) */
 function showDayPanel() {
-  $('btnNight').innerHTML = (state.wave + 1 >= FINAL_WAVE)
+  $('bpNight').innerHTML = (state.wave + 1 >= FINAL_WAVE)
     ? '🌑 آخرین شب'
     : '🌙 شب شود — موج ' + faNum(waveInChapter(state.wave + 1));
-  $('dayPanel').classList.remove('hidden');
+  $('bpNight').classList.remove('hidden');
 }
-function hideDayPanel() { $('dayPanel').classList.add('hidden'); }
+function hideDayPanel() { $('bpNight').classList.add('hidden'); }
 
 /* کلیک «شب شود»: گذار گرگ‌ومیش و بعد شروع موج بعد (۵٫۰) */
 function startNight() {
