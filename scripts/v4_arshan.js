@@ -1,15 +1,23 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۷٫۰ — بخش ۱۰: ارشان روی برج
+   سه طبقه تا بقا — نسخه‌ی ۱۸٫۰ — بخش ۱۰: ارشان روی برج
    ==================================================================
    حضور منطقیِ ارشان در طول گیم‌پلی دفاعی (نه فقط کات‌سین‌ها):
-     • روی لبه‌ی طبقه‌ی دوم برج می‌ایستد — کنار برجک‌ها و پنل ساخت‌وساز
+     • (۱۸٫۰) روی بامِ برج می‌ایستد — پشت کنگره‌ها، کنار بازیکن.
+       «جای دیده‌بان» است: پاها روی سکوی واقعیِ بام، نه لبه‌ی
+       معلقِ طبقه‌ی دوم. حین فروریختن، همراه بام حرکت/محو می‌شود.
      • انیمیشن ساده: دیده‌بانی با دوربین (وقتی دسته از دور می‌آید)،
        مهمات‌رسانی (وقتی بازیکن رگبار می‌ریزد)، نگاه به سمت خطر
-     • با سیستم بارک صوتی موجود، وسط موج جمله‌های کوتاه محاوره‌ای می‌گوید:
-       هشدار گروه بزرگ / تشویق بعد از کشتار / باتری چراغ‌قوه / ترک برج /
-       صبح بخیر بعد از هر موج — ۶ کلیپ تازه (aw1..aw6 در voices17)
-   رندر: drawTowerArshan() از render() صدا زده می‌شود؛ آلفایش با طبقه‌ی
-   دوم برج هم‌گام است (حین فروریختن/باخت همراه طبقه محو می‌شود).
+     • (۱۸٫۰) منطق «پایین‌رفتن»: وقتی برج ترک می‌خورد (جون < ۳۲٪)
+       با طناب پایین می‌رود (محو می‌شود) — هم‌زمان با بارک aw5؛
+       تا جون ۴۵٪ برنگردد (هیسترزیس). صبحِ روزِ تعمیرشده برمی‌گردد.
+       در کات‌سین/انتقال/افتتاحیه حاضر نیست (با بازیکن است).
+     • با سیستم بارک صوتی موجود، وسط موج جمله‌های کوتاه محاوره‌ای
+       می‌گوید: هشدار گروه بزرگ / تشویق / باتری چراغ‌قوه / ترک برج /
+       صبح بخیر بعد از هر موج — ۶ کلیپ (aw1..aw6 در voices17)
+     • (۱۸٫۰) کارایی: هاله‌ی فانوس شب از یک اسپرایت پیش‌پخته
+       رسم می‌شود (drawImage) — دیگر shadowBlur هر فریم نیست.
+   رندر: drawTowerArshan() از داخل drawTower() بین «طبقه‌ها» و
+   «کنگره‌ها» صدا زده می‌شود — کنگره‌ها پایین‌تنه‌اش را می‌پوشانند.
    ================================================================== */
 
 /* ---- ۱۰-۱) وضعیت ارشان روی برج ---- */
@@ -23,6 +31,8 @@ const ARSHAN = {
   ammo: 0, ammoNext: 8,     /* تایمر مهمات‌رسانی */
   fireHeat: 0,              /* آیا بازیکن در حال رگبار است؟ */
   look: 1,                   /* جهت نگاه: -1 چپ / 1 راست */
+  vis: 1, visT: 1,          /* (۱۸٫۰) حضور روی بام (۰..۱) + هدف */
+  _glow: null,               /* (۱۸٫۰) اسپرایت پیش‌پخته‌ی هاله‌ی فانوس */
 };
 
 const ARSHAN_BARKS = {
@@ -30,7 +40,8 @@ const ARSHAN_BARKS = {
   aw2: { who: 'a', v: 'aw2', text: 'حواست باشه! یه گروه بزرگ از اون طرف داره میاد!', title: '⚠️ [ارشان]:', sub: 'حواست باشه! یه گروه بزرگ از اون طرف داره میاد!' },
   aw3: { who: 'a', v: 'aw3', text: 'دمت گرم! همین‌جوری بزن!', title: '🔥 [ارشان]:', sub: 'دمت گرم! همین‌جوری بزن!' },
   aw4: { who: 'a', v: 'aw4', text: 'باتری چراغ‌قوه‌ت داره تموم می‌شه!', title: '🔋 [ارشان]:', sub: 'باتری چراغ‌قوه‌ت داره تموم می‌شه!' },
-  aw5: { who: 'a', v: 'aw5', text: 'برج ترک خورده! حواست جمع باشه!', title: '🧱 [ارشان]:', sub: 'برج ترک خورده! حواست جمع باشه!' },
+  /* (۱۸٫۰) هم‌زمان با پایین‌رفتنِ تصویری‌اش با طناب وقتی برج ترک می‌خورد */
+  aw5: { who: 'a', v: 'aw5', text: 'برج ترک خورده! من می‌رم پایین — تو فقط حواست جمع باشه!', title: '🧱 [ارشان]:', sub: 'برج ترک خورده! من می‌رم پایین — تو فقط حواست جمع باشه!' },
   aw6: { who: 'a', v: 'aw6', text: 'خسته نباشی! موج بعدی رو من رصد می‌کنم.', title: '🌤 [ارشان]:', sub: 'خسته نباشی! موج بعدی رو من رصد می‌کنم.' },
 };
 
@@ -43,8 +54,21 @@ function arshanForce(key) {
   return true;
 }
 
-/* ---- ۱۰-۲) منطق: بارک‌های وسط موج (UPDATE_HOOKS) ---- */
+/* ---- ۱۰-۲) منطق: حضور روی بام + بارک‌های وسط موج ---- */
 UPDATE_HOOKS.push(function arshanUpdate(dt) {
+  /* (۱۸٫۰) هدفِ حضور: فقط در صحنه‌های دفاعی/روز/منو روی بام است؛
+     در کات‌سین/انتقال/افتتاحیه/باخت با بازیکن است (نامرئی) */
+  ARSHAN.visT = 1;
+  if (!(state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission' || state.mode === 'start')) {
+    ARSHAN.visT = 0;
+  } else if (state.mode === 'playing') {
+    const ratio = state.tower.hp / state.tower.maxHp;
+    /* برج ترک خورده؟ با طناب پایین می‌رود؛ تا تعمیرِ محسوس برنمی‌گردد */
+    if (ratio < 0.32) ARSHAN.visT = 0;
+    else if (ratio < 0.45) ARSHAN.visT = ARSHAN.vis < 0.5 ? 0 : 1;   /* هیسترزیس */
+  }
+  ARSHAN.vis += (ARSHAN.visT - ARSHAN.vis) * Math.min(1, dt * 3.2);
+
   if (state.mode === 'playing') {
     ARSHAN.playT += dt;
     ARSHAN.dayT = 0; ARSHAN.dayDone = false;
@@ -126,18 +150,40 @@ UPDATE_HOOKS.push(function arshanUpdate(dt) {
   }
 });
 
-/* ---- ۱۰-۳) رسم ارشان روی لبه‌ی طبقه‌ی دوم برج ---- */
-/* از render() بعد از drawTower() صدا زده می‌شود؛ آلفا با طبقه‌ی دوم
-   هم‌گام است (فروریختن/باخت) — در منو هم دیده می‌شود (صحنه‌ی زنده) */
-function drawTowerArshan() {
-  if (typeof TOWER === 'undefined') return;
-  /* آلفای طبقه‌ی دوم (کات‌سین فروریختن/باخت) */
-  const f1 = (CS && CS.draw) ? CS.draw.floors[1] : null;
-  const alpha = f1 ? f1.a : 1;
-  if (alpha < 0.35) return;
+/* ---- ۱۰-۳) (۱۸٫۰) اسپرایت پیش‌پخته‌ی هاله‌ی فانوس ----
+   یک‌بار ساخته می‌شود؛ هر فریم فقط drawImage — بدون shadowBlur */
+function arshanGlow() {
+  if (ARSHAN._glow) return ARSHAN._glow;
+  const c = document.createElement('canvas');
+  c.width = 96; c.height = 96;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(48, 48, 4, 48, 48, 46);
+  rg.addColorStop(0, 'rgba(255,214,130,0.85)');
+  rg.addColorStop(0.35, 'rgba(255,205,120,0.32)');
+  rg.addColorStop(1, 'rgba(255,200,110,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, 96, 96);
+  ARSHAN._glow = c;
+  return c;
+}
 
-  const ax = TOWER.x + 44;
-  const ay = GROUND_Y - 137;              // روی لبه‌ی برآمده‌ی طبقه‌ی دوم
+/* (۱۸٫۰) آیا ارشان الان روی بام رسم می‌شود؟ — فقط صحنه‌های دفاعی/روز/منو.
+   دروازه در خودِ رسم است (نه فقط هوک) چون هوک‌ها در intro/transition/
+   cutscene اجرا نمی‌شوند و vis همان لحظه صفر نمی‌شود */
+function arshanOnRoof() {
+  return ARSHAN.vis > 0.35 &&
+    (state.mode === 'playing' || state.mode === 'day' ||
+     state.mode === 'intermission' || state.mode === 'start');
+}
+
+/* ---- ۱۰-۴) رسم ارشان روی بامِ برج (پشت کنگره‌ها) ----
+   از drawTower() بین طبقه‌ها و کنگره‌ها صدا زده می‌شود — تبدیلِ
+   طبقه‌ی سوم (چرخش/سقوط) را فراخواننده اعمال کرده است.
+   مختصات محلی: پاها روی خط بام (TOWER_TOP_Y)، سمت راستِ پرچم. */
+function drawTowerArshan() {
+  if (!arshanOnRoof()) return;               /* (۱۸٫۰) دروازه‌ی حالت — مستقل از هوک‌ها */
+  const ax = TOWER.x + 38;
+  const ay = TOWER_TOP_Y - 1;
   const bob = Math.sin(animTime * 2.2) * 1.1;
   const look = ARSHAN.look;
   const binoc = ARSHAN.binoc > 0;
@@ -145,109 +191,110 @@ function drawTowerArshan() {
   const night = state.dayness < 0.45;
 
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(0, f1 && f1.dy ? f1.dy : 0);
+  ctx.globalAlpha *= ARSHAN.vis;
 
-  /* نور فانوس شب */
+  /* نور فانوس شب — اسپرایت پیش‌پخته (۱۸٫۰) */
   if (night) {
-    const lg = ctx.createRadialGradient(ax, ay - 22, 3, ax, ay - 22, 46);
-    lg.addColorStop(0, 'rgba(255,214,130,' + (0.22 + 0.06 * Math.sin(animTime * 3)).toFixed(2) + ')');
-    lg.addColorStop(1, 'rgba(255,214,130,0)');
-    ctx.fillStyle = lg; circle(ax, ay - 22, 46);
+    const gs = arshanGlow();
+    const fl = 0.5 + 0.16 * Math.sin(animTime * 3);   /* سوسوِ ملایم */
+    const sc = 1 + 0.06 * Math.sin(animTime * 3);
+    const ga = ctx.globalAlpha;
+    ctx.globalAlpha = ga * fl;
+    ctx.drawImage(gs, ax - 48 * sc, ay - 22 + bob - 48 * sc, 96 * sc, 96 * sc);
+    ctx.globalAlpha = ga;
   }
 
-  /* سایه روی لبه */
+  /* سایه روی کفِ بام */
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath(); ctx.ellipse(ax, ay + 2, 11, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(ax, ay + 1, 10, 2.8, 0, 0, Math.PI * 2); ctx.fill();
 
   ctx.translate(ax, ay + bob);
   if (binoc) ctx.translate(0, -1.5);
 
   /* پاها */
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4.4; ctx.lineCap = 'round';
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4.2; ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(-3.4, -12); ctx.lineTo(-4.6 + look * 1.4, 0);
-  ctx.moveTo(3.4, -12); ctx.lineTo(4.6 + look * 1.4, 0);
+  ctx.moveTo(-3.2, -12); ctx.lineTo(-4.4 + look * 1.4, 0);
+  ctx.moveTo(3.2, -12); ctx.lineTo(4.4 + look * 1.4, 0);
   ctx.stroke();
 
   /* بدن — کاپشن سبز ارشان */
   ctx.fillStyle = '#4a7a4a';
-  rr(-8, -27, 16, 16, 5); ctx.fill();
+  rr(-7.6, -26, 15.2, 15, 5); ctx.fill();
   ctx.fillStyle = '#3a6238';
-  ctx.fillRect(-8, -13, 16, 3);
+  ctx.fillRect(-7.6, -12.5, 15.2, 3);
 
   /* بازوها */
-  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.6;
+  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.4;
   ctx.beginPath();
   if (binoc) {
     /* دوربین جلوی چشم‌ها */
-    ctx.moveTo(-4, -23); ctx.lineTo(-1, -31);
-    ctx.moveTo(4, -23); ctx.lineTo(1, -31);
+    ctx.moveTo(-4, -22); ctx.lineTo(-1, -30);
+    ctx.moveTo(4, -22); ctx.lineTo(1, -30);
   } else if (ammo) {
     /* جعبه‌ی مهمات جلو داده‌شده */
     const push = Math.sin(animTime * 6) * 1.4;
-    ctx.moveTo(-4, -23); ctx.lineTo(-9 - push, -19);
-    ctx.moveTo(4, -23); ctx.lineTo(9 + push, -19);
+    ctx.moveTo(-4, -22); ctx.lineTo(-9 - push, -18);
+    ctx.moveTo(4, -22); ctx.lineTo(9 + push, -18);
   } else {
     const sway = Math.sin(animTime * 2.2) * 1.6;
-    ctx.moveTo(-4, -23); ctx.lineTo(-7, -15 + sway);
-    ctx.moveTo(4, -23); ctx.lineTo(7, -15 - sway);
+    ctx.moveTo(-4, -22); ctx.lineTo(-7, -14 + sway);
+    ctx.moveTo(4, -22); ctx.lineTo(7, -14 - sway);
   }
   ctx.stroke();
 
   /* سر + کلاه قرمز ارشان */
-  ctx.fillStyle = '#f0c49a'; circle(look * 1.2, -32, 6.2);
+  ctx.fillStyle = '#f0c49a'; circle(look * 1.2, -31, 6);
   ctx.fillStyle = '#7a2a2a';
-  ctx.beginPath(); ctx.arc(look * 1.2, -32.6, 6.6, Math.PI, Math.PI * 2); ctx.fill();
-  ctx.fillRect(look * 1.2 - 7, -33.4, 14, 2.6);
+  ctx.beginPath(); ctx.arc(look * 1.2, -31.6, 6.4, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillRect(look * 1.2 - 6.8, -32.4, 13.6, 2.5);
 
   /* دوربین دوچشمی هنگام دیده‌بانی */
   if (binoc) {
     ctx.fillStyle = '#1d2433';
-    rr(look * 1.2 - 4.6, -33.5, 4, 4.6, 1.4); ctx.fill();
-    rr(look * 1.2 + 0.6, -33.5, 4, 4.6, 1.4); ctx.fill();
+    rr(look * 1.2 - 4.4, -32.5, 3.8, 4.4, 1.3); ctx.fill();
+    rr(look * 1.2 + 0.6, -32.5, 3.8, 4.4, 1.3); ctx.fill();
     ctx.fillStyle = 'rgba(160,215,255,0.8)';
-    ctx.fillRect(look * 1.2 - 3.8, -31.6, 2.4, 1.4);
-    ctx.fillRect(look * 1.2 + 1.4, -31.6, 2.4, 1.4);
-    /* برق لنز */
+    ctx.fillRect(look * 1.2 - 3.6, -30.7, 2.3, 1.3);
+    ctx.fillRect(look * 1.2 + 1.4, -30.7, 2.3, 1.3);
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.fillRect(look * 1.2 - 3.2, -32.8, 1.1, 1.1);
-    ctx.fillRect(look * 1.2 + 2, -32.8, 1.1, 1.1);
+    ctx.fillRect(look * 1.2 - 3, -31.8, 1, 1);
+    ctx.fillRect(look * 1.2 + 2, -31.8, 1, 1);
   }
 
   /* چشم‌ها (وقتی دوربین بالا نیست) */
   if (!binoc) {
     ctx.fillStyle = '#1d2433';
-    circle(look * 1.2 + look * 2 - 1.6, -33, 1);
-    circle(look * 1.2 + look * 2 + 1.8, -33, 1);
+    circle(look * 1.2 + look * 2 - 1.5, -32, 1);
+    circle(look * 1.2 + look * 2 + 1.7, -32, 1);
   }
 
   /* جعبه‌ی مهمات در دست‌ها */
   if (ammo) {
     const push = Math.sin(animTime * 6) * 1.4;
     ctx.save();
-    ctx.translate(0, -18);
-    ctx.fillStyle = '#8a6a3c'; rr(-8 - push * 0.4, -5, 16, 10, 2); ctx.fill();
+    ctx.translate(0, -17);
+    ctx.fillStyle = '#8a6a3c'; rr(-7.6 - push * 0.4, -4.8, 15.2, 9.5, 2); ctx.fill();
     ctx.fillStyle = '#6d5230';
-    ctx.fillRect(-8 - push * 0.4, -1.5, 16, 2);
+    ctx.fillRect(-7.6 - push * 0.4, -1.4, 15.2, 2);
     ctx.fillStyle = '#ffd873';
-    circle(-3, -2.5, 1.1); circle(2.5, -2.5, 1.1);
+    circle(-2.8, -2.4, 1.05); circle(2.4, -2.4, 1.05);
     ctx.restore();
     /* برق مهمات که بالا می‌رود (حس رساندن به بازیکن) */
-    if (Math.random() < 0.12) {
-      spawnParticles(ax + rand(-6, 6), ay - 26, 1, '#ffd873',
-        { speed: 40, life: 0.6, size: 1.6, grav: -60 });
+    if (Math.random() < 0.1) {
+      spawnParticles(ax + rand(-6, 6), ay - 25, 1, '#ffd873',
+        { speed: 40, life: 0.6, size: 1.5, grav: -60 });
     }
   }
 
-  /* فانوس کوچک شب (دست راست) */
+  /* فانوس کوچک شب (دست راست) — بدون shadowBlur (۱۸٫۰) */
   if (night && !ammo && !binoc) {
-    ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 2.6;
-    ctx.beginPath(); ctx.moveTo(6, -20); ctx.lineTo(10, -13); ctx.stroke();
+    ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(6, -19); ctx.lineTo(9.4, -12.6); ctx.stroke();
     ctx.fillStyle = '#ffd873';
-    ctx.save();
-    ctx.shadowColor = '#ffd873'; ctx.shadowBlur = 8;
-    circle(10.4, -11.6, 2.8); ctx.restore();
+    circle(9.8, -11.2, 2.6);
+    ctx.fillStyle = 'rgba(255,236,170,0.9)';
+    circle(9.8, -11.2, 1.2);
   }
 
   ctx.restore();

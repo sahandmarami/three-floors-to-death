@@ -3,23 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۷٫۰: مینی‌گیم رانندگی شبه‌سه‌بعدی بین فصل ۱ و ۲، ارشانِ دیده‌بان روی طبقه‌ی دوم برج با جمله‌های وسط موج، و دیالوگ‌های افتتاحیه‌ی محاوره‌ای — بهینه برای موبایل و اندروید">
+<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۸٫۰: روان‌سازی جدی برای موبایل (حذف بلورهای سنگین GPU)، ارشانِ دیده‌بان روی بام برج پشت کنگره‌ها با منطقِ پایین‌رفتن با طناب، موج‌های فصل‌به‌فصلِ بیشتر (۴/۶/۸/۱۰) و فرارِ منطقی‌تر — بهینه برای موبایل و اندروید">
 <title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۷٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۱۸٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
+   تازه‌های ۱۸٫۰ (بازخورد کاربر):
+     - روان‌سازی جدی: همه‌ی backdrop-filter ها (بلورهای شیشه‌ای روی
+       بومِ همیشه در حال تغییر) حذف شدند — عامل اصلی لگ/هنگ روی
+       گوشی؛ هاله‌های فانوس/چراغ‌ها هم اسپرایت پیش‌پخته شدند
+     - جای ارشان منطقی شد: روی بامِ برج، پشت کنگره‌ها (جای دیده‌بان)،
+       کنار بازیکن؛ وقتی برج ترک می‌خورد با طناب پایین می‌رود (با
+       بارکش هم‌زمان است) — و فرارش در کات‌سین دقیقاً منطبق بر آن
+     - راننده = بازیکن در سمت چپ (مثل ایران)، ارشان صندلی کمکی راست
+     - موج‌ها فصل‌به‌فصل بیشتر می‌شوند: فصل ۱ = ۴ موج، فصل ۲ = ۶،
+       فصل ۳ = ۸، فصل ۴ = ۱۰ (مجموع ۲۸ شب)؛ سختیِ انتهای هر فصل
+       مثل قبل است
+     - دو دیالوگ منطقی‌تر: t1n1 (فرار ارشان با طناب) و aw5 (می‌رم
+       پایین)
+
    تازه‌های ۱۷٫۰ (بازخورد کاربر):
      - مینی‌گیم رانندگی شبه‌سه‌بعدی (فصل ۱→۲): جاده‌ی پرسپکتیو با
        پیچ و خطوط رونده، موانع/زامبی‌هایی که از دور بزرگ می‌شوند،
        فرمان/گاز/ترمز (کیبورد، لمس، کج‌کردن گوشی)، ارشان روی صندلی
        کمکی + آیتم مخفیِ کنار جاده با ستون نور
-     - ارشان حالا در گیم‌پلی دفاعی روی لبه‌ی طبقه‌ی دوم برج است:
-       دیده‌بانی با دوربین، مهمات‌رسانی، نگاه به سمت خطر + بارک‌های
-       کوتاه محاوره‌ای وسط موج (۶ صدای تازه)
+     - ارشان حالا در گیم‌پلی دفاعی روی برج حضور دارد (۱۸٫۰: بام،
+       پشت کنگره‌ها): دیده‌بانی با دوربین، مهمات‌رسانی، نگاه به سمت
+       خطر + بارک‌های کوتاه محاوره‌ای وسط موج (۶ صدای تازه)
      - دیالوگ‌های افتتاحیه محاوره‌ای شدند (هم‌لحن انتقال‌ها) + خط
        راوی که توضیح می‌دهد چرا ارشان همان لحظه‌ی فروریختن با ماشین
-       می‌رسد (از قبل پایین بود و ماشین را گرم کرده بود)
+       می‌رسد (۱۸٫۰: با طناب از برج پایین رفته و ماشین را گرم کرده)
      - تونل و زیپ‌لاین: لایه‌ی عمق پرسپکتیو (موانع دور = کوچک/کم‌رنگ)
 
    تازه‌های ۱۶٫۰ (بازخورد کاربر):
@@ -50,9 +64,11 @@ body{display:flex;align-items:center;justify-content:center}
   display:flex;align-items:flex-end;gap:10px;direction:rtl;max-width:88%;pointer-events:none}
 #dlgPortrait{width:92px;height:92px;border-radius:14px;background:rgba(10,14,26,.92);
   border:2px solid #e8b54a;flex:none;margin-bottom:5px;transition:box-shadow .3s}
-#dlgTextWrap{position:relative;background:linear-gradient(180deg,rgba(24,34,62,.96),rgba(10,16,34,.96));
+/* (۱۸٫۰) backdrop-filter حذف شد — روی GPU گوشی هر فریمِ تایپ، تارکردنِ
+   کل ناحیه پشت جعبه را اجبار می‌کرد (علت اصلی لگ گفتگوها) */
+#dlgTextWrap{position:relative;background:linear-gradient(180deg,rgba(22,32,60,.98),rgba(8,14,32,.98));
   border:1.5px solid #4d6aa8;border-radius:14px 14px 4px 14px;padding:9px 16px 11px;min-width:320px;max-width:600px;
-  box-shadow:0 10px 34px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07);backdrop-filter:blur(3px)}
+  box-shadow:0 10px 34px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08)}
 #dlgWho{font-size:12px;font-weight:bold;letter-spacing:.5px;margin-bottom:3px}
 #dlgText{font-size:15.5px;line-height:1.85;min-height:28px;color:#fdf7e3;font-weight:bold;
   text-shadow:0 1px 2px rgba(0,0,0,.8)}
@@ -102,10 +118,10 @@ body{display:flex;align-items:center;justify-content:center}
 #hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
   align-items:flex-start;padding:8px 12px;gap:10px;pointer-events:none;z-index:5}
 .hud-group{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;min-width:0}
-.hud-item{display:flex;align-items:center;gap:6px;background:linear-gradient(180deg,rgba(20,32,66,.86),rgba(10,17,38,.86));
+.hud-item{display:flex;align-items:center;gap:6px;background:linear-gradient(180deg,rgba(20,32,66,.94),rgba(10,17,38,.94));
   border:1px solid #3d548c;border-radius:10px;padding:4px 10px;font-size:12.5px;font-weight:bold;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 10px rgba(0,0,0,.4);
-  backdrop-filter:blur(4px);white-space:nowrap;color:#eef2ff;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  white-space:nowrap;color:#eef2ff;text-shadow:0 1px 2px rgba(0,0,0,.7)}
 #healthBar{width:128px;height:13px;background:#160c0c;border:1px solid #55302f;border-radius:7px;overflow:hidden}
 #healthFill{height:100%;width:100%;border-radius:7px;transition:width .18s ease;
   background:linear-gradient(90deg,#2ee06b,#8cff9a);box-shadow:0 0 8px rgba(72,224,120,.5)}
@@ -130,11 +146,10 @@ body{display:flex;align-items:center;justify-content:center}
   display:flex;flex-direction:column;gap:7px;align-items:center}
 .ctl-btn{pointer-events:auto;cursor:pointer;width:42px;height:42px;border-radius:13px;
   font-family:inherit;font-size:17px;color:#e8ecf5;line-height:1;
-  background:linear-gradient(180deg,rgba(20,32,66,.88),rgba(10,17,38,.88));
+  background:linear-gradient(180deg,rgba(20,32,66,.94),rgba(10,17,38,.94));
   border:1px solid #3d548c;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 10px rgba(0,0,0,.4);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  backdrop-filter:blur(4px);
   transition:background .15s,transform .15s,border-color .15s}
 .ctl-btn:hover{background:linear-gradient(180deg,rgba(42,63,116,.95),rgba(26,37,70,.95));
   border-color:#e8b54a;transform:translateX(2px)}
@@ -178,8 +193,8 @@ body{display:flex;align-items:center;justify-content:center}
    چراغ‌قوه دیده نمی‌شد)، چهار تب: ارتقاء / سلاح‌ها / برجک‌ها / بقا.
    در شب خودکار «جمع» می‌شود تا شلیک آزاد بماند. */
 #buildPanel{position:absolute;top:60px;right:10px;width:208px;z-index:5;
-  background:linear-gradient(180deg,rgba(16,26,54,.92),rgba(9,15,34,.92));border:1px solid #384f86;
-  border-radius:13px;backdrop-filter:blur(5px);overflow:visible;
+  background:linear-gradient(180deg,rgba(16,26,54,.96),rgba(9,15,34,.96));border:1px solid #384f86;
+  border-radius:13px;overflow:visible;
   box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
 /* حالت جمع‌شده: فقط سربرگ به‌صورت یک قرص کوچک در آسمان */
 #buildPanel.collapsed{width:auto}
@@ -245,7 +260,7 @@ body{display:flex;align-items:center;justify-content:center}
 /* تولتیپ آیتم‌ها: نام + توضیح + وضعیت (جای متنِ حذف‌شده‌ی کاشی‌ها) */
 #bpTip{position:absolute;z-index:8;width:172px;background:rgba(10,16,36,.97);border:1px solid #4d6aa8;
   border-radius:10px;padding:8px 10px;font-size:11px;color:#cdd8f2;pointer-events:none;
-  display:none;backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.55);text-align:right;line-height:1.55}
+  display:none;box-shadow:0 8px 24px rgba(0,0,0,.55);text-align:right;line-height:1.55}
 #bpTip b{display:block;color:#ffd873;font-size:12px;margin-bottom:2px}
 #bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
 
@@ -270,13 +285,14 @@ body{display:flex;align-items:center;justify-content:center}
 /* دکمه‌ی «رد کردن» گوشه‌ی صفحه (روی نوار سیاه سینمایی می‌نشیند) */
 #skipCs{position:absolute;bottom:9px;left:16px;z-index:9;pointer-events:auto;cursor:pointer;
   font-family:inherit;font-size:12.5px;font-weight:bold;color:#c3cdea;
-  background:rgba(8,14,30,.78);border:1px solid #33477c;border-radius:999px;padding:7px 18px;
-  backdrop-filter:blur(4px);transition:color .15s,border-color .15s,transform .15s,background .15s}
+  background:rgba(8,14,30,.88);border:1px solid #33477c;border-radius:999px;padding:7px 18px;
+  transition:color .15s,border-color .15s,transform .15s,background .15s}
 #skipCs:hover{color:#ffd873;border-color:#ffd873;background:rgba(20,30,60,.92);transform:translateY(-1px)}
 
 /* ---------- ۶) اورلی‌ها و پنل‌ها (۱۲٫۰: کادرهای پررنگ‌تر) ---------- */
+/* (۱۸٫۰) بلور اورلی هم حذف شد — پشت آن بوم هر فریم تازه می‌شود */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
-  background:rgba(4,7,18,.72);backdrop-filter:blur(5px)}
+  background:rgba(4,7,18,.8)}
 .hidden{display:none!important}
 .panel{background:linear-gradient(180deg,#1a2648,#0c1329);border:1px solid #4d6aa8;border-radius:16px;
   padding:24px 30px;text-align:center;max-width:560px;width:88%;max-height:92%;overflow-y:auto;
@@ -378,8 +394,8 @@ body{display:flex;align-items:center;justify-content:center}
 
 /* --- پنل دستفروش مرموز (۱۵٫۰: بالاتر و کمی راست‌تر — گوشه‌اش دیگر
    روی دکمه‌ی توقفِ ریل چپ نمی‌نشیند؛ فقط روزها) --- */
-#peddlerPanel{position:absolute;top:48px;left:66px;width:178px;z-index:6;background:rgba(13,10,26,.92);
-  border:1px solid #4a3a6a;border-radius:12px;padding:8px;backdrop-filter:blur(4px);
+#peddlerPanel{position:absolute;top:48px;left:66px;width:178px;z-index:6;background:rgba(13,10,26,.95);
+  border:1px solid #4a3a6a;border-radius:12px;padding:8px;
   box-shadow:0 10px 34px rgba(0,0,0,.5);animation:pdIn .4s ease}
 #wrap.touch #peddlerPanel{left:72px}
 @keyframes pdIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
@@ -401,8 +417,8 @@ body{display:flex;align-items:center;justify-content:center}
 
 /* --- نشان قفل فروشگاه در آخرین شب --- */
 #lockBadge{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:6;
-  font-size:11.5px;font-weight:bold;color:#ffb3ab;background:rgba(30,6,10,.88);border:1px solid #7c2d2e;
-  border-radius:999px;padding:5px 15px;backdrop-filter:blur(3px);animation:lockPulse 1.6s infinite}
+  font-size:11.5px;font-weight:bold;color:#ffb3ab;background:rgba(30,6,10,.9);border:1px solid #7c2d2e;
+  border-radius:999px;padding:5px 15px;animation:lockPulse 1.6s infinite}
 @keyframes lockPulse{0%,100%{box-shadow:0 0 4px rgba(224,75,58,.2)}50%{box-shadow:0 0 14px rgba(224,75,58,.5)}}
 
 /* --- هشدار تمام‌صفحه «آخرین شب» --- */
@@ -463,8 +479,8 @@ body{display:flex;align-items:center;justify-content:center}
 /* --- (۱۳٫۰) منوی تمیز: دکمه‌های کوچک زیر دکمه‌های اصلی --- */
 .menu-mini{display:flex;justify-content:center;gap:8px;margin-top:13px;flex-wrap:wrap}
 .mini-btn{cursor:pointer;font-family:inherit;font-size:12px;font-weight:bold;color:#cdd8f2;
-  background:linear-gradient(180deg,rgba(26,38,74,.9),rgba(15,24,50,.9));border:1px solid #33518f;
-  border-radius:999px;padding:8px 18px;transition:.15s;backdrop-filter:blur(4px);
+  background:linear-gradient(180deg,rgba(26,38,74,.94),rgba(15,24,50,.94));border:1px solid #33518f;
+  border-radius:999px;padding:8px 18px;transition:.15s;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 10px rgba(0,0,0,.35)}
 .mini-btn:hover{color:#ffd873;border-color:#e8b54a;background:rgba(34,52,100,.95);transform:translateY(-1px)}
 #wrap.touch .mini-btn{padding:10px 20px;font-size:13px}
@@ -650,7 +666,7 @@ body{display:flex;align-items:center;justify-content:center}
         <div class="foe"><span class="dot" style="--c:#7fa657"></span><span><b>معمولی</b><i>آهسته ولی تعدادش زیاد است</i></span></div>
         <div class="foe"><span class="dot" style="--c:#c9a35a"></span><span><b>سریع</b><i>کم‌جون اما تیز می‌دود</i></span></div>
         <div class="foe"><span class="dot" style="--c:#8a8794"></span><span><b>تانک</b><i>زره‌پوش و کاسه‌ی سخت</i></span></div>
-        <div class="foe"><span class="dot" style="--c:#9c3546"></span><span><b>نگهبانِ آخرین شب</b><i>موج ۳۳ — آوار پرت می‌کند و زامبی صدا می‌زند!</i></span></div>
+        <div class="foe"><span class="dot" style="--c:#9c3546"></span><span><b>نگهبانِ آخرین شب</b><i>موج ۲۸ — آوار پرت می‌کند و زامبی صدا می‌زند!</i></span></div>
       </div>
       <div class="btn-row"><button class="btn-sec" id="closeHowto">برگرد به منو</button></div>
     </div>
@@ -673,7 +689,7 @@ body{display:flex;align-items:center;justify-content:center}
   <div class="overlay hidden" id="gameoverScreen">
     <div class="panel" style="max-width:400px">
       <h1>💀 باختی!</h1>
-      <p class="subtitle" id="goSubtitle">تا شب ۱ از ۳۳ دوام آوردی</p>
+      <p class="subtitle" id="goSubtitle">تا شب ۱ از ۲۸ دوام آوردی</p>
       <p class="stat-line" id="goStats"></p>
       <div class="btn-row">
         <button class="btn-main" id="btnRetryDay">🌅 تلاش دوباره</button>
@@ -724,7 +740,7 @@ body{display:flex;align-items:center;justify-content:center}
       <h2>ℹ️ درباره‌ی بازی</h2>
       <p class="subtitle">سه طبقه تا بقا</p>
       <div class="howto" style="text-align:right">
-        <div>یک ویروس ناشناخته شهر را خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتان دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیو خبر شنیدید برسید. ۴ فصل، ۳۳ شب، ۳ فرار سینمایی و یک «آخرین شب».</div>
+        <div>یک ویروس ناشناخته شهر را خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتان دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیو خبر شنیدید برسید. ۴ فصل، ۲۸ شب (موج‌ها فصل به فصل بیشتر می‌شوند)، ۳ فرار سینمایی و یک «آخرین شب».</div>
         <div>همه‌چیز با <b>HTML5 Canvas</b> و جاوااسکریپت خالص در <b>یک فایل واحد</b> ساخته شده — گفتگوها هم با صدای فارسی داخل خود بازی جاسازی شده‌اند. 🧡</div>
       </div>
       <div class="btn-row"><button class="btn-main" id="closeAbout">برگرد</button></div>
@@ -746,7 +762,7 @@ body{display:flex;align-items:center;justify-content:center}
   <div class="overlay hidden" id="victoryScreen">
     <div class="panel">
       <h1>🏆 پیروزی!</h1>
-      <p class="subtitle">از ۳۳ شب زنده موندی، نگهبانِ آخرین شب را هم از پا درآوردی — پناهگاه نزدیک است!</p>
+      <p class="subtitle">از ۲۸ شب زنده موندی، نگهبانِ آخرین شب را هم از پا درآوردی — پناهگاه نزدیک است!</p>
       <p class="stat-line" id="vStats"></p>
       <div class="btn-row"><button class="btn-main" id="btnRestart2">🔄 بازی دوباره</button></div>
     </div>

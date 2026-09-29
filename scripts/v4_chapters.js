@@ -16,12 +16,38 @@
    ================================================================== */
 
 /* ---------------------- ۵-۱) ثابت‌های فصل‌بندی ---------------------- */
-const WAVES_PER_CH = 8;                    // موج‌های عادی هر فصل
-const FINAL_WAVE = 33;                     // ۴×۸ + ۱ = موج آخرِ کل بازی («آخرین شب»)
+const WAVES_CH = [4, 6, 8, 10];              // (۱۸٫۰) موج‌های هر فصل — که جلو می‌ریم بیشتر
+const WAVES_PER_CH = 8;                    // مبنای مقیاس‌گذاری سختی (نسخه‌های ۱۵-۱۷)
+const FINAL_WAVE = 28;                     // ۴+۶+۸+۱۰ = آخرین شبِ کل بازی
 
-/* شماره‌ی فصل/موجِ درون‌فصلی از شماره‌ی موجِ سراسری */
-function waveChapter(w) { return w <= 8 ? 1 : w <= 16 ? 2 : w <= 24 ? 3 : 4; }
-function waveInChapter(w) { return clamp(w, 1, FINAL_WAVE) - (waveChapter(clamp(w, 1, FINAL_WAVE)) - 1) * WAVES_PER_CH; }
+/* شماره‌ی فصل/موجِ درون‌فصلی از شماره‌ی موجِ سراسری (۱۸٫۰: هر فصل طول متفاوت) */
+function wavesInChapter(ch) { return WAVES_CH[clamp(ch, 1, 4) - 1]; }
+function waveChapter(w) {
+  w = clamp(w, 1, FINAL_WAVE);
+  let acc = 0;
+  for (let c = 1; c <= 4; c++) { acc += WAVES_CH[c - 1]; if (w <= acc) return c; }
+  return 4;
+}
+function waveInChapter(w) {
+  w = clamp(w, 1, FINAL_WAVE);
+  const ch = waveChapter(w);
+  let acc = 0;
+  for (let c = 1; c < ch; c++) acc += WAVES_CH[c - 1];
+  return w - acc;
+}
+/* (۱۸٫۰) موجِ «معادل» روی مقیاس ۱..۸ برای سختی/ترکیب/فاصله‌ی تولد —
+   اولین موج هر فصل = ۱ و آخرین موج هر فصل = ۸؛ یعنی انتهای هر فصل
+   دقیقاً به سختیِ نسخه‌های ۱۵-۱۷ می‌رسد، فقط راهِ رسیدن کوتاهتر است */
+function wvEff(w) {
+  const ch = waveChapter(w), wv = waveInChapter(w), n = wavesInChapter(ch);
+  return n <= 1 ? 1 : 1 + (wv - 1) * 7 / (n - 1);
+}
+/* سیوهای نسخه‌های ۳۳موجی به‌تناسب به بازه‌ی ۱..۲۸ منتقل می‌شوند */
+function compatWave(w) {
+  w = Math.round(Number(w) || 1);
+  if (w > FINAL_WAVE) w = Math.max(1, Math.round(w * FINAL_WAVE / 33));
+  return clamp(w, 1, FINAL_WAVE);
+}
 
 /* ابزارهای تصادفی مکمل */
 function irand(a, b) { return Math.floor(rand(a, b + 0.999)); }
@@ -34,7 +60,7 @@ function chance(p) { return Math.random() < p; }
 const CHAPTERS = [
   { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
     name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
-    waves: WAVES_PER_CH,
+    waves: WAVES_CH[0],
     mulHp: 1.00, mulSpd: 1.00, mulCount: 1.08,
     unlock: { fast: 3, tank: 6 },
     blackout: null,
@@ -54,7 +80,7 @@ const CHAPTERS = [
   },
   { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
     name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
-    waves: WAVES_PER_CH,
+    waves: WAVES_CH[1],
     mulHp: 1.30, mulSpd: 1.08, mulCount: 1.18,
     unlock: { fast: 1, tank: 3 },
     blackout: { min: 1, max: 2 },
@@ -75,7 +101,7 @@ const CHAPTERS = [
   },
   { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
     name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
-    waves: WAVES_PER_CH,
+    waves: WAVES_CH[2],
     mulHp: 1.58, mulSpd: 1.14, mulCount: 1.28,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 0, max: 1 },
@@ -97,7 +123,7 @@ const CHAPTERS = [
   },
   { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
     name: 'برج مخابراتی', sub: 'آخرین قله',
-    waves: WAVES_PER_CH,
+    waves: WAVES_CH[3],
     mulHp: 1.92, mulSpd: 1.20, mulCount: 1.38,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 1, max: 2 },
@@ -125,7 +151,7 @@ function curCh() { return CHAPTERS[clamp(state.chapter - 1, 0, 3)]; }
 function waveLabel() {
   if (state.wave >= FINAL_WAVE) return '🌑 آخرین شب';
   const w = clamp(state.wave, 1, FINAL_WAVE);
-  return 'فصل ' + faNum(waveChapter(w)) + ' • موج ' + faNum(waveInChapter(w)) + '/' + faNum(WAVES_PER_CH);
+  return 'فصل ' + faNum(waveChapter(w)) + ' • موج ' + faNum(waveInChapter(w)) + '/' + faNum(wavesInChapter(waveChapter(w)));
 }
 
 /* ---------------------- ۵-۲) تولید ترکیب موج‌ها ---------------------- */
@@ -133,10 +159,10 @@ function waveLabel() {
    موج آخرِ کل بازی فقط نگهبان است (زامبی‌هایش را خودش فراخوان می‌کند) */
 function buildWaveQueue(w) {
   if (w >= FINAL_WAVE) return ['boss'];
-  const ch = waveChapter(w), wv = waveInChapter(w), C = CHAPTERS[ch - 1];
-  let n = Math.round((5 + wv * 1.85) * C.mulCount);          // (۱۱٫۰) موج‌ها پرتر
-  const f = wv >= C.unlock.fast ? Math.round(n * 0.32) : 0;
-  const t = wv >= C.unlock.tank ? Math.max(1, Math.round(n * 0.16)) : 0;
+  const ch = waveChapter(w), e = wvEff(w), C = CHAPTERS[ch - 1];
+  let n = Math.round((5 + e * 1.85) * C.mulCount);         // (۱۱٫۰) موج‌ها پرتر
+  const f = e >= C.unlock.fast ? Math.round(n * 0.32) : 0;
+  const t = e >= C.unlock.tank ? Math.max(1, Math.round(n * 0.16)) : 0;
   n = Math.max(3, n - Math.round((f + t) * 0.55));
   const q = [];
   for (let i = 0; i < n; i++) q.push('normal');
@@ -152,8 +178,8 @@ function buildWaveQueue(w) {
 /* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر
    (۱۵٫۰) کمی بازتر — فشار هجوم روی گوشی قابل‌تحمل شد */
 function spawnInterval(w) {
-  const ch = waveChapter(w), wv = waveInChapter(w);
-  return clamp(2.15 - wv * 0.12 - (ch - 1) * 0.16, 0.6, 2.15);
+  const ch = waveChapter(w), e = wvEff(w);
+  return clamp(2.15 - e * 0.12 - (ch - 1) * 0.16, 0.6, 2.15);
 }
 
 /* ---------------------- ۵-۳) بازنویسی جریان اصلی ---------------------- */
@@ -268,7 +294,7 @@ function waveComplete() {
   $('lockBadge').classList.add('hidden');
   /* آخرین موجِ فصل → انتقال سینمایی-قابل‌بازی به فصل بعد (۱۰٫۰) */
   const ch = waveChapter(state.wave), wv = waveInChapter(state.wave);
-  if (wv === WAVES_PER_CH && ch < 4) {
+  if (wv === wavesInChapter(ch) && ch < 4) {
     startTransition(ch);
     return;
   }
@@ -327,7 +353,7 @@ function showBossWarn() {
 function spawnZombie(type) {
   const T = ZTYPES[type || 'normal'];
   const C = curCh();
-  const wv = waveInChapter(clamp(state.wave, 1, FINAL_WAVE));
+  const wv = wvEff(clamp(state.wave, 1, FINAL_WAVE));   // (۱۸٫۰) مقیاس سختی ۱..۸
   const side = Math.random() < 0.5 ? -1 : 1;
   /* (۱۱٫۰) نگهبانِ آخرین شب جونِ ثابت دارد — ضریب فصل روی او اعمال نمی‌شود
      (زرهاش خودش سختی را می‌سازند: ×۰٫۵ معمولی، ×۲٫۶ کریتِ سر) */
@@ -365,7 +391,7 @@ function startChapter(ch) {
   ch = clamp(ch, 1, 4);
   state.chapter = ch;
   state.towerVariant = ch - 1;                 // پوسته‌ی برج فصل
-  state.wave = (ch - 1) * WAVES_PER_CH;        // موج بعدی = این + ۱
+  state.wave = WAVES_CH.slice(0, ch - 1).reduce((a, b) => a + b, 0);   // (۱۸٫۰) موج بعدی = این + ۱
   state.turrets = [];                          // برجک‌ها روی برج قبلی ماندند
   state.placing = null;
   state.zombies = []; state.bullets = []; state.projectiles = [];
@@ -377,7 +403,7 @@ function startChapter(ch) {
   state.mode = 'day';
   enterDay();
   setAnnounce('🗺 فصل ' + CH_ORD[ch - 1] + ': ' + curCh().name,
-    curCh().sub + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(WAVES_PER_CH) + ' در راه است', 3.2);
+    curCh().sub + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(ch)) + ' در راه است', 3.2);
   showChapterCard(ch);
 }
 
@@ -495,7 +521,8 @@ function loadSaveData() {
     const d = JSON.parse(STORE.get(SAVE_KEY));
     if (!d || d.v !== 1) return null;
     if (!CHAPTERS[(d.chapter | 0) - 1]) return null;
-    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > FINAL_WAVE) return null;
+    if (typeof d.wave !== 'number' || d.wave < 1) return null;
+    d.wave = compatWave(d.wave);               // (۱۸٫۰) سیوهای ۳۳موجی هم خوانده می‌شوند
     if (typeof d.coins !== 'number' || !d.upgrades || !d.stats || !d.flash) return null;
     return d;
   } catch (e) { return null; }
@@ -509,7 +536,7 @@ function loadSaveData() {
 function applySave(d) {
   try {
     startGame();
-    state.chapter = clamp(d.chapter | 0, 1, 4);
+    state.chapter = waveChapter(clamp(d.wave | 0, 1, FINAL_WAVE));   // (۱۸٫۰) فصل از خودِ موج
     state.towerVariant = state.chapter - 1;
     state.wave = clamp(d.wave | 0, 1, FINAL_WAVE) - 1;   // enterDay با +1 ادامه می‌دهد
     state.coins = Math.max(0, d.coins | 0);
@@ -587,7 +614,7 @@ function importSaveCode(code) {
     const raw = decodeURIComponent(escape(atob(c.slice(6))));
     const d = JSON.parse(raw);
     if (!d || d.v !== 1 || !CHAPTERS[(d.chapter | 0) - 1]) return false;
-    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > FINAL_WAVE) return false;
+    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > 33) return false;   // (۱۸٫۰) قدیمی‌ها هنگام خواندن نرمال می‌شوند
     STORE.set(SAVE_KEY, raw);
     refreshMenuContinue();
     return true;
@@ -645,7 +672,7 @@ function continueGame() {
     state.mode = 'day';
     enterDay();
     setAnnounce('💾 بازی ادامه پیدا کرد',
-      'فصل ' + faNum(state.chapter) + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(WAVES_PER_CH), 2.8);
+      'فصل ' + faNum(state.chapter) + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(state.chapter)), 2.8);
   });
 }
 
@@ -703,7 +730,7 @@ function retryFromSave() {
     state.mode = 'day';
     enterDay();
     setAnnounce('🔄 تلاش دوباره',
-      'همه‌ی وسایلت همین است — فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)), 2.6);
+      'همه‌ی وسایلت همین است — فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(state.chapter)), 2.6);
   } else {
     startGame();
   }

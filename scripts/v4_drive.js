@@ -1,5 +1,5 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۷٫۰ — بخش ۹: مینی‌گیم رانندگی شبه‌سه‌بعدی
+   سه طبقه تا بقا — نسخه‌ی ۱۸٫۰ — بخش ۹: مینی‌گیم رانندگی شبه‌سه‌بعدی
    ==================================================================
    فصل ۱→۲: بازیکن خودش پشت فرمانِ ماشین ارشان است (نه دونده‌ی کنار جاده).
    رندر «جاده‌ی بی‌نهایت» به سبک کلاسیک (OutRun-like) با Canvas 2D خالص:
@@ -360,11 +360,12 @@ function renderDrive() {
       if (z < 9000) {
         const lx = sx - 180 * ppu, ly = y - ph;
         const a = (0.5 + 0.2 * Math.sin(animTime * 2.3 + k)) * clamp(1 - z / 9000, 0.1, 1);
-        const lg = ctx.createRadialGradient(lx, ly, 1, lx, ly, Math.max(6, 300 * ppu));
-        lg.addColorStop(0, 'rgba(255,220,140,' + (a * 0.8).toFixed(2) + ')');
-        lg.addColorStop(1, 'rgba(255,220,140,0)');
-        ctx.fillStyle = lg;
-        ctx.beginPath(); ctx.arc(lx, ly, Math.max(6, 300 * ppu), 0, Math.PI * 2); ctx.fill();
+        /* (۱۸٫۰) هاله از اسپرایت مشترکِ پیش‌پخته — بدون گرادیانِ هر فریم */
+        const r = Math.max(6, 300 * ppu);
+        const ga = ctx.globalAlpha;
+        ctx.globalAlpha = ga * clamp(a * 0.8, 0, 1);
+        ctx.drawImage(drvLampGlow(), lx - r, ly - r, r * 2, r * 2);
+        ctx.globalAlpha = ga;
         ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.2, 26 * ppu), 0, Math.PI * 2); ctx.fill();
       }
     }
@@ -548,7 +549,42 @@ function drawDriveObs(o, z) {
   ctx.restore();
 }
 
-/* ماشین بازیکن — نمای از پشت؛ ارشان (کلاه قرمز) روی صندلی کمکی */
+/* (۱۸٫۰) اسپرایت پیش‌پخته‌ی هاله‌ی تیرچراغ‌های جاده */
+let _lampGlow = null;
+function drvLampGlow() {
+  if (_lampGlow) return _lampGlow;
+  const c = document.createElement('canvas');
+  c.width = 96; c.height = 96;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(48, 48, 2, 48, 48, 46);
+  rg.addColorStop(0, 'rgba(255,220,140,1)');
+  rg.addColorStop(0.45, 'rgba(255,214,130,0.35)');
+  rg.addColorStop(1, 'rgba(255,220,140,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, 96, 96);
+  _lampGlow = c;
+  return c;
+}
+
+/* (۱۸٫۰) اسپرایت پیش‌پخته‌ی هاله‌ی چراغ عقب — بدون shadowBlur هر فریم */
+let _tailGlow = null;
+function drvTailGlow() {
+  if (_tailGlow) return _tailGlow;
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 44;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(32, 22, 3, 32, 22, 24);
+  rg.addColorStop(0, 'rgba(255,70,55,0.9)');
+  rg.addColorStop(0.5, 'rgba(255,58,46,0.35)');
+  rg.addColorStop(1, 'rgba(255,58,46,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, 64, 44);
+  _tailGlow = c;
+  return c;
+}
+
+/* ماشین بازیکن — نمای از پشت؛ (۱۸٫۰) بازیکن پشت فرمان در سمت چپ
+   (راننده در ایران چپ می‌نشیند) و ارشانِ کلاه‌قرمز صندلی کمکی راست */
 function drawDriveCar() {
   const D = DRV;
   const lean = clamp(D.steer, -1, 1) * 22;
@@ -583,30 +619,33 @@ function drawDriveCar() {
   rr(-96, -132, 192, 62, 14); ctx.fill();
   ctx.fillStyle = 'rgba(150,205,255,0.34)';
   rr(-84, -124, 168, 46, 10); ctx.fill();
-  /* سر بازیکن (راننده — راست) */
-  ctx.fillStyle = '#f0c49a'; circle(52, -104, 13);
+  /* سر بازیکن (راننده — چپ) */
+  ctx.fillStyle = '#f0c49a'; circle(-52, -104, 13);
   ctx.fillStyle = '#2c3550';
-  ctx.beginPath(); ctx.arc(52, -106, 13.6, Math.PI, Math.PI * 2); ctx.fill();
-  /* سر ارشان (صندلی کمکی — چپ) + کلاه قرمزش */
+  ctx.beginPath(); ctx.arc(-52, -106, 13.6, Math.PI, Math.PI * 2); ctx.fill();
+  /* سر ارشان (صندلی کمکی — راست) + کلاه قرمزش */
   const nod = Math.sin(animTime * 3.1) * 2;
-  ctx.fillStyle = '#f0c49a'; circle(-52 + nod, -104, 13);
+  ctx.fillStyle = '#f0c49a'; circle(52 + nod, -104, 13);
   ctx.fillStyle = '#7a2a2a';
-  ctx.beginPath(); ctx.arc(-52 + nod, -106, 14, Math.PI, Math.PI * 2); ctx.fill();
-  ctx.fillRect(-68 + nod, -107, 32, 4);
+  ctx.beginPath(); ctx.arc(52 + nod, -106, 14, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillRect(36 + nod, -107, 32, 4);
 
   /* اسپویلر */
   ctx.fillStyle = '#8a2f26'; rr(-116, -148, 232, 10, 4); ctx.fill();
   ctx.fillStyle = '#3c4250';
   ctx.fillRect(-104, -140, 10, 18); ctx.fillRect(94, -140, 10, 18);
 
-  /* چراغ‌های عقب — با ترمز روشن‌تر */
+  /* چراغ‌های عقب — با ترمز روشن‌تر (۱۸٫۰: هاله از اسپرایت پیش‌پخته،
+     بدون shadowBlur — کارایی روی گوشی) */
   const tl = braking ? 1 : 0.55;
+  const gl = drvTailGlow();
   for (const lx of [-96, 96]) {
-    ctx.save();
-    ctx.shadowColor = '#ff3b2e'; ctx.shadowBlur = braking ? 16 : 7;
+    const s = braking ? 1.35 : 0.85;
+    ctx.globalAlpha = braking ? 0.75 : 0.3;
+    ctx.drawImage(gl, lx - 32 * s, -72 - 12 * s, 64 * s, 44 * s);
+    ctx.globalAlpha = 1;
     ctx.fillStyle = 'rgba(255,70,55,' + tl.toFixed(2) + ')';
     rr(lx - 16, -60, 32, 17, 5); ctx.fill();
-    ctx.restore();
   }
   /* چراغ سوم (بالای شیشه) */
   ctx.fillStyle = braking ? '#ff6a5a' : '#7a2f26';
@@ -616,7 +655,7 @@ function drawDriveCar() {
   ctx.fillStyle = '#cfd6e4'; rr(-120, -14, 240, 12, 5); ctx.fill();
   ctx.fillStyle = '#e8e4d0'; rr(-26, -12, 52, 10, 2); ctx.fill();
   ctx.fillStyle = '#3a4252'; ctx.font = 'bold 7px Tahoma'; ctx.textAlign = 'center';
-  ctx.fillText('۳۳-بقا', 0, -4);
+  ctx.fillText('۲۸-بقا', 0, -4);
 
   /* اگزوزها */
   for (const ex of [-74, 74]) {

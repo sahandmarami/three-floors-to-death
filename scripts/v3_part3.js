@@ -1140,6 +1140,22 @@ function drawTower() {
   /* --- کنگره‌های بام + پرچم (۷٫۰: همراه طبقه‌ی سوم می‌افتند) --- */
   const f2 = fv(2);
   const topW = widths[2] / 2;
+
+  /* --- (۱۸٫۰) ارشانِ دیده‌بان روی بام — قبل از کنگره‌ها رسم می‌شود
+     تا کنگره‌ها پایین‌تنه‌اش را بپوشانند («پشتِ سنگر»)؛
+     تبدیل/آلفای طبقه‌ی سوم روی او هم اعمال می‌شود --- */
+  if (typeof drawTowerArshan === 'function' && f2.a > 0.35) {
+    ctx.save();
+    ctx.globalAlpha = f2.a;
+    if (f2.rot) {
+      ctx.translate(cx, TOWER_TOP_Y + TOWER.floorH / 2 + f2.dy);
+      ctx.rotate(f2.rot);
+      ctx.translate(-cx, -(TOWER_TOP_Y + TOWER.floorH / 2));
+    } else if (f2.dy) ctx.translate(0, f2.dy);
+    drawTowerArshan();
+    ctx.restore();
+  }
+
   if (f2.a > 0.02) {
   ctx.save();
   ctx.globalAlpha = f2.a;
@@ -1941,7 +1957,7 @@ function render() {
   }
   drawTrap();
   drawTower();
-  if (typeof drawTowerArshan === 'function') drawTowerArshan();   /* (۱۷٫۰) ارشان روی طبقه‌ی دوم */
+  /* (۱۸٫۰) ارشان حالا داخل drawTower بین طبقه‌ها و کنگره‌ها رسم می‌شود */
   drawChapterProps();                          // (۱۰٫۰) اسباب‌متعلقات فصل (جعبه/کیسه‌شن/برف) + صحنه‌های انتقال
   if (typeof PED !== 'undefined') PED.render(); // (۱۴٫۰) دستفروش مرموز — پایین برج، جلوی صحنه
   if (CS) drawRubble(CS.draw.rubble);        // توده‌ی آوار زیر برج حین کات‌سین (۷٫۰)

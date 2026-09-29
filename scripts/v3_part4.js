@@ -481,7 +481,7 @@ window.GAME = {
   attemptBuy,
   /* ---- (۱۰٫۰) رابط تست/دیباگ نسخه‌ی فصل‌ها ---- */
   v10: {
-    CHAPTERS, FINAL_WAVE, WAVES_PER_CH, waveChapter, waveInChapter, buildWaveQueue,
+    CHAPTERS, FINAL_WAVE, WAVES_PER_CH, WAVES_CH, wavesInChapter, wvEff, compatWave, waveChapter, waveInChapter, buildWaveQueue,
     startChapter, startTransition, skipTransition,
     saveGame, loadSaveData, applySave, wipeSave, continueGame, retryFromSave,
     startNewGame, startIntroCine, skipIntro,
@@ -561,13 +561,14 @@ window.GAME = {
     mgGas, mgBrake, mgSteer,
     get ARSHAN() { return (typeof ARSHAN !== 'undefined') ? ARSHAN : null; },
     arshanForce,
+    arshanOnRoof,
     get ARSHAN_BARKS() { return (typeof ARSHAN_BARKS !== 'undefined') ? ARSHAN_BARKS : null; },
   },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },
   /* پرش سریع به موج n (برای تست) */
   skipToWave(n) {
-    n = clamp(n, 1, FINAL_WAVE);              // (۱۰٫۰) ۳۳ موج
+    n = clamp(n, 1, FINAL_WAVE);              // (۱۸٫۰) ۲۸ موج
     if (state.mode === 'cutscene') skipCutscene();   /* کات‌سین فعال → ببند (۷٫۰) */
     if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
     if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
