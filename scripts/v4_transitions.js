@@ -22,7 +22,11 @@ const PXM = 24;         // پیکسل به «متر» برای نمایش پیش
 
 /* (۱۲٫۰) گفتگوی صوتی فاز ۱ هر انتقال + صداهای فاز ۲/۳ — متن محاوره‌ای */
 const TR_DLGS = {
-  1: [ { who: 'a', v: 't1a1', text: 'برج داره فرو می‌ریزه! بپر! سریع!' } ],
+  /* (۱۷٫۰) ت1n1: منطقِ رسیدن ارشان با ماشین — از قبل پایین بوده و ماشین
+     را گرم کرده؛ برای همین لحظه‌ی فروریختن همان‌جا است (غیبت لحظه‌ای‌اش
+     روی برج طبیعی به نظر می‌رسد) */
+  1: [ { who: 'a', v: 't1a1', text: 'برج داره فرو می‌ریزه! بپر! سریع!' },
+       { who: 'n', v: 't1n1', text: 'ارشان از قبل رفته بود پایینِ برج تا ماشین رو گرم کنه؛ برای همین همون لحظه رسید!' } ],
   2: [ { who: 'p', v: 't2p1', text: 'همه‌چی سیاهه... هیچی نمی‌تونم ببینم!' },
        { who: 'a', v: 't2a1', text: 'چراغ‌قوه‌ت رو روشن کن! موانع رو هم رد کن!' } ],
   3: [ { who: 'a', v: 't3a1', text: 'راه زمینی بسته‌ست! باید از بالای دره بریم!' },
@@ -168,7 +172,7 @@ const SUBS_INTRO1 = [
   [3.7, 5.0, 'طبقه‌ی دوم هم...!'],
   [5.3, 5.9, 'بام می‌لغزه — بپر!'],
   [6.2, 6.9, '— [ارشان]: ماشین! سوار شو!'],
-  [7.0, 7.7, '— [ارشان]: زامبی‌ها ماشین رو گرفتن... در رو باز کردم، بزن بیرون و کنار ماشین بدو!'],
+  [7.0, 7.7, '— [ارشان]: زامبی‌ها پشت سرمون‌ان — تو پشت فرمان، من صندلی کمکی!'],
 ];
 const SUBS_INTRO2 = [
   [0.4, 1.6, 'صدای پای گله‌ی بزرگ میاد...'],
@@ -376,7 +380,12 @@ const MG = {
     this.hidePlayer = false;
     this.outroPlayer = null;
     this.t2 = 0;
-    this.hidden = { x: cfg.goalM * PXM * cfg.hidden.at, id: cfg.hidden.id, floatY: cfg.hidden.floatY, got: false };
+    if (cfg.theme === 'drive') {           /* (۱۷٫۰) مینی‌گیم رانندگی شبه‌سه‌بعدی */
+      driveReset(cfg);
+      this.hidden = null;
+    } else {
+      this.hidden = { x: cfg.goalM * PXM * cfg.hidden.at, id: cfg.hidden.id, floatY: cfg.hidden.floatY, got: false };
+    }
     for (const s of cfg.subs) s.done = false;
   },
 };
@@ -394,6 +403,14 @@ function mgJump() {
 function mgDuck(on) { if (TR && TR.phase === 2) mgKeys.duck = !!on; }
 function mgNudge(d) {
   if (!TR || TR.phase !== 2) return;
+  /* (۱۷٫۰) تم رانندگی: ←/→ فرمان است (نه شتاب جانبی) */
+  if (MG.cfg && MG.cfg.theme === 'drive') {
+    if (typeof DRV !== 'undefined') {
+      DRV.steer = d < 0 ? -1 : (d > 0 ? 1 : 0);
+      DRV.kb = d !== 0;                    /* کج‌کردن گوشی فقط وقتی کلید/لمس نیست */
+    }
+    return;
+  }
   mgKeys.left = d < 0;
   mgKeys.right = d > 0;
 }
@@ -413,6 +430,8 @@ function mgBegin() {
 
 function mgUpdate(dt) {
   const cfg = MG.cfg;
+  /* (۱۷٫۰) تم رانندگی: فیزیک/رندر اختصاصی خودش را دارد */
+  if (cfg.theme === 'drive') { driveUpdate(dt); return; }
   TR.fade = Math.max(0, TR.fade - dt * 1.9);
   MG.t2 += dt;
 
@@ -438,10 +457,11 @@ function mgUpdate(dt) {
   pl.duck = !!mgKeys.duck && pl.ground;
   pl.run += dt * (7 + MG.speed * 0.013);
 
-  /* تولید موانع تا جلوتر از صفحه */
+  /* تولید موانع تا جلوتر از صفحه — (۱۷٫۰) هر مانع عمقِ (dp) خودش را
+     می‌گیرد: دورتر = کوچک‌تر/کم‌رنگ‌تر/کمی بالاتر (پرسپکتیو ساده) */
   while (MG.nextObs < MG.scroll + W + 160) {
     const type = cfg.obstacles[irand(0, cfg.obstacles.length - 1)];
-    MG.obs.push({ wx: MG.nextObs, type, hit: false });
+    MG.obs.push({ wx: MG.nextObs, type, hit: false, dp: rand(0.62, 1) });
     MG.nextObs += rand(cfg.obsGap[0], cfg.obsGap[1]) + MG.speed * 0.3;
   }
 
@@ -780,6 +800,23 @@ function roadOutroDraw(gy) {
 function tunnelBG(scroll, gy) {
   ctx.fillStyle = '#020309';
   ctx.fillRect(-20, -20, W + 40, H + 40);
+  /* (۱۷٫۰) لایه‌ی عمق: ردیف قوس‌های دور — کوچک‌تر/کم‌رنگ‌تر/کندتر
+     (هماهنگ با پرسپکتیو مینی‌گیم رانندگی) */
+  {
+    const sp2 = 340, off2 = scroll * 0.34;
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = '#0d1420'; ctx.lineWidth = 4;
+    for (let i = -1; i < W / sp2 + 2; i++) {
+      const sx = i * sp2 - (off2 % sp2);
+      ctx.beginPath();
+      ctx.moveTo(sx - 26, H);
+      ctx.quadraticCurveTo(sx - 26, gy - 88, sx, gy - 88);
+      ctx.quadraticCurveTo(sx + 26, gy - 88, sx + 26, H);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   /* قوس‌های تونل */
   const spacing = 200, off = scroll * 0.85;
   ctx.strokeStyle = '#161e2c'; ctx.lineWidth = 5;
@@ -840,6 +877,21 @@ function tunnelObs(o, sx, gy) {
   }
 }
 function tunnelProps(scroll, gy) {
+  /* (۱۷٫۰) لایه‌ی عمق: بشکه‌های دور — کوچک/کم‌رنگ/کند */
+  {
+    const sp2 = 300, off2 = scroll * 0.38;
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    for (let i = -1; i < W / sp2 + 2; i++) {
+      const sx = i * sp2 - (off2 % sp2) + 90;
+      if (sx < -30 || sx > W + 30) continue;
+      ctx.fillStyle = '#241d24';
+      rr(sx - 7, gy - 15, 14, 15, 3); ctx.fill();
+      ctx.fillStyle = '#8a6a2c';
+      ctx.fillRect(sx - 7, gy - 11, 14, 2.4);
+    }
+    ctx.restore();
+  }
   /* ارشان با فانوس جلوتر (سایه‌ی روشن) */
   ctx.save();
   ctx.translate(560, gy);
@@ -894,6 +946,18 @@ function ziplineBG(scroll, gy) {
     const x = (((c.x - animTime * c.v * 2.2) % m) + m) % m - 150;
     ctx.fillStyle = 'rgba(16,22,36,0.85)';
     cloudBlob(x, c.y, c.s * 0.9, 'rgba(16,22,36,0.85)');
+  }
+  /* (۱۷٫۰) لایه‌ی عمق: ستیغِ خیلی دور — روشن‌تر/کندتر (پرسپکتیو) */
+  {
+    const off0 = scroll * 0.09;
+    ctx.fillStyle = 'rgba(38,50,74,0.55)';
+    ctx.beginPath(); ctx.moveTo(-20, gy + 40);
+    for (let i = 0; i < 12; i++) {
+      const x = i * 124 - (off0 % 124);
+      ctx.lineTo(x + 62, gy - 64 - ((i * 53) % 82));
+      ctx.lineTo(x + 124, gy + 28);
+    }
+    ctx.lineTo(W + 20, gy + 40); ctx.closePath(); ctx.fill();
   }
   /* کوهستان دور (پارالاکس) */
   const off = scroll * 0.22;
@@ -976,6 +1040,25 @@ function ziplineObs(o, sx, gy) {
   }
 }
 function ziplineProps(scroll, gy) {
+  /* (۱۷٫۰) لایه‌ی عمق: تیرک‌های دور دره — کوچک/کم‌رنگ/کند */
+  {
+    const sp2 = 420, off2 = scroll * 0.36;
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    for (let i = -1; i < W / sp2 + 2; i++) {
+      const sx = i * sp2 - (off2 % sp2) + 140;
+      if (sx < -30 || sx > W + 30) continue;
+      ctx.strokeStyle = '#26314a'; ctx.lineWidth = 3.4; ctx.lineCap = 'butt';
+      ctx.beginPath();
+      ctx.moveTo(sx, gy + 54);
+      ctx.lineTo(sx - 3, gy + 6);
+      ctx.lineTo(sx + 2, gy - 16);
+      ctx.stroke();
+      ctx.fillStyle = '#7a5a2c';
+      circle(sx + 2, gy - 17, 1.6);
+    }
+    ctx.restore();
+  }
   /* دسته‌ی زیپ‌لاین روی کابل بالای بازیکن */
   ctx.fillStyle = '#3a4250';
   rr(352, gy - 46, 16, 10, 3); ctx.fill();
@@ -1073,24 +1156,26 @@ function renderTunnelDark(gy) {
 
 /* ---------------------- ۷-۷) پیکربندی سه مینی‌گیم ---------------------- */
 const MGCFG = {
+  /* (۱۷٫۰) فصل ۱→۲: رانندگی شبه‌سه‌بعدی — بازیکن پشت فرمان، ارشان صندلی
+     کمکی؛ موانع/زامبی‌ها با پرسپکتیو؛ آیتم مخفی = جعبه‌ی کنار جاده.
+     فیزیک/رندر در v4_drive.js (driveUpdate/renderDrive) */
   1: {
-    theme: 'road', baseY: GROUND_Y,
-    goalM: 240, speed0: 265, speedMin: 180, speedMax: 470, accel: 15,
-    jumpV: -600, grav: 1500, obsGap: [330, 540],
-    obstacles: ['rubble', 'grabber', 'pothole', 'sign', 'rubble', 'grabber'],
-    hidden: { id: 'medkit', at: 0.45, floatY: -118 },
+    theme: 'drive', baseY: GROUND_Y,
+    goalM: 380, speed0: 2000, speedMin: 700, speedMax: 3400,
+    hidden: { id: 'medkit', at: 0.45 },
     battDrain: 0,
-    startSub: '— [ارشان]: کنار ماشین بدو! سرعتت رو کم نکن!',
+    startSub: '— [ارشان]: فرمان با توئه! گاز بده!',
     outroDur: 3.4,
-    outroSub: '— [ارشان]: انبارهای مه‌گرفته جلوته... بپر توی ماشین!',
-    hitSubs: ['آخ! مواظب باش!', 'برخوردی! سرعت گیر کرد!', 'حواست کجاست؟!'],
+    outroSub: '— [ارشان]: انبارهای مه‌گرفته جلوته... رسیدیم!',
+    hitSubs: ['بوووم! حواست کجاست؟!', 'زدی بهش! سرعت گیر کرد!', 'مواظب باش! جاده پر الکل!'],
     subs: [
-      { atM: 62,  txt: '— [ارشان]: زامبی‌ها پشت سرمون‌ان! بدو!' },
-      { atM: 118, txt: '— [تو]: نفس... نفس... هنوز کیلومتره؟!' },
-      { atM: 176, txt: '— [ارشان]: جلو یه منطقه‌ی مه‌گرفته‌ست... برج بعدی همون‌جاست!' },
+      { atM: 90,  txt: '— [ارشان]: زامبی‌ها جلو رفتن... گاز بده، رد شو!',
+        barkV: 'd1a1', barkT: 'مواظب باش! تا انبارها یه راه باقی مونده!' },
+      { atM: 200, txt: '— [تو]: این جاده هم پای آخر داره!' },
+      { atM: 300, txt: '— [ارشان]: مهِ انبارها داره میاد... تقریباً رسیدیم!' },
     ],
-    drawBG: roadBG, drawObs: roadObs, drawProps: roadProps,
-    outroUpdate: roadOutroUpdate, outroDraw: roadOutroDraw,
+    drawBG: null, drawObs: null, drawProps: null,
+    outroUpdate: driveOutroUpdate, outroDraw: null,
   },
   2: {
     theme: 'tunnel', baseY: 458,
@@ -1136,16 +1221,31 @@ const MGCFG = {
 function renderMG() {
   if (!TR || !MG.cfg) return;
   const cfg = MG.cfg;
+  /* (۱۷٫۰) تم رانندگی: رندر شبه‌سه‌بعدی اختصاصی */
+  if (cfg.theme === 'drive') { renderDrive(); return; }
   const gy = cfg.baseY;
   const scroll = MG.scroll;
   const mode = cfg.theme === 'zipline' ? 'hang' : 'run';
 
   cfg.drawBG(scroll, gy);
 
-  /* موانع */
-  for (const o of MG.obs) {
+  /* موانع — (۱۷٫۰) رسم از دور به نزدیک (dp کوچک = دور) با مقیاس/کم‌رنگی
+     عمق و کمی جابه‌جایی عمودی: پرسپکتیوِ ساده‌ی هماهنگ با رانندگی */
+  for (const o of [...MG.obs].sort((a, b) => (a.dp || 1) - (b.dp || 1))) {
     const sx = o.wx - scroll;
-    if (sx > -100 && sx < W + 100) cfg.drawObs(o, sx, gy);
+    if (sx > -140 && sx < W + 140) {
+      const dp = o.dp || 1;
+      if (dp > 0.97) cfg.drawObs(o, sx, gy);
+      else {
+        ctx.save();
+        ctx.globalAlpha = 0.5 + 0.5 * dp;
+        ctx.translate(sx, gy - (1 - dp) * 14);
+        ctx.scale(dp, dp);
+        ctx.translate(-sx, -(gy - (1 - dp) * 14));
+        cfg.drawObs(o, sx, gy - (1 - dp) * 14);
+        ctx.restore();
+      }
+    }
   }
   /* آیتم مخفی */
   const H = MG.hidden;
@@ -1230,27 +1330,45 @@ function drawTransitionOverlay() {
     ctx.fillStyle = '#e8563f';
     rr(bx + 3 + Math.max(0, fw - 8), by + 1.5, 15, 11, 3); ctx.fill();
     drawMiniTower(bx + bw + 22, by + 14);
-    /* راهنمای کنترل (۵ ثانیه‌ی اول) */
+    /* راهنمای کنترل (۵ ثانیه‌ی اول) — (۱۷٫۰) رانندگی متن خودش را دارد */
     const k = clamp(MG.t2 / 0.5, 0, 1) * clamp((5.6 - MG.t2) / 0.8, 0, 1);
     if (k > 0.03) {
       ctx.globalAlpha = k;
-      const hw = 470, hx = (W - hw) / 2, hy = by + 26;
+      const isDrive = cfg.theme === 'drive';
+      const hw = isDrive ? 500 : 470, hx = (W - hw) / 2, hy = by + 26;
       ctx.fillStyle = 'rgba(4,7,18,0.94)';
       rr(hx, hy, hw, 34, 17); ctx.fill();
       ctx.strokeStyle = 'rgba(255,216,115,0.6)'; ctx.lineWidth = 1.6;
       rr(hx, hy, hw, 34, 17); ctx.stroke();
       ctx.font = 'bold 13.5px Tahoma, sans-serif';
-      ctx.fillStyle = '#ffd873';
-      ctx.fillText('پرش', hx + hw - 130, hy + 17);
-      ctx.fillStyle = '#8fd6ff';
-      ctx.fillText('خم‌شدن', hx + 168, hy + 17);
-      ctx.fillStyle = '#c3cdea';
-      ctx.font = 'bold 12px Tahoma, sans-serif';
-      ctx.fillText('↑ یا Space', hx + hw - 74, hy + 17);
-      ctx.fillText('↓', hx + 108, hy + 17);
-      ctx.fillStyle = '#c3cdea';
-      ctx.font = 'bold 11.5px Tahoma, sans-serif';
-      ctx.fillText('سرعت: ←/→      (لمس صفحه = پرش)', W / 2 - 60, hy + 17);
+      if (isDrive) {
+        ctx.fillStyle = '#ffd873';
+        ctx.fillText('فرمان', hx + hw - 92, hy + 17);
+        ctx.fillStyle = '#8fd6ff';
+        ctx.fillText('گاز', hx + 190, hy + 17);
+        ctx.fillStyle = '#ff9d8f';
+        ctx.fillText('ترمز', hx + 52, hy + 17);
+        ctx.fillStyle = '#c3cdea';
+        ctx.font = 'bold 12px Tahoma, sans-serif';
+        ctx.fillText('← / →', hx + hw - 40, hy + 17);
+        ctx.fillText('↑', hx + 226, hy + 17);
+        ctx.fillText('↓', hx + 92, hy + 17);
+        ctx.fillStyle = '#c3cdea';
+        ctx.font = 'bold 10.5px Tahoma, sans-serif';
+        ctx.fillText('لمس: چپ/راست فرمان — وسط ترمز (گاز خودکار) • کج‌کردن گوشی = فرمان', W / 2 - 62, hy + 17);
+      } else {
+        ctx.fillStyle = '#ffd873';
+        ctx.fillText('پرش', hx + hw - 130, hy + 17);
+        ctx.fillStyle = '#8fd6ff';
+        ctx.fillText('خم‌شدن', hx + 168, hy + 17);
+        ctx.fillStyle = '#c3cdea';
+        ctx.font = 'bold 12px Tahoma, sans-serif';
+        ctx.fillText('↑ یا Space', hx + hw - 74, hy + 17);
+        ctx.fillText('↓', hx + 108, hy + 17);
+        ctx.fillStyle = '#c3cdea';
+        ctx.font = 'bold 11.5px Tahoma, sans-serif';
+        ctx.fillText('سرعت: ←/→      (لمس صفحه = پرش)', W / 2 - 60, hy + 17);
+      }
       ctx.globalAlpha = 1;
     }
     /* شمارنده‌ی برخوردها */

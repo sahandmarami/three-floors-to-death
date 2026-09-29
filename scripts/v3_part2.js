@@ -494,9 +494,14 @@ canvas.addEventListener('pointerdown', e => {
     return;
   }
   if (e.button !== 0) return;
-  /* (۱۰٫۰) مینی‌گیم فرار (انتقال بین فصل‌ها): کلیک/لمس = پرش */
+  /* (۱۰٫۰) مینی‌گیم فرار (انتقال بین فصل‌ها): کلیک/لمس = پرش
+     (۱۷٫۰) تم رانندگی: یک‌سوم چپ/راست = فرمان، وسط = ترمز (گاز خودکار) */
   if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
-    mgJump();
+    if (typeof MG !== 'undefined' && MG.cfg && MG.cfg.theme === 'drive') {
+      if (p.x < W / 3) mgNudge(-1);
+      else if (p.x > W * 2 / 3) mgNudge(1);
+      else mgBrake(true);
+    } else mgJump();
     e.preventDefault();
     return;
   }
@@ -523,6 +528,10 @@ window.addEventListener('pointerup', () => {
   state.mouse.down = false;
   /* (۸٫۰) رها کردن لمس = قطع گاز/ترمز لمسی */
   if (CS && CS.drive) { CS.drive.touch.a = false; CS.drive.touch.b = false; }
+  /* (۱۷٫۰) رها کردن لمس مینی‌گیم رانندگی = قطع فرمان/ترمز */
+  if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
+    mgNudge(0); mgBrake(false);
+  }
 });
 canvas.addEventListener('contextmenu', e => {   // منوی راست‌کلیک باز نشود + لغو نصب
   e.preventDefault();
@@ -537,11 +546,17 @@ window.addEventListener('keydown', e => {
     else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { CS.drive.keys.b = true; e.preventDefault(); }
     return;                                   // در رانندگی، کلیدهای دیگر کاری نکنند
   }
-  /* (۱۰٫۰) مینی‌گیم فرار در انتقال فصل‌ها: پرش/خم‌شدن/سرعت */
+  /* (۱۰٫۰) مینی‌گیم فرار در انتقال فصل‌ها: پرش/خم‌شدن/سرعت
+     (۱۷٫۰) تم رانندگی: ↑/W/Space = گاز • ↓/S = ترمز • ←/→ = فرمان */
   if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
-    if (e.code === 'ArrowUp' || e.code === 'Space') { mgJump(); e.preventDefault(); }
-    else if (e.code === 'ArrowDown') { mgDuck(true); e.preventDefault(); }
-    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { mgNudge(-1); e.preventDefault(); }
+    const isDrive = typeof MG !== 'undefined' && MG.cfg && MG.cfg.theme === 'drive';
+    if (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') {
+      if (isDrive) mgGas(true); else mgJump();
+      e.preventDefault();
+    } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      if (isDrive) mgBrake(true); else mgDuck(true);
+      e.preventDefault();
+    } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { mgNudge(-1); e.preventDefault(); }
     else if (e.code === 'ArrowRight' || e.code === 'KeyD') { mgNudge(1); e.preventDefault(); }
     return;
   }
@@ -576,9 +591,10 @@ window.addEventListener('keydown', e => {
 });
 /* (۸٫۰) رها کردن کلیدهای گاز/ترمز رانندگی */
 window.addEventListener('keyup', e => {
-  /* (۱۰٫۰) رها کردن کلیدهای مینی‌گیم فرار (خم‌شدن + سرعت) */
+  /* (۱۰٫۰) رها کردن کلیدهای مینی‌گیم فرار (خم‌شدن + سرعت + گاز/ترمزِ ۱۷٫۰) */
   if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
-    if (e.code === 'ArrowDown') { mgDuck(false); return; }
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') { mgDuck(false); mgBrake(false); return; }
+    if (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') { mgGas(false); return; }
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') { mgNudge(0); return; }
     if (e.code === 'ArrowRight' || e.code === 'KeyD') { mgNudge(0); return; }
   }

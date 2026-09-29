@@ -159,3 +159,20 @@ if (typeof window.GAME !== 'undefined') {
   GAME.saveAndExit = saveAndExit;
   GAME.exitToMenu = exitToMenu;
 }
+
+/* ---------------------- (۱۷٫۰) فرمان با کج‌کردن گوشی ----------------------
+   در مینی‌گیم رانندگی (انتقال فصل ۱→۲): شیبِ چپ/راست گوشی = فرمان.
+   فقط وقتی مؤثر است که نه کلید و نه لمسِ فرمان فعال باشد (DRV.kb)
+   تا با ورودی‌های دیگر نجنگد. اندروید بدون اجازه کار می‌کند؛ iOS
+   بدون درخواستِ اجازه رویداد نمی‌دهد — بی‌صدا نادیده گرفته می‌شود. */
+if (IS_TOUCH && typeof window.DeviceOrientationEvent !== 'undefined') {
+  window.addEventListener('deviceorientation', e => {
+    if (e.gamma == null) return;
+    if (typeof DRV === 'undefined' || !DRV) return;
+    if (DRV.kb) return;                          /* کلید/لمس فرمان فعال است */
+    const g = clamp(e.gamma, -24, 24) / 18;      /* ±۱۸ درجه = فرمان کامل */
+    if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') {
+      DRV.steer = clamp(g, -1, 1);
+    }
+  });
+}

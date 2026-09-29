@@ -58,7 +58,7 @@ const VOICE = {
   },
   /* دیکد تنبل + کش؛ بوم آماده یا null */
   _buf(key) {
-    const meta = (typeof VOICES14 !== 'undefined') && VOICES14[key];
+    const meta = (typeof VOICES17 !== 'undefined') && VOICES17[key];   /* (۱۷٫۰) */
     if (!meta) return null;
     if (this._bufs[key] !== undefined) return this._bufs[key];   // ممکن است nullِ درصف دیکد باشد
     if (!Snd.ready || !Snd.ctx || !window.fetch) return null;
@@ -91,9 +91,9 @@ const VOICE = {
   /* (۱۴٫۰) پیش‌بارگیری همه‌ی کلیپ‌ها — پله‌پله (هر ~۱۲۰ms یکی) تا لگ نیفتد؛
      بعد از اولین ژست کاربر صدا زده می‌شود؛ نتیجه: هیچ خطی بار اول بی‌صدا نیست */
   warmup() {
-    if (this._warmAll || !(typeof VOICES14 !== 'undefined')) return;
+    if (this._warmAll || !(typeof VOICES17 !== 'undefined')) return;
     this._warmAll = true;
-    const keys = Object.keys(VOICES14);
+    const keys = Object.keys(VOICES17);
     let i = 0;
     const step = () => {
       if (i >= keys.length) return;
@@ -134,8 +134,8 @@ const VOICE = {
     const pr = this.profile(who);
     const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
     /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده */
-    if (!muted && v && (typeof VOICES14 !== 'undefined') && VOICES14[v]) {
-      this.dur = VOICES14[v].d;
+    if (!muted && v && (typeof VOICES17 !== 'undefined') && VOICES17[v]) {
+      this.dur = VOICES17[v].d;
       if (this._playClip(v, who)) {
         this.mode = 'clip';
         this.speaking = true;

@@ -537,8 +537,8 @@ window.GAME = {
   },
   /* ---- (۱۳٫۰) رابط تست صدا/سیو/ریل چپ (۱۴٫۰: VOICES14) ---- */
   v13: {
-    get VOICES() { return (typeof VOICES14 !== 'undefined') ? VOICES14 : null; },
-    get clipCount() { return (typeof VOICES14 !== 'undefined') ? Object.keys(VOICES14).length : 0; },
+    get VOICES() { return (typeof VOICES17 !== 'undefined') ? VOICES17 : null; },   /* (۱۷٫۰) */
+    get clipCount() { return (typeof VOICES17 !== 'undefined') ? Object.keys(VOICES17).length : 0; },
     exportSaveCode, importSaveCode,
     STORE: (typeof STORE !== 'undefined' ? STORE : null),
     storageOK: () => (typeof STORE !== 'undefined') && STORE.ok,
@@ -554,6 +554,14 @@ window.GAME = {
     fitWrap: () => { if (typeof fitWrap !== 'undefined') fitWrap(); },
     orient: () => { if (window.ttbOrient) window.ttbOrient(); },
     get dlgOn() { return document.getElementById('wrap').classList.contains('dlg-on'); },
+  },
+  /* ---- (۱۷٫۰) رانندگی شبه‌سه‌بعدی + ارشان روی برج ---- */
+  v17: {
+    get DRV() { return (typeof DRV !== 'undefined') ? DRV : null; },
+    mgGas, mgBrake, mgSteer,
+    get ARSHAN() { return (typeof ARSHAN !== 'undefined') ? ARSHAN : null; },
+    arshanForce,
+    get ARSHAN_BARKS() { return (typeof ARSHAN_BARKS !== 'undefined') ? ARSHAN_BARKS : null; },
   },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },

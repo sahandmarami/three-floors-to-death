@@ -1941,6 +1941,7 @@ function render() {
   }
   drawTrap();
   drawTower();
+  if (typeof drawTowerArshan === 'function') drawTowerArshan();   /* (۱۷٫۰) ارشان روی طبقه‌ی دوم */
   drawChapterProps();                          // (۱۰٫۰) اسباب‌متعلقات فصل (جعبه/کیسه‌شن/برف) + صحنه‌های انتقال
   if (typeof PED !== 'undefined') PED.render(); // (۱۴٫۰) دستفروش مرموز — پایین برج، جلوی صحنه
   if (CS) drawRubble(CS.draw.rubble);        // توده‌ی آوار زیر برج حین کات‌سین (۷٫۰)
