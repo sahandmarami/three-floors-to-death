@@ -18,6 +18,9 @@
    ================================================================== */
 
 /* ---- ۹-۱) وضعیت و ثابت‌های پروجکشن ---- */
+/* (۱۹٫۰) سه تمِ سواره روی همین موتور: road جاده (فصل ۱→۲) •
+   river قایقِ کانال مه‌گرفته (۲→۳) • snow اسنوموبیلِ شیب برفی (۳→۴)
+   — رندر تم‌های رودخانه/برف در v4_ride.js است */
 const DRV = {
   HOR: 196,        // y خط افق
   CAMD: 0.84,      // عمق دوربین (میدان دید ~۱۰۰ درجه)
@@ -26,10 +29,18 @@ const DRV = {
   ROADW: 1000,     // نیم‌عرض جاده
   PLZ: 840,        // z صفحه‌ی بازیکن (CAMH × CAMD)
   /* حالت اجرا */
+  theme: 'road',   // 'road' | 'river' | 'snow'
   T: 0, goalT: 0, speed: 0, px: 0, steer: 0, kb: false,
   gas: false, brake: false, obs: [], nextZ: 0, hidden: null,
   hits: 0, hitCool: 0, offroad: 0, itemHinted: false, wheel: 0,
 };
+
+/* تم‌های سواره — همه فرمان/گاز/ترمز دارند (ورودی مشترک) */
+function isRideTheme(t) { return t === 'drive' || t === 'river' || t === 'snow'; }
+/* آیا مینی‌گیم فعال سواره است؟ (برای هدایت ورودی‌های کلیک/کلید) */
+function mgIsRide() {
+  return !!(TR && TR.phase === 2 && MG.cfg && isRideTheme(MG.cfg.theme));
+}
 
 /* مقیاس پرسپکتیو: پیکسل به‌ازای هر واحد جهان در عمق z */
 function drvPPU(z) { return (DRV.CAMD / Math.max(50, z)) * (W / 2); }
@@ -48,19 +59,20 @@ function roadCXf(z) {
   return roadCX(k0) + (roadCX(k0 + 1) - roadCX(k0)) * f;
 }
 
-/* ---- ۹-۲) ورودی مینی‌گیم رانندگی ---- */
+/* ---- ۹-۲) ورودی مینی‌گیم‌های سواره ---- */
 function mgGas(on) {
-  if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') DRV.gas = !!on;
+  if (TR && TR.phase === 2 && MG.cfg && isRideTheme(MG.cfg.theme)) DRV.gas = !!on;
 }
 function mgBrake(on) {
-  if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') DRV.brake = !!on;
+  if (TR && TR.phase === 2 && MG.cfg && isRideTheme(MG.cfg.theme)) DRV.brake = !!on;
 }
 function mgSteer(v) {
-  if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') DRV.steer = clamp(v, -1, 1);
+  if (TR && TR.phase === 2 && MG.cfg && isRideTheme(MG.cfg.theme)) DRV.steer = clamp(v, -1, 1);
 }
 
 /* ---- ۹-۳) ریست و به‌روزرسانی ---- */
 function driveReset(cfg) {
+  DRV.theme = cfg.theme === 'river' || cfg.theme === 'snow' ? cfg.theme : 'road';
   DRV.T = 0;
   DRV.goalT = cfg.goalM * 200;          /* ۱ متر = ۲۰۰ واحد جهان */
   DRV.speed = cfg.speed0;
@@ -79,13 +91,13 @@ function driveReset(cfg) {
 }
 
 const DRV_OBSTACLES = [
-  { t: 'zN',    hw: 130, w: 300, h: 230 },   // زامبی معمولی (روبه‌رو می‌دود)
-  { t: 'zN',    hw: 130, w: 300, h: 230 },
-  { t: 'zF',    hw: 105, w: 240, h: 210 },   // زامبی سریع
-  { t: 'zT',    hw: 165, w: 420, h: 285 },   // زامبی تن‌درشت
-  { t: 'rock',  hw: 225, w: 460, h: 210 },   // سنگ‌لاش
-  { t: 'barrel',hw: 160, w: 300, h: 330 },   // بشکه
-  { t: 'wreck', hw: 330, w: 700, h: 300 },   // ماشین له‌شده
+  { t: 'zN',    hw: 130, soft: true  },   // زامبی معمولی (روبه‌رو می‌دود)
+  { t: 'zN',    hw: 130, soft: true  },
+  { t: 'zF',    hw: 105, soft: true  },   // زامبی سریع
+  { t: 'zT',    hw: 165, soft: true  },   // زامبی تن‌درشت
+  { t: 'rock',  hw: 225, soft: false },   // سنگ‌لاش
+  { t: 'barrel',hw: 160, soft: false },   // بشکه
+  { t: 'wreck', hw: 330, soft: false },   // ماشین له‌شده
 ];
 
 function driveUpdate(dt) {
@@ -110,7 +122,8 @@ function driveUpdate(dt) {
   D.T += D.speed * dt;
   MG.scroll = D.T * 0.12;                                // مترها برای نوار پیشرفت/subs
 
-  /* بیرون‌زدن از آسفالت؟ (لرزش + غبار + افت سرعت از tgt) */
+  /* بیرون‌زدن از مسیر؟ (لرزش + پاششِ تم + افت سرعت از tgt)
+     (۱۹٫۰) جاده: غبار شانه • رودخانه: آبِ کم‌عمق کنار کانال • برف: برف عمیق */
   const edge = Math.abs(D.px - roadCXf(D.T));
   D.offroad = edge > (DRV.ROADW - 250)
     ? Math.min(1, D.offroad + dt * 6)
@@ -118,12 +131,15 @@ function driveUpdate(dt) {
   if (D.offroad > 0.25) {
     state.shake = Math.max(state.shake, 3.2);
     if (Math.random() < dt * 26) {
-      spawnParticles(480 + rand(-140, 140), 540, 2, 'rgba(120,104,78,0.5)',
+      const pc = D.theme === 'river' ? 'rgba(140,200,210,0.5)'
+        : (D.theme === 'snow' ? 'rgba(240,248,252,0.85)' : 'rgba(120,104,78,0.5)');
+      spawnParticles(480 + rand(-140, 140), 540, 2, pc,
         { speed: 90, life: 0.5, size: 3, grav: 260, up: true });
     }
   }
 
-  /* تولید موانع تا جلوترِ دید مفید */
+  /* تولید موانع تا جلوترِ دید مفید — (۱۹٫۰) استخرِ موانع از تم */
+  const POOL = rideObsPool();
   while (D.nextZ < D.T + 5600) {
     const k = Math.round(D.nextZ / DRV.SEG);
     const r = Math.random();
@@ -131,14 +147,14 @@ function driveUpdate(dt) {
       /* دسته‌ی ۲-۳ زامبی کنار هم */
       const base = rand(-0.55, 0.55), n = irand(2, 3);
       for (let i = 0; i < n; i++) {
-        const def = DRV_OBSTACLES[irand(0, 1)];
+        const def = POOL[irand(0, 1)];
         D.obs.push({ k, wx: roadCX(k) + clamp(base + i * rand(-0.24, 0.24), -0.8, 0.8) * 880,
-          type: def.t, hw: def.hw, hit: false });
+          type: def.t, hw: def.hw, soft: !!def.soft, hit: false });
       }
     } else {
-      const def = DRV_OBSTACLES[irand(0, DRV_OBSTACLES.length - 1)];
+      const def = POOL[irand(0, POOL.length - 1)];
       D.obs.push({ k, wx: roadCX(k) + rand(-0.74, 0.74) * 880,
-        type: def.t, hw: def.hw, hit: false });
+        type: def.t, hw: def.hw, soft: !!def.soft, hit: false });
     }
     D.nextZ += rand(950, 1600) + D.speed * 0.22;
   }
@@ -155,15 +171,17 @@ function driveUpdate(dt) {
   /* زادآوری آرایه (حذف رد‌شده‌ها) */
   if (D.obs.length > 90) D.obs = D.obs.filter(o => o.k * DRV.SEG - D.T > 300);
 
-  /* آیتم مخفی: ستون نورش از دور دیده می‌شود؛ نزدیک‌شدن → هشدار ارشان */
+  /* آیتم مخفی: ستون نورش از دور دیده می‌شود؛ نزدیک‌شدن → هشدار ارشان
+     (۱۹٫۰) جمله‌ی هشدار از پیکربندیِ هر تم می‌آید */
   const HI = D.hidden;
   if (HI && !HI.got) {
     const z = HI.T - D.T;
     const hwx = roadCXf(HI.T) + HI.lane * 880;
     if (!D.itemHinted && z < 6500) {
       D.itemHinted = true;
-      transBark({ who: 'a', v: 'd1a2', text: 'اون طرف یه جعبه دیدم! بگیرش!' },
-        '— [ارشان]: اون طرف یه جعبه دیدم! بگیرش!', 2.8);
+      const hb = cfg.hiddenBark || { v: 'd1a2', text: 'اون طرف یه جعبه دیدم! بگیرش!' };
+      transBark({ who: 'a', v: hb.v, text: hb.text },
+        '— [ارشان]: ' + hb.text, 2.8);
     }
     if (z > 640 && z < 1120 && Math.abs(hwx - D.px) < 330) {
       HI.got = true;
@@ -187,8 +205,8 @@ function driveUpdate(dt) {
     }
   }
 
-  /* دود اگزوز در گاز سنگین */
-  if ((D.gas || D.speed > 2900) && Math.random() < dt * 14) {
+  /* دود اگزوز در گاز سنگین — فقط جاده (قایق/اسنوموبیل پاشش خودشان را دارند) */
+  if (D.theme === 'road' && (D.gas || D.speed > 2900) && Math.random() < dt * 14) {
     spawnParticles(480 + rand(-40, 40), 556, 1, 'rgba(130,130,140,0.4)',
       { speed: 30, life: 0.8, size: 3.4, grav: -20 });
   }
@@ -197,19 +215,29 @@ function driveUpdate(dt) {
   if (D.T >= D.goalT) mgOutro();
 }
 
-/* برخورد: زامبی = له‌شدن (سبک) • جسم سخت = تصادف سنگین */
+/* برخورد: زامبی = له‌شدن (سبک) • جسم سخت = تصادف سنگین
+   (۱۹٫۰) «سبک/سنگین» موقع تولید مانع ذخیره می‌شود (o.soft) */
 function driveHit(o) {
   o.hit = true;
   DRV.hits++;
   DRV.hitCool = 0.55;
-  const soft = o.type === 'zN' || o.type === 'zF' || o.type === 'zT';
+  const soft = !!o.soft;
+  const th = DRV.theme;
   if (soft) {
     DRV.speed = Math.max(700, DRV.speed * 0.8);
     state.shake = Math.max(state.shake, 5);
     SFX.csThud();
     const sx = drvX(o.wx, DRV.PLZ);
-    spawnParticles(sx, 500, 16, '#7fa657', { speed: 210, life: 0.7, size: 3, grav: 520 });
-    spawnParticles(sx, 496, 8, '#5a3d28', { speed: 160, life: 0.9, size: 2.4, grav: 480 });
+    if (th === 'river') {                     /* شال‌آب + لجّن */
+      spawnParticles(sx, 500, 18, 'rgba(170,222,228,0.8)', { speed: 220, life: 0.7, size: 3, grav: 520 });
+      spawnParticles(sx, 496, 8, '#3a5a50', { speed: 160, life: 0.9, size: 2.4, grav: 480 });
+    } else if (th === 'snow') {               /* پاشش برف */
+      spawnParticles(sx, 500, 18, 'rgba(240,248,252,0.95)', { speed: 220, life: 0.7, size: 3.2, grav: 380 });
+      spawnParticles(sx, 496, 6, '#8a97a8', { speed: 150, life: 0.8, size: 2.2, grav: 420 });
+    } else {
+      spawnParticles(sx, 500, 16, '#7fa657', { speed: 210, life: 0.7, size: 3, grav: 520 });
+      spawnParticles(sx, 496, 8, '#5a3d28', { speed: 160, life: 0.9, size: 2.4, grav: 480 });
+    }
     if (DRV.hits % 3 === 1) setTransSub(MG.cfg.hitSubs[irand(0, MG.cfg.hitSubs.length - 1)], 1.6);
   } else {
     DRV.speed = Math.max(650, DRV.speed * 0.5);
@@ -217,8 +245,16 @@ function driveHit(o) {
     state.flash = 0.7;
     SFX.csCrash();
     const sx = drvX(o.wx, DRV.PLZ);
-    spawnParticles(sx, 486, 22, '#e0a13c', { speed: 300, life: 0.8, size: 3.2, grav: 560 });
-    spawnParticles(sx, 480, 10, '#c9463d', { speed: 220, life: 0.7, size: 2.6, grav: 520 });
+    if (th === 'river') {
+      spawnParticles(sx, 486, 22, 'rgba(190,232,238,0.9)', { speed: 300, life: 0.8, size: 3.2, grav: 480 });
+      spawnParticles(sx, 480, 10, '#7a5a2e', { speed: 220, life: 0.7, size: 2.6, grav: 460 });
+    } else if (th === 'snow') {
+      spawnParticles(sx, 486, 22, 'rgba(255,255,255,0.95)', { speed: 300, life: 0.8, size: 3.4, grav: 380 });
+      spawnParticles(sx, 480, 10, '#aebfd0', { speed: 220, life: 0.7, size: 2.6, grav: 400 });
+    } else {
+      spawnParticles(sx, 486, 22, '#e0a13c', { speed: 300, life: 0.8, size: 3.2, grav: 560 });
+      spawnParticles(sx, 480, 10, '#c9463d', { speed: 220, life: 0.7, size: 2.6, grav: 520 });
+    }
     setTransSub(MG.cfg.hitSubs[irand(0, MG.cfg.hitSubs.length - 1)], 1.8);
   }
 }
@@ -243,6 +279,9 @@ const DRV_STARS = Array.from({ length: 46 }, (_, i) => ({
 
 function renderDrive() {
   const D = DRV;
+  /* (۱۹٫۰) سه تمِ سواره — رودخانه/برف رندر خودشان را دارند (v4_ride.js) */
+  if (D.theme === 'river') { renderRiver(); return; }
+  if (D.theme === 'snow') { renderSnow(); return; }
   const t3 = TR.phase === 3;
 
   /* --- آسمان شب + ماه + افق شهر (پارالاکسِ بسیار کند) --- */
@@ -371,72 +410,20 @@ function renderDrive() {
     }
   }
 
-  /* --- آیتم مخفی: ستون نور + جعبه‌ی درخشان کنار جاده --- */
-  const HI = D.hidden;
-  if (HI && !HI.got) {
-    const z = HI.T - D.T;
-    if (z > 60 && z < 20000) {
-      const wx = roadCXf(HI.T) + HI.lane * 880;
-      const sx = drvX(wx, Math.max(60, z)), sy = drvY(Math.max(60, z));
-      const ppu = drvPPU(Math.max(60, z));
-      const col = ((GEAR[HI.id] || RARE[HI.id]) || {}).color || '#ffd873';
-      /* ستون نور عمودی (از دور دیده می‌شود) */
-      const bw = Math.max(3, 90 * ppu);
-      const bg = ctx.createLinearGradient(0, sy, 0, DRV.HOR);
-      bg.addColorStop(0, hexA(col, 0.5)); bg.addColorStop(1, hexA(col, 0));
-      ctx.fillStyle = bg;
-      ctx.fillRect(sx - bw / 2, DRV.HOR + 2, bw, Math.max(4, sy - DRV.HOR));
-      /* جعبه */
-      if (z < 5200) {
-        const s = Math.max(0.5, ppu);
-        ctx.save();
-        ctx.translate(sx, sy - Math.sin(animTime * 2.6) * 6 * s * 40);
-        ctx.scale(s * 40, s * 40);
-        ctx.fillStyle = '#2c3440'; rr(-0.55, -0.5, 1.1, 1, 0.15); ctx.fill();
-        ctx.fillStyle = col; rr(-0.4, -0.35, 0.8, 0.7, 0.1); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.85)'; circle(-0.15, -0.15, 0.1);
-        ctx.restore();
-      }
-    }
-  }
+  /* --- آیتم مخفی: ستون نور + جعبه (رسم مشترک سواره‌ها — ۱۹٫۰) --- */
+  drvDrawHidden();
 
-  /* --- موانع و زامبی‌ها (دور → نزدیک) --- */
-  const vis = [];
-  for (const o of D.obs) {
-    if (o.hit) continue;
-    const z = o.k * DRV.SEG - D.T;
-    if (z > 60 && z < 6400) vis.push({ o, z });
-  }
-  vis.sort((a, b) => b.z - a.z);
-  for (const { o, z } of vis) drawDriveObs(o, z);
+  /* --- موانع (دور → نزدیک؛ رسم مشترک سواره‌ها — ۱۹٫۰) --- */
+  drvDrawObstacles();
 
-  /* --- نور چراغ‌های جلو روی آسفالت --- */
-  {
-    const zEnd = 2400;
-    const cxE = drvX(roadCXf(D.T + zEnd), zEnd), wE = drvRW(zEnd) * 0.55;
-    const cx0 = 480, w0 = 250;
-    for (const dx of [-0.36, 0.36]) {
-      ctx.fillStyle = 'rgba(255,238,170,0.09)';
-      ctx.beginPath();
-      ctx.moveTo(cx0 + dx * w0 - 60, 556); ctx.lineTo(cx0 + dx * w0 + 60, 556);
-      ctx.lineTo(cxE + dx * wE + Math.max(4, wE * 0.3), drvY(zEnd));
-      ctx.lineTo(cxE + dx * wE - Math.max(4, wE * 0.3), drvY(zEnd));
-      ctx.closePath(); ctx.fill();
-    }
-  }
+  /* --- نور چراغ‌های جلو روی آسفالت (رسم مشترک سواره‌ها) --- */
+  drvDrawHeadlight('rgba(255,238,170,0.09)');
 
   /* --- ماشین بازیکن (نمای از پشت) + ارشان روی صندلی کمکی --- */
   drawDriveCar();
 
-  /* --- خطوط سرعت در سرعت بالا --- */
-  if (D.speed > 2750 && !t3) {
-    ctx.strokeStyle = 'rgba(200,214,240,0.16)'; ctx.lineWidth = 2;
-    for (let i = 0; i < 7; i++) {
-      const yy = 300 + ((animTime * 900 + i * 97) % 240);
-      const xx = (i % 2 === 0) ? 60 + i * 9 : W - 60 - i * 9;
-      ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + (xx < W / 2 ? -26 : 26), yy + 34); ctx.stroke();
-    }
-  }
+  /* --- خطوط سرعت در سرعت بالا (رسم مشترک سواره‌ها) --- */
+  drvDrawSpeedLines('rgba(200,214,240,0.16)');
 
   /* --- فاز ۳: سیلوی انبارها در مه جلوتر --- */
   if (t3) {

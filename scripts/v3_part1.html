@@ -3,46 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۸٫۰: روان‌سازی جدی برای موبایل (حذف بلورهای سنگین GPU)، ارشانِ دیده‌بان روی بام برج پشت کنگره‌ها با منطقِ پایین‌رفتن با طناب، موج‌های فصل‌به‌فصلِ بیشتر (۴/۶/۸/۱۰) و فرارِ منطقی‌تر — بهینه برای موبایل و اندروید">
+<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۹٫۰: مینی‌گیم‌های سواره‌ی تازه (قایق در مه + اسنوموبیل در توفان برفی)، دودِ متحرک خانه‌های سوخته، نگهبانِ سخت‌تر با یورش و فاز دوم، کات‌سین ورود به پناهگاه با پایانِ «ادامه دارد» و صفحه‌ی پیروزی بازطراحی‌شده — بهینه برای موبایل و اندروید">
 <title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۸٫۰ — استایل‌های صفحه
+   سه طبقه تا بقا — نسخه‌ی ۱۹٫۰ — استایل‌های صفحه
    صفحه راست‌به‌چپ (فارسی) است؛ همه‌ی متن‌های رابط کاربری فارسی‌اند.
-   تازه‌های ۱۸٫۰ (بازخورد کاربر):
-     - روان‌سازی جدی: همه‌ی backdrop-filter ها (بلورهای شیشه‌ای روی
-       بومِ همیشه در حال تغییر) حذف شدند — عامل اصلی لگ/هنگ روی
-       گوشی؛ هاله‌های فانوس/چراغ‌ها هم اسپرایت پیش‌پخته شدند
-     - جای ارشان منطقی شد: روی بامِ برج، پشت کنگره‌ها (جای دیده‌بان)،
-       کنار بازیکن؛ وقتی برج ترک می‌خورد با طناب پایین می‌رود (با
-       بارکش هم‌زمان است) — و فرارش در کات‌سین دقیقاً منطبق بر آن
-     - راننده = بازیکن در سمت چپ (مثل ایران)، ارشان صندلی کمکی راست
-     - موج‌ها فصل‌به‌فصل بیشتر می‌شوند: فصل ۱ = ۴ موج، فصل ۲ = ۶،
-       فصل ۳ = ۸، فصل ۴ = ۱۰ (مجموع ۲۸ شب)؛ سختیِ انتهای هر فصل
-       مثل قبل است
-     - دو دیالوگ منطقی‌تر: t1n1 (فرار ارشان با طناب) و aw5 (می‌رم
-       پایین)
+   تازه‌های ۱۹٫۰ (بازخورد کاربر):
+     - کوله‌پشتی پایین‌تر و جمع‌وجورتر: لبه‌ی پایین صفحه + اسلات‌های
+       کوچک‌تر (روی صفحه‌های کوچک کلاس sui = باز کوچک‌تر) تا زمینِ بازی
+       و زامبی‌های ورودی را نپوشاند
+     - مینی‌گیم‌های فصل ۲→۳ (قایق در مه) و ۳→۴ (اسنوموبیل برفی) به
+       سبک رانندگی شبه‌سه‌بعدی — به‌جای تونل تاریک و زیپ‌لاین
+     - صفحه‌ی برد سینمایی: مدال طلایی + پرتوهای چرخان + کارت‌های آمار
+       + منوی کامل + قلاب سری دوم
+     - صفحه‌ی «این داستان ادامه دارد...» با تایپ تدریجی و تیتر سری بعد
 
-   تازه‌های ۱۷٫۰ (بازخورد کاربر):
-     - مینی‌گیم رانندگی شبه‌سه‌بعدی (فصل ۱→۲): جاده‌ی پرسپکتیو با
-       پیچ و خطوط رونده، موانع/زامبی‌هایی که از دور بزرگ می‌شوند،
-       فرمان/گاز/ترمز (کیبورد، لمس، کج‌کردن گوشی)، ارشان روی صندلی
-       کمکی + آیتم مخفیِ کنار جاده با ستون نور
-     - ارشان حالا در گیم‌پلی دفاعی روی برج حضور دارد (۱۸٫۰: بام،
-       پشت کنگره‌ها): دیده‌بانی با دوربین، مهمات‌رسانی، نگاه به سمت
-       خطر + بارک‌های کوتاه محاوره‌ای وسط موج (۶ صدای تازه)
-     - دیالوگ‌های افتتاحیه محاوره‌ای شدند (هم‌لحن انتقال‌ها) + خط
-       راوی که توضیح می‌دهد چرا ارشان همان لحظه‌ی فروریختن با ماشین
-       می‌رسد (۱۸٫۰: با طناب از برج پایین رفته و ماشین را گرم کرده)
-     - تونل و زیپ‌لاین: لایه‌ی عمق پرسپکتیو (موانع دور = کوچک/کم‌رنگ)
-
-   تازه‌های ۱۶٫۰ (بازخورد کاربر):
-     - «شب شود» دیگر دکمه‌ی شناورِ گوشه‌ی صفحه نیست — دکمه‌ی
-       طلاییِ خودِ پنل ساخت‌وساز شد (زیر سربرگ؛ باز و جمع)
-     - جاخاله‌های کوله‌پشتی خوشگل‌تر: قاب و هاله‌ی رنگی هر وسیله،
-       حذف جعبه‌درون‌جعبه، کی‌چیپ لطیف، «+» وسطِ جاخالیِ خالی
-     - تاریکی از فصل ۲ لکه‌ای و متغیر: پایه‌ی ملایم همه‌جا +
-       لکه‌های شناورِ تیره‌تر — بعضی جاها کمی، بعضی خیلی، بعضی روشن
+   تازه‌های ۱۸٫۰/۱۸٫۱ (خلاصه):
+     - حذف backdrop-filter ها + کش‌های چهارلایه/اسپرایت‌ها (روان روی گوشی)
+     - ارشان دیده‌بان روی بام + پایین‌رفتن با طناب + موج‌های ۴/۶/۸/۱۰
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
@@ -289,6 +268,55 @@ body{display:flex;align-items:center;justify-content:center}
   transition:color .15s,border-color .15s,transform .15s,background .15s}
 #skipCs:hover{color:#ffd873;border-color:#ffd873;background:rgba(20,30,60,.92);transform:translateY(-1px)}
 
+/* ---------- (۱۹٫۰) صفحه‌ی برد سینمایی — مدال + پرتو + کارت آمار ---------- */
+#victoryScreen{background:radial-gradient(ellipse at center,rgba(10,16,38,.42),rgba(3,5,14,.9))}
+.vic-wrap{position:relative;text-align:center;max-width:600px;width:92%;padding:18px 10px}
+.vic-rays{position:absolute;left:50%;top:92px;width:560px;height:560px;transform:translate(-50%,-50%);
+  background:conic-gradient(from 0deg,rgba(255,216,115,.13) 0 9deg,transparent 9deg 24deg,rgba(255,216,115,.13) 24deg 33deg,transparent 33deg 48deg,rgba(255,216,115,.13) 48deg 57deg,transparent 57deg 72deg,rgba(255,216,115,.13) 72deg 81deg,transparent 81deg 96deg,rgba(255,216,115,.13) 96deg 105deg,transparent 105deg 120deg);
+  border-radius:50%;pointer-events:none;animation:vicRays 22s linear infinite;
+  mask-image:radial-gradient(circle,#000 34%,transparent 72%);-webkit-mask-image:radial-gradient(circle,#000 34%,transparent 72%)}
+@keyframes vicRays{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.vic-medal{width:108px;height:108px;margin:0 auto 4px;font-size:58px;line-height:108px;
+  background:radial-gradient(circle at 50% 34%,#ffe9a8,#f0b53c 62%,#a8681c);
+  border:3px solid #fff3cf;border-radius:50%;box-shadow:0 0 42px rgba(255,190,60,.55),inset 0 -8px 18px rgba(122,72,10,.55);
+  animation:vicMedal .9s cubic-bezier(.2,1.9,.5,1) both,vicFloat 3.2s 1s ease-in-out infinite}
+@keyframes vicMedal{0%{transform:scale(.1) rotate(-38deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes vicFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.vic-title{font-size:40px;font-weight:900;color:#ffd873;letter-spacing:1px;margin:6px 0 2px;
+  background:linear-gradient(180deg,#fff8dc 5%,#ffd873 48%,#e8961e 96%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 4px 20px rgba(255,180,60,.5));animation:vicTitle .8s .25s both}
+@keyframes vicTitle{from{opacity:0;transform:translateY(14px) scale(.86)}to{opacity:1;transform:none}}
+.vic-ribbon{color:#e8d9b0;font-size:14.5px;font-weight:bold;margin-bottom:10px;
+  background:linear-gradient(180deg,rgba(122,72,10,.55),rgba(64,40,8,.4));border:1px solid #a8681c;
+  border-radius:999px;padding:6px 18px;display:inline-block;animation:vicTitle .8s .4s both}
+.vic-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px;animation:vicTitle .8s .55s both}
+.vic-card{background:linear-gradient(180deg,rgba(26,38,74,.92),rgba(12,19,41,.92));border:1px solid #4d6aa8;
+  border-radius:12px;padding:9px 6px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.vic-card .vc-ic{font-size:19px;line-height:1.1}
+.vic-card .vc-n{font-size:17px;font-weight:900;color:#ffd873;margin-top:2px}
+.vic-card .vc-l{font-size:9.5px;color:#9fb2dd;margin-top:1px}
+.vic-menu{margin-top:12px;animation:vicTitle .8s .7s both}
+.vic-next{margin-top:12px;font-size:11.5px;color:#8fa3cf;animation:vicNext 2.4s 1.4s ease-in-out infinite}
+@keyframes vicNext{0%,100%{opacity:.55}50%{opacity:1}}
+.vic-next b{color:#7be3c8}
+#wrap.touch .vic-medal{width:88px;height:88px;font-size:47px;line-height:88px}
+#wrap.touch .vic-title{font-size:32px}
+
+/* ---------- (۱۹٫۰) «این داستان ادامه دارد...» ---------- */
+#tbcScreen{background:radial-gradient(ellipse at center,rgba(30,8,10,.55),rgba(2,2,6,.97))}
+.tbc-box{text-align:center;max-width:640px;width:94%;padding:20px 8px}
+.tbc-title{font-size:34px;font-weight:900;color:#f3e9cf;letter-spacing:2px;min-height:46px;
+  text-shadow:0 3px 22px rgba(255,80,60,.35),0 2px 8px #000;direction:rtl}
+.tbc-title .tbccaret{color:#ff6a5a;animation:dlgCaret 1s steps(2) infinite}
+.tbc-sub{margin-top:14px;font-size:15px;font-weight:bold;color:#ffb3ab;opacity:0;transition:opacity 1.2s}
+.tbc-sub.on{opacity:1}
+.tbc-sub b{color:#ffd873}
+.tbc-tease{margin-top:10px;font-size:11.5px;color:#d8a49c;opacity:0;transition:opacity 1.2s}
+.tbc-tease.on{opacity:.9}
+.tbc-row{margin-top:22px;opacity:0;transition:opacity .8s}
+.tbc-row.on{opacity:1}
+
 /* ---------- ۶) اورلی‌ها و پنل‌ها (۱۲٫۰: کادرهای پررنگ‌تر) ---------- */
 /* (۱۸٫۰) بلور اورلی هم حذف شد — پشت آن بوم هر فریم تازه می‌شود */
 .overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
@@ -353,33 +381,35 @@ body{display:flex;align-items:center;justify-content:center}
    نسخه‌ی ۱۳٫۰ — صدای نورال فارسی + ریل چپ + نوار ارتقا + سیو اطمینانی
    ================================================================== */
 
-/* --- کوله‌پشتی (۶ جا) پایین‌چپ — (۱۶٫۰) بازطراحی: جاخاله‌ی خوشگل ---
-   پیشتر آیکونِ رنگی داخل یک جعبه‌ی آبیِ دیگری می‌نشست (جعبه‌درون‌جعبه)
-   و همه‌ی جاخاله‌ها یک‌دست تیره و بی‌روح بودند. حالا:
-   • آیکونِ هر وسیله خودش قاب اسلات است (بدون جعبه‌ی دوم)
-   • قاب و هاله‌ی نور به رنگِ همان وسیله است (از JS ست می‌شود)
-   • جاخالیِ خالی = خط‌چین کم‌رنگ + «+» در وسط
-   • کی‌چیپ کوچک و لطیف، گوشه‌ی بالا-راست اسلات */
-#backpackBar{position:absolute;bottom:8px;left:12px;z-index:5;display:flex;gap:6px;align-items:center;
+/* --- کوله‌پشتی (۶ جا) پایین‌چپ — (۱۹٫۰) پایین‌تر و جمع‌وجورتر:
+   لبه‌ی پایین صفحه (bottom:2px)، اسلات‌های کوچک‌تر و روی صفحه‌های
+   کوچک (کلاس sui از fitWrap) باز کوچک‌تر — تا لاین زامبی‌های ورودی
+   و زمین بازی دیده بماند (بازخورد کاربر: «مربع‌ها رو پایین‌تر بیار») --- */
+#backpackBar{position:absolute;bottom:2px;left:10px;z-index:5;display:flex;gap:5px;align-items:center;
   opacity:.94;transition:opacity .2s;pointer-events:none}
 #backpackBar:hover{opacity:1}
-.bpk-cap{font-size:10px;font-weight:bold;color:#cdd9f4;background:linear-gradient(180deg,rgba(24,36,72,.92),rgba(11,18,40,.92));
-  border:1px solid #46609e;border-radius:10px;padding:5px 9px;pointer-events:none;
+.bpk-cap{font-size:9.5px;font-weight:bold;color:#cdd9f4;background:linear-gradient(180deg,rgba(24,36,72,.92),rgba(11,18,40,.92));
+  border:1px solid #46609e;border-radius:9px;padding:4px 8px;pointer-events:none;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 3px 10px rgba(0,0,0,.35)}
 /* حالت خالی: جاخالی‌های خالیِ چسبیده رسم نمی‌شوند (ضدشلوغی ۱۲٫۰) */
 #backpackBar.compact #bpkSlots{display:none}
 #backpackBar.compact .bpk-cap{color:#ffd873;border-color:#e8b54a}
-#bpkSlots{display:flex;gap:6px}
-.bpk-slot{position:relative;width:50px;height:50px;border-radius:12px;cursor:pointer;pointer-events:auto;
+#bpkSlots{display:flex;gap:5px}
+.bpk-slot{position:relative;width:46px;height:46px;border-radius:11px;cursor:pointer;pointer-events:auto;
   display:flex;align-items:center;justify-content:center;background:transparent;
-  border:1.5px solid #33518f;box-shadow:0 4px 12px rgba(0,0,0,.35);
+  border:1.5px solid #33518f;box-shadow:0 3px 10px rgba(0,0,0,.35);
   transition:border-color .15s,transform .15s,box-shadow .15s}
 .bpk-slot:hover{transform:translateY(-2px) scale(1.04)}
-.bpk-slot canvas{width:46px;height:46px;display:block;border-radius:10px}
+.bpk-slot canvas{width:42px;height:42px;display:block;border-radius:9px}
+/* (۱۹٫۰) صفحه‌های کوچک: کوله باز هم کوچک‌تر — پایینِ تصویر می‌چسبد */
+#wrap.sui #backpackBar{bottom:1px;left:6px;gap:4px}
+#wrap.sui .bpk-slot{width:38px;height:38px;border-radius:9px}
+#wrap.sui .bpk-slot canvas{width:34px;height:34px;border-radius:7px}
+#wrap.sui .bpk-cap{font-size:8.5px;padding:3px 6px}
 .bpk-slot.empty{border-style:dashed;border-color:rgba(96,128,196,.7);box-shadow:inset 0 2px 10px rgba(2,6,16,.5);opacity:.88}
 .bpk-slot.empty canvas{opacity:0}
 .bpk-slot.empty::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:17px;color:#93a9d8;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  font-size:15px;color:#93a9d8;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .bpk-slot .bpk-key{position:absolute;top:-4px;right:-4px;font-size:8px;font-weight:bold;
   background:linear-gradient(180deg,#2a3a68,#16224a);border:1px solid #46609e;border-radius:5px;
   padding:0 4px;color:#cdd9f4;line-height:1.6;box-shadow:0 2px 5px rgba(0,0,0,.4)}
@@ -388,9 +418,11 @@ body{display:flex;align-items:center;justify-content:center}
 .bpk-slot.ready{animation:bpkReady 1.7s infinite}
 @keyframes bpkDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .bpk-slot.deny{animation:bpkDeny .3s;border-color:#e04b3a}
-/* لمس: جاخاله‌های بزرگ‌تر برای انگشت */
-#wrap.touch .bpk-slot{width:56px;height:56px}
-#wrap.touch .bpk-slot canvas{width:52px;height:52px}
+/* لمس: جاخاله‌های بزرگ‌تر برای انگشت (۱۹٫۰: کمی جمع‌تر) */
+#wrap.touch .bpk-slot{width:52px;height:52px}
+#wrap.touch .bpk-slot canvas{width:48px;height:48px}
+#wrap.sui.touch .bpk-slot{width:44px;height:44px}
+#wrap.sui.touch .bpk-slot canvas{width:40px;height:40px}
 
 /* --- پنل دستفروش مرموز (۱۵٫۰: بالاتر و کمی راست‌تر — گوشه‌اش دیگر
    روی دکمه‌ی توقفِ ریل چپ نمی‌نشیند؛ فقط روزها) --- */
@@ -649,7 +681,8 @@ body{display:flex;align-items:center;justify-content:center}
       <div class="howto">
         <div>🖱 <b>کلیک یا نگه‌داشتن ماوس:</b> شلیک از بالای برج به سمت اشاره‌گر — گلوله به <b>سر</b> زامبی بخورد، ضربه‌ی بحرانی می‌گیری</div>
         <div>☀️ <b>چرخه‌ی روز و شب:</b> بعد از پاک‌سازی هر موج صبح می‌شود؛ زامبی نمی‌آید — ارتقا بخر و برجک بگذار، بعد با دکمه‌ی طلاییِ «شب شود» (زیر سربرگِ پنل ساخت‌وساز) موج بعد را شروع کن</div>
-        <div>🗺 <b>چهار فصل:</b> محله‌ی قدیمی → منطقه‌ی انبارها (مه‌گرفته) → پاسگاه نظامی (خرابه) → برج مخابراتی (برفی و بارونی)؛ هر فصل ۸ موج است و دشمن‌ها هر فصل سریع‌تر و چاق‌تر می‌شوند — جون، سکه، سلاح‌ها، ارتقاها و کوله‌پشتی‌ات بین فصل‌ها حفظ می‌شود</div>
+        <div>🚤 <b>فرارهای سینه‌ای سواره (۱۹٫۰):</b> پایان هر فصل یک مینی‌گیم شبه‌سه‌بعدی با فرمان/گاز/ترمز — ماشین در جاده‌ی شب، قایق در کانالِ مه‌گرفته و اسنوموبیل در توفان برفی؛ با آیتم مخفی کنار مسیر</div>
+        <div>🗺 <b>چهار فصل:</b> محله‌ی قدیمی → منطقه‌ی انبارها (مه‌گرفته) → پاسگاه نظامی (خرابه) → برج مخابراتی (برفی و بارونی)؛ موج‌ها فصل‌به‌فصل بیشتر می‌شوند (۴ → ۶ → ۸ → ۱۰) و دشمن‌ها هر فصل سریع‌تر و چاق‌تر — جون، سکه، سلاح‌ها، ارتقاها و کوله‌پشتی‌ات بین فصل‌ها حفظ می‌شود</div>
         <div>🎬 <b>انتقال بین فصل‌ها:</b> برج می‌شکند و با ارشان فرار می‌کنی — اول صحنه‌ی سینمایی، بعد کنترل با تو (پرش: <b>↑ یا Space</b>، خم‌شدن زیر تیرآهن‌ها: <b>↓</b>، کم‌وزیاد کردن سرعت: <b>←/→</b>) و آخر دوباره صحنه‌ی سینمایی؛ توی هر فرار یک <b>آیتم مخفی</b> هم هست!</div>
         <div>🎒 <b>کوله‌پشتی (۶ جا):</b> «وسایل بقی» را از فروشگاه بخر و با کلیک روی جاخالی‌ها یا کلیدهای <b>Q W E R Y U</b> مصرف کن — کنسرو = شفای تدریجی، کیت = شفای فوری، باتری = شارژ چراغ‌قوه</div>
         <div>🔦 <b>چراغ‌قوه (کلید L):</b> در مهِ انبارها و لحظه‌های قطع برق فقط دایره‌ی نور دور خودت را می‌بینی — باتری‌اش تمام نشود! در «آخرین شب» تنها نورِ توست</div>
@@ -658,7 +691,7 @@ body{display:flex;align-items:center;justify-content:center}
         <div>🛡 <b>برجک‌های دفاعی:</b> مسلسل، تک‌تیرانداز و یخ‌زن را بخر و روی زمین کلیک کن تا خودشان به زامبی‌ها شلیک کنند — راست‌کلیک یا Esc نصب را لغو می‌کند</div>
         <div>💾 <b>سیو خودکار:</b> بعد از پایان هر موج، بعد از هر خرید و موقع شروع هر فصل ذخیره می‌شود؛ وسط بازی هم «توقف ← ذخیره و خروج» داری. باخت که کردی، با «ادامه از آخرین روز» از صبحِ همان شب برمی‌گردی — از اولِ اول نه!</div>
         <div>🧱 <b>باخت:</b> زامبی‌ها از دیوار برج بالا می‌آیند، طبقه‌طبقه فروش می‌ریزند و بام روی زمین می‌کوبد — بعدش صفحه‌ی باخت با دو انتخاب: «ادامه از آخرین روز» یا «شروع از اول»</div>
-        <div>🌑 <b>آخرین شب (موج آخر کل بازی):</b> فروشگاه قفل است، برق کاملاً قطع است و «نگهبان» با الگوی حمله‌ی خاص (پرتاب آوار + فراخوان زامبی + خشم) می‌آید؛ از پسش برآیی = پیروزی واقعی و رسیدن به پناهگاه</div>
+        <div>🌑 <b>آخرین شب (موج آخر کل بازی):</b> فروشگاه قفل است، برق کاملاً قطع است و «نگهبان» با الگوی حمله‌ی خاص (پرتاب آوار + فراخوان زامبی + کوبش + یورش برق‌آسا + فاز دومِ زره سنگین) می‌آید — یورشش را با آتش متمرکز قطع کن!؛ از پسش برآیی = ورود به پناهگاه و پایانِ فصل اولِ داستان</div>
         <div>🧟 زامبی‌ها برج را از هر دو طرف <b>محاصره</b> می‌کنند و پایه‌اش را گاز می‌گیرند؛ جون که تمام شود باختی!</div>
       </div>
       <h3 class="sec-t">🧟 دشمن‌ها</h3>
@@ -666,7 +699,7 @@ body{display:flex;align-items:center;justify-content:center}
         <div class="foe"><span class="dot" style="--c:#7fa657"></span><span><b>معمولی</b><i>آهسته ولی تعدادش زیاد است</i></span></div>
         <div class="foe"><span class="dot" style="--c:#c9a35a"></span><span><b>سریع</b><i>کم‌جون اما تیز می‌دود</i></span></div>
         <div class="foe"><span class="dot" style="--c:#8a8794"></span><span><b>تانک</b><i>زره‌پوش و کاسه‌ی سخت</i></span></div>
-        <div class="foe"><span class="dot" style="--c:#9c3546"></span><span><b>نگهبانِ آخرین شب</b><i>موج ۲۸ — آوار پرت می‌کند و زامبی صدا می‌زند!</i></span></div>
+        <div class="foe"><span class="dot" style="--c:#9c3546"></span><span><b>نگهبانِ آخرین شب</b><i>موج ۲۸ — یورش می‌کند، آوار می‌پراند و فاز دوم دارد!</i></span></div>
       </div>
       <div class="btn-row"><button class="btn-sec" id="closeHowto">برگرد به منو</button></div>
     </div>
@@ -740,7 +773,7 @@ body{display:flex;align-items:center;justify-content:center}
       <h2>ℹ️ درباره‌ی بازی</h2>
       <p class="subtitle">سه طبقه تا بقا</p>
       <div class="howto" style="text-align:right">
-        <div>یک ویروس ناشناخته شهر را خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتان دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیو خبر شنیدید برسید. ۴ فصل، ۲۸ شب (موج‌ها فصل به فصل بیشتر می‌شوند)، ۳ فرار سینمایی و یک «آخرین شب».</div>
+        <div>یک ویروس ناشناخته شهر را خالی کرد؛ تو و دوستت <b>ارشان</b> با ساختن برج‌های موقت از خودتان دفاع می‌کنید — <b>برج به برج، شب به شب</b> — تا به پناهگاهی که از رادیو خبر شنیدید برسید. ۴ فصل، ۲۸ شب (موج‌ها فصل به فصل بیشتر می‌شوند)، ۳ فرار سینماییِ سواره و یک «آخرین شب» — و در پایان، پناهگاه و «ادامه‌ی داستان»...</div>
         <div>همه‌چیز با <b>HTML5 Canvas</b> و جاوااسکریپت خالص در <b>یک فایل واحد</b> ساخته شده — گفتگوها هم با صدای فارسی داخل خود بازی جاسازی شده‌اند. 🧡</div>
       </div>
       <div class="btn-row"><button class="btn-main" id="closeAbout">برگرد</button></div>
@@ -758,13 +791,31 @@ body{display:flex;align-items:center;justify-content:center}
     </div>
   </div>
 
-  <!-- ============ صفحه برد ============ -->
+  <!-- ============ (۱۹٫۰) صفحه برد — ورود سینمایی + منوی جذاب ============ -->
   <div class="overlay hidden" id="victoryScreen">
-    <div class="panel">
-      <h1>🏆 پیروزی!</h1>
-      <p class="subtitle">از ۲۸ شب زنده موندی، نگهبانِ آخرین شب را هم از پا درآوردی — پناهگاه نزدیک است!</p>
-      <p class="stat-line" id="vStats"></p>
-      <div class="btn-row"><button class="btn-main" id="btnRestart2">🔄 بازی دوباره</button></div>
+    <div class="vic-wrap">
+      <div class="vic-rays"></div>
+      <div class="vic-medal">🏆</div>
+      <h1 class="vic-title">پیروزی!</h1>
+      <div class="vic-ribbon">قهرمانِ ۲۸ شب — از محله‌ی قدیمی تا پناهگاه</div>
+      <div class="vic-stats" id="vStats"></div>
+      <div class="btn-row vic-menu">
+        <button class="btn-main" id="btnRestart2">🌙 بازی دوباره از شب اول</button>
+        <button class="btn-sec" id="btnVicMenu">🏠 منوی اصلی</button>
+      </div>
+      <p class="vic-next">⭐ سری دوم: <b>«محاصره‌ی پناهگاه»</b> — به‌زودی...</p>
+    </div>
+  </div>
+
+  <!-- ============ (۱۹٫۰) «این داستان ادامه دارد...» ============ -->
+  <div class="overlay hidden" id="tbcScreen">
+    <div class="tbc-box">
+      <div class="tbc-title" id="tbcTitle"></div>
+      <div class="tbc-sub" id="tbcSub">سری دوم: <b>«محاصره‌ی پناهگاه»</b></div>
+      <div class="tbc-tease" id="tbcTease">🧟 گله‌ی بزرگ... پشتِ درِ پناهگاه...</div>
+      <div class="btn-row tbc-row" id="tbcRow">
+        <button class="btn-main" id="tbcContinue">ادامه‌ی داستان → صفحه‌ی پیروزی</button>
+      </div>
     </div>
   </div>
 

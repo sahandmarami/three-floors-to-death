@@ -830,9 +830,12 @@ function drawTowerCracks(k) {
 }
 
 /* ------------------ افق شهر سوخته (برج دوم) ------------------
-   ساختمان‌های سوگته با بام‌های شکسته + پنجره‌های تیره/نارنجی +
-   کانون‌های آتشِ چشمک‌زن با دنباله‌ی دود + مهِ دودیِ پایه‌ها.
-   آتش و دود در روز هم (کم‌رنگ‌تر) دیده می‌شوند — شهر هنوز می‌سوزد. */
+   ساختمان‌های سوخته با بام‌های شکسته + پنجره‌های تیره/نارنجی +
+   کانون‌های آتش + مهِ دودیِ پایه‌ها.
+   (۱۹٫۰ — بازخورد کاربر: «دودِ خانه‌ها متحرک باشه») لایه‌ی «زنده»
+   (آتشِ سوسوزن + ستون‌های دودِ بالا رونده + پنجره‌های چشمک‌زن) هر
+   فریم جدا از کش BG رسم می‌شود: drawRuinLiveFx — پایه‌ی ایستا همین‌جا
+   در کش L1 می‌ماند و دود/شعله واقعاً حرکت می‌کند (چه شب، چه روز). */
 function drawRuinedSkyline(d) {
   ctx.fillStyle = mixHex('#141018', '#6e5546', d);
   ctx.beginPath();
@@ -850,32 +853,25 @@ function drawRuinedSkyline(d) {
     ctx.closePath();
   }
   ctx.fill();
-  /* پنجره‌های شکسته: روز و شب — تیره‌ها سیاه، نارنجی‌ها سوسوزن */
+  /* پنجره‌های شکسته: تیره‌ها سیاه؛ نارنجی‌ها فقط «پایه‌ی» کم‌نورِ ایستا —
+     سوسوی واقعی‌شان در لایه‌ی زنده (drawRuinLiveFx) می‌آید */
   for (const w2 of RUIN_WINS) {
     if (w2.lit) {
-      const fl = 0.55 + 0.45 * Math.sin(animTime * 4 + w2.ph);
-      ctx.fillStyle = 'rgba(255,140,60,' + (fl * (0.6 + 0.4 * (1 - d))).toFixed(2) + ')';
+      ctx.fillStyle = 'rgba(255,140,60,' + (0.42 * (0.6 + 0.4 * (1 - d))).toFixed(2) + ')';
     } else {
       ctx.fillStyle = 'rgba(5,3,6,0.5)';
     }
     ctx.fillRect(w2.x, w2.y, 3.4, 5);
   }
-  /* کانون‌های آتش + دودِ بالا رونده — حتی روز هم به‌روشنی دیده می‌شوند
-     (۸٫۰: آتش روز کمی قوی‌تر تا روی آسمان سپیا خوانا بماند) */
+  /* کانون‌های آتش — پایه‌ی ایستا (هاله‌ی گرمِ ثابت) برای کش؛
+     شعله‌ی پویا و دود در لایه‌ی زنده */
   const fireA = 0.86 + 0.14 * (1 - d);
   for (const f of RUIN_FIRES) {
-    const fl = 0.55 + 0.45 * Math.sin(animTime * 5 + f.ph);
     const g2 = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 23);
-    g2.addColorStop(0, 'rgba(255,150,66,' + (0.85 * fireA * fl).toFixed(2) + ')');
-    g2.addColorStop(0.5, 'rgba(255,110,40,' + (0.45 * fireA * fl).toFixed(2) + ')');
+    g2.addColorStop(0, 'rgba(255,150,66,' + (0.5 * fireA).toFixed(2) + ')');
+    g2.addColorStop(0.5, 'rgba(255,110,40,' + (0.26 * fireA).toFixed(2) + ')');
     g2.addColorStop(1, 'rgba(255,110,40,0)');
     ctx.fillStyle = g2; circle(f.x, f.y, 23);
-    ctx.fillStyle = 'rgba(255,200,120,' + (0.9 * fireA * fl).toFixed(2) + ')';
-    circle(f.x, f.y, 3);                        // هسته‌ی روشن شعله
-    const sy = f.y - 13 - (animTime * 7 + f.ph * 10) % 26;
-    ctx.fillStyle = 'rgba(64,50,52,' + (0.45 * fireA * fl).toFixed(2) + ')';
-    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime + f.ph) * 4, sy, 7.5, 13, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(f.x + Math.sin(animTime * 0.7 + f.ph) * 7, sy - 17, 11, 16, 0, 0, Math.PI * 2); ctx.fill();
   }
   /* مهِ پایه‌ی ساختمان‌ها: خاکستریِ دودی */
   const fog = ctx.createLinearGradient(0, GROUND_Y - 46, 0, GROUND_Y);
@@ -884,6 +880,107 @@ function drawRuinedSkyline(d) {
                               : 'rgba(80,60,55,' + (0.2 * (1 - d)).toFixed(2) + ')');
   ctx.fillStyle = fog;
   ctx.fillRect(-20, GROUND_Y - 46, W + 40, 46);
+}
+
+/* (۱۹٫۰) اسپرایت دودِ پیش‌پخته — لکه‌ی نرمِ شعاعی؛ رنگش با تم روز/شب
+   ترکیب می‌شود (شب: دودی تیره؛ روز: قهوه‌ای سپیا) */
+let _smokeSpr = null;
+function smokeSpr() {
+  if (_smokeSpr) return _smokeSpr;
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(32, 32, 3, 32, 32, 30);
+  rg.addColorStop(0, 'rgba(70,56,58,0.85)');
+  rg.addColorStop(0.6, 'rgba(64,50,52,0.5)');
+  rg.addColorStop(1, 'rgba(64,50,52,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, 64, 64);
+  _smokeSpr = c;
+  return c;
+}
+let _smokeSprDay = null;
+function smokeSprDay() {
+  if (_smokeSprDay) return _smokeSprDay;
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(32, 32, 3, 32, 32, 30);
+  rg.addColorStop(0, 'rgba(150,120,105,0.8)');
+  rg.addColorStop(0.6, 'rgba(140,112,98,0.45)');
+  rg.addColorStop(1, 'rgba(140,112,98,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, 64, 64);
+  _smokeSprDay = c;
+  return c;
+}
+
+/* (۱۹٫۰) لایه‌ی زنده‌ی افق سوخته: شعله‌های پویا + ستون‌های دودِ
+   بالا رونده (۴ دانه‌ی حلقه‌ایِ در حال رشد و محو + تلوّنِ باد) +
+   سوسوی پنجره‌های نارنجی — بعد از blit لایه‌ی افق صدا می‌شود
+   (dx = پارالاکس افق، هماهنگ با BG.blit(1)) */
+function drawRuinLiveFx(d, dx) {
+  ctx.save();
+  if (dx) ctx.translate(dx, 0);
+  const spr = d > 0.5 ? smokeSprDay() : smokeSpr();
+  const fireA = 0.86 + 0.14 * (1 - d);
+  /* پنجره‌های نارنجیِ سوسوزن — لایه‌ی روشنِ زنده روی پایه‌ی ایستا */
+  for (const w2 of RUIN_WINS) {
+    if (!w2.lit) continue;
+    const fl = 0.55 + 0.45 * Math.sin(animTime * 4 + w2.ph);
+    ctx.fillStyle = 'rgba(255,140,60,' + (fl * 0.55 * (0.6 + 0.4 * (1 - d))).toFixed(2) + ')';
+    ctx.fillRect(w2.x, w2.y, 3.4, 5);
+  }
+  /* شعله‌های پویا + ستون دود */
+  for (const f of RUIN_FIRES) {
+    const fl = 0.55 + 0.45 * Math.sin(animTime * 5 + f.ph);
+    /* هسته‌ی روشن شعله (جلوتر از دود) */
+    ctx.fillStyle = 'rgba(255,200,120,' + (0.9 * fireA * fl).toFixed(2) + ')';
+    circle(f.x, f.y, 3 + fl * 1.4);
+    ctx.fillStyle = 'rgba(255,150,66,' + (0.5 * fireA * fl).toFixed(2) + ')';
+    circle(f.x, f.y - 2, 6.5 + fl * 2.6);
+    /* ستون دود: ۵ دانه، هرکدام یک چرخه‌ی بالارفتن ۰..۱ */
+    for (let p = 0; p < 5; p++) {
+      const ph = ((animTime * 0.14 + p / 5 + f.ph * 0.09) % 1 + 1) % 1;
+      const rise = ph * 128;
+      const sway = Math.sin(animTime * 0.8 + p * 1.6 + f.ph) * (5 + ph * 16);
+      const sx = f.x + sway;
+      const sy = f.y - 12 - rise;
+      const r = 6.5 + ph * 17;
+      const a = (0.5 - ph * 0.4) * fireA;
+      if (a <= 0.02) continue;
+      ctx.globalAlpha = a;
+      ctx.drawImage(spr, sx - r, sy - r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+/* (۱۹٫۰) دودکش‌های زنده‌ی افق انبارها (فصل ۲) — بخارِ صنعتیِ خاکستری
+   که از دودکش‌های جعبه‌ایِ WH_SKYLINE بالا می‌رود (پیوسته و آرام) */
+function drawWhLiveSmoke(d, dx) {
+  ctx.save();
+  if (dx) ctx.translate(dx, 0);
+  const spr = d > 0.5 ? smokeSprDay() : smokeSpr();
+  const a0 = 0.4 + 0.2 * (1 - d);
+  for (const b of WH_SKYLINE) {
+    if (!b.stack) continue;
+    const cx2 = b.x + b.w * 0.7 + 4.5;
+    const cy2 = GROUND_Y - b.h - 24;
+    for (let p = 0; p < 3; p++) {
+      const ph = ((animTime * 0.09 + p / 3 + (b.x % 37) * 0.008) % 1 + 1) % 1;
+      const rise = ph * 88;
+      const sway = Math.sin(animTime * 0.6 + p * 2.1 + b.x * 0.05) * (3 + ph * 12);
+      const r = 5 + ph * 13;
+      const a = (a0 - ph * a0 * 0.85);
+      if (a <= 0.02) continue;
+      ctx.globalAlpha = a;
+      ctx.drawImage(spr, cx2 + sway - r, cy2 - rise - r, r * 2, r * 2);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 /* ------------------ صحنه‌ی رانندگی (۸٫۰) ------------------
@@ -1141,5 +1238,6 @@ $('skipCs').addEventListener('click', () => {
   if (state.mode === 'intro') skipIntro();
   else if (state.mode === 'transition') skipTransition();
   else if (state.mode === 'defeatcine') skipDefeatCine();   /* (۱۲٫۰) */
+  else if (state.mode === 'sheltercine') skipShelterCine(); /* (۱۹٫۰) */
   else skipCutscene();
 });

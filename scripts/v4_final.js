@@ -20,6 +20,8 @@ let VC = null;      // وضعیت صحنه‌ی پیروزی (victory cinematic)
    زامبی معمولی بی‌تغییر؛ نگهبانِ آخرین شب: ضربه‌ی معمولی ×۰٫۵ (زره)،
    کریت (سر) ×۱٫۲۵ قبل از ضریب داخلی ×۲ = ×۲٫۵؛ حین stagger کامل می‌خورد */
 const _hitZombieBase = hitZombie;
+/* (۱۹٫۰) زره سخت‌تر + «شکستنِ یورش»: دمیج متمرکز موقع شارژ نگهبان
+   یورشش را قطع می‌کند و او زمین می‌خورد (پاداش آتشِ دقیق) */
 hitZombie = function (z, dmg, bx, by, dir, crit, knock, src) {
   if (z && z.type === 'boss' && !z.dead && state.wave >= FINAL_WAVE) {
     const ai = z.ai || (z.ai = {});
@@ -27,16 +29,33 @@ hitZombie = function (z, dmg, bx, by, dir, crit, knock, src) {
     if (ai.staggerT > 0) {
       d = Math.max(1, Math.round(d * 1.15));                   // پنجره‌ی زره‌ترکیده
     } else if (crit) {
-      d = Math.max(1, Math.round(d * 1.25));                   // سر = نقطه‌ضعف
+      d = Math.max(1, Math.round(d * 1.22));                   // سر = نقطه‌ضعف
     } else {
-      d = Math.max(1, Math.round(d * 0.5));                    // زره‌ی پوستی
+      d = Math.max(1, Math.round(d * (ai.hardened ? 0.36 : 0.45)));   // زره (فاز ۲ سخت‌تر)
+    }
+    /* (۱۹٫۰) شکستن یورش: دمیجِ متمرکز در فاز شارژ → نگهبان می‌لغزد
+       (آستانه بعد ازِ زره حساب می‌شود — حدود ۲۰۰ دمیج خامِ متمرکز) */
+    if ((ai.charge || 0) > 0 || (ai.dash || 0) > 0) {
+      ai.breakAcc = (ai.breakAcc || 0) + d;
+      if (ai.breakAcc >= 90) {
+        ai.breakAcc = 0;
+        ai.charge = 0; ai.dash = 0; ai.chargeT = 13;
+        ai.staggerT = 2.6;
+        z.stagger = 0.3;
+        z.x += Math.sign(z.x - TOWER.x) * 60;                  // از پایه دور شود
+        setAnnounce('💥 یورشِ نگهبان شکست!', 'زمین خورد — الان وقتشه!', 1.8);
+        SFX.crit(); SFX.csCrash();
+        spawnParticles(z.x, z.y - 40, 26, '#ffb347', { speed: 260, life: 0.8, size: 3.4, grav: 460 });
+        state.shake = 9;
+        return _hitZombieBase(z, d, bx, by, dir, crit, knock, src);
+      }
     }
     ai.dmgAcc = (ai.dmgAcc || 0) + d;
-    if (ai.dmgAcc >= 750 && (ai.staggerT || 0) <= 0) {         // پلکانی‌شدن
+    if (ai.dmgAcc >= 900 && (ai.staggerT || 0) <= 0) {         // پلکانی‌شدن (۱۹٫۰: دیرتر می‌شکند)
       ai.dmgAcc = 0;
-      ai.staggerT = 2.2;
+      ai.staggerT = 1.9;
       z.stagger = 0.3;
-      setAnnounce('🛡 زره‌ی نگهبان ترکید!', '۲ ثانیه فرصت — ببار!', 1.6);
+      setAnnounce('🛡 زره‌ی نگهبان ترکید!', 'فرصت داری — ببار!', 1.6);
       SFX.crit();
       spawnParticles(z.x, z.y - 70, 14, '#c44dff', { speed: 200, life: 0.6, size: 3, grav: 350 });
     }
@@ -50,19 +69,29 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
   if (state.mode !== 'playing' || state.wave < FINAL_WAVE) return;
   const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
   if (boss) {
-    if (!boss.ai) boss.ai = { throwT: 2.9, summonT: 7.5, slamT: 4.5, slam: 0, rage: false, staggerT: 0, dmgAcc: 0, hinted: false, baseSpd: boss.speed };
+    if (!boss.ai) boss.ai = { throwT: 2.9, summonT: 7.5, slamT: 4.5, slam: 0, rage: false, staggerT: 0, dmgAcc: 0, hinted: false, baseSpd: boss.speed, chargeT: 8, charge: 0, dash: 0, dashDir: 1, breakAcc: 0, hardened: false, phase2: false };
     const ai = boss.ai;
     const hpFrac = boss.hp / boss.maxHp;
-    const rage = hpFrac < 0.4;
-    const desp = hpFrac < 0.18;                               // آخرین نفس
+    const rage = hpFrac < 0.42;
+    const desp = hpFrac < 0.16;                               // آخرین نفس
     /* نکته‌ی ارشان وسط مبارزه (۱۲٫۰: با صدای خودش) */
     if (!ai.hinted && hpFrac < 0.75) {
       ai.hinted = true;
       try { bark('fbw1', 'a', 'آوارها رو بترکون! نذار به برج بخورن!', '🎯 [ارشان]: آوارها رو بترکون!', 'گلوله‌ات آوارِ پرتابی را در هوا می‌ترکاند — نذار به بام بخوره!', 3); } catch (e) {}
     }
+    /* (۱۹٫۰) فاز ۲ در ۵۵٪: زره‌ی سنگین — مبارزه دو پله‌ای شد */
+    if (!ai.phase2 && hpFrac < 0.55) {
+      ai.phase2 = true;
+      ai.hardened = true;
+      boss.speed = ai.baseSpd * 1.3;
+      try { bark('fb1b1', 'b', 'زره... سنگین... کن!', '🛡 فاز دوم: زره سنگین!', 'زره‌اش ضخیم‌تر شد و یورش می‌آورد — با آتش متمرکز یورشش را بشکن!', 2.8); } catch (e) {}
+      SFX.roar();
+      state.shake = 12;
+      spawnParticles(boss.x, boss.y - 60, 22, '#c44dff', { speed: 240, life: 0.9, size: 3.2, grav: 300 });
+    }
     if (rage && !ai.rage) {
       ai.rage = true;
-      boss.speed = ai.baseSpd * 1.45;
+      boss.speed = ai.baseSpd * 1.55;
       try { bark('fb1b1', 'b', 'خشم... من!', '🔥 نگهبان خشمگین شد!', 'سریع‌تر شد و بیشتر می‌کوبد — مراقب بام باش!', 2.6); } catch (e) {}
       SFX.roar();
       state.shake = 12;
@@ -73,13 +102,59 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
       boss.stagger = 0.25;
       if (ai.staggerT <= 0) setAnnounce('🛡 زره برگشت', 'متمرکز بزن تا دوباره بشکند', 1.4);
     }
+    /* (۱۹٫۰) یورشِ برق‌آسا: دور از برج → ۱ ثانیه آماده‌باش (با هشدار
+       ارشان) → دویدن ×۴٫۵ به سمت برج؛ رسید = کوبش سنگین (۳۰+)؛
+       آتشِ متمرکزِ ~۹۰ دمیجِ زره‌شکسته موقع آماده‌باش/دویدن = قطع یورش */
+    if ((ai.charge || 0) > 0 && ai.staggerT <= 0) {
+      ai.charge -= dt;
+      boss.stagger = 0.3;                                     // حین آماده‌باش نمی‌جنبد
+      state.shake = Math.max(state.shake, 2.5);
+      if (Math.random() < dt * 20) {
+        spawnParticles(boss.x + rand(-40, 40), boss.y, 1, '#8a7a5c', { speed: 60, life: 0.4, size: 2.4, grav: 200, up: true });
+      }
+      if (ai.charge <= 0) {
+        ai.dash = 0.95;
+        ai.dashDir = Math.sign(TOWER.x - boss.x) || 1;
+        SFX.csEngine();
+      }
+    } else if ((ai.dash || 0) > 0 && ai.staggerT <= 0) {
+      ai.dash -= dt;
+      boss.stagger = 0;
+      boss.x += ai.dashDir * ai.baseSpd * 4.5 * dt;
+      state.shake = Math.max(state.shake, 4);
+      spawnParticles(boss.x - ai.dashDir * 40, boss.y, 2, '#8a7a5c', { speed: 90, life: 0.4, size: 2.6, grav: 260, up: true });
+      if (Math.abs(boss.x - TOWER.x) < 125) {
+        /* رسید: کوبشِ یورش — سنگین‌تر از کوبش معمولی */
+        ai.dash = 0;
+        damageTower(30, TOWER.x + (boss.x < TOWER.x ? -40 : 40));
+        state.shake = 22;
+        SFX.csBoom(); SFX.roar();
+        for (let i = 0; i < 30; i++) {
+          const a = (i / 30) * Math.PI * 2;
+          spawnParticles(TOWER.x + Math.cos(a) * 44, GROUND_Y - Math.abs(Math.sin(a)) * 20, 1, '#8a7a5c',
+            { speed: 250, life: 0.6, size: 3, grav: 520, dir: a, spread: 1.2, up: true });
+        }
+        ai.slamT = Math.max(ai.slamT, 4.5);
+      } else if (ai.dash <= 0) {
+        ai.chargeT = rage ? 10 : 14;
+      }
+    } else if (ai.staggerT <= 0) {
+      ai.chargeT = (ai.chargeT || 12) - dt;
+      if (ai.chargeT <= 0 && Math.abs(boss.x - TOWER.x) > 250 && ai.slam <= 0) {
+        ai.charge = 1.0;
+        ai.breakAcc = 0;
+        setAnnounce('⚡ نگهبان یورش می‌آورد!', 'آتش متمرکز = قطع یورش!', 1.4);
+        try { bark('fbz1', 'a', 'مواظب باش! داره شارژ می‌کنه! بزن بهش!', '⚡ [ارشان]: یورش می‌کنه!', 'با آتش متمرکز یورشش را قطع کن — وگرنه برج را می‌کوبد!', 2.2); } catch (e) {}
+        SFX.roar();
+      }
+    }
     /* کوبش زمین: نزدیک برج → آماده‌باش ۰٫۹۵s (بی‌حرکت) → فرود */
     ai.slamT -= dt;
     if (ai.slam > 0) {
       ai.slam -= dt;
       boss.stagger = 0.3;                                    // حین آماده‌باش نمی‌جنبد
       if (ai.slam <= 0) {
-        damageTower(20, TOWER.x + (boss.x < TOWER.x ? -55 : 55));
+        damageTower(24, TOWER.x + (boss.x < TOWER.x ? -55 : 55));   /* (۱۹٫۰) سنگین‌تر */
         state.shake = 20;
         SFX.csBoom();
         for (let i = 0; i < 26; i++) {
@@ -94,24 +169,26 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
       setAnnounce('💢 نگهبان می‌کوبد!', 'ضربه‌ی زمین در راه است!', 1.2);
       SFX.roar();
     }
-    /* پرتاب آوار — حین کوبش/پلکان نه */
+    /* پرتاب آوار — حین کوبش/پلکان/یورش نه */
     ai.throwT -= dt;
-    if (ai.throwT <= 0 && ai.slam <= 0 && ai.staggerT <= 0) {
+    if (ai.throwT <= 0 && ai.slam <= 0 && ai.staggerT <= 0 && (ai.charge || 0) <= 0 && (ai.dash || 0) <= 0) {
       if (Math.abs(boss.x - TOWER.x) > 150) {
-        ai.throwT = rage ? 1.9 : 3.0;
+        ai.throwT = rage ? 1.7 : (ai.hardened ? 2.4 : 3.0);   /* (۱۹٫۰) فاز دوم تندتر */
         bossThrowDebris(boss);
-        if (desp) bossThrowDebris(boss);                      // آخرین نفس: دو آوار
+        if (ai.hardened) bossThrowDebris(boss);               /* فاز ۲+: دو آوار */
+        if (desp) bossThrowDebris(boss);                      // آخرین نفس: سه آوار
       } else ai.throwT = 1.1;
     }
     /* فراخوان زامبی‌ها */
     ai.summonT -= dt;
-    if (ai.summonT <= 0 && state.zombies.filter(z => !z.dead).length < 8) {
-      ai.summonT = rage ? 6.5 : 9.5;
+    if (ai.summonT <= 0 && state.zombies.filter(z => !z.dead).length < 9) {
+      ai.summonT = rage ? 6 : (ai.hardened ? 8 : 9.5);        /* (۱۹٫۰) فراخوان بیشتر */
       setAnnounce('💀 نگهبان فراخوان می‌کند!', 'زامبی‌های سریع در راه‌اند — جلویشون رو بگیر!', 1.8);
       SFX.roar();
       spawnZombie('fast');
+      if (ai.hardened) spawnZombie('fast');
       if (rage) spawnZombie('fast');
-      if (desp) spawnZombie('normal');
+      if (desp) { spawnZombie('normal'); spawnZombie('tank'); }
     }
   }
   /* فیزیک آوار پرتابی + برخوردها */
@@ -123,7 +200,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
     /* برخورد با برج: آسیب به بام (۱۱٫۰: ۲۲ — محسوس‌تر) */
     if (Math.abs(p.x - TOWER.x) < 40 && p.y > TOWER_TOP_Y - 26 && p.y < GROUND_Y) {
       p.dead = true;
-      damageTower(22, p.x);
+      damageTower(26, p.x);                                   /* (۱۹٫۰) آوار سنگین‌تر */
       debrisBurst(p.x, p.y);
       continue;
     }
@@ -245,8 +322,11 @@ function updateVictoryCine(dt) {
   if ((VC.done || VC.t > 16) && VC.t > 6) {
     VOICE.stop();
     DLG.skip();
-    wipeSave();                              // پایان بازی — سیو پاک شود
-    victory();
+    VC = null;
+    /* (۱۹٫۰) سحر تمام شد → کات‌سین «رسیدن به پناهگاه» (v4_shelter):
+       ورود، گفتگو با بازمانده‌ها، اتفاقِ بد، «این داستان ادامه دارد»
+       و بعد صفحه‌ی بردِ سینمایی */
+    startShelterCine();
   }
 }
 

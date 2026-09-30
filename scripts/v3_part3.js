@@ -248,6 +248,7 @@ function updateFx(dt) {
   state.muzzleGlow = Math.max(0, state.muzzleGlow - dt);
   state.comboPop = Math.max(0, state.comboPop - dt);
   updateParticles(dt); updateTexts(dt); updateZaps(dt);
+  if (typeof victoryFireworks === 'function') victoryFireworks(dt);   /* (۱۹٫۰) آتش‌بازی برد */
 }
 
 /* ---------- صحنه‌ی زنده‌ی منوی اصلی ----------
@@ -2436,6 +2437,8 @@ function render() {
     renderIntro();                             // کات‌سین افتتاحیه — روایت داستان
   } else if (state.mode === 'victorycine') {
     renderVictoryCine();                       // صحنه‌ی سحرِ پیروزی
+  } else if (state.mode === 'sheltercine') {
+    renderShelterCine();                       // (۱۹٫۰) کات‌سین پناهگاه + «ادامه دارد»
   } else if (state.mode === 'transition' && TR && TR.phase !== 1) {
     renderTransition();                        // فاز ۲/۳ انتقال — صحنه‌ی اختصاصی مینی‌گیم
   } else if (CS && CS.drive) {
@@ -2452,6 +2455,14 @@ function render() {
   drawClouds();                                 // ابرها: اسپرایت‌های پخته + دریفت
   /* (۱۰٫۰) پارالاکس ملایم منو: افق و تپه‌ها با ماوس کمی جابه‌جا می‌شوند */
   BG.blit(1, -menuPar(12));                     // افق شهر
+  /* (۱۹٫۰) لایه‌ی زنده‌ی افق — دود متحرکِ خانه‌های سوخته (فصل ۳) و
+     دودکش‌های انبارها (فصل ۲): پایه در کش L1 می‌ماند، دود هر فریم
+     با اسپرایت پیش‌پخته بالا می‌رود (~۳۰ drawImage) */
+  {
+    const sky = curCh().theme.skyline;
+    if (sky === 'ruin') drawRuinLiveFx(state.dayness, -menuPar(12));
+    else if (sky === 'warehouse') drawWhLiveSmoke(state.dayness, -menuPar(12));
+  }
   BG.blit(2, -menuPar(26));                     // تپه‌ها + زمین
   BG.blit(3);                                   // جزئیات زمین: چمن/گل/برکه/چراغ‌ها
   drawAsh();                                  // بارش خاکسترِ شهر سوخته (۸٫۰)

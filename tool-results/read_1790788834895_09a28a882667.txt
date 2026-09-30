@@ -1,0 +1,673 @@
+     1→/* ==================================================================
+     2→   سه طبقه تا بقا — نسخه‌ی ۱۸٫۰ — بخش ۹: مینی‌گیم رانندگی شبه‌سه‌بعدی
+     3→   ==================================================================
+     4→   فصل ۱→۲: بازیکن خودش پشت فرمانِ ماشین ارشان است (نه دونده‌ی کنار جاده).
+     5→   رندر «جاده‌ی بی‌نهایت» به سبک کلاسیک (OutRun-like) با Canvas 2D خالص:
+     6→     • پروجکشن پرسپکتیو: مقیاس = عمق‌دوربین / z → جاده از خط افق به سمت
+     7→       بازیکن باز می‌شود؛ هر قطعه‌ی جاده یک ذوزنقه است که با نزدیک‌شدن
+     8→       بزرگ می‌شود و از کنار صفحه می‌گذرد
+     9→     • پیچ‌های سینوسی: مرکز جاده در جهان جابه‌جا می‌شود → جاده در افق
+    10→       مار می‌خورد و بازیکن باید فرمان بدهد تا روی آسفالت بماند
+    11→     • موانع/زامبی‌ها از دور (کوچک و کم‌رنگ در مه) زاده می‌شوند و با
+    12→       نزدیک‌شدن بزرگ/پررنگ می‌شوند؛ برخورد = کاهش سرعت
+    13→     • آیتم مخفی = جعبه‌ی درخشانِ کنار جاده با ستون نور (پاداش فرمان دقیق)
+    14→     • ارشان روی صندلی کمکی (کلاه قرمزش از شیشه‌ی عقب دیده می‌شود) و
+    15→       طبق روالِ قبل دیالوگ می‌دهد (صدای d1a1/d1a2)
+    16→   کنترل: ←/→ (یا A/D، یا لمسِ یک‌سومِ چپ/راست، یا کج‌کردن گوشی) = فرمان
+    17→           ↑ (یا Space/W، لمس: گاز خودکار) = گاز • ↓ (یا S، لمسِ وسط) = ترمز
+    18→   ================================================================== */
+    19→
+    20→/* ---- ۹-۱) وضعیت و ثابت‌های پروجکشن ---- */
+    21→const DRV = {
+    22→  HOR: 196,        // y خط افق
+    23→  CAMD: 0.84,      // عمق دوربین (میدان دید ~۱۰۰ درجه)
+    24→  CAMH: 1000,      // ارتفاع دوربین از سطح جاده (واحد جهان)
+    25→  SEG: 600,        // طول هر قطعه‌ی جاده
+    26→  ROADW: 1000,     // نیم‌عرض جاده
+    27→  PLZ: 840,        // z صفحه‌ی بازیکن (CAMH × CAMD)
+    28→  /* حالت اجرا */
+    29→  T: 0, goalT: 0, speed: 0, px: 0, steer: 0, kb: false,
+    30→  gas: false, brake: false, obs: [], nextZ: 0, hidden: null,
+    31→  hits: 0, hitCool: 0, offroad: 0, itemHinted: false, wheel: 0,
+    32→};
+    33→
+    34→/* مقیاس پرسپکتیو: پیکسل به‌ازای هر واحد جهان در عمق z */
+    35→function drvPPU(z) { return (DRV.CAMD / Math.max(50, z)) * (W / 2); }
+    36→/* y صفحه برای نقطه‌ای روی سطح جاده در عمق z */
+    37→function drvY(z) { return DRV.HOR + (DRV.CAMD / Math.max(50, z)) * DRV.CAMH * (H / 2); }
+    38→/* x صفحه برای نقطه‌ی (worldX, z) — دوربین دنبال بازیکن است */
+    39→function drvX(worldX, z) { return W / 2 + drvPPU(z) * (worldX - DRV.px); }
+    40→/* نیم‌عرض جاده روی صفحه در عمق z */
+    41→function drvRW(z) { return drvPPU(z) * DRV.ROADW; }
+    42→
+    43→/* مرکز جاده در قطعه‌ی k — دو موج سینوسی (پیچ‌های ملایمِ بلند + کوتاه) */
+    44→function roadCX(k) { return 620 * Math.sin(k * 0.055) + 380 * Math.sin(k * 0.0213); }
+    45→/* نمونه‌ی خطیِ نرم برای عمق دلخواه */
+    46→function roadCXf(z) {
+    47→  const kk = z / DRV.SEG, k0 = Math.floor(kk), f = kk - k0;
+    48→  return roadCX(k0) + (roadCX(k0 + 1) - roadCX(k0)) * f;
+    49→}
+    50→
+    51→/* ---- ۹-۲) ورودی مینی‌گیم رانندگی ---- */
+    52→function mgGas(on) {
+    53→  if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') DRV.gas = !!on;
+    54→}
+    55→function mgBrake(on) {
+    56→  if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') DRV.brake = !!on;
+    57→}
+    58→function mgSteer(v) {
+    59→  if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') DRV.steer = clamp(v, -1, 1);
+    60→}
+    61→
+    62→/* ---- ۹-۳) ریست و به‌روزرسانی ---- */
+    63→function driveReset(cfg) {
+    64→  DRV.T = 0;
+    65→  DRV.goalT = cfg.goalM * 200;          /* ۱ متر = ۲۰۰ واحد جهان */
+    66→  DRV.speed = cfg.speed0;
+    67→  DRV.px = roadCX(0);
+    68→  DRV.steer = 0; DRV.kb = false;
+    69→  DRV.gas = false; DRV.brake = false;
+    70→  DRV.obs = [];
+    71→  DRV.nextZ = 4200;
+    72→  DRV.hidden = {
+    73→    T: DRV.goalT * cfg.hidden.at,
+    74→    lane: (Math.random() < 0.5 ? -1 : 1) * 1.06,   /* لبه‌ی جاده */
+    75→    id: cfg.hidden.id, got: false,
+    76→  };
+    77→  DRV.hits = 0; DRV.hitCool = 0;
+    78→  DRV.offroad = 0; DRV.itemHinted = false; DRV.wheel = 0;
+    79→}
+    80→
+    81→const DRV_OBSTACLES = [
+    82→  { t: 'zN',    hw: 130, w: 300, h: 230 },   // زامبی معمولی (روبه‌رو می‌دود)
+    83→  { t: 'zN',    hw: 130, w: 300, h: 230 },
+    84→  { t: 'zF',    hw: 105, w: 240, h: 210 },   // زامبی سریع
+    85→  { t: 'zT',    hw: 165, w: 420, h: 285 },   // زامبی تن‌درشت
+    86→  { t: 'rock',  hw: 225, w: 460, h: 210 },   // سنگ‌لاش
+    87→  { t: 'barrel',hw: 160, w: 300, h: 330 },   // بشکه
+    88→  { t: 'wreck', hw: 330, w: 700, h: 300 },   // ماشین له‌شده
+    89→];
+    90→
+    91→function driveUpdate(dt) {
+    92→  const cfg = MG.cfg, D = DRV;
+    93→  TR.fade = Math.max(0, TR.fade - dt * 1.9);
+    94→  MG.t2 += dt;
+    95→  D.hitCool = Math.max(0, D.hitCool - dt);
+    96→
+    97→  /* فرمان: px = موقعیت افقی ماشین در جهان */
+    98→  D.px += D.steer * 1500 * dt;
+    99→  const rc = roadCXf(D.T);
+   100→  D.px = clamp(D.px, rc - 1450, rc + 1450);
+   101→  D.wheel += D.speed * dt * 0.004;
+   102→
+   103→  /* گاز / ترمز (لمس: گاز خودکار مگر ترمز) */
+   104→  let tgt = 2050;
+   105→  const touchAuto = (typeof IS_TOUCH !== 'undefined') && IS_TOUCH;
+   106→  if (D.gas || (touchAuto && !D.brake)) tgt = 3350;
+   107→  if (D.brake) tgt = 850;
+   108→  if (D.offroad > 0.2) tgt = Math.min(tgt, 1150);       // شانه‌ی جاده = شنِ سست
+   109→  D.speed += (tgt - D.speed) * Math.min(1, dt * 1.05);
+   110→  D.T += D.speed * dt;
+   111→  MG.scroll = D.T * 0.12;                                // مترها برای نوار پیشرفت/subs
+   112→
+   113→  /* بیرون‌زدن از آسفالت؟ (لرزش + غبار + افت سرعت از tgt) */
+   114→  const edge = Math.abs(D.px - roadCXf(D.T));
+   115→  D.offroad = edge > (DRV.ROADW - 250)
+   116→    ? Math.min(1, D.offroad + dt * 6)
+   117→    : Math.max(0, D.offroad - dt * 4);
+   118→  if (D.offroad > 0.25) {
+   119→    state.shake = Math.max(state.shake, 3.2);
+   120→    if (Math.random() < dt * 26) {
+   121→      spawnParticles(480 + rand(-140, 140), 540, 2, 'rgba(120,104,78,0.5)',
+   122→        { speed: 90, life: 0.5, size: 3, grav: 260, up: true });
+   123→    }
+   124→  }
+   125→
+   126→  /* تولید موانع تا جلوترِ دید مفید */
+   127→  while (D.nextZ < D.T + 5600) {
+   128→    const k = Math.round(D.nextZ / DRV.SEG);
+   129→    const r = Math.random();
+   130→    if (r < 0.24) {
+   131→      /* دسته‌ی ۲-۳ زامبی کنار هم */
+   132→      const base = rand(-0.55, 0.55), n = irand(2, 3);
+   133→      for (let i = 0; i < n; i++) {
+   134→        const def = DRV_OBSTACLES[irand(0, 1)];
+   135→        D.obs.push({ k, wx: roadCX(k) + clamp(base + i * rand(-0.24, 0.24), -0.8, 0.8) * 880,
+   136→          type: def.t, hw: def.hw, hit: false });
+   137→      }
+   138→    } else {
+   139→      const def = DRV_OBSTACLES[irand(0, DRV_OBSTACLES.length - 1)];
+   140→      D.obs.push({ k, wx: roadCX(k) + rand(-0.74, 0.74) * 880,
+   141→        type: def.t, hw: def.hw, hit: false });
+   142→    }
+   143→    D.nextZ += rand(950, 1600) + D.speed * 0.22;
+   144→  }
+   145→
+   146→  /* برخورد: مانع از صفحه‌ی بازیکن می‌گذرد (z ~ 740..1000) */
+   147→  for (const o of D.obs) {
+   148→    if (o.hit) continue;
+   149→    const z = o.k * DRV.SEG - D.T;
+   150→    if (z < 420) { o.hit = true; continue; }             // رد شد
+   151→    if (z < 1000 && D.hitCool <= 0 && Math.abs(o.wx - D.px) < 245 + o.hw) {
+   152→      driveHit(o);
+   153→    }
+   154→  }
+   155→  /* زادآوری آرایه (حذف رد‌شده‌ها) */
+   156→  if (D.obs.length > 90) D.obs = D.obs.filter(o => o.k * DRV.SEG - D.T > 300);
+   157→
+   158→  /* آیتم مخفی: ستون نورش از دور دیده می‌شود؛ نزدیک‌شدن → هشدار ارشان */
+   159→  const HI = D.hidden;
+   160→  if (HI && !HI.got) {
+   161→    const z = HI.T - D.T;
+   162→    const hwx = roadCXf(HI.T) + HI.lane * 880;
+   163→    if (!D.itemHinted && z < 6500) {
+   164→      D.itemHinted = true;
+   165→      transBark({ who: 'a', v: 'd1a2', text: 'اون طرف یه جعبه دیدم! بگیرش!' },
+   166→        '— [ارشان]: اون طرف یه جعبه دیدم! بگیرش!', 2.8);
+   167→    }
+   168→    if (z > 640 && z < 1120 && Math.abs(hwx - D.px) < 330) {
+   169→      HI.got = true;
+   170→      giveItem(HI.id);
+   171→      SFX.csGift();
+   172→      setTransSub('💎 آیتم مخفی پیدا شد! (' + (GEAR[HI.id] || RARE[HI.id]).name + ')', 2.6);
+   173→      spawnParticles(drvX(hwx, 900), 470, 24,
+   174→        (GEAR[HI.id] || RARE[HI.id]).color, { speed: 200, life: 0.9, size: 2.8, grav: 260 });
+   175→    }
+   176→  }
+   177→
+   178→  /* خط‌های ارشان (متن + صدای d1a1 برای اولی) */
+   179→  for (const s of cfg.subs) {
+   180→    if (!s.done && MG.scroll / PXM >= s.atM) {
+   181→      s.done = true;
+   182→      setTransSub(s.txt, s.dur || 3);
+   183→      SFX.peddler();
+   184→      if (s.barkV) {
+   185→        transBark({ who: 'a', v: s.barkV, text: s.barkT }, s.txt, 3.4);
+   186→      }
+   187→    }
+   188→  }
+   189→
+   190→  /* دود اگزوز در گاز سنگین */
+   191→  if ((D.gas || D.speed > 2900) && Math.random() < dt * 14) {
+   192→    spawnParticles(480 + rand(-40, 40), 556, 1, 'rgba(130,130,140,0.4)',
+   193→      { speed: 30, life: 0.8, size: 3.4, grav: -20 });
+   194→  }
+   195→
+   196→  /* پایان مسیر → فاز ۳ */
+   197→  if (D.T >= D.goalT) mgOutro();
+   198→}
+   199→
+   200→/* برخورد: زامبی = له‌شدن (سبک) • جسم سخت = تصادف سنگین */
+   201→function driveHit(o) {
+   202→  o.hit = true;
+   203→  DRV.hits++;
+   204→  DRV.hitCool = 0.55;
+   205→  const soft = o.type === 'zN' || o.type === 'zF' || o.type === 'zT';
+   206→  if (soft) {
+   207→    DRV.speed = Math.max(700, DRV.speed * 0.8);
+   208→    state.shake = Math.max(state.shake, 5);
+   209→    SFX.csThud();
+   210→    const sx = drvX(o.wx, DRV.PLZ);
+   211→    spawnParticles(sx, 500, 16, '#7fa657', { speed: 210, life: 0.7, size: 3, grav: 520 });
+   212→    spawnParticles(sx, 496, 8, '#5a3d28', { speed: 160, life: 0.9, size: 2.4, grav: 480 });
+   213→    if (DRV.hits % 3 === 1) setTransSub(MG.cfg.hitSubs[irand(0, MG.cfg.hitSubs.length - 1)], 1.6);
+   214→  } else {
+   215→    DRV.speed = Math.max(650, DRV.speed * 0.5);
+   216→    state.shake = 10;
+   217→    state.flash = 0.7;
+   218→    SFX.csCrash();
+   219→    const sx = drvX(o.wx, DRV.PLZ);
+   220→    spawnParticles(sx, 486, 22, '#e0a13c', { speed: 300, life: 0.8, size: 3.2, grav: 560 });
+   221→    spawnParticles(sx, 480, 10, '#c9463d', { speed: 220, life: 0.7, size: 2.6, grav: 520 });
+   222→    setTransSub(MG.cfg.hitSubs[irand(0, MG.cfg.hitSubs.length - 1)], 1.8);
+   223→  }
+   224→}
+   225→
+   226→/* فاز ۳: رانندگی آرام به داخل مهِ انبارها */
+   227→function driveOutroUpdate(dt) {
+   228→  DRV.speed += (2300 - DRV.speed) * Math.min(1, dt * 0.8);
+   229→  DRV.T += DRV.speed * dt;
+   230→  DRV.wheel += DRV.speed * dt * 0.004;
+   231→  MG.scroll = DRV.T * 0.12;
+   232→  if (Math.random() < dt * 10) {
+   233→    spawnParticles(480 + rand(-60, 60), 556, 1, 'rgba(150,150,160,0.35)',
+   234→      { speed: 26, life: 1.1, size: 4, grav: -14 });
+   235→  }
+   236→}
+   237→
+   238→/* ---- ۹-۴) رسم ---- */
+   239→/* ستاره‌های ثابت شب (دeterministic) */
+   240→const DRV_STARS = Array.from({ length: 46 }, (_, i) => ({
+   241→  x: (i * 197.3) % W, y: 20 + ((i * 83.7) % 140), r: 0.7 + ((i * 31) % 10) / 12,
+   242→}));
+   243→
+   244→function renderDrive() {
+   245→  const D = DRV;
+   246→  const t3 = TR.phase === 3;
+   247→
+   248→  /* --- آسمان شب + ماه + افق شهر (پارالاکسِ بسیار کند) --- */
+   249→  const g = ctx.createLinearGradient(0, -20, 0, DRV.HOR + 30);
+   250→  g.addColorStop(0, '#04081a'); g.addColorStop(0.7, '#0c142e'); g.addColorStop(1, '#18233f');
+   251→  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, DRV.HOR + 50);
+   252→  for (const s of DRV_STARS) {
+   253→    const tw = 0.5 + 0.5 * Math.sin(animTime * 1.7 + s.x);
+   254→    ctx.fillStyle = 'rgba(230,238,252,' + (0.3 + 0.45 * tw).toFixed(2) + ')';
+   255→    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+   256→  }
+   257→  ctx.fillStyle = '#efe6c4'; circle(150, 64, 24);
+   258→  ctx.fillStyle = 'rgba(120,110,80,0.25)'; circle(142, 58, 5); circle(158, 72, 3.6);
+   259→  /* افق شهر دور — با پیشرفت مسیر می‌گذرد */
+   260→  const off = D.T * 0.0011, m = W + 80;
+   261→  ctx.fillStyle = '#0a1022';
+   262→  for (const b of SKYLINE) {
+   263→    const sx = (((b.x - off) % m) + m) % m - 40;
+   264→    ctx.fillRect(sx, DRV.HOR - 4 - b.h * 0.4, b.w, b.h * 0.4 + 6);
+   265→  }
+   266→  /* مهِ انبارها روی افق (فصل ۲ در راه است) */
+   267→  const fogA = t3 ? 0.55 + 0.45 * clamp(TR.t / 2.6, 0, 1) : 0.42;
+   268→  const fg = ctx.createLinearGradient(0, DRV.HOR - 26, 0, DRV.HOR + 92);
+   269→  fg.addColorStop(0, 'rgba(148,160,178,' + fogA.toFixed(2) + ')');
+   270→  fg.addColorStop(1, 'rgba(148,160,178,0)');
+   271→  ctx.fillStyle = fg; ctx.fillRect(-20, DRV.HOR - 26, W + 40, 120);
+   272→
+   273→  /* --- زمینِ کنار جاده (تیره) --- */
+   274→  const gg = ctx.createLinearGradient(0, DRV.HOR, 0, H);
+   275→  gg.addColorStop(0, '#0d1116'); gg.addColorStop(1, '#171b20');
+   276→  ctx.fillStyle = gg; ctx.fillRect(-20, DRV.HOR - 2, W + 40, H - DRV.HOR + 24);
+   277→
+   278→  /* --- قطعه‌های جاده (نزدیک → دور رسم می‌شوند؛ ذوزنقه‌ها) --- */
+   279→  const k0 = Math.max(0, Math.floor((D.T - 200) / DRV.SEG));
+   280→  const KN = 46;
+   281→  for (let k = k0 + KN; k >= k0; k--) {
+   282→    const z1 = Math.max(52, k * DRV.SEG - D.T);
+   283→    const z2 = Math.max(52, (k + 1) * DRV.SEG - D.T);
+   284→    if (z1 > 24000) continue;
+   285→    const y1 = drvY(z1), y2 = drvY(z2);
+   286→    const x1 = drvX(roadCX(k), z1), w1 = drvRW(z1);
+   287→    const x2 = drvX(roadCX(k + 1), z2), w2 = drvRW(z2);
+   288→    /* آسفالتِ متناوب */
+   289→    ctx.fillStyle = (k % 2 === 0) ? '#26292f' : '#22252a';
+   290→    ctx.beginPath();
+   291→    ctx.moveTo(x1 - w1, y1); ctx.lineTo(x1 + w1, y1);
+   292→    ctx.lineTo(x2 + w2, y2); ctx.lineTo(x2 - w2, y2);
+   293→    ctx.closePath(); ctx.fill();
+   294→    /* شانه‌های قرمز/سفید (rumble) */
+   295→    if (z1 < 9000) {
+   296→      ctx.fillStyle = (k % 2 === 0) ? '#c9463d' : '#d8d3c6';
+   297→      const rw1 = Math.max(2, w1 * 0.055), rw2 = Math.max(1.4, w2 * 0.055);
+   298→      ctx.beginPath();
+   299→      ctx.moveTo(x1 - w1, y1); ctx.lineTo(x1 - w1 + rw1, y1);
+   300→      ctx.lineTo(x2 - w2 + rw2, y2); ctx.lineTo(x2 - w2, y2);
+   301→      ctx.closePath(); ctx.fill();
+   302→      ctx.beginPath();
+   303→      ctx.moveTo(x1 + w1, y1); ctx.lineTo(x1 + w1 - rw1, y1);
+   304→      ctx.lineTo(x2 + w2 - rw2, y2); ctx.lineTo(x2 + w2, y2);
+   305→      ctx.closePath(); ctx.fill();
+   306→    }
+   307→    /* خط‌چین وسط + خطوط لاین‌ها */
+   308→    if (k % 2 === 0 && z1 < 12000) {
+   309→      ctx.fillStyle = 'rgba(232,217,138,0.85)';
+   310→      for (const lx of [-0.33, 0, 0.33]) {
+   311→        const c1 = x1 + w1 * lx, c2 = x2 + w2 * lx;
+   312→        const lw1 = Math.max(1.2, w1 * 0.012), lw2 = Math.max(0.8, w2 * 0.012);
+   313→        ctx.beginPath();
+   314→        ctx.moveTo(c1 - lw1, y1); ctx.lineTo(c1 + lw1, y1);
+   315→        ctx.lineTo(c2 + lw2, y2); ctx.lineTo(c2 - lw2, y2);
+   316→        ctx.closePath(); ctx.fill();
+   317→      }
+   318→    }
+   319→    /* محوِ دور در مه */
+   320→    if (z1 > 6000) {
+   321→      const a = clamp((z1 - 6000) / 9000, 0, 0.9);
+   322→      ctx.fillStyle = 'rgba(148,160,178,' + a.toFixed(2) + ')';
+   323→      ctx.beginPath();
+   324→      ctx.moveTo(x1 - w1 * 1.4, y1); ctx.lineTo(x1 + w1 * 1.4, y1);
+   325→      ctx.lineTo(x2 + w2 * 1.4, y2); ctx.lineTo(x2 - w2 * 1.4, y2);
+   326→      ctx.closePath(); ctx.fill();
+   327→    }
+   328→  }
+   329→
+   330→  /* --- اجزای کنار جاده (درخت/تیرچراغ) — دور به نزدیک --- */
+   331→  for (let k = k0 + KN; k >= k0; k--) {
+   332→    const z = k * DRV.SEG + 300 - D.T;
+   333→    if (z < 90 || z > 21000) continue;
+   334→    const hsh = (k * 2654435761) % 1000;
+   335→    const side = (hsh % 2 === 0) ? -1 : 1;
+   336→    const y = drvY(z), ppu = drvPPU(z);
+   337→    /* درخت خشک */
+   338→    if (hsh % 3 === 0) {
+   339→      const wx = roadCX(k) + side * (DRV.ROADW + 300 + (hsh % 5) * 160);
+   340→      const sx = drvX(wx, z);
+   341→      const th = 620 * ppu;
+   342→      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+   343→      ctx.beginPath(); ctx.ellipse(sx, y, Math.max(1.5, 130 * ppu), Math.max(0.6, 34 * ppu), 0, 0, Math.PI * 2); ctx.fill();
+   344→      ctx.strokeStyle = '#241d14'; ctx.lineWidth = Math.max(1, 60 * ppu);
+   345→      ctx.beginPath(); ctx.moveTo(sx, y); ctx.lineTo(sx + side * 20 * ppu, y - th); ctx.stroke();
+   346→      ctx.strokeStyle = '#2c2418'; ctx.lineWidth = Math.max(0.8, 34 * ppu);
+   347→      ctx.beginPath();
+   348→      ctx.moveTo(sx + side * 10 * ppu, y - th * 0.6); ctx.lineTo(sx + side * 160 * ppu, y - th * 0.82);
+   349→      ctx.moveTo(sx + side * 8 * ppu, y - th * 0.75); ctx.lineTo(sx - side * 110 * ppu, y - th * 0.95);
+   350→      ctx.stroke();
+   351→    }
+   352→    /* تیر چراغ هر ۸ قطعه (سمت راست) */
+   353→    if (k % 8 === 0) {
+   354→      const wx = roadCX(k) + (DRV.ROADW + 150);
+   355→      const sx = drvX(wx, z);
+   356→      const ph = 760 * ppu;
+   357→      ctx.strokeStyle = '#3a4150'; ctx.lineWidth = Math.max(1, 44 * ppu);
+   358→      ctx.beginPath(); ctx.moveTo(sx, y); ctx.lineTo(sx, y - ph); ctx.stroke();
+   359→      ctx.beginPath(); ctx.moveTo(sx, y - ph); ctx.lineTo(sx - 180 * ppu, y - ph); ctx.stroke();
+   360→      if (z < 9000) {
+   361→        const lx = sx - 180 * ppu, ly = y - ph;
+   362→        const a = (0.5 + 0.2 * Math.sin(animTime * 2.3 + k)) * clamp(1 - z / 9000, 0.1, 1);
+   363→        /* (۱۸٫۰) هاله از اسپرایت مشترکِ پیش‌پخته — بدون گرادیانِ هر فریم */
+   364→        const r = Math.max(6, 300 * ppu);
+   365→        const ga = ctx.globalAlpha;
+   366→        ctx.globalAlpha = ga * clamp(a * 0.8, 0, 1);
+   367→        ctx.drawImage(drvLampGlow(), lx - r, ly - r, r * 2, r * 2);
+   368→        ctx.globalAlpha = ga;
+   369→        ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.2, 26 * ppu), 0, Math.PI * 2); ctx.fill();
+   370→      }
+   371→    }
+   372→  }
+   373→
+   374→  /* --- آیتم مخفی: ستون نور + جعبه‌ی درخشان کنار جاده --- */
+   375→  const HI = D.hidden;
+   376→  if (HI && !HI.got) {
+   377→    const z = HI.T - D.T;
+   378→    if (z > 60 && z < 20000) {
+   379→      const wx = roadCXf(HI.T) + HI.lane * 880;
+   380→      const sx = drvX(wx, Math.max(60, z)), sy = drvY(Math.max(60, z));
+   381→      const ppu = drvPPU(Math.max(60, z));
+   382→      const col = ((GEAR[HI.id] || RARE[HI.id]) || {}).color || '#ffd873';
+   383→      /* ستون نور عمودی (از دور دیده می‌شود) */
+   384→      const bw = Math.max(3, 90 * ppu);
+   385→      const bg = ctx.createLinearGradient(0, sy, 0, DRV.HOR);
+   386→      bg.addColorStop(0, hexA(col, 0.5)); bg.addColorStop(1, hexA(col, 0));
+   387→      ctx.fillStyle = bg;
+   388→      ctx.fillRect(sx - bw / 2, DRV.HOR + 2, bw, Math.max(4, sy - DRV.HOR));
+   389→      /* جعبه */
+   390→      if (z < 5200) {
+   391→        const s = Math.max(0.5, ppu);
+   392→        ctx.save();
+   393→        ctx.translate(sx, sy - Math.sin(animTime * 2.6) * 6 * s * 40);
+   394→        ctx.scale(s * 40, s * 40);
+   395→        ctx.fillStyle = '#2c3440'; rr(-0.55, -0.5, 1.1, 1, 0.15); ctx.fill();
+   396→        ctx.fillStyle = col; rr(-0.4, -0.35, 0.8, 0.7, 0.1); ctx.fill();
+   397→        ctx.fillStyle = 'rgba(255,255,255,0.85)'; circle(-0.15, -0.15, 0.1);
+   398→        ctx.restore();
+   399→      }
+   400→    }
+   401→  }
+   402→
+   403→  /* --- موانع و زامبی‌ها (دور → نزدیک) --- */
+   404→  const vis = [];
+   405→  for (const o of D.obs) {
+   406→    if (o.hit) continue;
+   407→    const z = o.k * DRV.SEG - D.T;
+   408→    if (z > 60 && z < 6400) vis.push({ o, z });
+   409→  }
+   410→  vis.sort((a, b) => b.z - a.z);
+   411→  for (const { o, z } of vis) drawDriveObs(o, z);
+   412→
+   413→  /* --- نور چراغ‌های جلو روی آسفالت --- */
+   414→  {
+   415→    const zEnd = 2400;
+   416→    const cxE = drvX(roadCXf(D.T + zEnd), zEnd), wE = drvRW(zEnd) * 0.55;
+   417→    const cx0 = 480, w0 = 250;
+   418→    for (const dx of [-0.36, 0.36]) {
+   419→      ctx.fillStyle = 'rgba(255,238,170,0.09)';
+   420→      ctx.beginPath();
+   421→      ctx.moveTo(cx0 + dx * w0 - 60, 556); ctx.lineTo(cx0 + dx * w0 + 60, 556);
+   422→      ctx.lineTo(cxE + dx * wE + Math.max(4, wE * 0.3), drvY(zEnd));
+   423→      ctx.lineTo(cxE + dx * wE - Math.max(4, wE * 0.3), drvY(zEnd));
+   424→      ctx.closePath(); ctx.fill();
+   425→    }
+   426→  }
+   427→
+   428→  /* --- ماشین بازیکن (نمای از پشت) + ارشان روی صندلی کمکی --- */
+   429→  drawDriveCar();
+   430→
+   431→  /* --- خطوط سرعت در سرعت بالا --- */
+   432→  if (D.speed > 2750 && !t3) {
+   433→    ctx.strokeStyle = 'rgba(200,214,240,0.16)'; ctx.lineWidth = 2;
+   434→    for (let i = 0; i < 7; i++) {
+   435→      const yy = 300 + ((animTime * 900 + i * 97) % 240);
+   436→      const xx = (i % 2 === 0) ? 60 + i * 9 : W - 60 - i * 9;
+   437→      ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + (xx < W / 2 ? -26 : 26), yy + 34); ctx.stroke();
+   438→    }
+   439→  }
+   440→
+   441→  /* --- فاز ۳: سیلوی انبارها در مه جلوتر --- */
+   442→  if (t3) {
+   443→    const k = clamp(TR.t / 3.0, 0, 1);
+   444→    const sw = 200 + k * 620, sh = 90 + k * 300;
+   445→    ctx.fillStyle = 'rgba(22,26,34,' + (0.75).toFixed(2) + ')';
+   446→    rr(W / 2 - sw / 2, DRV.HOR - sh + 14, sw, sh + 12, 8); ctx.fill();
+   447→    ctx.fillStyle = 'rgba(30,35,46,0.8)';
+   448→    for (let i = 0; i < 6; i++) {
+   449→      rr(W / 2 - sw / 2 + 14 + i * (sw - 28) / 6, DRV.HOR - sh + 22, (sw - 40) / 9, sh * 0.72, 4); ctx.fill();
+   450→    }
+   451→    /* چراغ‌های مه‌گرفته‌ی انبار */
+   452→    for (const lx of [-0.3, 0, 0.3]) {
+   453→      ctx.save();
+   454→      ctx.shadowColor = '#ffd873'; ctx.shadowBlur = 10;
+   455→      ctx.fillStyle = 'rgba(255,216,115,' + (0.75 + 0.25 * Math.sin(animTime * 3 + lx * 9)).toFixed(2) + ')';
+   456→      circle(W / 2 + lx * sw * 0.8, DRV.HOR - sh * 0.45, 3 + k * 3);
+   457→      ctx.restore();
+   458→    }
+   459→  }
+   460→}
+   461→
+   462→/* مانع/زامبی روبه‌رو (پرسپکتیو) */
+   463→function drawDriveObs(o, z) {
+   464→  const ppu = drvPPU(z);
+   465→  const sx = drvX(o.wx, z);
+   466→  const sy = drvY(z);
+   467→  const fade = clamp(1 - (z - 3200) / 3200, 0.25, 1);
+   468→  ctx.save();
+   469→  ctx.globalAlpha = fade;
+   470→  /* سایه */
+   471→  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+   472→  ctx.beginPath();
+   473→  ctx.ellipse(sx, sy, Math.max(2, 170 * ppu), Math.max(0.8, 42 * ppu), 0, 0, Math.PI * 2);
+   474→  ctx.fill();
+   475→
+   476→  if (o.type === 'zN' || o.type === 'zF' || o.type === 'zT') {
+   477→    /* زامبی روبه‌رو به ماشین می‌دود — بازوها به جلو */
+   478→    const cfgZ = o.type === 'zF'
+   479→      ? { w: 240, h: 210, body: '#6d8a4f', dark: '#55703c' }
+   480→      : o.type === 'zT'
+   481→        ? { w: 420, h: 285, body: '#4a5560', dark: '#38424c' }
+   482→        : { w: 300, h: 230, body: '#566b46', dark: '#42533a' };
+   483→    const s = ppu, w2 = cfgZ.w / 2;
+   484→    const run = animTime * 8 + o.k * 1.7;
+   485→    const bob = Math.abs(Math.sin(run)) * 16 * s;
+   486→    /* پاها (راه‌رفتن روبه‌رو) */
+   487→    ctx.strokeStyle = cfgZ.dark; ctx.lineWidth = Math.max(1.5, 46 * s); ctx.lineCap = 'round';
+   488→    ctx.beginPath();
+   489→    ctx.moveTo(sx - 40 * s, sy - bob - 40 * s); ctx.lineTo(sx - 40 * s + Math.sin(run) * 60 * s, sy - bob);
+   490→    ctx.moveTo(sx + 40 * s, sy - bob - 40 * s); ctx.lineTo(sx + 40 * s - Math.sin(run) * 60 * s, sy - bob);
+   491→    ctx.stroke();
+   492→    /* بدن */
+   493→    ctx.fillStyle = cfgZ.body;
+   494→    rr(sx - w2 * s, sy - bob - cfgZ.h * 0.62 * s, cfgZ.w * s, cfgZ.h * 0.5 * s, 30 * s); ctx.fill();
+   495→    ctx.fillStyle = cfgZ.dark;
+   496→    ctx.fillRect(sx - w2 * s, sy - bob - cfgZ.h * 0.24 * s, cfgZ.w * s, 26 * s);
+   497→    /* بازوهای دراز به سمت ماشین */
+   498→    ctx.strokeStyle = cfgZ.body; ctx.lineWidth = Math.max(1.2, 38 * s);
+   499→    ctx.beginPath();
+   500→    ctx.moveTo(sx - w2 * s * 0.8, sy - bob - cfgZ.h * 0.52 * s);
+   501→    ctx.lineTo(sx - w2 * s * 0.8 - 90 * s, sy - bob - cfgZ.h * 0.42 * s + Math.sin(run * 2) * 26 * s);
+   502→    ctx.moveTo(sx + w2 * s * 0.8, sy - bob - cfgZ.h * 0.52 * s);
+   503→    ctx.lineTo(sx + w2 * s * 0.8 + 90 * s, sy - bob - cfgZ.h * 0.42 * s - Math.sin(run * 2) * 26 * s);
+   504→    ctx.stroke();
+   505→    /* سر + چشم‌های سرخ */
+   506→    const hr = cfgZ.w * 0.19 * s;
+   507→    const hy = sy - bob - cfgZ.h * 0.78 * s;
+   508→    ctx.fillStyle = cfgZ.body; ctx.beginPath(); ctx.arc(sx, hy, hr, 0, Math.PI * 2); ctx.fill();
+   509→    ctx.fillStyle = '#97b06b'; ctx.beginPath(); ctx.arc(sx, hy + hr * 0.15, hr * 0.7, 0, Math.PI); ctx.fill();
+   510→    ctx.fillStyle = '#ff4b3e';
+   511→    circle(sx - hr * 0.42, hy - hr * 0.12, Math.max(0.8, hr * 0.16));
+   512→    circle(sx + hr * 0.42, hy - hr * 0.12, Math.max(0.8, hr * 0.16));
+   513→  } else if (o.type === 'rock') {
+   514→    const s = ppu;
+   515→    ctx.fillStyle = '#4c525a';
+   516→    ctx.beginPath();
+   517→    ctx.moveTo(sx - 230 * s, sy);
+   518→    ctx.lineTo(sx - 150 * s, sy - 200 * s);
+   519→    ctx.lineTo(sx - 20 * s, sy - 210 * s);
+   520→    ctx.lineTo(sx + 140 * s, sy - 140 * s);
+   521→    ctx.lineTo(sx + 230 * s, sy);
+   522→    ctx.closePath(); ctx.fill();
+   523→    ctx.fillStyle = '#5d646d';
+   524→    ctx.beginPath();
+   525→    ctx.moveTo(sx - 150 * s, sy - 200 * s); ctx.lineTo(sx - 20 * s, sy - 210 * s);
+   526→    ctx.lineTo(sx - 60 * s, sy - 120 * s); ctx.closePath(); ctx.fill();
+   527→  } else if (o.type === 'barrel') {
+   528→    const s = ppu;
+   529→    ctx.fillStyle = '#7a4a28';
+   530→    rr(sx - 150 * s, sy - 330 * s, 300 * s, 330 * s, 26 * s); ctx.fill();
+   531→    ctx.fillStyle = '#e8a13c';
+   532→    ctx.fillRect(sx - 150 * s, sy - 260 * s, 300 * s, 40 * s);
+   533→    ctx.fillRect(sx - 150 * s, sy - 130 * s, 300 * s, 40 * s);
+   534→    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+   535→    ctx.fillRect(sx - 150 * s, sy - 220 * s, 300 * s, 8 * s);
+   536→  } else if (o.type === 'wreck') {
+   537→    const s = ppu;
+   538→    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+   539→    ctx.beginPath(); ctx.ellipse(sx, sy, 380 * s, 60 * s, 0, 0, Math.PI * 2); ctx.fill();
+   540→    ctx.fillStyle = '#2b2f38';
+   541→    rr(sx - 350 * s, sy - 190 * s, 700 * s, 150 * s, 40 * s); ctx.fill();
+   542→    ctx.fillStyle = '#22262e';
+   543→    rr(sx - 210 * s, sy - 300 * s, 420 * s, 120 * s, 40 * s); ctx.fill();
+   544→    ctx.fillStyle = 'rgba(120,140,170,0.25)';
+   545→    rr(sx - 170 * s, sy - 280 * s, 340 * s, 70 * s, 20 * s); ctx.fill();
+   546→    ctx.fillStyle = '#15181f';
+   547→    circle(sx - 230 * s, sy - 20 * s, 80 * s); circle(sx + 230 * s, sy - 20 * s, 80 * s);
+   548→  }
+   549→  ctx.restore();
+   550→}
+   551→
+   552→/* (۱۸٫۰) اسپرایت پیش‌پخته‌ی هاله‌ی تیرچراغ‌های جاده */
+   553→let _lampGlow = null;
+   554→function drvLampGlow() {
+   555→  if (_lampGlow) return _lampGlow;
+   556→  const c = document.createElement('canvas');
+   557→  c.width = 96; c.height = 96;
+   558→  const g = c.getContext('2d');
+   559→  const rg = g.createRadialGradient(48, 48, 2, 48, 48, 46);
+   560→  rg.addColorStop(0, 'rgba(255,220,140,1)');
+   561→  rg.addColorStop(0.45, 'rgba(255,214,130,0.35)');
+   562→  rg.addColorStop(1, 'rgba(255,220,140,0)');
+   563→  g.fillStyle = rg;
+   564→  g.fillRect(0, 0, 96, 96);
+   565→  _lampGlow = c;
+   566→  return c;
+   567→}
+   568→
+   569→/* (۱۸٫۰) اسپرایت پیش‌پخته‌ی هاله‌ی چراغ عقب — بدون shadowBlur هر فریم */
+   570→let _tailGlow = null;
+   571→function drvTailGlow() {
+   572→  if (_tailGlow) return _tailGlow;
+   573→  const c = document.createElement('canvas');
+   574→  c.width = 64; c.height = 44;
+   575→  const g = c.getContext('2d');
+   576→  const rg = g.createRadialGradient(32, 22, 3, 32, 22, 24);
+   577→  rg.addColorStop(0, 'rgba(255,70,55,0.9)');
+   578→  rg.addColorStop(0.5, 'rgba(255,58,46,0.35)');
+   579→  rg.addColorStop(1, 'rgba(255,58,46,0)');
+   580→  g.fillStyle = rg;
+   581→  g.fillRect(0, 0, 64, 44);
+   582→  _tailGlow = c;
+   583→  return c;
+   584→}
+   585→
+   586→/* ماشین بازیکن — نمای از پشت؛ (۱۸٫۰) بازیکن پشت فرمان در سمت چپ
+   587→   (راننده در ایران چپ می‌نشیند) و ارشانِ کلاه‌قرمز صندلی کمکی راست */
+   588→function drawDriveCar() {
+   589→  const D = DRV;
+   590→  const lean = clamp(D.steer, -1, 1) * 22;
+   591→  const cx = 480 + lean * 0.7;
+   592→  const cy = 554;
+   593→  const bob = Math.sin(animTime * 16) * 1.2;
+   594→  const braking = D.brake;
+   595→  const off = D.offroad > 0.25;
+   596→
+   597→  ctx.save();
+   598→  ctx.translate(cx, cy + bob);
+   599→  ctx.rotate(clamp(D.steer, -1, 1) * 0.03);
+   600→
+   601→  /* سایه */
+   602→  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+   603→  ctx.beginPath(); ctx.ellipse(0, -4, 128, 15, 0, 0, Math.PI * 2); ctx.fill();
+   604→
+   605→  /* چرخ‌های عقب (بیرون‌زده) */
+   606→  for (const wx of [-116, 116]) {
+   607→    ctx.fillStyle = '#15181f'; rr(wx - 17, -34, 34, 40, 8); ctx.fill();
+   608→    ctx.fillStyle = '#2a2f38'; rr(wx - 11, -26, 22, 24, 6); ctx.fill();
+   609→  }
+   610→
+   611→  /* بدنه‌ی عقب — قرمز آتشین (هم‌خانواده‌ی drawCar) */
+   612→  const bg = ctx.createLinearGradient(0, -96, 0, 0);
+   613→  bg.addColorStop(0, '#ff7a4d'); bg.addColorStop(0.5, '#e8563f'); bg.addColorStop(1, '#b23a30');
+   614→  ctx.fillStyle = bg; rr(-120, -74, 240, 68, 16); ctx.fill();
+   615→  ctx.fillStyle = 'rgba(20,16,20,0.9)'; rr(-120, -26, 240, 14, 6); ctx.fill();
+   616→
+   617→  /* شیشه‌ی عقب + دو سر (بازیکن / ارشان با کلاه قرمز) */
+   618→  ctx.fillStyle = '#8f2c22';
+   619→  rr(-96, -132, 192, 62, 14); ctx.fill();
+   620→  ctx.fillStyle = 'rgba(150,205,255,0.34)';
+   621→  rr(-84, -124, 168, 46, 10); ctx.fill();
+   622→  /* سر بازیکن (راننده — چپ) */
+   623→  ctx.fillStyle = '#f0c49a'; circle(-52, -104, 13);
+   624→  ctx.fillStyle = '#2c3550';
+   625→  ctx.beginPath(); ctx.arc(-52, -106, 13.6, Math.PI, Math.PI * 2); ctx.fill();
+   626→  /* سر ارشان (صندلی کمکی — راست) + کلاه قرمزش */
+   627→  const nod = Math.sin(animTime * 3.1) * 2;
+   628→  ctx.fillStyle = '#f0c49a'; circle(52 + nod, -104, 13);
+   629→  ctx.fillStyle = '#7a2a2a';
+   630→  ctx.beginPath(); ctx.arc(52 + nod, -106, 14, Math.PI, Math.PI * 2); ctx.fill();
+   631→  ctx.fillRect(36 + nod, -107, 32, 4);
+   632→
+   633→  /* اسپویلر */
+   634→  ctx.fillStyle = '#8a2f26'; rr(-116, -148, 232, 10, 4); ctx.fill();
+   635→  ctx.fillStyle = '#3c4250';
+   636→  ctx.fillRect(-104, -140, 10, 18); ctx.fillRect(94, -140, 10, 18);
+   637→
+   638→  /* چراغ‌های عقب — با ترمز روشن‌تر (۱۸٫۰: هاله از اسپرایت پیش‌پخته،
+   639→     بدون shadowBlur — کارایی روی گوشی) */
+   640→  const tl = braking ? 1 : 0.55;
+   641→  const gl = drvTailGlow();
+   642→  for (const lx of [-96, 96]) {
+   643→    const s = braking ? 1.35 : 0.85;
+   644→    ctx.globalAlpha = braking ? 0.75 : 0.3;
+   645→    ctx.drawImage(gl, lx - 32 * s, -72 - 12 * s, 64 * s, 44 * s);
+   646→    ctx.globalAlpha = 1;
+   647→    ctx.fillStyle = 'rgba(255,70,55,' + tl.toFixed(2) + ')';
+   648→    rr(lx - 16, -60, 32, 17, 5); ctx.fill();
+   649→  }
+   650→  /* چراغ سوم (بالای شیشه) */
+   651→  ctx.fillStyle = braking ? '#ff6a5a' : '#7a2f26';
+   652→  rr(-30, -140, 60, 7, 3); ctx.fill();
+   653→
+   654→  /* سپر + پلاک */
+   655→  ctx.fillStyle = '#cfd6e4'; rr(-120, -14, 240, 12, 5); ctx.fill();
+   656→  ctx.fillStyle = '#e8e4d0'; rr(-26, -12, 52, 10, 2); ctx.fill();
+   657→  ctx.fillStyle = '#3a4252'; ctx.font = 'bold 7px Tahoma'; ctx.textAlign = 'center';
+   658→  ctx.fillText('۲۸-بقا', 0, -4);
+   659→
+   660→  /* اگزوزها */
+   661→  for (const ex of [-74, 74]) {
+   662→    ctx.fillStyle = '#454b57'; rr(ex - 9, -6, 18, 8, 3); ctx.fill();
+   663→    ctx.fillStyle = 'rgba(140,140,150,0.5)'; circle(ex, -2, 3.4);
+   664→  }
+   665→  ctx.restore();
+   666→
+   667→  /* غبار شانه‌ی جاده */
+   668→  if (off && Math.random() < 0.5) {
+   669→    spawnParticles(cx + rand(-110, 110), 552, 1, 'rgba(120,104,78,0.45)',
+   670→      { speed: 70, life: 0.5, size: 3, grav: 300, up: true });
+   671→  }
+   672→}
+   673→

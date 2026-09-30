@@ -34,6 +34,9 @@ function fitWrap() {
     el.style.height = h + 'px';
     el.style.aspectRatio = 'auto';
   }
+  /* (۱۹٫۰) صفحه‌های کوچک: کلاس sui → کوله‌پشتی و متن‌های ریز باز هم
+     جمع‌تر می‌شوند تا زمین بازی/زامبی‌های ورودی دیده بمانند */
+  el.classList.toggle('sui', w < 760);
 }
 window.addEventListener('resize', fitWrap, { passive: true });
 window.addEventListener('orientationchange', () => setTimeout(fitWrap, 250));
@@ -191,7 +194,7 @@ if (IS_TOUCH && typeof window.DeviceOrientationEvent !== 'undefined') {
     if (typeof DRV === 'undefined' || !DRV) return;
     if (DRV.kb) return;                          /* کلید/لمس فرمان فعال است */
     const g = clamp(e.gamma, -24, 24) / 18;      /* ±۱۸ درجه = فرمان کامل */
-    if (TR && TR.phase === 2 && MG.cfg && MG.cfg.theme === 'drive') {
+    if (TR && TR.phase === 2 && MG.cfg && isRideTheme(MG.cfg.theme)) {   /* (۱۹٫۰) هر سه تم */
       DRV.steer = clamp(g, -1, 1);
     }
   });

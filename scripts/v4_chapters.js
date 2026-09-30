@@ -211,6 +211,7 @@ function startGame() {
   transitionHardReset();                  // انتقال فصل معلق نباشد (۱۰٫۰)
   introHardReset();                       // کات‌سین افتتاحیه معلق نباشد (۱۰٫۰)
   defeatHardReset();                      // (۱۲٫۰) سینماییِ باخت معلق نباشد
+  shelterHardReset();                     // (۱۹٫۰) کات‌سین پناهگاه/«ادامه دارد» معلق نماند
   wipeSave();                             // بازی تازه = سیو تازه
   WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
   state.zombies = []; state.bullets = []; state.coinsArr = [];

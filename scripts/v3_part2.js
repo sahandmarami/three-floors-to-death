@@ -36,7 +36,7 @@ const ZTYPES = {
             skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
   tank:   { r: 22, hpBase: 46, hpWave: 10,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 11, coins: [12, 16],
             skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
-  boss:   { r: 50, hpBase: 3200, hpWave: 0, spdBase: 12, spdWave: 1,   bite: 1.8, dmg: 48, coins: [80, 100],
+  boss:   { r: 50, hpBase: 5400, hpWave: 0, spdBase: 13, spdWave: 1,   bite: 1.8, dmg: 48, coins: [80, 100],   /* (۱۹٫۰) سختی بیشتر */
             skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
@@ -512,7 +512,7 @@ canvas.addEventListener('pointerdown', e => {
   /* (۱۰٫۰) مینی‌گیم فرار (انتقال بین فصل‌ها): کلیک/لمس = پرش
      (۱۷٫۰) تم رانندگی: یک‌سوم چپ/راست = فرمان، وسط = ترمز (گاز خودکار) */
   if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
-    if (typeof MG !== 'undefined' && MG.cfg && MG.cfg.theme === 'drive') {
+    if (typeof mgIsRide === 'function' && mgIsRide()) {   /* (۱۹٫۰) هر سه تم سواره */
       if (p.x < W / 3) mgNudge(-1);
       else if (p.x > W * 2 / 3) mgNudge(1);
       else mgBrake(true);
@@ -564,7 +564,7 @@ window.addEventListener('keydown', e => {
   /* (۱۰٫۰) مینی‌گیم فرار در انتقال فصل‌ها: پرش/خم‌شدن/سرعت
      (۱۷٫۰) تم رانندگی: ↑/W/Space = گاز • ↓/S = ترمز • ←/→ = فرمان */
   if (state.mode === 'transition' && typeof TR !== 'undefined' && TR && TR.phase === 2) {
-    const isDrive = typeof MG !== 'undefined' && MG.cfg && MG.cfg.theme === 'drive';
+    const isDrive = (typeof mgIsRide === 'function') && mgIsRide();   /* (۱۹٫۰) هر سه تم سواره */
     if (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') {
       if (isDrive) mgGas(true); else mgJump();
       e.preventDefault();

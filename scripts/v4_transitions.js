@@ -1,20 +1,20 @@
 /* ==================================================================
-   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۷: انتقال‌های بین فصل‌ها
+   سه طبقه تا بقا — نسخه‌ی ۱۹٫۰ — بخش ۷: انتقال‌های بین فصل‌ها
    ==================================================================
    هر انتقال «سه فاز» دارد (هیچ فازی حذف نمی‌شود):
      فاز ۱) افتتاحیه‌ی سینمایی (بدون کنترل): فروریختن برج / انفجار دیوار /
              گلوله‌باران + ورود دراماتیک ارشان و وسیله‌ی فرار — با لرزش،
              ذرات، دود، نور و حرکت دوربین (فاز ۱ روی همان میدان بازی رندر
              می‌شود با شبه‌کات‌سین CS)
-     فاز ۲) بخش قابل‌کنترل (مینی‌گیم داخل همان صحنه): با کلیدهای جهت‌دار
-             می‌دود، می‌پرد (↑/Space) و خم می‌شود (↓)؛ دوربین/نور/اتمسفر
-             سینمایی فعال می‌ماند. در هر فرار یک «آیتم مخفی» وجود دارد.
-     فاز ۳) پایان‌بندی سینمایی (بدون کنترل): فرود/رسیدن دراماتیک + محو
+     فاز ۲) بخش قابل‌کنترل — مینی‌گیمِ سواره‌ی شبه‌سه‌بعدی با همان موتور
+             (v4_drive + v4_ride): فرمان/گاز/ترمز؛ دوربین/نور/اتمسفر سینمایی
+             فعال می‌ماند. در هر فرار یک «آیتم مخفی» وجود دارد.
+     فاز ۳) پایان‌بندی سینمایی (بدون کنترل): رسیدن دراماتیک + محو
              → کارت فصل جدید → روزِ فصل بعد
-   سه انتقال:
-     فصل ۱→۲: فروریختن طبقه‌طبقه + ماشین ارشان + دویدن کنار ماشین در جاده
-     فصل ۲→۳: انفجار دیوار انبار + فرار از تونل تاریک (فقط نور چراغ‌قوه)
-     فصل ۳→۴: گلوله‌باران + زیپ‌لاین روی دره برفی/بارانی
+   سه انتقال (۱۹٫۰ — بازخورد کاربر: مینی‌گیم‌ها مثلِ رانندگی شوند):
+     فصل ۱→۲: فروریختن طبقه‌طبقه + ماشین ارشان در جاده‌ی شب (تم road)
+     فصل ۲→۳: انفجار دیوار اسکله + قایق موتوری در کانالِ مه‌گرفته (تم river)
+     فصل ۳→۴: گلوله‌باران + اسنوموبیل روی شیب برفیِ توفانی (تم snow)
    ================================================================== */
 
 let TR = null;          // وضعیت انتقال فعال (null = انتقالی در جریان نیست)
@@ -27,20 +27,22 @@ const TR_DLGS = {
      بارک aw5 + محوشدنِ او از بام، بعد رسیدن ماشین در لحظه‌ی سقوط */
   1: [ { who: 'a', v: 't1a1', text: 'برج داره فرو می‌ریزه! بپر! سریع!' },
        { who: 'n', v: 't1n1', text: 'ارشان با طناب از برج پایین رفت و ماشین رو گرم کرد — درها بازه، بپر تو!' } ],
-  2: [ { who: 'p', v: 't2p1', text: 'همه‌چی سیاهه... هیچی نمی‌تونم ببینم!' },
-       { who: 'a', v: 't2a1', text: 'چراغ‌قوه‌ت رو روشن کن! موانع رو هم رد کن!' } ],
-  3: [ { who: 'a', v: 't3a1', text: 'راه زمینی بسته‌ست! باید از بالای دره بریم!' },
-       { who: 'p', v: 't3p1', text: 'از بالای دره؟! تو دیوونه‌ای ارشان!' } ],
+  /* (۱۹٫۰) قایق: کانال مه‌گرفته‌ی انبارها به پاسگاه می‌رسد */
+  2: [ { who: 'p', v: 't2p1', text: 'همه‌چی مه‌ست! رودخانه رو نمی‌بینم!' },
+       { who: 'a', v: 't2a1', text: 'چراغِ قایق روشنه! فرمان با تو — از کانال رد شو!' } ],
+  /* (۱۹٫۰) اسنوموبیل: شیب برفی تا برج مخابراتی */
+  3: [ { who: 'a', v: 't3a1', text: 'راه زمینی پر از گله‌ست! باید از شیب برفی بالا بریم!' },
+       { who: 'p', v: 't3p1', text: 'با این برف و باد؟! تو دیوونه‌ای ارشان!' } ],
 };
 const TR_BARKS = {
   1: { catch: { who: 'a', v: 'tb1c', text: 'گرفتمت! محکم خودت رو بگیر!' },
        start: { who: 'a', v: 'tb1s', text: 'فرمان با توئه! گاز بده!' },
        outro: { who: 'n', v: 'tb1o', text: 'به انبارهای مه‌گرفته رسیدید...' } },
   2: { catch: null,
-       start: { who: 'a', v: 'tb2s', text: 'بدو! رد شو!' },
-       outro: { who: 'n', v: 'tb2o', text: 'از تونل تاریک بیرون اومدید...' } },
-  3: { catch: { who: 'a', v: 'tb3c', text: 'بگیرش! زیپ رو بگیر!' },
-       start: null,
+       start: { who: 'a', v: 'tb2s', text: 'فرمان قایق با توئه! گاز بده!' },
+       outro: { who: 'n', v: 'tb2o', text: 'به پاسگاه نظامی رسیدید...' } },
+  3: { catch: null,
+       start: { who: 'a', v: 'tb3s', text: 'گاز بده! از برف رد شو!' },
        outro: { who: 'n', v: 'tb3o', text: 'به برج مخابراتی رسیدید...' } },
 };
 /* صدای کوتاه + زیرنویس انتقال (بدون بلوک ورودی) — ۱۲٫۰: متن با صدای شخصیت */
@@ -48,9 +50,6 @@ function transBark(b, txt, dur) {
   const d = (b && b.text && !(typeof SETT !== 'undefined' && !SETT.sfx)) ? VOICE.speak(b.text, b.who, b.v) : 0;
   setTransSub(txt || '', dur || Math.max(2.4, d + 0.4));
 }
-
-/* ورودی مینی‌گیم */
-const mgKeys = { left: false, right: false, duck: false };
 
 /* ---------------------- ۷-۱) زیرنویس و ابزار مشترک ---------------------- */
 function setTransSub(txt, dur) {
@@ -176,15 +175,15 @@ const SUBS_INTRO1 = [
 ];
 const SUBS_INTRO2 = [
   [0.4, 1.6, 'صدای پای گله‌ی بزرگ میاد...'],
-  [2.0, 3.4, '— [ارشان]: دیوار انبار منفجر شد! سردابه‌ش بازه — یه تونلِ زیرزمینی!'],
-  [3.6, 4.4, '— [ارشان]: برو تو! من پشتتم!'],
-  [4.6, 5.6, 'تاریکیِ تونل... فقط صدای نفسِ خودت...'],
+  [2.0, 3.4, '— [ارشان]: دیوارِ اسکله منفجر شد! یه قایق موتوری اون پایینه!'],
+  [3.6, 4.4, '— [ارشان]: بپر تو قایق! من پشتتم!'],
+  [4.6, 5.6, 'مهِ کانال همه‌جا رو گرفته... فقط چراغ‌های مسیر...'],
 ];
 const SUBS_INTRO3 = [
   [0.4, 1.8, 'گلوله‌بارانِ پاسگاه شروع شده...'],
-  [2.0, 3.6, '— [ارشان]: قشونِ زامبی‌ها رسیگه! زیپ‌لاین رو ببین — تا برج مخابراتی!'],
-  [3.8, 4.6, '— [ارشان]: بالا بپر! سکوش آماده‌ست!'],
-  [4.8, 5.7, 'قلاب رو چسبوندی؟ نفس عمیق...'],
+  [2.0, 3.6, '— [ارشان]: گله از هر طرف داره میاد! اسنوموبیلِ گاراژ هنوز سالمه!'],
+  [3.8, 4.6, '— [ارشان]: سوار شو! بالای شیب برفی، برج مخابراتیه!'],
+  [4.8, 5.7, 'باد یخ... برف تند... محکم بشین!'],
   [5.9, 6.6, '— [ارشان]: بروووو!'],
 ];
 
@@ -244,7 +243,7 @@ function introUpdate1(dt) {
   setTimedSubs(SUBS_INTRO1, t);
 }
 
-/* ---- فاز ۱ فصل ۲→۳: محاصره + انفجار دیوار + درِ سردابه ---- */
+/* ---- فاز ۱ فصل ۲→۳: محاصره + انفجار دیوار اسکله + سوارشدن قایق ---- */
 function introUpdate2(dt) {
   const t = TR.t;
   /* گله از دو طرف می‌آید */
@@ -253,7 +252,7 @@ function introUpdate2(dt) {
     CS.zombies.push(makeCsWalkZombie(type, Math.random() < 0.5 ? -40 : W + 40));
   }
   csWalkStep(dt);
-  /* انفجار دیوار سمت چپ */
+  /* انفجار دیوار اسکله (چپ) — لنگرگاهِ قایق باز می‌شود */
   if (!TR.ev.boom && t >= 1.8) {
     TR.ev.boom = 1;
     SFX.csBoom();
@@ -261,7 +260,12 @@ function introUpdate2(dt) {
     spawnParticles(200, GROUND_Y - 34, 34, '#ff9a3d', { speed: 300, life: 0.8, size: 3.4, grav: 320 });
     spawnParticles(200, GROUND_Y - 28, 20, '#454a52', { speed: 170, life: 1.5, size: 4.2, grav: -22 });
   }
-  /* بازیکن: روی برج → جهش به درِ سردابه */
+  /* موتور قایق روشن می‌شود (صدای دوربین) */
+  if (!TR.ev.engine && t >= 3.0) {
+    TR.ev.engine = 1;
+    SFX.csEngine();
+  }
+  /* بازیکن: روی برج → جهش به اسکله → سوار قایق */
   if (t < 3.6) {
     CS.draw.player = { x: TOWER.x, y: TOWER_TOP_Y, aim: -2.3 };
   } else {
@@ -271,17 +275,19 @@ function introUpdate2(dt) {
       y: TOWER_TOP_Y + (GROUND_Y - 6 - TOWER_TOP_Y) * k * k,
       rot: k * 1.1, aim: -2.7,
     };
-    if (k >= 1 && !TR.ev.hatch) {
-      TR.ev.hatch = 1;
+    if (k >= 1 && !TR.ev.aboard) {
+      TR.ev.aboard = 1;
       SFX.csLand();
-      spawnParticles(200, GROUND_Y, 10, '#7a6a4c', { speed: 100, life: 0.5, size: 2.4, grav: 350, up: true });
+      state.shake = 4;
+      /* موج کوچک دور قایق */
+      spawnParticles(200, GROUND_Y, 12, 'rgba(170,222,228,0.7)', { speed: 120, life: 0.6, size: 2.6, grav: 300, up: true });
     }
   }
   if (t >= 5.6) TR.fade = clamp((t - 5.6) / 0.7, 0, 1);
   setTimedSubs(SUBS_INTRO2, t);
 }
 
-/* ---- فاز ۱ فصل ۳→۴: گلوله‌باران + دکل زیپ‌لاین ---- */
+/* ---- فاز ۱ فصل ۳→۴: گلوله‌باران + سوارشدن اسنوموبیل ---- */
 function introUpdate3(dt) {
   const t = TR.t;
   /* گلوله‌باران پس‌زمینه */
@@ -299,20 +305,31 @@ function introUpdate3(dt) {
       Math.random() < 0.5 ? -40 : W + 40));
   }
   csWalkStep(dt);
-  /* بازیکن: برج → جهش به سکوی دکل → چسبیدن به کابل */
+  /* موتور اسنوموبیل از راست جواب می‌دهد */
+  if (!TR.ev.engine && t >= 2.6) {
+    TR.ev.engine = 1;
+    SFX.csEngine();
+  }
+  /* بازیکن: برج → جهش به اسنوموبیلِ پارک‌شده در راست */
   if (t < 4.0) {
     CS.draw.player = { x: TOWER.x, y: TOWER_TOP_Y, aim: 0.5 };
   } else if (t < 5.0) {
     const k = clamp((t - 4.0) / 0.85, 0, 1);
     CS.draw.player = {
       x: TOWER.x + (772 - TOWER.x) * k,
-      y: TOWER_TOP_Y - Math.sin(k * Math.PI) * 84 + (GROUND_Y - 150 - TOWER_TOP_Y) * k,
+      y: TOWER_TOP_Y - Math.sin(k * Math.PI) * 84 + (GROUND_Y - 10 - TOWER_TOP_Y) * k,
       rot: 0.4, aim: 0.3,
     };
     if (!TR.ev.jumpSfx) { TR.ev.jumpSfx = 1; SFX.csWhoosh(); }
   } else {
-    CS.draw.player = { x: 772, y: GROUND_Y - 150, aim: 0 };
-    if (!TR.ev.clamp) { TR.ev.clamp = 1; SFX.click(); }
+    CS.draw.player = { x: 772, y: GROUND_Y - 10, aim: 0 };
+    if (!TR.ev.seated) {
+      TR.ev.seated = 1;
+      SFX.csLand();
+      state.shake = 5;
+      /* پاشش برف دور تسمه */
+      spawnParticles(772, GROUND_Y, 16, 'rgba(240,248,252,0.9)', { speed: 150, life: 0.6, size: 2.8, grav: 320, up: true });
+    }
   }
   if (t >= 6.0) TR.fade = clamp((t - 6.0) / 0.65, 0, 1);
   setTimedSubs(SUBS_INTRO3, t);
@@ -323,97 +340,95 @@ function drawTransitionIntroProps() {
   if (!TR || TR.phase !== 1 || !CS) return;
   const d = state.dayness;
   if (TR.ch === 2 && TR.ev.boom) {
-    /* درِ سردابه‌ی باز + نور گرمش */
+    /* (۱۹٫۰) لنگرگاهِ بازشده: اسکله‌ی چوبی + قایق موتوری با چراغ روشن */
     const hx = 200, hy = GROUND_Y;
-    ctx.fillStyle = '#14100a';
-    rr(hx - 34, hy - 12, 68, 12, 3); ctx.fill();
-    ctx.fillStyle = '#3a2c14';
-    ctx.save(); ctx.translate(hx, hy - 12);
-    ctx.rotate(-0.5);
-    rr(0, -5, 40, 10, 3); ctx.fill();
+    /* لبه‌ی اسکله + تیرک‌های چوبی */
+    ctx.fillStyle = mixHex('#3a2c1a', '#7a6248', d);
+    rr(hx - 78, hy - 10, 156, 10, 3); ctx.fill();
+    ctx.fillStyle = mixHex('#2c2012', '#5a4630', d);
+    for (const px of [-70, -24, 28, 68]) ctx.fillRect(hx + px, hy - 2, 8, 14);
+    /* بدنه‌ی قایق لنگر — سرِ موتور روشن */
+    ctx.save();
+    ctx.translate(hx + 26, hy - 12);
+    ctx.rotate(Math.sin(animTime * 1.6) * 0.02);
+    ctx.fillStyle = mixHex('#6a4426', '#8a6a44', d);
+    rr(-52, -20, 104, 20, 8); ctx.fill();           // بدنه
+    ctx.fillStyle = mixHex('#241a10', '#4a3a28', d);
+    rr(-38, -16, 76, 10, 5); ctx.fill();            // عرشه
+    ctx.fillStyle = mixHex('#454b57', '#6a7480', d);
+    rr(-8, -30, 16, 14, 4); ctx.fill();             // موتور
+    /* چراغ دم سبز + برقِ آب دور بدنه */
+    ctx.fillStyle = '#7be389'; circle(-46, -12, 3);
+    ctx.strokeStyle = 'rgba(170,222,228,0.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 2, 58, 6, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
-    const glow = ctx.createRadialGradient(hx, hy - 12, 4, hx, hy - 12, 48);
-    glow.addColorStop(0, 'rgba(255,200,110,' + (0.34 + 0.12 * Math.sin(animTime * 3)).toFixed(2) + ')');
+    /* هاله‌ی گرم چراغ قایق */
+    const glow = ctx.createRadialGradient(hx + 26, hy - 30, 4, hx + 26, hy - 30, 44);
+    glow.addColorStop(0, 'rgba(255,200,110,' + (0.3 + 0.1 * Math.sin(animTime * 3)).toFixed(2) + ')');
     glow.addColorStop(1, 'rgba(255,200,110,0)');
-    ctx.fillStyle = glow; circle(hx, hy - 12, 48);
+    ctx.fillStyle = glow; circle(hx + 26, hy - 30, 44);
   }
   if (TR.ch === 3) {
-    /* دکل زیپ‌لاین + سکو + کابل به بیرونِ راست */
+    /* (۱۹٫۰) اسنوموبیلِ پارک‌شده در راست — تسمه پوشیده از برف + چراغ عقب */
     const mx = 772, my = GROUND_Y;
-    ctx.strokeStyle = mixHex('#2c3038', '#6a7078', d); ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(mx - 14, my); ctx.lineTo(mx, my - 150);
-    ctx.moveTo(mx + 14, my); ctx.lineTo(mx, my - 150);
-    ctx.stroke();
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.moveTo(mx - 12, my - 44); ctx.lineTo(mx + 12, my - 44);
-    ctx.moveTo(mx - 9, my - 94); ctx.lineTo(mx + 9, my - 94);
-    ctx.stroke();
-    ctx.fillStyle = mixHex('#3a4048', '#7d8890', d);
-    rr(mx - 18, my - 158, 36, 8, 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(200,210,220,0.7)'; ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.moveTo(mx + 10, my - 152);
-    ctx.quadraticCurveTo((mx + W) / 2, my - 178, W + 30, my - 168);
-    ctx.stroke();
+    /* تل برف دور تسمه */
+    ctx.fillStyle = mixHex('#c2d4e0', '#e4eef4', d);
+    ctx.beginPath(); ctx.ellipse(mx, my + 2, 66, 12, 0, 0, Math.PI * 2); ctx.fill();
+    /* بدنه + تسمه + اسکی */
+    ctx.save();
+    ctx.translate(mx, my - 6);
+    ctx.fillStyle = mixHex('#20262e', '#3a424e', d);
+    rr(-52, -26, 104, 26, 10); ctx.fill();          // تسمه
+    ctx.fillStyle = 'rgba(238,246,250,0.8)';
+    rr(-52, -29, 104, 8, 4); ctx.fill();            // برف روی تسمه
+    const bg2 = ctx.createLinearGradient(0, -60, 0, -24);
+    bg2.addColorStop(0, mixHex('#e8563f', '#f07a5a', d));
+    bg2.addColorStop(1, mixHex('#7a2a24', '#a44a3a', d));
+    ctx.fillStyle = bg2;
+    rr(-38, -56, 76, 34, 12); ctx.fill();           // بدنه/زین
+    ctx.fillStyle = mixHex('#2c3540', '#4a5664', d);
+    for (const sx of [-56, 56]) { rr(sx - 9, -12, 18, 14, 6); ctx.fill(); }   // اسکی‌ها
+    /* چراغ عقب قرمز چشمک‌زن (موتور روشن) */
+    const bl = 0.55 + 0.45 * Math.sin(animTime * 4);
+    ctx.fillStyle = 'rgba(255,70,55,' + bl.toFixed(2) + ')';
+    rr(-10, -40, 20, 7, 3); ctx.fill();
+    ctx.restore();
+    /* بخارِ اگزوز در سرما */
+    if (Math.sin(animTime * 9) > 0.3) {
+      ctx.fillStyle = 'rgba(220,232,240,0.3)';
+      circle(mx + rand(-6, 6), my - 64 - (animTime * 26 % 22), 3 + (animTime * 7 % 3));
+    }
   }
 }
 
-/* ---------------------- ۷-۳) فاز ۲ — موتور مینی‌گیم فرار ---------------------- */
-/* انواع موانع: «پرش» = باید بپری • «خم» = باید زیرش خم شوی */
-const OBTYPE = {
-  rubble: 'jump', pothole: 'jump', grabber: 'jump', barrel: 'jump', pit: 'jump', pylon: 'jump',
-  sign: 'duck', beam: 'duck', flyer: 'duck',
-};
-
+/* ---------------------- ۷-۳) فاز ۲ — موتور مینی‌گیم‌های سواره ----------------------
+   (۱۹٫۰) هر سه فرار سواره‌اند (road/river/snow) و همان موتور شبه‌سه‌بعدی
+   v4_drive را دارند: MG فقط «پوششِ» پیکربندی و شمارنده‌هاست. */
 const MG = {
-  cfg: null, scroll: 0, speed: 0, obs: [], nextObs: 520,
-  pl: { y: 0, vy: 0, duck: false, ground: true, inv: 0, run: 0 },
-  hits: 0, hidden: null, hidePlayer: false, outroPlayer: null, t2: 0,
+  cfg: null, scroll: 0, speed: 0, hits: 0, t2: 0,
   reset(cfg) {
     this.cfg = cfg;
     this.scroll = 0; this.speed = cfg.speed0;
-    this.obs = []; this.nextObs = 560;
-    this.pl = { y: 0, vy: 0, duck: false, ground: true, inv: 0, run: 0 };
     this.hits = 0;
-    this.hidePlayer = false;
-    this.outroPlayer = null;
     this.t2 = 0;
-    if (cfg.theme === 'drive') {           /* (۱۷٫۰) مینی‌گیم رانندگی شبه‌سه‌بعدی */
-      driveReset(cfg);
-      this.hidden = null;
-    } else {
-      this.hidden = { x: cfg.goalM * PXM * cfg.hidden.at, id: cfg.hidden.id, floatY: cfg.hidden.floatY, got: false };
-    }
+    driveReset(cfg);                     /* فیزیک/موانع/آیتم مخفی — سه تم */
     for (const s of cfg.subs) s.done = false;
   },
 };
 
-/* ورودی مینی‌گیم (از listener های بخش ۲) */
-function mgJump() {
-  if (!TR || TR.phase !== 2) return;
-  const pl = MG.pl;
-  if (pl.ground) {
-    pl.ground = false;
-    pl.vy = MG.cfg.jumpV;
-    SFX.csWhoosh();
-  }
-}
-function mgDuck(on) { if (TR && TR.phase === 2) mgKeys.duck = !!on; }
+/* ورودی مینی‌گیم (از listener های بخش ۲) — (۱۹٫۰) همه‌ی تم‌ها فرمان دارند */
 function mgNudge(d) {
   if (!TR || TR.phase !== 2) return;
-  /* (۱۷٫۰) تم رانندگی: ←/→ فرمان است (نه شتاب جانبی) */
-  if (MG.cfg && MG.cfg.theme === 'drive') {
+  if (MG.cfg && isRideTheme(MG.cfg.theme)) {
     if (typeof DRV !== 'undefined') {
       DRV.steer = d < 0 ? -1 : (d > 0 ? 1 : 0);
-      DRV.kb = d !== 0;                    /* کج‌کردن گوشی فقط وقتی کلید/لمس نیست */
+      DRV.kb = d !== 0;                  /* کج‌کردن گوشی فقط وقتی کلید/لمس نیست */
     }
-    return;
   }
-  mgKeys.left = d < 0;
-  mgKeys.right = d > 0;
 }
+/* سازگاری ورودی‌های قدیمی پرش/خم‌شدن — تم‌های دونده حذف شدند؛ بی‌اثر */
+function mgJump() {}
+function mgDuck(on) {}
 
 /* شروع فاز ۲ */
 function mgBegin() {
@@ -429,101 +444,8 @@ function mgBegin() {
 }
 
 function mgUpdate(dt) {
-  const cfg = MG.cfg;
-  /* (۱۷٫۰) تم رانندگی: فیزیک/رندر اختصاصی خودش را دارد */
-  if (cfg.theme === 'drive') { driveUpdate(dt); return; }
-  TR.fade = Math.max(0, TR.fade - dt * 1.9);
-  MG.t2 += dt;
-
-  /* سرعت: رشد خودکار + فرمان ←/→ */
-  let nudge = 0;
-  if (mgKeys.left) nudge = -1;
-  else if (mgKeys.right) nudge = 1;
-  MG.speed = clamp(MG.speed + (cfg.accel + nudge * 210) * dt, cfg.speedMin, cfg.speedMax);
-  MG.scroll += MG.speed * dt;
-
-  /* فیزیک بازیکن */
-  const pl = MG.pl;
-  pl.inv = Math.max(0, pl.inv - dt);
-  if (!pl.ground) {
-    pl.vy += cfg.grav * dt;
-    pl.y += pl.vy * dt;
-    if (pl.y >= 0) {
-      pl.y = 0; pl.vy = 0; pl.ground = true;
-      SFX.csThud();
-      spawnParticles(360, cfg.baseY, 5, '#8a7a5c', { speed: 70, life: 0.35, size: 2, grav: 300, up: true });
-    }
-  }
-  pl.duck = !!mgKeys.duck && pl.ground;
-  pl.run += dt * (7 + MG.speed * 0.013);
-
-  /* تولید موانع تا جلوتر از صفحه — (۱۷٫۰) هر مانع عمقِ (dp) خودش را
-     می‌گیرد: دورتر = کوچک‌تر/کم‌رنگ‌تر/کمی بالاتر (پرسپکتیو ساده) */
-  while (MG.nextObs < MG.scroll + W + 160) {
-    const type = cfg.obstacles[irand(0, cfg.obstacles.length - 1)];
-    MG.obs.push({ wx: MG.nextObs, type, hit: false, dp: rand(0.62, 1) });
-    MG.nextObs += rand(cfg.obsGap[0], cfg.obsGap[1]) + MG.speed * 0.3;
-  }
-
-  /* برخورد: بازیکن روی x=۳۶۰ صفحه است */
-  const PX = 360;
-  for (const o of MG.obs) {
-    if (o.hit) continue;
-    const sx = o.wx - MG.scroll;
-    if (sx < -140) { o.hit = true; continue; }         // رد شد
-    if (Math.abs(sx - PX) < 25 && pl.inv <= 0) {
-      const need = OBTYPE[o.type];
-      if ((need === 'jump' && pl.y > -36) || (need === 'jumpclear' && pl.y > -36) ||
-          (need === 'duck' && !pl.duck)) {
-        mgHit(o);
-      }
-    }
-  }
-
-  /* آیتم مخفی: در اوج پرش قابل برداشتن است (پاداش دقت) */
-  const H = MG.hidden;
-  if (H && !H.got) {
-    const sx = H.x - MG.scroll;
-    if (Math.abs(sx - PX) < 34 && pl.y < -52) {
-      H.got = true;
-      giveItem(H.id);
-      SFX.csGift();
-      setTransSub('💎 آیتم مخفی پیدا شد! (' + (GEAR[H.id] || RARE[H.id]).name + ')', 2.6);
-      spawnParticles(PX, cfg.baseY + pl.y - 40, 22, (GEAR[H.id] || RARE[H.id]).color,
-        { speed: 190, life: 0.8, size: 2.8, grav: 260 });
-    }
-  }
-
-  /* مصرف باتری چراغ‌قوه در تونل */
-  if (cfg.battDrain && state.torch.owned && state.torch.battery > 0) {
-    state.torch.battery = Math.max(0, state.torch.battery - cfg.battDrain * dt);
-    if (state.torch.battery <= 0) setTransSub('🔋 باتری چراغ‌قوه تمام شد... پابه‌پا برو!', 2.2);
-  }
-
-  /* خط‌های رادیویی ارشان */
-  for (const s of cfg.subs) {
-    if (!s.done && MG.scroll / PXM >= s.atM) {
-      s.done = true;
-      setTransSub(s.txt, s.dur || 3);
-      SFX.peddler();
-    }
-  }
-
-  /* پایان مسیر → فاز ۳ */
-  if (MG.scroll >= cfg.goalM * PXM) mgOutro();
-}
-
-/* برخورد با مانع: سرعت می‌گیرد + لرزش + جرقه */
-function mgHit(o) {
-  o.hit = true;
-  MG.hits++;
-  MG.pl.inv = 1.15;
-  MG.speed = Math.max(MG.cfg.speedMin, MG.speed * 0.7);
-  state.shake = 7;
-  state.flash = 0.75;
-  SFX.csThud();
-  spawnParticles(360, MG.cfg.baseY - 22, 12, '#e06a5a', { speed: 160, life: 0.5, size: 2.6, grav: 420 });
-  setTransSub(MG.cfg.hitSubs[irand(0, MG.cfg.hitSubs.length - 1)], 1.5);
+  /* (۱۷٫۰/۱۹٫۰) هر سه تمِ سواره فیزیک اختصاصی خود را دارند */
+  driveUpdate(dt);
 }
 
 /* شروع فاز ۳ */
@@ -542,9 +464,6 @@ function mgOutro() {
 function mgOutroUpdate(dt) {
   const cfg = MG.cfg;
   MG.scroll += Math.min(MG.speed + 130, cfg.speedMax + 170) * dt;
-  MG.pl.run += dt * 12;
-  MG.pl.ground = true;
-  MG.pl.y = 0;
   cfg.outroUpdate && cfg.outroUpdate(dt);
   TR.fade = Math.max(TR.fade, clamp((TR.t - (cfg.outroDur - 1.15)) / 1.0, 0, 1));
 }
@@ -596,574 +515,16 @@ function renderTransition() {
   renderMG();
 }
 
-/* بازیکنِ دونده (پرش/خم/آویزان) — رسم مشترک هر سه تم */
-function drawRunner(x, gy, mode) {
-  const pl = MG.pl;
-  const hang = mode === 'hang';
-  const duck = pl.duck;
-  if (!hang) {
-    const sh = clamp(1 + pl.y / 170, 0.35, 1);
-    ctx.fillStyle = 'rgba(0,0,0,0.32)';
-    ctx.beginPath(); ctx.ellipse(x, gy + 3, 13 * sh, 4 * sh, 0, 0, Math.PI * 2); ctx.fill();
-  }
-  ctx.save();
-  ctx.translate(x, gy + pl.y + (hang && duck ? 22 : 0));
-  if (duck && !hang) ctx.scale(1, 0.7);
-  if (MG.outroPlayer && MG.outroPlayer.rot) ctx.rotate(MG.outroPlayer.rot);
-  const run = pl.run;
-  const legA = pl.ground && !duck ? Math.sin(run) * 13 : (duck ? 4 : -7);
-  /* پاها */
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-  ctx.beginPath();
-  if (hang) {
-    ctx.moveTo(0, -14); ctx.lineTo(-4 + Math.sin(run * 0.7) * 3, 9);
-    ctx.moveTo(0, -14); ctx.lineTo(5 - Math.sin(run * 0.7) * 3, 9);
-  } else {
-    ctx.moveTo(-3, -13); ctx.lineTo(-3 + legA, -1);
-    ctx.moveTo(3, -13); ctx.lineTo(3 - legA, -1);
-  }
-  ctx.stroke();
-  /* بدن + کوله پشتی */
-  ctx.fillStyle = '#3d6db5'; rr(-8, -27, 16, 16, 5); ctx.fill();
-  ctx.fillStyle = '#26324d'; ctx.fillRect(-8, -14, 16, 3);
-  ctx.fillStyle = '#6a4a2c'; rr(-14, -26, 6, 11, 2); ctx.fill();
-  /* سر */
-  ctx.fillStyle = '#f0c49a'; circle(2, -32, 6);
-  ctx.fillStyle = '#5a3d28';
-  ctx.beginPath(); ctx.arc(2, -32, 6, Math.PI, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#1d2433'; circle(4.4, -33, 1.1); circle(0.8, -33, 1.1);
-  /* بازوها */
-  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
-  ctx.beginPath();
-  if (hang) {
-    ctx.moveTo(-3, -24); ctx.lineTo(1, -41);
-    ctx.moveTo(4, -24); ctx.lineTo(7, -41);
-  } else if (!pl.ground) {
-    ctx.moveTo(-4, -24); ctx.lineTo(-12, -34);
-    ctx.moveTo(4, -24); ctx.lineTo(12, -34);
-  } else {
-    ctx.moveTo(-3, -24); ctx.lineTo(-3 - legA * 0.7, -16);
-    ctx.moveTo(4, -24); ctx.lineTo(4 + legA * 0.7, -16);
-  }
-  ctx.stroke();
-  /* اسلحه روی شانه */
-  ctx.strokeStyle = '#2b2f38'; ctx.lineWidth = 3.4;
-  ctx.beginPath(); ctx.moveTo(-6, -24); ctx.lineTo(9, -31); ctx.stroke();
-  ctx.restore();
-  /* چراغ‌قوه به کمر (اگر دارد) */
-  if (state.torch.owned) {
-    ctx.fillStyle = state.torch.on ? '#ffe9a0' : '#8a7a50';
-    circle(x - 12, gy + pl.y - 18 + (hang && duck ? 22 : 0), 2.6);
-  }
-}
-
-/* آیتم مخفی: جعبه‌ی کوچک درخشان معلق */
-function drawHiddenPickup(sx, sy, id) {
-  const def = GEAR[id] || RARE[id];
-  const col = (def && def.color) || '#ffd873';
-  ctx.save();
-  ctx.translate(sx, sy + Math.sin(animTime * 2.6) * 5);
-  const g2 = ctx.createRadialGradient(0, 0, 3, 0, 0, 30);
-  g2.addColorStop(0, hexA(col, 0.5)); g2.addColorStop(1, hexA(col, 0));
-  ctx.fillStyle = g2; circle(0, 0, 30);
-  ctx.fillStyle = '#2c3440'; rr(-11, -10, 22, 20, 3); ctx.fill();
-  ctx.fillStyle = col; rr(-8, -7, 16, 14, 2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.85)'; circle(-3, -3, 2);
-  ctx.restore();
-}
-
-/* ---------------------- ۷-۶) تم‌های مینی‌گیم ---------------------- */
-/* === تم جاده (فصل ۱→۲): دویدن کنار ماشین ارشان === */
-function roadBG(scroll, gy) {
-  const g = ctx.createLinearGradient(0, -20, 0, gy);
-  g.addColorStop(0, '#050a18'); g.addColorStop(0.55, '#0d1834'); g.addColorStop(1, '#1c2a4e');
-  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, gy + 20);
-  ctx.fillStyle = '#efe6c4'; circle(118, 62, 25);
-  ctx.fillStyle = 'rgba(120,110,80,0.22)'; circle(110, 56, 5); circle(126, 70, 3.4);
-  /* افق شهر با پارالاکس کند */
-  const m = W + 80, off = scroll * 0.16;
-  ctx.fillStyle = '#0b1226';
-  for (const b of SKYLINE) {
-    const sx = (((b.x - off) % m) + m) % m - 40;
-    ctx.fillRect(sx, gy - b.h * 0.66, b.w, b.h * 0.66);
-  }
-  /* جاده */
-  const rg = ctx.createLinearGradient(0, gy, 0, H);
-  rg.addColorStop(0, '#23262c'); rg.addColorStop(1, '#14161b');
-  ctx.fillStyle = rg; ctx.fillRect(-20, gy, W + 40, H - gy + 20);
-  ctx.fillStyle = '#2e3238'; ctx.fillRect(-20, gy, W + 40, 5);
-  ctx.fillStyle = 'rgba(245,205,90,0.9)';
-  const dash = 46, gap = 34, mm = dash + gap, ph = scroll % mm;
-  for (let x = -mm; x < W + mm; x += mm) { rr(x + ph, gy + 18, dash, 6, 3); ctx.fill(); }
-  /* اجزای کنار جاده (درخت/چراغ/بوته/سنگ — از بخش رانندگی ۸٫۰) */
-  for (const p of DRIVE_PROPS) {
-    const sx = p.wx - scroll * 0.98;
-    if (sx > -90 && sx < W + 90) drawRoadProp(p, sx);
-  }
-}
-function roadObs(o, sx, gy) {
-  const d = 0;
-  if (o.type === 'rubble') {
-    ctx.fillStyle = '#6e5a44';
-    rr(sx - 20, gy - 26, 40, 26, 3); ctx.fill();
-    ctx.fillStyle = '#8a6f52';
-    ctx.fillRect(sx - 14, gy - 34, 16, 9); ctx.fillRect(sx + 2, gy - 30, 12, 7);
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2;
-    ctx.strokeRect(sx - 20, gy - 26, 40, 26);
-    ctx.beginPath(); ctx.moveTo(sx - 6, gy - 26); ctx.lineTo(sx - 2, gy - 34); ctx.stroke();
-  } else if (o.type === 'pothole') {
-    ctx.fillStyle = '#0a0b0e';
-    ctx.beginPath(); ctx.ellipse(sx, gy + 6, 26, 9, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#3a3d44'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(sx, gy + 6, 26, 9, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = '#2c3038';
-    for (const dx of [-18, 12]) ctx.fillRect(sx + dx, gy - 4, 8, 5);
-  } else if (o.type === 'grabber') {
-    /* زامبی یورغ‌زننده از کانال — باید از رویش بپری */
-    ctx.save();
-    ctx.translate(sx, gy);
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(0, 2, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
-    const lun = Math.sin(animTime * 8) * 4;
-    ctx.scale(-1, 1);
-    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-3, -12); ctx.lineTo(-6, -1); ctx.moveTo(3, -12); ctx.lineTo(6, -1); ctx.stroke();
-    ctx.fillStyle = '#4a5d73'; rr(-8, -28, 16, 17, 4); ctx.fill();
-    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(-4, -24); ctx.lineTo(12, -30 - lun); ctx.moveTo(4, -24); ctx.lineTo(13, -24 + lun); ctx.stroke();
-    ctx.fillStyle = '#7fa657'; circle(2, -33, 6.4);
-    ctx.save(); ctx.shadowColor = '#ff4b3e'; ctx.shadowBlur = 5;
-    ctx.fillStyle = '#ff4b3e'; circle(4.5, -34, 1.5); circle(7.6, -34.5, 1.5); ctx.restore();
-    ctx.restore();
-  } else if (o.type === 'sign') {
-    /* تابلوی افتاده — از زیرش رد شو (خم شو) */
-    ctx.strokeStyle = '#4a4a52'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(sx - 34, gy); ctx.lineTo(sx - 22, gy - 44); ctx.stroke();
-    ctx.fillStyle = '#2c3f70';
-    ctx.save();
-    ctx.translate(sx - 22, gy - 44);
-    ctx.rotate(0.28);
-    rr(0, -16, 58, 22, 3); ctx.fill();
-    ctx.fillStyle = '#ffd873'; ctx.fillRect(6, -10, 40, 3.5);
-    ctx.fillStyle = '#8fa3cf'; ctx.fillRect(6, -4, 28, 3);
-    ctx.restore();
-    ctx.strokeStyle = '#ffb03c'; ctx.lineWidth = 2;    // هشدار
-    ctx.setLineDash([5, 4]);
-    ctx.beginPath(); ctx.moveTo(sx - 8, gy - 52); ctx.lineTo(sx + 12, gy - 44); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-}
-function roadProps(scroll, gy) {
-  /* ماشین ارشان جلوتر — چرخ‌ها با اسکرول می‌چرخند */
-  const carX = 612 + (TR.phase === 3 ? Math.max(0, TR.t - 0.5) * 250 : Math.sin(animTime * 0.8) * 6);
-  drawCar({ x: carX, y: gy + 8, kick: 0, spin: scroll * 0.055, hand: 0 });
-  /* دود اگزوز */
-  if (Math.random() < 0.16) {
-    spawnParticles(carX - 78, gy - 10, 1, 'rgba(120,120,130,0.4)',
-      { speed: 26, life: 0.9, size: 3.2, grav: -16 });
-  }
-  /* دو زامبی تعقیب‌کننده پشت سر */
-  for (const [zx, sp] of [[102, 1], [58, 0.8]]) {
-    const z = {
-      type: 'normal', x: zx, y: gy + 4, dir: 1, radius: 15,
-      walkPhase: animTime * 6 * sp, attacking: false, attackAnim: 0,
-      attackSide: 0, lane: 0, depth: 1, yJit: 0, stagger: 0, chill: 0,
-      hitFlash: 0, dead: false, deathT: 0,
-    };
-    drawZombie(z);
-  }
-}
-function roadOutroUpdate(dt) {
-  /* پرش به ماشین و رفتن */
-  if (TR.t >= 1.3 && !TR.ev.inCar) {
-    TR.ev.inCar = 1;
-    MG.hidePlayer = true;
-    SFX.csLand();
-    spawnParticles(612, GROUND_Y - 40, 10, '#c9b38a', { speed: 120, life: 0.5, size: 2.4, grav: 300 });
-  }
-}
-function roadOutroDraw(gy) {
-  if (TR.t > 0.6 && TR.t < 1.6) {
-    /* جهش بازیکن به ماشین */
-    const k = clamp((TR.t - 0.6) / 0.7, 0, 1);
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.translate(360 + (612 - 360) * k, gy - 20 - Math.sin(k * Math.PI) * 64 + k * 10);
-    ctx.rotate(k * 0.5);
-    ctx.fillStyle = '#3d6db5'; rr(-8, -20, 16, 16, 5); ctx.fill();
-    ctx.fillStyle = '#f0c49a'; circle(2, -25, 6);
-    ctx.restore();
-  }
-}
-
-/* === تم تونل (فصل ۲→۳): تاریکی + فقط نور چراغ‌قوه === */
-function tunnelBG(scroll, gy) {
-  ctx.fillStyle = '#020309';
-  ctx.fillRect(-20, -20, W + 40, H + 40);
-  /* (۱۷٫۰) لایه‌ی عمق: ردیف قوس‌های دور — کوچک‌تر/کم‌رنگ‌تر/کندتر
-     (هماهنگ با پرسپکتیو مینی‌گیم رانندگی) */
-  {
-    const sp2 = 340, off2 = scroll * 0.34;
-    ctx.save();
-    ctx.globalAlpha = 0.4;
-    ctx.strokeStyle = '#0d1420'; ctx.lineWidth = 4;
-    for (let i = -1; i < W / sp2 + 2; i++) {
-      const sx = i * sp2 - (off2 % sp2);
-      ctx.beginPath();
-      ctx.moveTo(sx - 26, H);
-      ctx.quadraticCurveTo(sx - 26, gy - 88, sx, gy - 88);
-      ctx.quadraticCurveTo(sx + 26, gy - 88, sx + 26, H);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-  /* قوس‌های تونل */
-  const spacing = 200, off = scroll * 0.85;
-  ctx.strokeStyle = '#161e2c'; ctx.lineWidth = 5;
-  for (let i = -1; i < W / spacing + 2; i++) {
-    const sx = i * spacing - (off % spacing);
-    ctx.beginPath();
-    ctx.moveTo(sx - 46, H);
-    ctx.quadraticCurveTo(sx - 46, gy - 155, sx, gy - 155);
-    ctx.quadraticCurveTo(sx + 46, gy - 155, sx + 46, H);
-    ctx.stroke();
-  }
-  /* کف تونل + ریل */
-  ctx.fillStyle = '#0b0e15'; ctx.fillRect(-20, gy, W + 40, H - gy + 20);
-  ctx.strokeStyle = '#1e2836'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(-20, gy + 20); ctx.lineTo(W + 20, gy + 20); ctx.stroke();
-  ctx.fillStyle = '#151d29';
-  const ph = (scroll * 1.0) % 60;
-  for (let x = -60; x < W + 60; x += 60) ctx.fillRect(x + ph, gy + 34, 26, 4);
-  /* لوله‌های بالای تونل */
-  ctx.strokeStyle = '#131a26'; ctx.lineWidth = 6;
-  ctx.beginPath(); ctx.moveTo(-20, gy - 148); ctx.lineTo(W + 20, gy - 148); ctx.stroke();
-  ctx.strokeStyle = '#1b2534'; ctx.lineWidth = 2;
-  for (let x = -40 - (scroll * 0.85 % 90); x < W + 40; x += 90) {
-    ctx.beginPath(); ctx.moveTo(x, gy - 148); ctx.lineTo(x, gy - 160); ctx.stroke();
-  }
-}
-function tunnelObs(o, sx, gy) {
-  if (o.type === 'pit') {
-    ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.ellipse(sx, gy + 5, 25, 8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#232c3c'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(sx, gy + 5, 25, 8, 0, 0, Math.PI * 2); ctx.stroke();
-  } else if (o.type === 'barrel') {
-    ctx.fillStyle = '#3a3038';
-    rr(sx - 13, gy - 28, 26, 28, 4); ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(sx - 13, gy - 19, 26, 3);
-    ctx.fillStyle = '#e8a13c';
-    ctx.fillRect(sx - 13, gy - 24, 26, 4);          // نوار خطر
-    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.2;
-    rr(sx - 13, gy - 28, 26, 28, 4); ctx.stroke();
-  } else if (o.type === 'beam') {
-    /* تیرآهن فولادی — خم شو! */
-    ctx.fillStyle = '#2c3440';
-    ctx.fillRect(sx - 30, gy - 62, 60, 16);
-    ctx.fillStyle = '#3a4452';
-    ctx.fillRect(sx - 30, gy - 62, 60, 4);
-    ctx.fillStyle = '#ffb03c';                       // راه‌راه هشدار
-    for (let i = 0; i < 5; i++) ctx.fillRect(sx - 26 + i * 12, gy - 54, 7, 6);
-    ctx.strokeStyle = '#1a2028'; ctx.lineWidth = 2;
-    ctx.strokeRect(sx - 30, gy - 62, 60, 16);
-    /* مهارهای کناری */
-    ctx.strokeStyle = '#232c3c'; ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(sx - 28, gy - 46); ctx.lineTo(sx - 34, gy);
-    ctx.moveTo(sx + 28, gy - 46); ctx.lineTo(sx + 34, gy);
-    ctx.stroke();
-  }
-}
-function tunnelProps(scroll, gy) {
-  /* (۱۷٫۰) لایه‌ی عمق: بشکه‌های دور — کوچک/کم‌رنگ/کند */
-  {
-    const sp2 = 300, off2 = scroll * 0.38;
-    ctx.save();
-    ctx.globalAlpha = 0.45;
-    for (let i = -1; i < W / sp2 + 2; i++) {
-      const sx = i * sp2 - (off2 % sp2) + 90;
-      if (sx < -30 || sx > W + 30) continue;
-      ctx.fillStyle = '#241d24';
-      rr(sx - 7, gy - 15, 14, 15, 3); ctx.fill();
-      ctx.fillStyle = '#8a6a2c';
-      ctx.fillRect(sx - 7, gy - 11, 14, 2.4);
-    }
-    ctx.restore();
-  }
-  /* ارشان با فانوس جلوتر (سایه‌ی روشن) */
-  ctx.save();
-  ctx.translate(560, gy);
-  const lg = ctx.createRadialGradient(0, -26, 3, 0, -26, 54);
-  lg.addColorStop(0, 'rgba(255,210,130,0.20)'); lg.addColorStop(1, 'rgba(255,210,130,0)');
-  ctx.fillStyle = lg; circle(0, -26, 54);
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-  const run = animTime * 9;
-  ctx.beginPath();
-  ctx.moveTo(-3, -13); ctx.lineTo(-3 + Math.sin(run) * 10, -1);
-  ctx.moveTo(3, -13); ctx.lineTo(3 - Math.sin(run) * 10, -1);
-  ctx.stroke();
-  ctx.fillStyle = '#4a7a4a'; rr(-8, -28, 16, 16, 5); ctx.fill();     // کاپشن سبز ارشان
-  ctx.fillStyle = '#f0c49a'; circle(2, -33, 6);
-  ctx.fillStyle = '#7a2a2a';
-  ctx.beginPath(); ctx.arc(2, -33, 6.2, Math.PI, Math.PI * 2); ctx.fill();  // کلاه قرمز
-  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.moveTo(4, -24); ctx.lineTo(13, -30); ctx.stroke();  // فانوس در دست
-  ctx.fillStyle = '#ffd873';
-  ctx.save(); ctx.shadowColor = '#ffd873'; ctx.shadowBlur = 8;
-  circle(14, -31, 3.4); ctx.restore();
-  ctx.restore();
-}
-function tunnelOutroUpdate(dt) {
-  if (TR.t >= 1.4 && !TR.ev.run) {
-    TR.ev.run = 1;
-    setTransSub('— نورِ آخر تونل... بزن بیرون!', 2);
-  }
-}
-function tunnelOutroDraw(gy) {
-  /* چرخنده‌ی نور آخر تونل */
-  const r = 30 + clamp(TR.t / 1.8, 0, 1) * 560;
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  const g2 = ctx.createRadialGradient(W + 40, gy - 30, 10, W + 40, gy - 30, r);
-  g2.addColorStop(0, 'rgba(255,250,235,0.95)');
-  g2.addColorStop(0.4, 'rgba(255,240,210,0.5)');
-  g2.addColorStop(1, 'rgba(255,240,210,0)');
-  ctx.fillStyle = g2;
-  circle(W + 40, gy - 30, r);
-  ctx.restore();
-}
-
-/* === تم زیپ‌لاین (فصل ۳→۴): دره برفی و بارانی === */
-function ziplineBG(scroll, gy) {
-  const g = ctx.createLinearGradient(0, -20, 0, H);
-  g.addColorStop(0, '#0a101e'); g.addColorStop(0.5, '#1a2438'); g.addColorStop(1, '#2c3a52');
-  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H + 40);
-  /* ابرهای تند طوفان */
-  for (const c of CLOUDS) {
-    const m = W + 300;
-    const x = (((c.x - animTime * c.v * 2.2) % m) + m) % m - 150;
-    ctx.fillStyle = 'rgba(16,22,36,0.85)';
-    cloudBlob(x, c.y, c.s * 0.9, 'rgba(16,22,36,0.85)');
-  }
-  /* (۱۷٫۰) لایه‌ی عمق: ستیغِ خیلی دور — روشن‌تر/کندتر (پرسپکتیو) */
-  {
-    const off0 = scroll * 0.09;
-    ctx.fillStyle = 'rgba(38,50,74,0.55)';
-    ctx.beginPath(); ctx.moveTo(-20, gy + 40);
-    for (let i = 0; i < 12; i++) {
-      const x = i * 124 - (off0 % 124);
-      ctx.lineTo(x + 62, gy - 64 - ((i * 53) % 82));
-      ctx.lineTo(x + 124, gy + 28);
-    }
-    ctx.lineTo(W + 20, gy + 40); ctx.closePath(); ctx.fill();
-  }
-  /* کوهستان دور (پارالاکس) */
-  const off = scroll * 0.22;
-  ctx.fillStyle = '#131b2c';
-  ctx.beginPath(); ctx.moveTo(-20, gy + 60);
-  for (let i = 0; i < 16; i++) {
-    const x = i * 92 - (off % 92);
-    ctx.lineTo(x + 46, gy - 44 - ((i * 41) % 66));
-    ctx.lineTo(x + 92, gy + 34);
-  }
-  ctx.lineTo(W + 20, gy + 60); ctx.closePath(); ctx.fill();
-  /* دره + رودخانه زیر پا */
-  ctx.fillStyle = '#0b1220'; ctx.fillRect(-20, gy + 58, W + 40, H - gy);
-  const wsh = Math.sin(animTime * 1.8) * 5;
-  ctx.fillStyle = 'rgba(120,160,210,0.10)';
-  ctx.fillRect(-20, gy + 84 + wsh, W + 40, 12);
-  ctx.fillStyle = 'rgba(150,190,235,0.07)';
-  ctx.fillRect(-20, gy + 96 - wsh, W + 40, 8);
-  /* برف ریزان (تندتر از صحنه‌ی بازی) */
-  for (const f of SNOW_FLAKES) {
-    const m = W + 40;
-    const x = (((f.x - animTime * 34) % m) + m) % m - 20 + Math.sin(animTime * f.sw + f.ph) * 20;
-    const y = (f.y0 + animTime * f.v * 1.5) % (H + 24) - 12;
-    ctx.fillStyle = 'rgba(235,244,252,0.8)';
-    ctx.beginPath(); ctx.arc(x, y, f.r, 0, Math.PI * 2); ctx.fill();
-  }
-  /* کابل زیپ‌لاین (موج ملایم) */
-  ctx.strokeStyle = 'rgba(205,215,228,0.85)'; ctx.lineWidth = 2.2;
-  ctx.beginPath();
-  ctx.moveTo(-20, gy - 38 + Math.sin(animTime * 1.3) * 2);
-  ctx.quadraticCurveTo(W / 2, gy - 46, W + 20, gy - 40);
-  ctx.stroke();
-  /* مهارهای عمودی از دره تا کابل */
-  const m2 = 340, ph2 = scroll % m2;
-  ctx.strokeStyle = 'rgba(70,85,110,0.55)'; ctx.lineWidth = 2.6;
-  for (let x = -m2; x < W + m2; x += m2) {
-    const sx = x - ph2;
-    ctx.beginPath(); ctx.moveTo(sx, gy - 40); ctx.lineTo(sx, gy + 60); ctx.stroke();
-    ctx.fillStyle = 'rgba(70,85,110,0.55)';
-    ctx.fillRect(sx - 5, gy + 54, 10, 8);
-  }
-}
-function ziplineObs(o, sx, gy) {
-  if (o.type === 'pylon') {
-    /* تیرک شکسته از دره بالا آمده — بپر از رویش */
-    ctx.strokeStyle = '#2e3a4e'; ctx.lineWidth = 7; ctx.lineCap = 'butt';
-    ctx.beginPath();
-    ctx.moveTo(sx, gy + 56);
-    ctx.lineTo(sx - 6, gy - 10);
-    ctx.lineTo(sx + 4, gy - 34);
-    ctx.stroke();
-    ctx.strokeStyle = '#46536a'; ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(sx - 3, gy + 18); ctx.lineTo(sx + 7, gy - 6);
-    ctx.moveTo(sx - 2, gy + 36); ctx.lineTo(sx - 9, gy + 10);
-    ctx.stroke();
-    ctx.fillStyle = '#ffb03c';
-    circle(sx + 4, gy - 34, 3);                      // چراغ هشدار
-  } else if (o.type === 'flyer') {
-    /* زامبی پرنده — خم شو! */
-    ctx.save();
-    ctx.translate(sx, gy - 46);
-    ctx.scale(-1, 1);
-    const flap = Math.sin(animTime * 10) * 8;
-    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-2, -8); ctx.lineTo(-16, -8 - flap);    // بال‌های باز
-    ctx.moveTo(2, -8); ctx.lineTo(15, -8 + flap * 0.6);
-    ctx.stroke();
-    ctx.fillStyle = '#4a5d73'; rr(-8, -14, 16, 14, 4); ctx.fill();
-    ctx.fillStyle = '#7fa657'; circle(3, -18, 6);
-    ctx.save(); ctx.shadowColor = '#ff4b3e'; ctx.shadowBlur = 6;
-    ctx.fillStyle = '#ff4b3e'; circle(5, -19, 1.6); circle(8, -19.5, 1.6); ctx.restore();
-    ctx.strokeStyle = '#7fa657'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-4, -2); ctx.lineTo(-9, 8); ctx.moveTo(4, -2); ctx.lineTo(9, 8); ctx.stroke();
-    ctx.restore();
-    /* ردِ پرواز */
-    ctx.strokeStyle = 'rgba(200,220,240,0.18)'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(sx - 70, gy - 70); ctx.quadraticCurveTo(sx - 30, gy - 40, sx, gy - 46); ctx.stroke();
-  }
-}
-function ziplineProps(scroll, gy) {
-  /* (۱۷٫۰) لایه‌ی عمق: تیرک‌های دور دره — کوچک/کم‌رنگ/کند */
-  {
-    const sp2 = 420, off2 = scroll * 0.36;
-    ctx.save();
-    ctx.globalAlpha = 0.4;
-    for (let i = -1; i < W / sp2 + 2; i++) {
-      const sx = i * sp2 - (off2 % sp2) + 140;
-      if (sx < -30 || sx > W + 30) continue;
-      ctx.strokeStyle = '#26314a'; ctx.lineWidth = 3.4; ctx.lineCap = 'butt';
-      ctx.beginPath();
-      ctx.moveTo(sx, gy + 54);
-      ctx.lineTo(sx - 3, gy + 6);
-      ctx.lineTo(sx + 2, gy - 16);
-      ctx.stroke();
-      ctx.fillStyle = '#7a5a2c';
-      circle(sx + 2, gy - 17, 1.6);
-    }
-    ctx.restore();
-  }
-  /* دسته‌ی زیپ‌لاین روی کابل بالای بازیکن */
-  ctx.fillStyle = '#3a4250';
-  rr(352, gy - 46, 16, 10, 3); ctx.fill();
-  ctx.fillStyle = '#ffb03c';
-  circle(360, gy - 41, 2.2);
-  /* جرقه‌ی اصطکاک کابل */
-  if (Math.random() < 0.2) {
-    spawnParticles(360 - MG.speed * 0.05, gy - 44, 1, '#ffd88a',
-      { speed: 60, life: 0.3, size: 1.6, grav: 200 });
-  }
-}
-function ziplineOutroUpdate(dt) {
-  /* رها کردن کابل + فرود غلتکی روی برف */
-  if (TR.t >= 0.45 && !TR.ev.release) {
-    TR.ev.release = 1;
-    SFX.csWhistle();
-  }
-  if (TR.ev.release) {
-    const k = clamp((TR.t - 0.45) / 0.85, 0, 1);
-    MG.outroPlayer = {
-      x: 360 + k * 430,
-      y: 330 + (470 - 330) * k * k,
-      rot: k * Math.PI * 2.2,
-    };
-    if (k >= 1 && !TR.ev.landed) {
-      TR.ev.landed = 1;
-      MG.outroPlayer.y = 470;
-      MG.outroPlayer.rot = 0;
-      SFX.csLand();
-      state.shake = 6;
-      spawnParticles(790, 470, 22, 'rgba(235,244,252,0.9)', { speed: 190, life: 0.7, size: 2.8, grav: 240, up: true });
-      setTransSub('— [ارشان]: رسیدیم... به آخرین برج.', 2.4);
-    }
-  }
-}
-function ziplineOutroDraw(gy) {
-  /* سکوی مخابراتی مقصد در راست */
-  ctx.fillStyle = '#2c3648';
-  rr(836, 424, 120, 14, 3); ctx.fill();
-  ctx.fillStyle = '#3a4254';
-  ctx.fillRect(846, 438, 12, 44); ctx.fillRect(932, 438, 12, 44);
-  /* دکل پس‌زمینه با چراغ قرمز */
-  ctx.strokeStyle = '#243044'; ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(886, 424); ctx.lineTo(886, 316);
-  ctx.moveTo(866, 424); ctx.lineTo(886, 348);
-  ctx.moveTo(906, 424); ctx.lineTo(886, 348);
-  ctx.stroke();
-  ctx.save();
-  ctx.shadowColor = '#ff4b3e'; ctx.shadowBlur = 8;
-  ctx.fillStyle = 'rgba(255,75,62,' + (0.5 + 0.5 * Math.sin(animTime * 3)) + ')';
-  circle(886, 314, 3);
-  ctx.restore();
-}
-
-/* تاریکیِ تونل: فقط دایره‌ی نور چراغ‌قوه دور دونده */
-function renderTunnelDark(gy) {
-  const x = 360, y = gy + MG.pl.y - 24;
-  let r;
-  if (state.torch.owned && state.torch.on && state.torch.battery > 0) {
-    r = 118 + 78 * state.torch.battery / 100;
-  } else if (state.torch.owned) {
-    r = 56;
-  } else {
-    r = 42;
-  }
-  r *= 0.92 + 0.08 * Math.sin(animTime * 19);
-  /* بوم جدا برای تاریکی تونل — سوراخِ نور این‌جا زده می‌شود تا موانعِ داخل
-     دایره‌ی نور دیده بمانند (destination-out مستقیم صحنه را هم پاک می‌کرد) */
-  if (!Dark.cv) { Dark.cv = document.createElement('canvas'); Dark.cv.width = W; Dark.cv.height = H; }
-  const c = Dark.cv.getContext('2d');
-  c.setTransform(1, 0, 0, 1, 0, 0);
-  c.clearRect(0, 0, W, H);
-  c.fillStyle = 'rgba(1,2,8,0.94)';
-  c.fillRect(0, 0, W, H);
-  c.globalCompositeOperation = 'destination-out';
-  const g2 = c.createRadialGradient(x, y, r * 0.12, x, y, r);
-  g2.addColorStop(0, 'rgba(0,0,0,0.98)');
-  g2.addColorStop(0.6, 'rgba(0,0,0,0.5)');
-  g2.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = g2;
-  c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
-  c.globalCompositeOperation = 'source-over';
-  ctx.drawImage(Dark.cv, 0, 0);
-  /* گرمای نور روی خود بازیکن */
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  const g3 = ctx.createRadialGradient(x, y, 2, x, y, Math.min(r, 72));
-  g3.addColorStop(0, 'rgba(255,225,160,0.15)');
-  g3.addColorStop(1, 'rgba(255,225,160,0)');
-  ctx.fillStyle = g3;
-  circle(x, y, Math.min(r, 72));
-  ctx.restore();
-}
-
-/* ---------------------- ۷-۷) پیکربندی سه مینی‌گیم ---------------------- */
+/* ---------------------- ۷-۷) پیکربندی سه مینی‌گیم سواره ---------------------- */
 const MGCFG = {
   /* (۱۷٫۰) فصل ۱→۲: رانندگی شبه‌سه‌بعدی — بازیکن پشت فرمان، ارشان صندلی
      کمکی؛ موانع/زامبی‌ها با پرسپکتیو؛ آیتم مخفی = جعبه‌ی کنار جاده.
      فیزیک/رندر در v4_drive.js (driveUpdate/renderDrive) */
   1: {
-    theme: 'drive', baseY: GROUND_Y,
+    theme: 'drive',
     goalM: 380, speed0: 2000, speedMin: 700, speedMax: 3400,
     hidden: { id: 'medkit', at: 0.45 },
-    battDrain: 0,
+    hiddenBark: { v: 'd1a2', text: 'اون طرف یه جعبه دیدم! بگیرش!' },
     startSub: '— [ارشان]: فرمان با توئه! گاز بده!',
     outroDur: 3.4,
     outroSub: '— [ارشان]: انبارهای مه‌گرفته جلوته... رسیدیم!',
@@ -1174,110 +535,56 @@ const MGCFG = {
       { atM: 200, txt: '— [تو]: این جاده هم پای آخر داره!' },
       { atM: 300, txt: '— [ارشان]: مهِ انبارها داره میاد... تقریباً رسیدیم!' },
     ],
-    drawBG: null, drawObs: null, drawProps: null,
-    outroUpdate: driveOutroUpdate, outroDraw: null,
+    outroUpdate: driveOutroUpdate,
   },
+  /* (۱۹٫۰) فصل ۲→۳: قایق موتوری در کانالِ مه‌گرفته — بازیکن پشت سکان،
+     ارشان با فانوس روی عقب قایق؛ موانع شناور؛ انعکاس ماه روی آب؛
+     مقصد = دروازه‌ی پاسگاه نظامی. رندر: v4_ride.js (renderRiver) */
   2: {
-    theme: 'tunnel', baseY: 458,
-    goalM: 200, speed0: 235, speedMin: 150, speedMax: 400, accel: 13,
-    jumpV: -560, grav: 1450, obsGap: [300, 480],
-    obstacles: ['pit', 'beam', 'barrel', 'pit', 'beam', 'barrel'],
-    hidden: { id: 'goldAmmo', at: 0.6, floatY: -112 },
-    battDrain: 1.15,                        // باتری چراغ‌قوه در تونل خالی می‌شود
-    startSub: '— [ارشان]: فقط نور چراغ‌قوه‌ت! تیرآهن‌ها رو خم شو رد شو!',
+    theme: 'river',
+    goalM: 360, speed0: 1900, speedMin: 700, speedMax: 3200,
+    hidden: { id: 'battery', at: 0.45 },
+    hiddenBark: { v: 'b1a2', text: 'اون آخرِ کانال یه چراغ چشمک می‌زنه! نزدیکش شو!' },
+    startSub: '— [ارشان]: فرمان قایق با توئه! از موانع رد شو!',
     outroDur: 3.4,
-    outroSub: '— [ارشان]: نور آخر تونل! بزن بیرون!',
-    hitSubs: ['صدای برخورد در تاریکی!', 'چیزی ندیدی؟! مواظب باش!', 'آخ! پاته؟!'],
+    outroSub: '— [ارشان]: دروازه‌ی پاسگاه! از مه داره درمیاد!',
+    hitSubs: ['شال‌آب اومد تو! مواظب باش!', 'زدی بهش! سرعت قایق گیر کرد!', 'بوووم! حواست کجاست؟!'],
     subs: [
-      { atM: 50,  txt: '— [ارشان]: رادیو می‌گه پاسگاه نظامی چند کیلومتر جلوتره...' },
-      { atM: 100, txt: '— [تو]: این تونل تا کجا ادامه داره؟' },
-      { atM: 150, txt: '— [ارشان]: ساکت باش... صدای چیزی میاد...' },
+      { atM: 80,  txt: '— [ارشان]: رادیو می‌گه پاسگاه نظامی اون طرفِ کاناله...',
+        barkV: 'b1a1', barkT: 'گاز بده! از این کانال فقط یه راه به پاسگاه هست!' },
+      { atM: 190, txt: '— [تو]: این مه انقدر غلیظه که انگار داریم تو شیر می‌ریم!' },
+      { atM: 285, txt: '— [ارشان]: چراغ‌های دروازه رو می‌بینی؟ تقریباً رسیدیم!' },
     ],
-    drawBG: tunnelBG, drawObs: tunnelObs, drawProps: tunnelProps,
-    outroUpdate: tunnelOutroUpdate, outroDraw: tunnelOutroDraw,
+    outroUpdate: rideOutroUpdate,
   },
+  /* (۱۹٫۰) فصل ۳→۴: اسنوموبیل روی شیب برفی توفانی — بازیکن راننده،
+     ارشان پشتش؛ صخره‌های یخ/کاج افتاده/زامبی‌های یخ‌زده؛ تندبرف و
+     رگبار سفیدِ دوره‌ای؛ مقصد = دکل مخابراتی. رندر: v4_ride.js (renderSnow) */
   3: {
-    theme: 'zipline', baseY: 330,
-    goalM: 260, speed0: 300, speedMin: 210, speedMax: 500, accel: 16,
-    jumpV: -540, grav: 1350, obsGap: [340, 540],
-    obstacles: ['pylon', 'flyer', 'pylon', 'flyer', 'pylon'],
-    hidden: { id: 'battery', at: 0.55, floatY: -96 },
-    battDrain: 0,
-    startSub: '— [ارشان]: به کابل بچسب! تیرک‌ها رو بپر، زامبی‌های پرنده رو خم شو رد شو!',
+    theme: 'snow',
+    goalM: 390, speed0: 2000, speedMin: 750, speedMax: 3400,
+    hidden: { id: 'goldAmmo', at: 0.5 },
+    hiddenBark: { v: 's1a2', text: 'اون بالا یه جعبه دیدم! بهش نزدیک شو!' },
+    startSub: '— [ارشان]: گاز بده! از برف رد شو!',
     outroDur: 3.8,
-    outroSub: '— [ارشان]: سکوی مخابراتی! آماده‌ی فرود باش!',
-    hitSubs: ['نصفه‌شب تو برف خوردی!', 'برخورد! کابل رو محکم بگیر!', 'حواست به تیرک‌ها باشه!'],
+    outroSub: '— [ارشان]: دکل مخابراتی! آخرین قله!',
+    hitSubs: ['خوردی به برف! مواظب باش!', 'برخورد! محکم‌تر بچسب!', 'صخره بود! حواست جمع باشه!'],
     subs: [
-      { atM: 65,  txt: '— [ارشان]: دره رو ببین... عمیقه! ول نکن!' },
-      { atM: 130, txt: '— [تو]: باد داره منو هی می‌کوبه!' },
-      { atM: 195, txt: '— [ارشان]: چراغ قرمز رو می‌بینی؟ همون برجِ آخره!' },
+      { atM: 90,  txt: '— [ارشان]: وقتی مهِ سفید میاد، سرعتت رو کم کن!',
+        barkV: 's1a1', barkT: 'توفان برف میاد! تو رگبارش گاز نده!' },
+      { atM: 200, txt: '— [تو]: انگار دارم تو یخ‌شکن رانندگی می‌کنم!' },
+      { atM: 305, txt: '— [ارشان]: چراغ قرمز دکل رو می‌بینی؟ همون آخرِ کاره!' },
     ],
-    drawBG: ziplineBG, drawObs: ziplineObs, drawProps: ziplineProps,
-    outroUpdate: ziplineOutroUpdate, outroDraw: ziplineOutroDraw,
+    outroUpdate: rideOutroUpdate,
   },
 };
 
 /* ---------------------- ۷-۸) رندر مینی‌گیم (فاز ۲ و ۳) ---------------------- */
 function renderMG() {
   if (!TR || !MG.cfg) return;
-  const cfg = MG.cfg;
-  /* (۱۷٫۰) تم رانندگی: رندر شبه‌سه‌بعدی اختصاصی */
-  if (cfg.theme === 'drive') { renderDrive(); return; }
-  const gy = cfg.baseY;
-  const scroll = MG.scroll;
-  const mode = cfg.theme === 'zipline' ? 'hang' : 'run';
-
-  cfg.drawBG(scroll, gy);
-
-  /* موانع — (۱۷٫۰) رسم از دور به نزدیک (dp کوچک = دور) با مقیاس/کم‌رنگی
-     عمق و کمی جابه‌جایی عمودی: پرسپکتیوِ ساده‌ی هماهنگ با رانندگی */
-  for (const o of [...MG.obs].sort((a, b) => (a.dp || 1) - (b.dp || 1))) {
-    const sx = o.wx - scroll;
-    if (sx > -140 && sx < W + 140) {
-      const dp = o.dp || 1;
-      if (dp > 0.97) cfg.drawObs(o, sx, gy);
-      else {
-        ctx.save();
-        ctx.globalAlpha = 0.5 + 0.5 * dp;
-        ctx.translate(sx, gy - (1 - dp) * 14);
-        ctx.scale(dp, dp);
-        ctx.translate(-sx, -(gy - (1 - dp) * 14));
-        cfg.drawObs(o, sx, gy - (1 - dp) * 14);
-        ctx.restore();
-      }
-    }
-  }
-  /* آیتم مخفی */
-  const H = MG.hidden;
-  if (H && !H.got) {
-    const sx = H.x - scroll;
-    if (sx > -70 && sx < W + 70) drawHiddenPickup(sx, gy + H.floatY, H.id);
-  }
-
-  /* اجزای تم (ماشین/ارشان/کابل) */
-  cfg.drawProps(scroll, gy);
-
-  /* بازیکن */
-  if (!MG.hidePlayer) {
-    if (MG.outroPlayer) {
-      ctx.save();
-      ctx.translate(MG.outroPlayer.x, MG.outroPlayer.y);
-      if (MG.outroPlayer.rot) ctx.rotate(MG.outroPlayer.rot);
-      ctx.fillStyle = '#3d6db5'; rr(-8, -27, 16, 16, 5); ctx.fill();
-      ctx.fillStyle = '#f0c49a'; circle(2, -32, 6);
-      ctx.fillStyle = '#5a3d28';
-      ctx.beginPath(); ctx.arc(2, -32, 6, Math.PI, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    } else {
-      drawRunner(360, gy, mode);
-    }
-  }
-
-  /* تاریکی تونل روی همه‌چیز (بعد از موانع = موانع در تاریکی پنهان‌اند) */
-  if (cfg.theme === 'tunnel' && TR.phase === 2) renderTunnelDark(gy);
-
-  /* فاز ۳: پایان‌بندی اختصاصی */
-  if (TR.phase === 3 && cfg.outroDraw) cfg.outroDraw(gy);
+  /* (۱۷٫۰/۱۹٫۰) هر سه تمِ سواره رندر شبه‌سه‌بعدی مشترک دارند:
+     renderDrive خودش بر اساس DRV.theme بین جاده/رودخانه/برف جدا می‌کند */
+  renderDrive();
 }
 
 /* لایه‌ی رویی انتقال: نوار سینما + زیرنویس + پیشرفت + راهنما + محو */
@@ -1334,7 +641,7 @@ function drawTransitionOverlay() {
     const k = clamp(MG.t2 / 0.5, 0, 1) * clamp((5.6 - MG.t2) / 0.8, 0, 1);
     if (k > 0.03) {
       ctx.globalAlpha = k;
-      const isDrive = cfg.theme === 'drive';
+      const isDrive = isRideTheme(cfg.theme);   /* (۱۹٫۰) هر سه تم سواره */
       const hw = isDrive ? 500 : 470, hx = (W - hw) / 2, hy = by + 26;
       ctx.fillStyle = 'rgba(4,7,18,0.94)';
       rr(hx, hy, hw, 34, 17); ctx.fill();

@@ -43,6 +43,7 @@ const VOICE = {
       r: { p: 0.88, r: 1.05, f: 208, w: 'square',    g: 1.1 },  // رادیو — فلزی
       b: { p: 0.45, r: 0.78, f: 131, w: 'sawtooth',  g: 1.2 },  // نگهبان — بم و غرم‌ود
       d: { p: 1.18, r: 1.06, f: 294, w: 'triangle', g: 1.0 },  // دستفروش
+      m: { p: 1.02, r: 0.96, f: 300, w: 'sine',      g: 1.05 }, // (۱۹٫۰) دکتر مریم — آرام و زنانه
     }[who] || { p: 1, r: 1, f: 320, w: 'triangle', g: 1 };
   },
 
@@ -515,6 +516,7 @@ const DLG_WHO = {
   r: { name: '📻 رادیو',    color: '#a8e4a0' },
   b: { name: 'نگهبان',      color: '#c44dff' },
   d: { name: 'دستفروش',     color: '#d8a3ff' },
+  m: { name: 'دکتر مریم',    color: '#7be3c8' },   /* (۱۹٫۰) پناهگاه */
 };
 
 const DLG = {
@@ -694,6 +696,22 @@ function drawPortrait(cv, who, talking, t) {
     c.fillStyle = '#ffe9a0'; circle2(c, 16, 10, 3.4);
     c.strokeStyle = '#5a4a2a'; c.lineWidth = 1.4;
     c.beginPath(); c.moveTo(16, 2); c.lineTo(16, 4); c.stroke();
+  } else if (who === 'm') {                             // (۱۹٫۰) دکتر مریم: روسری فیروزه‌ای + گوشی پزشکی
+    c.fillStyle = '#cfd6e4'; rr2(c, -17, -6, 34, 26, 9); c.fill();     // روپوش
+    c.strokeStyle = '#8a97a8'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(-2, -2); c.quadraticCurveTo(6, 2, 8, 8); c.stroke();   // گوشی پزشکی
+    c.fillStyle = '#39424e'; circle2(c, 8.6, 8, 3);
+    c.fillStyle = F; circle2(c, 0, -2, 14.4);
+    c.fillStyle = '#2e8a7a';                                           // روسری
+    c.beginPath(); c.arc(0, -3, 15, Math.PI * 0.9, Math.PI * 2.1); c.fill();
+    c.beginPath();
+    c.moveTo(-13, -3); c.quadraticCurveTo(-17, 10, -9, 18);
+    c.lineTo(0, 16); c.quadraticCurveTo(-7, 4, -8, -3); c.closePath(); c.fill();
+    c.fillStyle = '#2e8a7a'; circle2(c, 0, -13, 3.4);                  // سنجاق روسری
+    eyes(-5.4, 5.4, -3, 3, '#eef6f4');
+    c.strokeStyle = '#2e5a50'; c.lineWidth = 1.4;                      // ابروهای آرام
+    c.beginPath(); c.moveTo(-8, -7); c.lineTo(-3, -7.6); c.moveTo(3, -7.6); c.lineTo(8, -7); c.stroke();
+    mouth(0.3 + bob * 0.3);
   } else {                                              // راوی: کتابِ داستانِ باز
     c.save();
     c.rotate(-0.08);

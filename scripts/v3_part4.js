@@ -13,7 +13,8 @@ function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreen(id) { $(id).classList.add('hidden'); }
 function hideOverlays() {
   ['startScreen', 'howtoScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen',
-   'settingsScreen', 'aboutScreen', 'confirmBox', 'saveCodeScreen']      // (۱۰٫۰ + ۱۳٫۰)
+   'settingsScreen', 'aboutScreen', 'confirmBox', 'saveCodeScreen',
+   'tbcScreen']                                                            // (۱۹٫۰) + «ادامه دارد»
     .forEach(hideScreen);
 }
 
@@ -379,6 +380,7 @@ function frame(now) {
     else if (state.mode === 'transition') updateTransition(dtG);   // (۱۰٫۰) انتقال بین فصل‌ها
     else if (state.mode === 'intro') updateIntro(dtG);             // (۱۰٫۰) کات‌سین افتتاحیه
     else if (state.mode === 'victorycine') updateVictoryCine(dtG); // (۱۰٫۰) صحنه‌ی پیروزی
+    else if (state.mode === 'sheltercine') updateShelterCine(dtG);  // (۱۹٫۰) کات‌سین پناهگاه
     else if (state.mode === 'gameover' || state.mode === 'victory') updateFx(dtG);
     else if (state.mode === 'start') updateMenuScene(dtG);
     /* حالت paused: هیچ آپدیتی نمی‌شود (انجماد کامل) */

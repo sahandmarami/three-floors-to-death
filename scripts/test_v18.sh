@@ -71,7 +71,7 @@ chk "t1n1 قدیمی حذف شد (از قبل رفته بود)" "$(ev 'TR_DLGS[1
 chk "aw5 تازه (می‌رم پایین)" "$(ev 'GAME.v17.ARSHAN_BARKS.aw5.text.indexOf("می‌رم پایین") >= 0')" "true"
 chk "کلیپ t1n1 (~۶٫۱ث)" "$(ev 'Math.abs(GAME.v13.VOICES.t1n1.d - 6.14) < 1.2')" "true"
 chk "کلیپ aw5 (~۴٫۸ث)" "$(ev 'Math.abs(GAME.v13.VOICES.aw5.d - 4.78) < 1.2')" "true"
-chk "۴۵ کلیپ صوتی کامل" "$(ev 'GAME.v13.clipCount')" "45"
+chk "۶۳ کلیپ صوتی کامل (۱۹٫۰)" "$(ev 'GAME.v13.clipCount')" "63"
 
 # (۱۸٫۰) نگاشت دقیق بوم → صفحه (بازی در ویوپورت اسکیل می‌شود)
 getrect() { agent-browser eval "(()=>{const r=document.getElementById('game').getBoundingClientRect();return [r.left,r.top,r.width,r.height].map(x=>Math.round(x*100)/100).join('|')})()" | tr -d '"'; }
@@ -221,25 +221,22 @@ agent-browser eval "GAME.skipToWave(10); GAME.startNight()" >/dev/null
 sleep 4
 agent-browser eval "GAME.endWave()" >/dev/null
 sleep 1.5
-chk "پایان موج ۱۰ (آخر فصل ۲) → انتقال تونل" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/2"
+chk "پایان موج ۱۰ (آخر فصل ۲) → انتقال قایق" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/2"
 agent-browser eval "GAME.v10.trGoto(7.0); GAME.v10.trResume()" >/dev/null
 sleep 0.6
-chk "تونل: فاز ۲ + عمق موانع" "$(ev "TR.phase + '/' + (MG.obs.length > 0 && MG.obs.every(o => o.dp >= 0.6 && o.dp <= 1))")" "2/true"
-agent-browser eval "mgJump()" >/dev/null
-sleep 0.25
-chk "تونل: پرش (رگرسیون)" "$(ev 'MG.pl.y < -20')" "true"
-agent-browser screenshot $S/05_tunnel.png >/dev/null
+chk "قایق: فاز ۲ + تم رودخانه (۱۹٫۰)" "$(ev "TR.phase + '/' + DRV.theme")" "2/river"
+agent-browser screenshot $S/05_boat.png >/dev/null
 agent-browser eval "GAME.v10.skipTransition()" >/dev/null
 sleep 1
 agent-browser eval "GAME.skipToWave(18); GAME.startNight()" >/dev/null
 sleep 4
 agent-browser eval "GAME.endWave()" >/dev/null
 sleep 1.5
-chk "پایان موج ۱۸ (آخر فصل ۳) → انتقال زیپ‌لاین" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/3"
+chk "پایان موج ۱۸ (آخر فصل ۳) → انتقال اسنوموبیل" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/3"
 agent-browser eval "GAME.v10.trGoto(7.2); GAME.v10.trResume()" >/dev/null
 sleep 0.6
-chk "زیپ‌لاین: فاز ۲ + عمق" "$(ev "TR.phase + '/' + (MG.obs.length > 0 && MG.obs.every(o => o.dp >= 0.6 && o.dp <= 1))")" "2/true"
-agent-browser screenshot $S/06_zipline.png >/dev/null
+chk "اسنوموبیل: فاز ۲ + تم برفی (۱۹٫۰)" "$(ev "TR.phase + '/' + DRV.theme")" "2/snow"
+agent-browser screenshot $S/06_snow.png >/dev/null
 agent-browser eval "GAME.v10.skipTransition()" >/dev/null
 sleep 1
 chk "بعد از زیپ‌لاین → فصل ۴" "$(ev 'GAME.state.chapter')" "4"
