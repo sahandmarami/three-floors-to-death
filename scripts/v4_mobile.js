@@ -44,32 +44,52 @@ if (window.visualViewport) {
 window.addEventListener('load', fitWrap);
 fitWrap();
 
-/* ---------------------- ۱۱-۱) کیفیت خودکار ---------------------- */
+/* ---------------------- ۱۱-۱) کیفیت خودکار — (۱۸٫۱) فرماندار سه‌پله‌ای ----------------------
+   قبلاً فقط «شهاب/کرم شب‌تاب» خاموش می‌شد و فقط در حالت playing سنجش می‌شد.
+   حالا سنجش در «همه‌ی حالت‌ها» از خودِ حلقه‌ی اصلی (PERF.tick در v3_part4)
+   انجام می‌شود و سه پله دارد:
+   • پله ۰: کیفیت کامل (DPR اولیه + همه‌ی افکت‌ها)
+   • پله ۱: DPR→1 (نیم‌ششدن پیکسل‌های GPU) + حذف افکت‌های زینتی (perf-low)
+   • پله ۲: همه‌ی بالا + لکه‌های خون/لکه‌های تاریکی/ابرها نصف (perf-vlow)
+   افت پایدار ۲ثانیه‌ای → پله پایین‌تر؛ بازیابی پایدار ۱۰ثانیه‌ای → پله
+   بالاتر (با قفل ۸ثانیه‌ای بعد از هر ارتقا تا نوسان نکند) */
 const PERF = {
-  low: false, fps: 60, _acc: 0, _n: 0, _lowT: 0,
-  update(dt) {
-    if (dt <= 0) return;
+  tier: 0, fps: 60, _acc: 0, _n: 0, _badT: 0, _goodT: 0, _lockT: 3,
+  get low() { return this.tier > 0; },          // سازگاری با گیت‌های قدیمی (۱۱٫۰)
+  update(dt) { this.tick(dt); },                // سازگاری با UPDATE_HOOKS قدیمی
+  tick(dt) {
+    if (dt <= 0 || dt > 0.25) return;           // تب مخفی/پرش زمانی → نادیده
     this._acc += dt; this._n++;
-    if (this._acc >= 0.5) {
-      this.fps = this._n / this._acc;
-      this._acc = 0; this._n = 0;
-      if (this.fps < 42) {
-        this._lowT += 0.5;
-        if (!this.low && this._lowT >= 3) {
-          this.low = true;
-          /* یک‌بار پیکربندی سبک روشن شود */
-          document.body.classList.add('perf-low');
+    if (this._acc < 0.5) return;
+    this.fps = this._n / this._acc;
+    this._acc = 0; this._n = 0;
+    if (this._lockT > 0) { this._lockT -= 0.5; return; }
+    const th = this.tier === 0 ? 44 : (this.tier === 1 ? 32 : 0);
+    if (this.fps < th && th > 0) {
+      this._badT += 0.5;
+      if (this._badT >= 2) { this._badT = 0; this.setTier(this.tier + 1); }
+    } else {
+      this._badT = 0;
+      if (this.fps > 57 && this.tier > 0) {
+        this._goodT += 0.5;
+        if (this._goodT >= 10) {
+          this._goodT = 0;
+          this.setTier(this.tier - 1);
+          this._lockT = 8;                      // بعد از ارتقا، مدتی قفل
         }
-      } else this._lowT = Math.max(0, this._lowT - 0.5);
+      } else this._goodT = 0;
     }
+  },
+  setTier(t) {
+    t = Math.max(0, Math.min(2, t));
+    if (t === this.tier) return;
+    this.tier = t;
+    try { setDPR(t >= 1 ? 1 : DPR0); } catch (e) {}
+    document.body.classList.toggle('perf-low', t >= 1);
+    document.body.classList.toggle('perf-vlow', t >= 2);
   },
 };
 UPDATE_HOOKS.push(dt => PERF.update(dt));
-
-/* لایه‌ی سبک: کم‌کردن ذرات از راه دور */
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.body.classList.contains('perf-low')) return;
-});
 
 /* ---------------------- ۱۱-۲) کلاس لمس + ورودی‌های لمسی ---------------------- */
 /* (۱۴٫۰) راهنمای چرخش برای همه (نه فقط لمس): پنجره/گوشیِ عمودی → راهنمای

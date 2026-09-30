@@ -457,12 +457,27 @@ let fireTimer = 0;                         // کول‌داون شلیک
 let announceTimer = 0;                     // مدت نمایش اعلان موقت (مثل «موج ۲»)
 let shootStar = null, shootStarT = rand(3, 7);   // شهابِ گاه‌به‌گاه آسمان
 
-/* قاب و بوم */
+/* قاب و بوم — (۱۸٫۱) ctx/DPR دیگر let هستند تا لایه‌های پخته‌شده بتوانند
+   بومِ مقصد را موقتاً عوض کنند و فرماندار کیفیت بتواند DPR را در اجرا کم کند */
 const canvas = $('game');
-const ctx = canvas.getContext('2d');
-const DPR = Math.min(window.devicePixelRatio || 1,
+let ctx = canvas.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1,
   (('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches) ? 1.5 : 2); // (۱۱٫۰) موبایل: سقف ۱٫۵ برای سرعت
-canvas.width = W * DPR;
+const DPR0 = DPR;                              // (۱۸٫۱) مقدار اولیه — برای بازگشت فرماندار کیفیت
+function setDPR(v) {                           // (۱۸٫۱) تغییر رزولوشن بوم در اجرا (کاهش بار GPU)
+  DPR = Math.min(Math.max(0.75, v), 2);
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
+  /* کش‌ها باید دوباره پخته شوند — با try/catch چون در زمانِ تعریفِ این تابع
+     هنوز در TDZ هستند (const های v3_part3 بعداً تعریف می‌شوند) */
+  try { if (BG) BG.invalidate(); } catch (e) {}
+  try { if (TOWER_BAKE) TOWER_BAKE.invalidate(); } catch (e) {}
+  try { if (OVSPR) OVSPR.invalidate(); } catch (e) {}
+  try { CLOUDSPR.invalidate(); } catch (e) {}
+  try { WINSPR.c = null; } catch (e) {}
+}
+canvas.width = W * DPR;                        // اندازه‌گذاری اولیه (بدون فراخوانی setDPR — TDZ)
 canvas.height = H * DPR;
 try { ctx.direction = 'rtl'; } catch (e) { /* مرورگرهای قدیمی */ }
 

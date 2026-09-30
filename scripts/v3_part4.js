@@ -360,6 +360,8 @@ function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05); // سقف dt برای جلوگیری از پرش فیزیک
   last = now;
   animTime += dt;                                // زمان نمایشی همیشه جلو می‌رود
+  /* (۱۸٫۱) فرماندار کیفیت در همه‌ی حالت‌ها می‌سنجد (قبلاً فقط playing) */
+  try { if (typeof PERF !== 'undefined') PERF.tick(dt); } catch (e) {}
 
   /* (۱۲٫۰) حلقه‌ی ضدّهنگ: هر خطای لحظه‌ای (مثلاً وسط رگبار شلیک)
      دیگر کل بازی را فریز نمی‌کند — فریم رد می‌شود و بازی ادامه می‌یابد */
@@ -440,6 +442,7 @@ init();
 window.GAME = {
   state, startGame, startWave, spawnZombie, damageTower, selectWeapon, WEAPONS, ZTYPES, WAVES,
   TURRETS, MAX_TURRETS,
+  perf: (typeof PERF !== 'undefined') ? PERF : null,   /* (۱۸٫۱) فرماندار کیفیت — این فایل آخر می‌آید پس PERF حاضر است */
   endWave: waveComplete,             /* شبیه‌سازی پایان موج → صبح (۵٫۰) */
   startNight,                        /* شبیه‌سازی کلیک «شب شود» (۵٫۰) */
   setBuildPanel,                     /* جمع/باز کردن پنل ساخت‌وساز (۶٫۰) */
@@ -518,7 +521,7 @@ window.GAME = {
     say(text, who) { return VOICE.speak(String(text), who || 'n'); },
     saveAndExit, exitToMenu,
     isTouch: (typeof IS_TOUCH !== 'undefined' ? IS_TOUCH : false),
-    setPerfLow(v) { if (typeof PERF !== 'undefined') { PERF.low = !!v; document.body.classList.toggle('perf-low', !!v); } },
+    setPerfLow(v) { if (typeof PERF !== 'undefined' && PERF.setTier) { PERF.setTier(v ? 2 : 0); } else { document.body.classList.toggle('perf-low', !!v); } },
   },
   /* ---- (۱۲٫۰) رابط تست کات‌سین باخت + تب‌های پنل ---- */
   v12: {

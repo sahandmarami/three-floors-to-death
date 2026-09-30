@@ -578,7 +578,11 @@ const Dark = {
     c.fillStyle = 'rgba(4,8,18,' + base.toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
     const ps = Math.min(1.3, lv / 0.5) * (heavy ? 1.45 : 1);
-    for (const b of this._field()) {
+    /* (۱۸٫۱) پله‌ی کیفیت ۲: فقط ۲ لکه از ۴ لکه — نصف بار کشیدن */
+    const field = this._field();
+    const nb = (typeof PERF !== 'undefined' && PERF.tier >= 2) ? Math.min(2, field.length) : field.length;
+    for (let bi = 0; bi < nb; bi++) {
+      const b = field[bi];
       const w = 512 * b.sc, h = 512 * b.sc;
       c.globalAlpha = Math.min(0.52, b.a * ps);
       c.drawImage(this._cloud(), b.x - w / 2, b.y - h / 2, w, h);
@@ -607,6 +611,30 @@ const Dark = {
 };
 
 /* چشم‌های زامبی‌ها روی تاریکی (وقتی هیچ نوری نیست، بازهم دیده می‌شوند) */
+/* (۱۸٫۱) هاله‌ی چشم در تاریکی: اسپرایت گرادیانیِ پیش‌پخته — قبلاً shadowBlur
+   برای هر چشم ست می‌شد (۳۰ blur در هر فریم = گرون‌ترین عملیات canvas؛
+   عامل اصلی هنگِ شب‌های فصل ۲+). اکنون فقط drawImage با globalAlpha */
+const EYE_GLOW = {
+  red: null, purple: null,
+  _mk(col) {
+    const R = 8, SS = 2;
+    const cv = document.createElement('canvas');
+    cv.width = R * 2 * SS; cv.height = R * 2 * SS;
+    const g = cv.getContext('2d');
+    const gr = g.createRadialGradient(R * SS, R * SS, 0.5 * SS, R * SS, R * SS, R * SS);
+    gr.addColorStop(0, 'rgba(' + col + ',0.95)');
+    gr.addColorStop(0.35, 'rgba(' + col + ',0.55)');
+    gr.addColorStop(1, 'rgba(' + col + ',0)');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, R * 2 * SS, R * 2 * SS);
+    return cv;
+  },
+  get(kind) {
+    if (kind === 'boss') { if (!this.purple) this.purple = this._mk('196,77,223'); return this.purple; }
+    if (!this.red) this.red = this._mk('255,75,62');
+    return this.red;
+  },
+};
 function drawDarkEyes() {
   if (Dark.level < 0.55 || state.mode !== 'playing') return;
   const a = clamp((Dark.level - 0.55) / 0.45, 0, 1);
@@ -616,11 +644,10 @@ function drawDarkEyes() {
     if (z.dead) continue;
     const s = (z.radius / 15) * (z.depth || 1);
     const ex = z.x + z.dir * 4 * s, ey = z.y - 37 * s;
-    ctx.shadowColor = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
-    ctx.shadowBlur = 7 * s;
-    ctx.fillStyle = z.type === 'boss' ? '#c44dff' : '#ff4b3e';
-    circle(ex, ey, 1.8 * s);
-    circle(ex + z.dir * 3.4 * s, ey - 0.6 * s, 1.8 * s);
+    const spr = EYE_GLOW.get(z.type);
+    const w = 16 * s;
+    ctx.drawImage(spr, ex - w / 2, ey - w / 2, w, w);
+    ctx.drawImage(spr, ex + z.dir * 3.4 * s - w / 2, ey - 0.6 * s - w / 2, w, w);
   }
   ctx.restore();
 }

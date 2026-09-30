@@ -389,6 +389,250 @@ function mixHex(a, b, t) {
   return 'rgb(' + r + ',' + g + ',' + bl + ')';
 }
 
+/* ================= (۱۸٫۱) کش‌های رندر — ریشه‌یابی هنگ گوشی =================
+   سنجش با CPU-Throttle نشان داد هر فریم ~۲۰۰۰ عملیات canvas می‌کشید:
+   آسمان/افق/تپه‌ها/چمن/چراغ‌ها هر فریم از نو با ~۱۰۰۰ دستور مسیر رسم
+   می‌شدند و هر زامبی ~۳۵ عملیات + یک گرادیانِ تازه. روی گوشی، همین
+   یعنی ۱۵-۲۵fps. حالا:
+   • BG: چهار لایه‌ی ایستا (آسمان/افق/تپه-زمین/جزئیات زمین) پخته می‌شوند
+     و هر فریم فقط blit — پختِ دوباره فقط وقتی «کلید» عوض شود (۲۰ گام
+     روزشدگی/فصل/پوسته) و نرم‌شده: هر فریم حداکثر یک لایه → طلوع بدون قفل
+   • CLOUDSPR: هر ابر یک اسپرایت پخته (۳ رنگ در روزشدگی فعلی)
+   • ZSPR: بدنه‌ی زامبی (معمولی/سریع/تانک) در ۱۰ قاب گام + ۶ قاب حمله ×
+     دو حالت فلاش — یک drawImage به‌جای ~۳۵ عملیات؛ جزئیات زنده (چشم/برق/
+     خون/اورا) رویش رسم می‌شود؛ پادشاه همیشه مسیر زنده (تکی است)
+   • TOWER_BAKE: پوسته‌ی برج (طبقات/در/بنر/ترک) per پوسته+روزشدگی+ترک؛
+     پنجره‌ها/پرچم/نور در/ارشان زنده می‌مانند؛ کات‌سین = مسیر زنده‌ی کامل
+   • OVSPR: وینیت/تینت تمام‌صفحه با یک‌چهارم رزولوشن پخته + globalAlpha
+   • PERF: فرماندار کیفیت سه‌پله‌ای (v4_mobile) — DPR و افکت‌ها را خودکار
+     کم/زیاد می‌کند تا روی هر دستگاهی روان بماند */
+const BG = {
+  L: [null, null, null, null], key: '', dirty: 0, _q: 0,
+  X0: -32, WW: W + 64,                        // خونریزی لبه برای لرزش/پارالاکس منو
+  Y0: [-24, GROUND_Y - 150, GROUND_Y - 62, GROUND_Y - 64],
+  HH: [GROUND_Y + 4 + 24, 170, H - (GROUND_Y - 62) + 6, 118],
+  BDPR() { return Math.min(DPR, 1.25); },     // پس‌زمینه نرم است — پخت economical
+  invalidate() { this.dirty = 15; this.key = ''; },
+  ensure() {
+    const dQ = Math.round(state.dayness * 20);
+    const key = dQ + '|' + state.chapter + '|' + state.towerVariant;
+    if (key !== this.key) { this.key = key; this.dirty = 15; }
+    if (!this.dirty) return;
+    for (let q = 0; q < 4; q++) {
+      if (this.dirty & (1 << q)) {
+        this.bake(q);
+        this.dirty &= ~(1 << q);
+        return;                                // نرم‌سازی: یک لایه در هر فریم
+      }
+    }
+  },
+  bake(q) {
+    const y0 = this.Y0[q], h = this.HH[q], dp = this.BDPR();
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(this.WW * dp); c.height = Math.ceil(h * dp);
+    const g = c.getContext('2d');
+    g.setTransform(dp, 0, 0, dp, -this.X0 * dp, -y0 * dp);
+    const realD = state.dayness, realT = animTime, main = ctx;
+    state.dayness = Math.round(realD * 20) / 20;   // مقدار گام‌بندی‌شده — یکدستی کلید
+    animTime = 0;                                   // سوسو/تکان در پایه‌ی ثابت پخته می‌شود
+    ctx = g;
+    try {
+      if (q === 0) drawSky();
+      else if (q === 1) drawSkyline();
+      else if (q === 2) drawHills();
+      else { drawPuddles(); drawGrass(); drawLamps(); }
+    } finally { ctx = main; state.dayness = realD; animTime = realT; }
+    this.L[q] = c;
+  },
+  blit(q, dx) {
+    const c = this.L[q];
+    if (!c) return;
+    ctx.drawImage(c, this.X0 + (dx || 0), this.Y0[q], this.WW, this.HH[q]);
+  },
+};
+
+/* ابرها: هر ابر یک‌بار به‌صورت اسپرایت پخته می‌شود (سه لکه با سه رنگ
+   روزشدگی فعلی) و بعد فقط با دریفت blit — به‌جای ~۹۰ عملیات مسیر */
+const CLOUDSPR = {
+  spr: null, key: '',
+  invalidate() { this.spr = null; this.key = ''; },
+  ensure() {
+    const dQ = Math.round(state.dayness * 20);
+    const key = dQ + '|' + state.chapter;
+    if (key === this.key && this.spr) return;
+    this.key = key;
+    const d = dQ / 20;
+    const dark = 'rgba(' + Math.round(9 + 185 * d) + ',' + Math.round(14 + 180 * d) + ',' + Math.round(34 + 170 * d) + ',0.82)';
+    const main = 'rgba(' + Math.round(15 + 225 * d) + ',' + Math.round(22 + 220 * d) + ',' + Math.round(44 + 200 * d) + ',0.85)';
+    const hi = 'rgba(' + Math.round(46 + 205 * d) + ',' + Math.round(64 + 190 * d) + ',' + Math.round(94 + 160 * d) + ',0.5)';
+    const SS = 2, out = [];
+    const mainCtx = ctx;
+    try {
+      for (const c of CLOUDS) {
+        const w = 126 * c.s + 8, h = 36 * c.s + 8;
+        const cv = document.createElement('canvas');
+        cv.width = Math.ceil(w * SS); cv.height = Math.ceil(h * SS);
+        const g = cv.getContext('2d');
+        g.setTransform(SS, 0, 0, SS, (62 * c.s + 4) * SS, (18 * c.s + 4) * SS);
+        ctx = g;
+        try {
+          cloudBlob(0, 3 * c.s, c.s, dark);          // سایه‌ی زیرین
+          cloudBlob(0, 0, c.s, main);                // بدنه
+          cloudBlob(-8 * c.s, -4 * c.s, c.s * 0.6, hi);  // هایلایت
+        } finally { /* ctx پایین برمی‌گردد */ }
+        out.push({ c: cv, w, h, ox: 62 * c.s + 4, oy: 18 * c.s + 4 });
+      }
+    } finally { ctx = mainCtx; }
+    this.spr = out;
+  },
+};
+
+/* اسپرایت‌های زامبی — طبق توضیح سربرگ (۱۸٫۱) */
+const ZSPR = {
+  SS: 2.4, X0: -14, Y0: -50, X1: 19, Y1: 3,
+  WF: 10, AF: 6,
+  cache: Object.create(null),
+  bucket(ph, n) { const t = ((ph / Math.PI) % 2 + 2) % 2; return Math.floor(t * n) % n; },
+  frame(z, flash) {
+    const mode = z.attacking ? 'a' : 'w';
+    const n = mode === 'a' ? this.AF : this.WF;
+    const b = this.bucket(mode === 'a' ? z.attackAnim : z.walkPhase, n);
+    const key = z.type + (flash ? 1 : 0) + mode + b;
+    let c = this.cache[key];
+    if (!c) { c = this.bake(z.type, flash, mode, b); this.cache[key] = c; }
+    return c;
+  },
+  bake(type, flash, mode, b) {
+    const n = mode === 'a' ? this.AF : this.WF;
+    const ph = (b + 0.5) / n * Math.PI * 2;
+    const mock = { type, attacking: mode === 'a', walkPhase: ph, attackAnim: ph, dead: false };
+    const w = Math.ceil((this.X1 - this.X0) * this.SS), h = Math.ceil((this.Y1 - this.Y0) * this.SS);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.setTransform(this.SS, 0, 0, this.SS, -this.X0 * this.SS, -this.Y0 * this.SS);
+    const main = ctx;
+    ctx = g;
+    try { drawZombieBody(mock, flash); } finally { ctx = main; }
+    return c;
+  },
+};
+
+/* پوسته‌ی برج — پخت per (پوسته | گام روزشدگی | سطح ترک) */
+const TOWER_BAKE = {
+  body: null, batt: null, key: '', dirty: false,
+  TX: TOWER.x - 96, TY: TOWER_TOP_Y - 46, TW: 192, TH: GROUND_Y + 14 - (TOWER_TOP_Y - 46),
+  BX: TOWER.x - 72, BY: TOWER_TOP_Y - 10, BW: 144, BH: 13,
+  invalidate() { this.dirty = true; this.key = ''; },
+  ensure() {
+    const dQ = Math.round(state.dayness * 20);
+    const ratio = state.tower.hp / state.tower.maxHp;
+    const cLv = ratio < 0.28 ? 2 : (ratio < 0.55 ? 1 : 0);
+    const key = state.towerVariant + '|' + dQ + '|' + cLv;
+    if (key === this.key && this.body) return;
+    this.key = key;
+    const realD = state.dayness, realT = animTime, main = ctx;
+    state.dayness = dQ / 20; animTime = 0;
+    try {
+      let c = document.createElement('canvas');
+      c.width = Math.ceil(this.TW * DPR); c.height = Math.ceil(this.TH * DPR);
+      let g = c.getContext('2d');
+      g.setTransform(DPR, 0, 0, DPR, -this.TX * DPR, -this.TY * DPR);
+      ctx = g;
+      try { drawTowerShell(false); } finally { ctx = main; }
+      this.body = c;
+      c = document.createElement('canvas');
+      c.width = Math.ceil(this.BW * DPR); c.height = Math.ceil(this.BH * DPR);
+      g = c.getContext('2d');
+      g.setTransform(DPR, 0, 0, DPR, -this.BX * DPR, -this.BY * DPR);
+      ctx = g;
+      try { drawTowerShell(true); } finally { ctx = main; }
+      this.batt = c;
+    } finally {
+      state.dayness = realD; animTime = realT;
+    }
+  },
+};
+
+/* پنجره‌ی قوس‌دار: یک اسپرایت در روشنایی کامل + آلفای پنجره با globalAlpha */
+const WINSPR = {
+  c: null,
+  ensure() {
+    if (this.c) return;
+    const w = 17, h = 23, SS = 3;
+    const cv = document.createElement('canvas');
+    cv.width = w * SS; cv.height = h * SS;
+    const g = cv.getContext('2d');
+    g.setTransform(SS, 0, 0, SS, 8.5 * SS, 11.5 * SS);
+    const main = ctx;
+    ctx = g;
+    try { archWin(0, 0, 13, 19, 1); } finally { ctx = main; }
+    this.c = cv;
+  },
+};
+
+/* نور گرمِ درِ برج: اسپرایت نرم — آلفا با globalAlpha (شب) */
+const DRGLOW = {
+  c: null,
+  ensure() {
+    if (this.c) return;
+    const R = 52, SS = 2;
+    const cv = document.createElement('canvas');
+    cv.width = R * 2 * SS; cv.height = R * 2 * SS;
+    const g = cv.getContext('2d');
+    const gr = g.createRadialGradient(R * SS, R * SS, 4 * SS, R * SS, R * SS, R * SS);
+    gr.addColorStop(0, 'rgba(255,190,90,0.20)');
+    gr.addColorStop(1, 'rgba(255,190,90,0)');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, R * 2 * SS, R * 2 * SS);
+    this.c = cv;
+  },
+};
+
+/* روکش‌های تمام‌صفحه (وینیت گریدینگ/هشدار جون/انجماد): گرادیان نرم است —
+   با یک‌چهارم رزولوشن پخته می‌شود و بزرگ‌نمایی‌اش نامرئی؛ شدت = globalAlpha */
+const OVSPR = {
+  S: 4, v: Object.create(null),
+  invalidate() { this.v = Object.create(null); },
+  mk(fill) {
+    const w = Math.ceil(W / this.S), h = Math.ceil(H / this.S);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.setTransform(1 / this.S, 0, 0, 1 / this.S, 0, 0);
+    fill(g);
+    return c;
+  },
+  get(name) {
+    if (this.v[name]) return this.v[name];
+    if (name === 'grade') {
+      const ember = curCh().theme.grade === 'ember';
+      this.v[name] = this.mk(g => {
+        const vg = g.createRadialGradient(W / 2, H * 0.46, H * 0.36, W / 2, H * 0.55, H * 0.88);
+        vg.addColorStop(0, ember ? 'rgba(20,4,4,0)' : 'rgba(2,4,14,0)');
+        vg.addColorStop(1, ember ? 'rgba(20,4,4,1)' : 'rgba(2,4,14,1)');
+        g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      });
+    } else if (name === 'blood') {
+      this.v[name] = this.mk(g => {
+        const vg = g.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.78);
+        vg.addColorStop(0, 'rgba(180,20,20,0)');
+        vg.addColorStop(1, 'rgba(180,20,20,1)');
+        g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      });
+    } else if (name === 'freeze') {
+      this.v[name] = this.mk(g => {
+        const vg = g.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+        vg.addColorStop(0, 'rgba(140,200,255,0)');
+        vg.addColorStop(1, 'rgba(140,200,255,1)');
+        g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      });
+    }
+    return this.v[name];
+  },
+};
+
+/* استخر موجودیت‌های رندر (۱۸٫۱) — مرتب‌سازی عمق بدون آبجکتِ جدید در هر فریم */
+const _ENTS = [];
+
 /* آسمان شب: گرادیان آبی تیره + ستاره‌های چشمک‌زن + ماه با هاله و دهانه‌ها
    (۵٫۰: با dayness به آسمان روشن روز و خورشید گذار می‌کند)
    (۶٫۰: گرادیان چهارلایه + ستاره‌های درشتِ چهارپر + ماه/خورشید پرجزئیات)
@@ -499,17 +743,16 @@ function drawSky() {
 /* ابرهای شناور (۵٫۰: شب تیره، روز سفید — با حرکت آرام پیوسته از راست به چپ)
    (۶٫۰: سه‌لایه — سایه‌ی زیرین، بدنه و هایلایت بالایی — برای حجم و نرمی) */
 function drawClouds() {
-  const d = state.dayness;
-  const dark = 'rgba(' + Math.round(9 + 185 * d) + ',' + Math.round(14 + 180 * d) + ',' + Math.round(34 + 170 * d) + ',0.82)';
-  const main = 'rgba(' + Math.round(15 + 225 * d) + ',' + Math.round(22 + 220 * d) + ',' + Math.round(44 + 200 * d) + ',0.85)';
-  const hi = 'rgba(' + Math.round(46 + 205 * d) + ',' + Math.round(64 + 190 * d) + ',' + Math.round(94 + 160 * d) + ',0.5)';
-  for (const c of CLOUDS) {
+  /* (۱۸٫۱) هر ابر یک اسپرایت پخته است — فقط دریفت و blit */
+  CLOUDSPR.ensure();
+  const sprs = CLOUDSPR.spr;
+  if (!sprs) return;
+  for (let i = 0; i < CLOUDS.length; i++) {
+    const c = CLOUDS[i], sp = sprs[i];
+    if (!sp) continue;
     const m = W + 300;
     const x = (((c.x - animTime * c.v) % m) + m) % m - 150;
-    const y = c.y, s = c.s;
-    cloudBlob(x, y + 3 * s, s, dark);                  // سایه‌ی زیرین
-    cloudBlob(x, y, s, main);                          // بدنه
-    cloudBlob(x - 8 * s, y - 4 * s, s * 0.6, hi);      // هایلایت بالایی
+    ctx.drawImage(sp.c, x - sp.ox, c.y - sp.oy, sp.w, sp.h);
   }
 }
 function cloudBlob(x, y, s, col) {
@@ -701,15 +944,35 @@ function drawGrass() {
   ctx.stroke();
 }
 
-/* لکه‌های خون روی زمین (۳٫۰) */
+/* لکه‌های خون روی زمین (۳٫۰) — (۱۸٫۱) اسپرایت پخته‌ی دو لایه: هر لکه
+   فقط یک drawImage با globalAlpha (به‌جای ۶ عملیات + ۴ رشته‌ی رنگ در هر فریم) */
+const DECAL_SPR = {
+  c: null, R: 32,
+  ensure() {
+    if (this.c) return;
+    const SS = 2, w = this.R * 2, h = Math.ceil(this.R * 0.64);
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil(w * SS); cv.height = Math.ceil(h * SS);
+    const g = cv.getContext('2d');
+    g.setTransform(SS, 0, 0, SS, this.R * SS, this.R * 0.32 * SS);
+    g.fillStyle = 'rgba(122,26,18,0.55)';
+    g.beginPath(); g.ellipse(0, 0, this.R, this.R * 0.32, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(158,40,28,0.35)';
+    g.beginPath(); g.ellipse(0, 0, this.R * 0.55, this.R * 0.18, 0, 0, Math.PI * 2); g.fill();
+    this.c = cv; this.w = w; this.h = h;
+  },
+};
 function drawDecals() {
+  /* (۱۸٫۱) در پله‌ی کیفیت ۲ فقط ۲۴ لکه‌ی آخر رسم می‌شود */
+  const cap = (typeof PERF !== 'undefined' && PERF.tier >= 2) ? 24 : 45;
+  DECAL_SPR.ensure();
+  let n = 0;
   for (const d of state.decals) {
-    /* دو لایه: هسته‌ی پررنگ + هاله‌ی گسترده‌تر برای دیده‌شدن روی خاک تیره */
-    ctx.fillStyle = 'rgba(122,26,18,' + (0.55 * d.a).toFixed(2) + ')';
-    ctx.beginPath(); ctx.ellipse(d.x, d.y, d.r, d.r * 0.32, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(158,40,28,' + (0.35 * d.a).toFixed(2) + ')';
-    ctx.beginPath(); ctx.ellipse(d.x, d.y, d.r * 0.55, d.r * 0.18, 0, 0, Math.PI * 2); ctx.fill();
+    if (++n > cap) break;
+    ctx.globalAlpha = d.a;
+    ctx.drawImage(DECAL_SPR.c, d.x - d.r, d.y - d.r * 0.32, d.r * 2, d.r * 0.64);
   }
+  ctx.globalAlpha = 1;
 }
 
 /* رعدوبرق: آسمان و زمین لحظه‌ای روشن می‌شوند (۳٫۰) */
@@ -846,6 +1109,7 @@ const ASH_FLAKES = Array.from({ length: 46 }, () => ({
 }));
 function drawAsh() {
   if (!curCh().theme.ash) return;           // (۱۰٫۰) فقط فصل خرابه‌ها
+  if (typeof PERF !== 'undefined' && PERF.tier >= 2) return;   // (۱۸٫۱) پله‌ی سبک
   const d = state.dayness;
   const a0 = 0.2 + 0.18 * (1 - d);
   for (const f of ASH_FLAKES) {
@@ -1067,6 +1331,226 @@ function drawPlacing() {
    کات‌سین) و حین کات‌سین، CS.draw.floors[i] تعیین می‌کند هر طبقه
    چقدر «زنده» است: a=آلفا (فروریختن)، dy=افت، rot=چرخش حین سقوط. */
 function drawTower() {
+  /* (۱۸٫۱) دو مسیر:
+     • عادی: پوسته‌ی پخته (یک blit) + ارشان + کنگره‌های پخته + جزئیات زنده
+       (پنجره‌ها/نور در/پرچم) — به‌جای ~۱۵۰ عملیات برداری و ۳ گرادیان در هر فریم
+     • کات‌سین/باخت (CS.draw فعال): مسیر زنده‌ی کامل با تبدیل طبقه‌ها */
+  if (CS && CS.draw) { drawTowerCS(); return; }
+  TOWER_BAKE.ensure();
+  const b = TOWER_BAKE;
+  if (b.body) ctx.drawImage(b.body, b.TX, b.TY, b.TW, b.TH);
+  /* (۱۸٫۰) ارشان روی بام — بین پوسته و کنگره‌ها (پشتِ سنگر) */
+  if (typeof drawTowerArshan === 'function') drawTowerArshan();
+  if (b.batt) ctx.drawImage(b.batt, b.BX, b.BY, b.BW, b.BH);
+  drawTowerLive();
+}
+
+/* پوسته‌ی برج برای پخت — فقط هندسه‌ی ایستا (بدون نور در/پنجره/پرچم/ارشان) */
+function drawTowerShell(battOnly) {
+  const d = state.dayness;
+  const ratio = state.tower.hp / state.tower.maxHp;
+  const cx = TOWER.x;
+  const widths = [136, 124, 112];
+  const SK = TOWER_SKINS[state.towerVariant] || TOWER_SKINS[0];
+  const floors = SK.floors;
+  const fv = i => (CS && CS.draw ? CS.draw.floors[i] : { a: 1, dy: 0, rot: 0 });
+
+  if (battOnly) {
+    /* --- کنگره‌های بام + لبه‌ی بام --- */
+    const topW = widths[2] / 2;
+    ctx.fillStyle = floors[2].edge;
+    ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 6);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(cx - topW - 5, TOWER_TOP_Y - 6, topW * 2 + 10, 1.5);
+    ctx.fillStyle = mixHex(SK.batt[0], SK.batt[1], d);
+    for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19, TOWER_TOP_Y - 9, 12, 9);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    for (let k = 0; k < 6; k++) ctx.fillRect(cx - topW + 2 + k * 19 + 10, TOWER_TOP_Y - 9, 2, 9);
+    return;
+  }
+
+  /* --- سکوی سنگی پایه (پلینث) --- */
+  ctx.fillStyle = mixHex('#3f362b', '#8c7f6a', d);
+  rr(cx - 82, GROUND_Y - 5, 164, 15, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.09)';
+  ctx.fillRect(cx - 82, GROUND_Y - 5, 164, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fillRect(cx - 82, GROUND_Y + 6, 164, 4);
+
+  /* --- طبقه‌ها از پایین به بالا: گرادیان (مهتاب از چپ) + بافت + لبه --- */
+  for (let i = 0; i < 3; i++) {
+    const f = fv(i);
+    if (f.a <= 0.02) continue;
+    ctx.save();
+    ctx.globalAlpha = f.a;
+    if (f.rot) {
+      const cyc = GROUND_Y - (i + 0.5) * TOWER.floorH + f.dy;
+      ctx.translate(cx, cyc); ctx.rotate(f.rot); ctx.translate(-cx, -cyc);
+    } else if (f.dy) ctx.translate(0, f.dy);
+    const hw = widths[i] / 2;
+    const yT = GROUND_Y - (i + 1) * TOWER.floorH, yB = GROUND_Y - i * TOWER.floorH;
+    const F = floors[i];
+    const g = ctx.createLinearGradient(cx - hw, 0, cx + hw, 0);
+    g.addColorStop(0, F.light);
+    g.addColorStop(0.55, F.base);
+    g.addColorStop(1, F.dark);
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - hw, yT, hw * 2, TOWER.floorH);
+    ctx.strokeStyle = F.edge; ctx.lineWidth = 2;
+    ctx.strokeRect(cx - hw + 1, yT + 1, hw * 2 - 2, TOWER.floorH - 2);
+
+    /* بافت بلوک‌های سنگی/آجری (۶٫۰) */
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
+    const rows = i === 1 ? 6 : 5;
+    const bw = i === 1 ? 16 : 22;
+    ctx.beginPath();
+    for (let r2 = 0; r2 < rows; r2++) {
+      const y = yT + (r2 + 1) * TOWER.floorH / rows;
+      if (r2 < rows - 1) { ctx.moveTo(cx - hw + 3, y); ctx.lineTo(cx + hw - 3, y); }
+      const off = (r2 % 2) * (bw / 2);
+      for (let x = cx - hw + off + bw; x < cx + hw - 4; x += bw) {
+        ctx.moveTo(x, y - TOWER.floorH / rows + 2); ctx.lineTo(x, y - 1);
+      }
+    }
+    ctx.stroke();
+
+    /* سایه‌ی جداکننده‌ی طبقه‌ها */
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(cx - hw, yB - 4, hw * 2, 4);
+
+    /* لبه‌ی برآمده (کورنیس) بالای طبقه‌های ۱ و ۲ (۶٫۰) */
+    if (i < 2) {
+      ctx.fillStyle = F.edge;
+      ctx.fillRect(cx - hw - 4, yT - 5, hw * 2 + 8, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.13)';
+      ctx.fillRect(cx - hw - 4, yT - 5, hw * 2 + 8, 1.6);
+    }
+    ctx.restore();
+  }
+
+  /* --- درِ قوس‌دار چوبی + قاب سنگی (نور گرمِ آن در drawTowerLive زنده است) --- */
+  const f0 = fv(0);
+  if (f0.a > 0.02) {
+  ctx.save(); ctx.globalAlpha = f0.a; ctx.translate(0, f0.dy);
+  ctx.beginPath();                                     // قاب سنگی در
+  ctx.moveTo(cx - 17, GROUND_Y - 2);
+  ctx.lineTo(cx - 17, GROUND_Y - 24);
+  ctx.arc(cx, GROUND_Y - 24, 17, Math.PI, 0);
+  ctx.lineTo(cx + 17, GROUND_Y - 2);
+  ctx.strokeStyle = mixHex(SK.doorFrame[0], SK.doorFrame[1], d); ctx.lineWidth = 3.5; ctx.stroke();
+  ctx.fillStyle = '#241a12';                           // درِ چوبی تیره
+  ctx.beginPath();
+  ctx.moveTo(cx - 13, GROUND_Y - 3);
+  ctx.lineTo(cx - 13, GROUND_Y - 22);
+  ctx.arc(cx, GROUND_Y - 22, 13, Math.PI, 0);
+  ctx.lineTo(cx + 13, GROUND_Y - 3);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();                                     // تخته‌های چوبی
+  for (const dx of [-6, 0, 6]) {
+    const topY = GROUND_Y - 22 - Math.sqrt(Math.max(0, 169 - dx * dx)) + 1;
+    ctx.moveTo(cx + dx, GROUND_Y - 4); ctx.lineTo(cx + dx, topY);
+  }
+  ctx.stroke();
+  ctx.restore();
+  }
+
+  /* --- بنرِ دیواری طبقه‌ی دوم با نشان طلایی (نوکِ آن در پخت ثابت است) --- */
+  if (fv(1).a > 0.35) {
+    ctx.save(); ctx.globalAlpha = fv(1).a; ctx.translate(0, fv(1).dy);
+    const by = GROUND_Y - 122, tip = 0;
+    ctx.fillStyle = mixHex(SK.banner[0], SK.banner[1], 0.35 + 0.3 * d);
+    ctx.beginPath();
+    ctx.moveTo(cx - 11, by);
+    ctx.lineTo(cx + 11, by);
+    ctx.lineTo(cx + 11, by + 25);
+    ctx.lineTo(cx + tip, by + 33);
+    ctx.lineTo(cx - 11, by + 25);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.fillStyle = '#f7c948'; circle(cx, by + 12, 4.2);
+    ctx.fillStyle = SK.bannerMark; circle(cx, by + 12, 1.8);
+    ctx.fillStyle = mixHex(SK.pole[0], SK.pole[1], d);
+    ctx.fillRect(cx - 12, by - 2, 24, 2.5);            // میله‌ی بنر
+    ctx.restore();
+  }
+
+  /* --- میله‌ی پرچم با گوی (پرچمِ موج‌دار در drawTowerLive زنده است) --- */
+  ctx.fillStyle = mixHex(SK.pole[0], SK.pole[1], d);
+  ctx.fillRect(cx - 1.5, TOWER_TOP_Y - 38, 3, 38);
+  ctx.fillStyle = '#f7c948'; circle(cx, TOWER_TOP_Y - 39, 2.2);       // گویِ نوک میله
+
+  /* --- ترک‌ها وقتی برج آسیب دیده است --- */
+  ctx.strokeStyle = 'rgba(20,14,8,0.8)'; ctx.lineWidth = 2;
+  if (ratio < 0.55) {
+    ctx.beginPath();
+    ctx.moveTo(cx - 40, GROUND_Y - 14); ctx.lineTo(cx - 33, GROUND_Y - 30); ctx.lineTo(cx - 41, GROUND_Y - 44);
+    ctx.moveTo(cx + 44, GROUND_Y - 80); ctx.lineTo(cx + 37, GROUND_Y - 96);
+    ctx.stroke();
+  }
+  if (ratio < 0.28) {
+    ctx.beginPath();
+    ctx.moveTo(cx + 20, GROUND_Y - 100); ctx.lineTo(cx + 13, GROUND_Y - 118); ctx.lineTo(cx + 21, GROUND_Y - 132);
+    ctx.moveTo(cx - 14, GROUND_Y - 150); ctx.lineTo(cx - 7, GROUND_Y - 166);
+    ctx.stroke();
+    /* آوار کنار پایه (۶٫۰) */
+    ctx.fillStyle = mixHex('#5d4c39', '#948268', d);
+    ctx.fillRect(cx - 74, GROUND_Y - 8, 10, 6); ctx.fillRect(cx - 68, GROUND_Y - 4, 7, 4);
+    ctx.fillRect(cx + 62, GROUND_Y - 7, 11, 6); ctx.fillRect(cx + 70, GROUND_Y - 3, 6, 4);
+  }
+}
+
+/* جزئیات زنده‌ی برج روی پوسته‌ی پخته: نور گرم در + پنجره‌های سوسوزن + پرچم */
+function drawTowerLive() {
+  const d = state.dayness;
+  const ratio = state.tower.hp / state.tower.maxHp;
+  const cx = TOWER.x;
+  const SK = TOWER_SKINS[state.towerVariant] || TOWER_SKINS[0];
+
+  /* نور گرم از در، روی زمین (فقط شب — ۶٫۰) — اسپرایت پخته + globalAlpha */
+  if (d < 0.6) {
+    DRGLOW.ensure();
+    const doorGlow = 0.5 + 0.2 * Math.sin(animTime * 2.1);
+    ctx.globalAlpha = (1 - d) * doorGlow;
+    ctx.drawImage(DRGLOW.c, cx - 52, GROUND_Y - 58, 104, 104);
+    ctx.globalAlpha = 1;
+  }
+
+  /* پنجره‌های قوس‌دار نورانی — سوسوی مستقل + چشمکِ برق‌گرفتگی */
+  WINSPR.ensure();
+  const wins = [
+    { x: -36, y: GROUND_Y - 46 }, { x: 36, y: GROUND_Y - 46 },
+    { x: -38, y: GROUND_Y - 108 }, { x: 38, y: GROUND_Y - 108 },
+    { x: -28, y: GROUND_Y - 176 }, { x: 28, y: GROUND_Y - 176 },
+  ];
+  for (let i = 0; i < wins.length; i++) {
+    const w2 = wins[i];
+    let a = 0.66 + 0.25 * Math.sin(animTime * 2.1 + i * 1.9);
+    if (ratio < 0.5 && Math.random() < 0.05) a *= 0.2;   // چشمکِ برق‌گرفتگی
+    ctx.globalAlpha = a;
+    ctx.drawImage(WINSPR.c, cx + w2.x - 8.5, w2.y - 11.5, 17, 23);
+  }
+  ctx.globalAlpha = 1;
+
+  /* پرچم دوبخشی موج‌دار (رنگ پوسته) */
+  const wv = Math.sin(animTime * 4), wv2 = Math.sin(animTime * 4 - 1.3);
+  ctx.fillStyle = SK.flag;
+  ctx.beginPath();
+  ctx.moveTo(cx + 2, TOWER_TOP_Y - 36);
+  ctx.bezierCurveTo(cx + 13 + wv * 2, TOWER_TOP_Y - 34.5,
+                    cx + 21 + wv * 3, TOWER_TOP_Y - 32.5 + wv2,
+                    cx + 27 + wv * 3, TOWER_TOP_Y - 29.5);
+  ctx.lineTo(cx + 27 + wv * 3, TOWER_TOP_Y - 20.5);
+  ctx.bezierCurveTo(cx + 19 + wv * 2, TOWER_TOP_Y - 22.5,
+                    cx + 10, TOWER_TOP_Y - 23.5,
+                    cx + 2, TOWER_TOP_Y - 21);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = SK.flagMark; circle(cx + 15 + wv * 2, TOWER_TOP_Y - 26, 2);  // نشان روی پرچم
+}
+
+/* مسیر زنده‌ی کامل برج — فقط حین کات‌سین فروریختن / سینمایی باخت
+   (تبدیل طبقه‌ها + ارشان همراه طبقه‌ی سوم + ترک‌های داستانی) */
+function drawTowerCS() {
   const d = state.dayness;
   const ratio = state.tower.hp / state.tower.maxHp;
   const cx = TOWER.x;
@@ -1200,16 +1684,17 @@ function drawTower() {
   ctx.stroke();
   /* نور گرم از در، روی زمین (فقط شب — ۶٫۰) */
   if (d < 0.6) {
+    DRGLOW.ensure();
     const doorGlow = 0.5 + 0.2 * Math.sin(animTime * 2.1);
-    const sp = ctx.createRadialGradient(cx, GROUND_Y - 6, 4, cx, GROUND_Y - 6, 52);
-    sp.addColorStop(0, 'rgba(255,190,90,' + (0.20 * (1 - d) * doorGlow).toFixed(2) + ')');
-    sp.addColorStop(1, 'rgba(255,190,90,0)');
-    ctx.fillStyle = sp; circle(cx, GROUND_Y - 6, 52);
+    ctx.globalAlpha = (1 - d) * doorGlow;
+    ctx.drawImage(DRGLOW.c, cx - 52, GROUND_Y - 58, 104, 104);
+    ctx.globalAlpha = 1;
   }
   ctx.restore();                                      // پایان تبدیل در (۷٫۰)
   }
 
   /* --- پنجره‌های قوس‌دار نورانی (۷٫۰: با طبقه‌ی خودشان می‌افتند/محو می‌شوند) --- */
+  WINSPR.ensure();
   const wins = [
     { x: -36, y: GROUND_Y - 46, f: 0 }, { x: 36, y: GROUND_Y - 46, f: 0 },
     { x: -38, y: GROUND_Y - 108, f: 1 }, { x: 38, y: GROUND_Y - 108, f: 1 },
@@ -1221,8 +1706,10 @@ function drawTower() {
     ctx.save(); ctx.globalAlpha = fw.a; ctx.translate(0, fw.dy);
     let a = 0.66 + 0.25 * Math.sin(animTime * 2.1 + i * 1.9);
     if (ratio < 0.5 && Math.random() < 0.05) a *= 0.2;   // چشمکِ برق‌گرفتگی
-    archWin(cx + w2.x, w2.y, 13, 19, a);
+    ctx.globalAlpha = a;
+    ctx.drawImage(WINSPR.c, cx + w2.x - 8.5, w2.y - 11.5, 17, 23);
     ctx.restore();
+    ctx.globalAlpha = 1;
   });
 
   /* --- بنرِ دیواری طبقه‌ی دوم با نشان طلایی (۷٫۰: رنگ پوسته + همراه طبقه) --- */
@@ -1319,9 +1806,6 @@ function drawZombie(z) {
   const T = ZTYPES[z.type];
   const s = (z.radius / 15) * (z.depth || 1);   // اندازه‌ی نوع × عمق ردیف
   const flash = z.hitFlash > 0;
-  const skin = flash ? '#d9f2c6' : T.skin;
-  const shirt = flash ? '#9db4cc' : T.shirt;
-  const pants = flash ? '#5d6a80' : T.pants;
 
   /* سایه روی زمین (زامبی‌های پرتاب‌شده‌ی کات‌سین سایه‌ی جداگانه دارند — ۷٫۰) */
   if (!z.noShadow) {
@@ -1344,6 +1828,53 @@ function drawZombie(z) {
 
   ctx.scale(z.dir * s, s);                 // آینه بر اساس جهت حرکت + مقیاس نوع
 
+  /* (۱۸٫۱) بدنه‌ی پخته‌شده: یک drawImage به‌جای ~۳۵ عملیات برداری + گرادیان
+     پادشاه همیشه زنده رسم می‌شود (تکی است — سربارش دیده نمی‌شود) */
+  if (z.type === 'boss') {
+    drawZombieBody(z, flash);
+  } else {
+    const c = ZSPR.frame(z, flash);
+    ctx.drawImage(c, ZSPR.X0, ZSPR.Y0, ZSPR.X1 - ZSPR.X0, ZSPR.Y1 - ZSPR.Y0);
+  }
+  drawZombieFx(z, flash);                  // جزئیات زنده: برق مهتاب/چشم/خون/اورا
+
+  ctx.restore();
+
+  /* لایه‌ی یخ هنگام انجماد (۳٫۰) */
+  if (!z.dead && state.powerTimers.freeze > 0) {
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = '#a5d8ff';
+    circle(z.x, z.y - 18 * s, 14 * s + 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* لایه‌ی یخِ ملایم‌تر گلوله‌ی برجک یخ‌زن (۴٫۰) */
+  if (!z.dead && z.chill > 0) {
+    ctx.globalAlpha = Math.min(0.30, 0.12 + z.chill * 0.09);
+    ctx.fillStyle = '#a5d8ff';
+    circle(z.x, z.y - 18 * s, 14 * s + 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* نوار جون بالای سر (وقتی آسیب دیده) */
+  if (!z.dead && z.hp < z.maxHp - 0.001) {
+    const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
+    const by = z.y - 50 * s - 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    rr(z.x - w2 / 2, by, w2, 4.5, 2); ctx.fill();
+    ctx.fillStyle = ratio2 > 0.5 ? '#6fce62' : (ratio2 > 0.25 ? '#e7b53a' : '#e04b3a');
+    ctx.fillRect(z.x - w2 / 2 + 0.75, by + 0.75, (w2 - 1.5) * ratio2, 3);
+  }
+}
+
+/* (۱۸٫۱) بدنه‌ی زامبی: پاها تا تاج — هم مسیر زنده‌ی پادشاه، هم تابع پخت ZSPR.
+   فقط هندسه/رنگ می‌خواند (نوع/فلاش/فاز گام یا حمله) → با شیء ساختگی
+   هم برای پخت قابل فراخوانی است */
+function drawZombieBody(z, flash) {
+  const T = ZTYPES[z.type];
+  const skin = flash ? '#d9f2c6' : T.skin;
+  const shirt = flash ? '#9db4cc' : T.shirt;
+  const pants = flash ? '#5d6a80' : T.pants;
   const walk = Math.sin(z.walkPhase);
   const bob = z.attacking ? Math.sin(z.attackAnim) * 1.5 : Math.abs(walk) * 1.2;
 
@@ -1422,12 +1953,6 @@ function drawZombie(z) {
   ctx.fillStyle = skin; circle(3, -36 + bob * 0.5, 7);
   ctx.fillStyle = '#2f3b26';
   ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
-  /* برق مهتاب روی سر (۶٫۰ — فقط شب) */
-  if (state.dayness < 0.55 && !z.dead) {
-    ctx.strokeStyle = 'rgba(195,220,255,' + (0.38 * (1 - state.dayness)).toFixed(2) + ')';
-    ctx.lineWidth = 1.3;
-    ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.62); ctx.stroke();
-  }
 
   /* کلاه‌خود فولادی تانک */
   if (z.type === 'tank') {
@@ -1441,6 +1966,20 @@ function drawZombie(z) {
     ctx.moveTo(-3, -42 + bob * 0.5); ctx.lineTo(-3, -48 + bob * 0.5); ctx.lineTo(0, -44 + bob * 0.5);
     ctx.lineTo(3, -49 + bob * 0.5); ctx.lineTo(6, -44 + bob * 0.5); ctx.lineTo(9, -48 + bob * 0.5);
     ctx.lineTo(9, -42 + bob * 0.5); ctx.closePath(); ctx.fill();
+  }
+}
+
+/* (۱۸٫۱) جزئیات زنده‌ی زامبی — روی بدنه‌ی پخته رسم می‌شود:
+   برق مهتاب روی سر (فقط شب)، چشم‌های درخشان، خون دهان، هاله‌ی پادشاه */
+function drawZombieFx(z, flash) {
+  const walk = Math.sin(z.walkPhase);
+  const bob = z.attacking ? Math.sin(z.attackAnim) * 1.5 : Math.abs(walk) * 1.2;
+
+  /* برق مهتاب روی سر (۶٫۰ — فقط شب) */
+  if (state.dayness < 0.55 && !z.dead) {
+    ctx.strokeStyle = 'rgba(195,220,255,' + (0.38 * (1 - state.dayness)).toFixed(2) + ')';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.62); ctx.stroke();
   }
 
   /* چشم‌های درخشان (قرمز؛ نگهبان بنفش؛ فصل خرابه: اخگریِ نارنجی)
@@ -1468,34 +2007,6 @@ function drawZombie(z) {
     ctx.strokeStyle = 'rgba(196,77,223,' + (0.22 + 0.12 * Math.sin(animTime * 3)).toFixed(2) + ')';
     ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.arc(4, -22, 30, 0, Math.PI * 2); ctx.stroke();
-  }
-
-  ctx.restore();
-
-  /* لایه‌ی یخ هنگام انجماد (۳٫۰) */
-  if (!z.dead && state.powerTimers.freeze > 0) {
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = '#a5d8ff';
-    circle(z.x, z.y - 18 * s, 14 * s + 3);
-    ctx.globalAlpha = 1;
-  }
-
-  /* لایه‌ی یخِ ملایم‌تر گلوله‌ی برجک یخ‌زن (۴٫۰) */
-  if (!z.dead && z.chill > 0) {
-    ctx.globalAlpha = Math.min(0.30, 0.12 + z.chill * 0.09);
-    ctx.fillStyle = '#a5d8ff';
-    circle(z.x, z.y - 18 * s, 14 * s + 3);
-    ctx.globalAlpha = 1;
-  }
-
-  /* نوار جون بالای سر (وقتی آسیب دیده) */
-  if (!z.dead && z.hp < z.maxHp - 0.001) {
-    const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
-    const by = z.y - 50 * s - 8;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    rr(z.x - w2 / 2, by, w2, 4.5, 2); ctx.fill();
-    ctx.fillStyle = ratio2 > 0.5 ? '#6fce62' : (ratio2 > 0.25 ? '#e7b53a' : '#e04b3a');
-    ctx.fillRect(z.x - w2 / 2 + 0.75, by + 0.75, (w2 - 1.5) * ratio2, 3);
   }
 }
 
@@ -1849,28 +2360,26 @@ function drawFlash() {
   }
 }
 
-/* هشدار قرمزِ تپنده وقتی جون برج بحرانی است (زیر ۳۰٪) */
+/* هشدار قرمزِ تپنده وقتی جون برج بحرانی است (زیر ۳۰٪) — (۱۸٫۱) اسپرایت پخته */
 function drawVignette() {
   if (!canPlay()) return;
   const ratio = state.tower.hp / state.tower.maxHp;
   if (ratio >= 0.3) return;
   const a = Math.max(0, (0.3 - ratio) / 0.3 * (0.2 + 0.12 * Math.sin(animTime * 6)));
-  const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.78);
-  g.addColorStop(0, 'rgba(180,20,20,0)');
-  g.addColorStop(1, 'rgba(180,20,20,' + a.toFixed(2) + ')');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  if (a <= 0.01) return;
+  ctx.globalAlpha = a;
+  ctx.drawImage(OVSPR.get('blood'), 0, 0, W, H);
+  ctx.globalAlpha = 1;
 }
 
-/* ته‌رنگ آبی هنگام انجماد (۳٫۰) */
+/* ته‌رنگ آبی هنگام انجماد (۳٫۰) — (۱۸٫۱) اسپرایت پخته */
 function drawFreezeOverlay() {
   if (state.powerTimers.freeze <= 0) return;
   const a = Math.min(0.16, state.powerTimers.freeze * 0.05);
-  const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
-  g.addColorStop(0, 'rgba(140,200,255,0)');
-  g.addColorStop(1, 'rgba(140,200,255,' + a.toFixed(2) + ')');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  if (a <= 0.01) return;
+  ctx.globalAlpha = a;
+  ctx.drawImage(OVSPR.get('freeze'), 0, 0, W, H);
+  ctx.globalAlpha = 1;
 }
 
 /* نوارهای سینمایی اسلوموشن (۳٫۰) */
@@ -1889,13 +2398,13 @@ function drawCinematic() {
 function drawColorGrade() {
   const d = state.dayness;
   const v1 = curCh().theme.grade === 'ember';   // (۱۰٫۰) فصل خرابه: تینت اخگری — بقیه: سرمای آبی
-  /* وینیت نرم همیشه — شب عمیق‌تر (شهر سوخته: کمی شدیدتر) */
-  const vg = ctx.createRadialGradient(W / 2, H * 0.46, H * 0.36, W / 2, H * 0.55, H * 0.88);
+  /* وینیت نرم همیشه — شب عمیق‌تر (شهر سوخته: کمی شدیدتر)
+     (۱۸٫۱) اسپرایت پخته با یک‌چهارم رزولوشن + globalAlpha — بدون گرادیان هر فریم */
+  const vg = OVSPR.get('grade');
   const va = (v1 ? 0.13 : 0.10) + 0.16 * (1 - d);
-  vg.addColorStop(0, v1 ? 'rgba(20,4,4,0)' : 'rgba(2,4,14,0)');
-  vg.addColorStop(1, v1 ? 'rgba(20,4,4,' + va.toFixed(2) + ')' : 'rgba(2,4,14,' + va.toFixed(2) + ')');
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = Math.min(1, va);
+  ctx.drawImage(vg, 0, 0, W, H);
+  ctx.globalAlpha = 1;
   /* تینت شب: برج اول سرمای آبی؛ برج دوم سرخیِ اخگر — ضرب ملایم */
   if (d < 0.85) {
     ctx.globalCompositeOperation = 'multiply';
@@ -1936,20 +2445,21 @@ function render() {
     drawDriveScene();
     drawPlayer();                              // بازیکن روی سقف ماشین (۸٫۰)
   } else {
-  drawSky();
-  drawClouds();
+  /* (۱۸٫۱) پس‌زمینه‌ی پخته: ۴ لایه‌ی ایستا فقط blit می‌شوند — به‌جای
+     ~۱۰۰۰ دستور مسیر و چند fill تمام‌صفحه با گرادیانِ تازه در هر فریم */
+  BG.ensure();
+  BG.blit(0);                                   // آسمان + ستاره‌ها + ماه + دود افق
+  drawClouds();                                 // ابرها: اسپرایت‌های پخته + دریفت
   /* (۱۰٫۰) پارالاکس ملایم منو: افق و تپه‌ها با ماوس کمی جابه‌جا می‌شوند */
-  ctx.save(); ctx.translate(-menuPar(12), 0); drawSkyline(); ctx.restore();
-  ctx.save(); ctx.translate(-menuPar(26), 0); drawHills(); ctx.restore();
-  drawPuddles();
-  drawGrass();
+  BG.blit(1, -menuPar(12));                     // افق شهر
+  BG.blit(2, -menuPar(26));                     // تپه‌ها + زمین
+  BG.blit(3);                                   // جزئیات زمین: چمن/گل/برکه/چراغ‌ها
   drawAsh();                                  // بارش خاکسترِ شهر سوخته (۸٫۰)
   drawChapterWeather();                        // (۱۰٫۰) مه انبارها / برف قله — و مهِ آرام منو
   drawDecals();
   drawLightning();
   drawTree(88, 0.95, !!curCh().theme.deadTrees);   // (۱۰٫۰) درخت سوخته در فصل خرابه‌ها
   drawTree(874, 0.7, !!curCh().theme.deadTrees);
-  drawLamps();
   drawMuzzleGlow();
   if (!(typeof PERF !== 'undefined' && PERF.low)) {          // (۱۱٫۰) حالت کم‌بار
     drawShootingStar();
@@ -1966,15 +2476,26 @@ function render() {
   if (state.mode === 'start') {
     for (const z of menuZ.slice().sort((a, b) => a.y - b.y)) drawZombie(z);
   } else {
-    const ents = [];
-    for (const z of state.zombies) ents.push({ y: z.y, z });
-    for (const t of state.turrets) ents.push({ y: t.y + 0.1, t });
+    /* (۱۸٫۱) استخر شیءهای بازاستفاده — قبلاً هر فریم N آبجکت لترال جدید
+       می‌ساخت (GC فشار می‌آورد روی گوشی) */
+    let n = 0;
+    const ent = (y, z, t, csZ, car) => {
+      let e;
+      if (n < _ENTS.length) e = _ENTS[n];
+      else { e = { y: 0, z: null, t: null, csZ: null, car: null }; _ENTS.push(e); }
+      e.y = y; e.z = z || null; e.t = t || null; e.csZ = csZ || null; e.car = car || null;
+      n++;
+    };
+    for (const z of state.zombies) ent(z.y, z);
+    for (const t of state.turrets) ent(t.y + 0.1, null, t);
     if (CS) {                                  // موجودیت‌های کات‌سین (۷٫۰)
-      for (const z of CS.zombies) ents.push({ y: z.y, csZ: z });
-      if (CS.car) ents.push({ y: CS.car.y - 1, car: CS.car });
+      for (const z of CS.zombies) ent(z.y, null, null, z);
+      if (CS.car) ent(CS.car.y - 1, null, null, null, CS.car);
     }
-    ents.sort((a, b) => a.y - b.y);
-    for (const e of ents) {
+    _ENTS.length = n;
+    _ENTS.sort((a, b) => a.y - b.y);
+    for (let i = 0; i < n; i++) {
+      const e = _ENTS[i];
       if (e.car) drawCar(e.car);               // ماشین نجات (۷٫۰)
       else if (e.csZ) drawCsZombie(e.csZ);     // زامبی‌های پرتاب‌شده (۷٫۰)
       else if (e.z) drawZombie(e.z);
