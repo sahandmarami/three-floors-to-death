@@ -600,8 +600,7 @@ window.addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'Escape') {
-    if (!$('howtoScreen').classList.contains('hidden')) hideScreen('howtoScreen');
-    else if (state.placing) cancelPlacement(true);      // اول لغو نصب برجک (۴٫۰)
+    if (state.placing) cancelPlacement(true);      // اول لغو نصب برجک (۴٫۰) — (۲۰٫۱) چکِ راهنما حذف شد
     else if (state.mode === 'paused') resumeGame();
     else if (canPlay()) pauseGame();
   } else if (e.key === 'p' || e.key === 'P') {

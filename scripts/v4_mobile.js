@@ -134,12 +134,12 @@ function toggleFullscreen() {
 
 /* ---------------------- (۲۰٫۰) آماده‌ی APK: دکمه‌ی بازگشت اندروید ----------------------
    داخل کپاسیتور/کوردوا، دکمه‌ی Back گوشی رویداد «backbutton» می‌دهد؛
-   در وبِ معمولی popstate. رفتار: صفحه‌ی راهنما/تنظیمات باز → بستن؛
+   در وبِ معمولی popstate. رفتار: صفحه‌ی تنظیمات/درباره باز → بستن؛
    وسط بازی → توقف؛ در توقف → بازگشت به بازی؛ در منو → هیچ (خروج با دکمه) */
 function apkBackButton() {
   try {
-    /* صفحات کمکی باز هستند؟ */
-    const open = ['howtoScreen', 'settingsScreen', 'aboutScreen', 'saveCodeScreen', 'confirmBox'];
+    /* صفحات کمکی باز هستند؟ (۲۰٫۱: راهنما حذف شد) */
+    const open = ['settingsScreen', 'aboutScreen', 'saveCodeScreen', 'confirmBox'];
     for (const id of open) {
       const el = $(id);
       if (el && !el.classList.contains('hidden')) {

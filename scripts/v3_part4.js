@@ -12,10 +12,10 @@
 function showScreen(id) { $(id).classList.remove('hidden'); }
 function hideScreen(id) { $(id).classList.add('hidden'); }
 function hideOverlays() {
-  ['startScreen', 'howtoScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen',
+  ['startScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen',
    'settingsScreen', 'aboutScreen', 'confirmBox', 'saveCodeScreen',
    'tbcScreen']                                                            // (۱۹٫۰) + «ادامه دارد»
-    .forEach(hideScreen);
+    .forEach(hideScreen);   /* (۲۰٫۱) howtoScreen حذف شد — صفحه‌ی راهنما دیگر وجود ندارد */
 }
 
 function pauseGame() {
@@ -437,8 +437,7 @@ function frame(now) {
 function init() {
   /* اتصال دکمه‌های منو و اورلی‌ها */
   $('btnStart').addEventListener('click', startNewGame);   // تأیید پاک‌کردن سیو + کات‌سین افتتاحیه
-  $('btnHowto').addEventListener('click', () => { SFX.click(); showScreen('howtoScreen'); });
-  $('closeHowto').addEventListener('click', () => { SFX.click(); hideScreen('howtoScreen'); });
+  /* (۲۰٫۱) دکمه/صفحه‌ی راهنما حذف شد — درخواست کاربر */
   $('btnContinue').addEventListener('click', continueGame);
   $('btnSettings').addEventListener('click', () => { SFX.click(); showScreen('settingsScreen'); });
   $('closeSettings').addEventListener('click', () => { SFX.click(); hideScreen('settingsScreen'); });
