@@ -27,14 +27,14 @@ agent-browser open "$URL" >/dev/null
 sleep 3
 agent-browser errors --clear >/dev/null 2>&1
 chk "GAME.v18 API (v17 ارث)" "$(ev 'typeof GAME.v17')" "object"
-chk "موج‌های فصل‌ها ۴/۶/۸/۱۰" "$(ev 'JSON.stringify(GAME.v10.WAVES_CH)')" "[4,6,8,10]"
-chk "موج آخر = ۲۸" "$(ev 'GAME.v10.FINAL_WAVE')" "28"
-chk "مرز فصل‌ها (4,10,18,28)" "$(ev '[4,10,18,28].map(GAME.v10.waveChapter).join(",")')" "1,2,3,4"
-chk "موج درون‌فصلی (5,11,19)" "$(ev '[5,11,19].map(GAME.v10.waveInChapter).join(",")')" "1,1,1"
-chk "سختی: اول فصل = ۱" "$(ev 'GAME.v10.wvEff(5).toFixed(1)')" "1.0"
-chk "سختی: آخر فصل = ۸" "$(ev 'GAME.v10.wvEff(10).toFixed(1)')" "8.0"
-chk "سختی: آخرین شب = ۸" "$(ev 'GAME.v10.wvEff(28).toFixed(1)')" "8.0"
-chk "سیو ۳۳موجی → ۲۸" "$(ev 'GAME.v10.compatWave(33)')" "28"
+chk "موج‌های فصل‌ها ۶/۸/۱۰/۱۲" "$(ev 'JSON.stringify(GAME.v10.WAVES_CH)')" "[6,8,10,12]"
+chk "موج آخر = ۳۶" "$(ev 'GAME.v10.FINAL_WAVE')" "36"
+chk "مرز فصل‌ها (6,14,24,36)" "$(ev '[6,14,24,36].map(GAME.v10.waveChapter).join(",")')" "1,2,3,4"
+chk "موج درون‌فصلی (7,15,25)" "$(ev '[7,15,25].map(GAME.v10.waveInChapter).join(",")')" "1,1,1"
+chk "سختی: اول فصل = ۱" "$(ev 'GAME.v10.wvEff(7).toFixed(1)')" "1.0"
+chk "سختی: آخر فصل = ۸" "$(ev 'GAME.v10.wvEff(6).toFixed(1)')" "8.0"
+chk "سختی: آخرین شب = ۸" "$(ev 'GAME.v10.wvEff(36).toFixed(1)')" "8.0"
+chk "سیو ۳۳موجی (در بازه‌ی ۳۶تایی معتبر)" "$(ev 'GAME.v10.compatWave(33)')" "33"
 chk "هیچ عنصری backdrop-filter ندارد" "$(ev 'Array.from(document.querySelectorAll("#wrap, #wrap *")).filter(e=>{try{return getComputedStyle(e).backdropFilter!="none"}catch(x){return false}}).length')" "0"
 chk "بدون خطای کنسول (بارگذاری)" "$(agent-browser errors | grep -c error || echo 0)" "0"
 
@@ -86,7 +86,7 @@ sleep 2
 agent-browser eval "GAME.startNight()" >/dev/null
 sleep 5
 chk "شب: ارشان روی بام است" "$(ev 'GAME.v17.arshanOnRoof()')" "true"
-chk "موج ۱ فصل ۱ (۴موجی)" "$(evr 'waveLabel()')" "فصل ۱ • موج ۱/۴"
+chk "موج ۱ فصل ۱ (۶موجی — ۲۰٫۰)" "$(evr 'waveLabel()')" "فصل ۱ • موج ۱/۶"
 agent-browser eval "GAME.v17.arshanForce('aw5')" >/dev/null
 sleep 0.4
 chk "بارک aw5 جدید (می‌رم پایین)" "$(evr 'document.getElementById("announce").textContent.indexOf("می‌رم پایین") >= 0')" "true"
@@ -217,22 +217,22 @@ sleep 4
 agent-browser eval "GAME.endWave()" >/dev/null
 sleep 1.5
 chk "پایان موج ۹ (وسط فصل ۲) → روز" "$(ev 'GAME.state.mode')" "day"
-agent-browser eval "GAME.skipToWave(10); GAME.startNight()" >/dev/null
+agent-browser eval "GAME.skipToWave(14); GAME.startNight()" >/dev/null
 sleep 4
 agent-browser eval "GAME.endWave()" >/dev/null
 sleep 1.5
-chk "پایان موج ۱۰ (آخر فصل ۲) → انتقال قایق" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/2"
+chk "پایان موج ۱۴ (آخر فصل ۲) → انتقال قایق" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/2"
 agent-browser eval "GAME.v10.trGoto(7.0); GAME.v10.trResume()" >/dev/null
 sleep 0.6
 chk "قایق: فاز ۲ + تم رودخانه (۱۹٫۰)" "$(ev "TR.phase + '/' + DRV.theme")" "2/river"
 agent-browser screenshot $S/05_boat.png >/dev/null
 agent-browser eval "GAME.v10.skipTransition()" >/dev/null
 sleep 1
-agent-browser eval "GAME.skipToWave(18); GAME.startNight()" >/dev/null
+agent-browser eval "GAME.skipToWave(24); GAME.startNight()" >/dev/null
 sleep 4
 agent-browser eval "GAME.endWave()" >/dev/null
 sleep 1.5
-chk "پایان موج ۱۸ (آخر فصل ۳) → انتقال اسنوموبیل" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/3"
+chk "پایان موج ۲۴ (آخر فصل ۳) → انتقال اسنوموبیل" "$(ev "GAME.state.mode + '/' + (GAME.v10.TR ? GAME.v10.TR.ch : 0)")" "transition/3"
 agent-browser eval "GAME.v10.trGoto(7.2); GAME.v10.trResume()" >/dev/null
 sleep 0.6
 chk "اسنوموبیل: فاز ۲ + تم برفی (۱۹٫۰)" "$(ev "TR.phase + '/' + DRV.theme")" "2/snow"
@@ -240,7 +240,7 @@ agent-browser screenshot $S/06_snow.png >/dev/null
 agent-browser eval "GAME.v10.skipTransition()" >/dev/null
 sleep 1
 chk "بعد از زیپ‌لاین → فصل ۴" "$(ev 'GAME.state.chapter')" "4"
-chk "آخرین شب = موج ۲۸ (باس)" "$(ev 'JSON.stringify(GAME.v10.buildWaveQueue(28))')" "boss"
+chk "آخرین شب = موج ۳۶ (باس)" "$(ev 'JSON.stringify(GAME.v10.buildWaveQueue(36))')" "boss"
 
 echo "===== ۶) سیو قدیمی + رگرسیون کلی ====="
 agent-browser eval "GAME.v10.saveGame()" >/dev/null
@@ -248,7 +248,7 @@ chk "سیو کار می‌کند" "$(ev 'GAME.v10.loadSaveData() !== null')" "tr
 agent-browser eval "localStorage.setItem('ttb3_save_v1', JSON.stringify({v:1,chapter:4,wave:33,coins:777,hp:900,maxHp:1000,upgrades:{weapon:3,health:0,trap:0,turretUp:0,speed:0},weapon:'mg',owned:{shotgun:true,mg:true},turrets:[],backpack:['medkit',null,null,null,null,null],flash:{owned:true,battery:80},buffs:{},peddlerCd:0,weaponSpent:0,stats:{kills:100,earned:900,shots:50,maxCombo:9,turKills:3}}))" >/dev/null
 agent-browser eval "GAME.v10.continueGame()" >/dev/null
 sleep 3
-chk "سیو ۳۳موجی خوانده شد (موج ۲۸)" "$(ev "GAME.state.mode + '/' + (GAME.state.wave + 1)")" "day/28"
+chk "سیو ۳۳موجی خوانده شد (موج ۳۳ — در فصل ۴)" "$(ev "GAME.state.mode + '/' + (GAME.state.wave + 1)")" "day/33"
 chk "سکه‌های سیو حفظ شد" "$(ev 'GAME.state.coins')" "777"
 chk "بدون خطای کنسول (پایان)" "$(agent-browser errors | grep -c error || echo 0)" "0"
 

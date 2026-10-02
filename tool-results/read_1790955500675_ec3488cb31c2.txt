@@ -1,0 +1,710 @@
+     1→/* ==================================================================
+     2→   سه طبقه تا بقا — نسخه‌ی ۱۹٫۰ — بخش ۱۳: پایانِ سینمایی + پناهگاه
+     3→   ==================================================================
+     4→   (۱۹٫۰ — بازخورد کاربر: «وقتی رسیدیم به پناهگاه، داخل‌رفتنمون به
+     5→   صورت ویدیو نشون بده... حرف بزنیم و دنبال راه‌چاره باشیم که یهو یه
+     6→   اتفاق بد بیفته... بعد بنویسه این داستان ادامه دارد... صفحه‌ی
+     7→   پیروزی هم خواص باشه و منوش جذاب»)
+     8→   جریانِ پایان بعد از شکستِ نگهبان:
+     9→     ۱) سحرِ پیروزی (v4_final — همان سحنه‌ی سحر) →
+    10→     ۲) کات‌سین «رسیدن به پناهگاه» (SHEL):
+    11→        • پیاده‌روی سحرگاهی تا درِ فولادی پناهگاه (P1 walk)
+    12→        • بازشدن دروازه و سیل نور (P2 gate)
+    13→        • داخلِ پناهگاه: گفتگو با دکتر مریم و بازمانده‌ها + چاره‌جویی
+    14→          (P3 inside — گفتگوی DLG با صدای جدید «م» = دکتر مریم)
+    15→        • اتفاق بد: آژیر قرمز + رادیو: «گله‌ی بزرگ به سمت پناهگاه»
+    16→          (P4 alarm — قلابِ سری دوم)
+    17→     ۳) صفحه‌ی «این داستان ادامه دارد...» — تایپ تدریجی + تیترِ
+    18→        سری دوم: «محاصره‌ی پناهگاه» (DOM + صدا)
+    19→     ۴) صفحه‌ی بردِ سینمایی: مدال طلایی + پرتوهای چرخان + کارت‌های
+    20→        آمار + منوی کامل + آتش‌بازیِ پشتِ پنل (victory بازنویسی شد)
+    21→   ================================================================== */
+    22→
+    23→let SHEL = null;      // وضعیت کات‌سین پناهگاه
+    24→const VICFX = { t: 0 };   // تایمر آتش‌بازی صفحه‌ی برد
+    25→
+    26→/* ---------------------- ۱۳-۱) شروع کات‌سین پناهگاه ---------------------- */
+    27→function startShelterCine() {
+    28→  if (state.mode === 'sheltercine') return;
+    29→  try { wipeSave(); } catch (e) {}             /* بازی تمام شد — سیو پاک */
+    30→  SHEL = {
+    31→    t: 0, phase: 'walk', dlgStarted: false, dlgDone: false,
+    32→    sub: '', subT: 0, typed: 0, tbcDone: false,
+    33→  };
+    34→  state.mode = 'sheltercine';
+    35→  state.mouse.down = false;
+    36→  state.placing = null;
+    37→  state.slowmo = 0;
+    38→  hideOverlays();
+    39→  hideDayPanel();
+    40→  hidePeddlerPanel();
+    41→  hideAnnounce();
+    42→  $('wrap').classList.add('cine-mode');
+    43→  $('skipCs').classList.remove('hidden');
+    44→  SFX.morning();
+    45→}
+    46→
+    47→function shelterHardReset() {
+    48→  SHEL = null;
+    49→  hideScreen('tbcScreen');
+    50→  $('wrap').classList.remove('cine-mode');
+    51→  $('skipCs').classList.add('hidden');
+    52→  VOICE.stop();
+    53→  try { DLG.skip(); } catch (e) {}
+    54→}
+    55→
+    56→/* رد کردن: مستقیم صفحه‌ی برد (برای دوباره‌بازی/تست) */
+    57→function skipShelterCine() {
+    58→  if (!SHEL) return;
+    59→  SFX.click();
+    60→  shelterHardReset();
+    61→  doFade(() => victory(), 0.35);
+    62→}
+    63→
+    64→/* گفتگوی داخل پناهگاه — با صدای دکتر مریم (m) و رادیو (r) */
+    65→const SHEL_DLGS = [
+    66→  { who: 'm', v: 'sh3m', text: 'خوش اومدید... ما شما رو از دیده‌بان دیدیم. شب‌ها زنده موندن کارِ هر کسی نیست.' },
+    67→  { who: 'a', v: 'sh4a', text: 'این‌جا واقعاً امنه؟' },
+    68→  { who: 'm', v: 'sh5m', text: 'دیوارها هنوز سرِ پانه... ولی آذوقه دو هفته بیشتر نداره و رادیومون نیم‌سوخته‌ست.' },
+    69→  { who: 'p', v: 'sh6p', text: 'رادیو رو من درست می‌کنم... فقط یه آنتنِ بلند لازم داریم.' },
+    70→  { who: 'a', v: 'sh7a', text: 'و منم دیوارها رو محکم می‌کنم. این بار فقط دوتا نیستیم!' },
+    71→  { who: 'm', v: 'sh8m', text: 'خیلی خب... استراحت کنید. فردا روزِ سختیه.' },
+    72→];
+    73→/* اتفاق بد: آژیر + خبرِ رادیو + جمله‌ی پایانی ارشان و راوی */
+    74→const SHEL_DLGS2 = [
+    75→  { who: 'r', v: 'sh9r',  text: 'تمامِ واحدها گوش کنید! گله‌ی بزرگ از دره‌ی شمالی به سمتِ پناهگاه شما حرکت کرده... زمان ندارید!' },
+    76→  { who: 'a', v: 'sh10a', text: 'می‌شنوی زنگِ خطر رو؟... این تازه اولِ کاره.' },
+    77→];
+    78→
+    79→/* زمان‌بندی زیرنویس مراحل سینمایی (شروع، پایان، متن) */
+    80→const SHEL_SUBS = {
+    81→  walk: [
+    82→    [0.4, 2.4, '— [تو]: اون‌جا... اون قله رو می‌بینی؟ همونجاست!'],
+    83→    [2.8, 5.2, '— [ارشان]: پناهگاه... واقعاً وجود داشت!'],
+    84→  ],
+    85→  gate: [
+    86→    [0.5, 2.2, '— [ارشان]: در باز می‌شه! زود باش!'],
+    87→    [2.6, 3.9, 'صدای سنگینِ درِ فولادی...'],
+    88→  ],
+    89→};
+    90→
+    91→/* ---------------------- ۱۳-۲) به‌روزرسانی کات‌سین ---------------------- */
+    92→function updateShelterCine(dt) {
+    93→  if (!SHEL) return;
+    94→  SHEL.t += dt;
+    95→  DLG.update(dt);
+    96→  state.shake = Math.max(0, state.shake - dt * 22);
+    97→  state.flash = Math.max(0, state.flash - dt * 2.2);
+    98→  updateParticles(dt);
+    99→  updateTexts(dt);
+   100→  if (SHEL.subT > 0) SHEL.subT -= dt;
+   101→  const ph = SHEL.phase;
+   102→
+   103→  if (ph === 'walk') {
+   104→    setTimedShelterSubs(SHEL_SUBS.walk);
+   105→    /* صدای ورود (اولین بار) — صدا + زیرنویسِ خودِ سینمایی (بدون اعلان) */
+   106→    if (!SHEL.hello && SHEL.t > 0.4) {
+   107→      SHEL.hello = true;
+   108→      const d1 = VOICE.speak('اونجاست! درِ پناهگاه رو می‌بینم! زود باش!', 'a', 'sh1a');
+   109→      SHEL.sub = '— [ارشان]: اونجاست! درِ پناهگاه رو می‌بینم! زود باش!';
+   110→      SHEL.subT = Math.max(2.2, d1 + 0.3);
+   111→    }
+   112→    if (!SHEL.narr && SHEL.t > 3.4) {
+   113→      SHEL.narr = true;
+   114→      const d2 = VOICE.speak('دری فولادی در دلِ تپه... و صدایی که می‌گه هنوز جایی برای موندن هست.', 'n', 'sh2n');
+   115→      SHEL.sub = 'دری فولادی در دلِ تپه... و صدایی که می‌گه هنوز جایی برای موندن هست.';
+   116→      SHEL.subT = Math.max(2.6, d2 + 0.3);
+   117→    }
+   118→    if (SHEL.t >= 6.2) { SHEL.phase = 'gate'; SHEL.t = 0; SFX.csRumble(); }
+   119→  } else if (ph === 'gate') {
+   120→    setTimedShelterSubs(SHEL_SUBS.gate);
+   121→    if (!SHEL.doorSfx && SHEL.t > 0.3) {
+   122→      SHEL.doorSfx = true;
+   123→      SFX.csEngine(); state.shake = 5;
+   124→    }
+   125→    /* نورِ ریخته از در وقتی باز می‌شود */
+   126→    if (SHEL.t > 1.0 && Math.random() < dt * 14) {
+   127→      spawnParticles(700 + rand(-60, 60), 330 + rand(-30, 30), 1, 'rgba(255,226,168,0.5)',
+   128→        { speed: 16, life: 1.6, size: 2.4, grav: -8 });
+   129→    }
+   130→    if (SHEL.t >= 4.0) { SHEL.phase = 'inside'; SHEL.t = 0; }
+   131→  } else if (ph === 'inside') {
+   132→    /* گفتگوی پناهگاه (کمی بعد از ورود) */
+   133→    if (!SHEL.dlgStarted && SHEL.t > 0.8) {
+   134→      SHEL.dlgStarted = true;
+   135→      DLG.start(SHEL_DLGS, () => { if (SHEL) SHEL.dlgDone = true; });
+   136→    }
+   137→    /* چراغ‌های سقفی سوسوزن + بخارِ تنفس سرد */
+   138→    if (Math.random() < dt * 3) {
+   139→      spawnParticles(rand(80, 880), 300, 1, 'rgba(255,226,168,0.22)',
+   140→        { speed: 6, life: 2.2, size: 2, grav: 6 });
+   141→    }
+   142→    if (SHEL.dlgDone && SHEL.t > 1.0 && !SHEL.alarmStarted) {
+   143→      SHEL.alarmStarted = true;
+   144→      SHEL.phase = 'alarm'; SHEL.t = 0;
+   145→      SHEL.dlgStarted = false; SHEL.dlgDone = false;
+   146→      SFX.alarm();
+   147→      state.shake = 8;
+   148→    }
+   149→  } else if (ph === 'alarm') {
+   150→    /* آژیر: چراغ قرمز چرخان + لرزش + ریزش غبار */
+   151→    state.shake = Math.max(state.shake, 2.5);
+   152→    if (Math.random() < dt * 16) {
+   153→      spawnParticles(rand(60, 900), 240, 1, 'rgba(160,140,110,0.4)',
+   154→        { speed: 20, life: 1.4, size: 2, grav: 60 });
+   155→    }
+   156→    if (Math.sin(SHEL.t * 4.4) > 0.92 && !SHEL._al2) { SHEL._al2 = true; SFX.alarm(); }
+   157→    if (Math.sin(SHEL.t * 4.4) < -0.92) SHEL._al2 = false;
+   158→    if (!SHEL.dlgStarted && SHEL.t > 0.7) {
+   159→      SHEL.dlgStarted = true;
+   160→      DLG.start(SHEL_DLGS2, () => { if (SHEL) SHEL.dlgDone = true; });
+   161→    }
+   162→    /* جمله‌ی آخرِ راوی بعد از گفتگو → محو به «ادامه دارد» */
+   163→    if (SHEL.dlgDone && SHEL.t > 1.2) {
+   164→      if (!SHEL.lastN) {
+   165→        SHEL.lastN = true;
+   166→        try { VOICE.speak('و شب، وقتی همه خواب بودند... داستان هنوز تمام نشده بود.', 'n', 'sh11n'); } catch (e) {}
+   167→      }
+   168→      SHEL.fade = clamp((SHEL.t - 3.6) / 1.6, 0, 1);
+   169→      if (SHEL.t >= 5.4) startTbcScreen();
+   170→    }
+   171→  } else if (ph === 'tbc') {
+   172→    /* تایپ تدریجی «این داستان ادامه دارد...» */
+   173→    const full = 'این داستان ادامه دارد...';
+   174→    if (SHEL.typed < full.length) {
+   175→      SHEL.typeAcc = (SHEL.typeAcc || 0) + dt * 7.5;
+   176→      while (SHEL.typeAcc >= 1 && SHEL.typed < full.length) {
+   177→        SHEL.typeAcc -= 1;
+   178→        SHEL.typed++;
+   179→        if (SHEL.typed % 3 === 0) SFX.click();
+   180→      }
+   181→      const el = $('tbcTitle');
+   182→      if (el) el.innerHTML = full.slice(0, SHEL.typed) + '<span class="tbccaret">▌</span>';
+   183→    } else {
+   184→      if (!SHEL.tbcDone) {
+   185→        SHEL.tbcDone = true;
+   186→        const el = $('tbcTitle');
+   187→        if (el) el.textContent = full;
+   188→        $('tbcSub').classList.add('on');
+   189→        $('tbcTease').classList.add('on');
+   190→        $('tbcRow').classList.add('on');
+   191→        try { VOICE.speak(full, 'n', 'tbc1n'); } catch (e) {}
+   192→        SFX.heartbeat();
+   193→      }
+   194→      SHEL.teaseT = (SHEL.teaseT || 0) + dt;
+   195→      if (SHEL.teaseT > 2.2) { SHEL.teaseT = 0; SFX.heartbeat(); }
+   196→    }
+   197→  }
+   198→}
+   199→
+   200→function setTimedShelterSubs(list) {
+   201→  if (!list) return;
+   202→  for (const s of list) {
+   203→    if (SHEL.t >= s[0] && SHEL.t <= s[1] && SHEL.sub !== s[2]) {
+   204→      SHEL.sub = s[2]; SHEL.subT = s[1] - s[0];
+   205→    }
+   206→  }
+   207→}
+   208→
+   209→/* ---------------------- ۱۳-۳) «این داستان ادامه دارد...» ---------------------- */
+   210→function startTbcScreen() {
+   211→  if (!SHEL) return;
+   212→  SHEL.phase = 'tbc';
+   213→  SHEL.t = 0;
+   214→  SHEL.typed = 0;
+   215→  DLG.skip();
+   216→  VOICE.stop();
+   217→  $('tbcTitle').textContent = '';
+   218→  $('tbcSub').classList.remove('on');
+   219→  $('tbcTease').classList.remove('on');
+   220→  $('tbcRow').classList.remove('on');
+   221→  showScreen('tbcScreen');
+   222→  SFX.slowmo();
+   223→}
+   224→
+   225→/* دکمه‌ی ادامه: از «ادامه دارد» به صفحه‌ی برد */
+   226→function tbcContinueToVictory() {
+   227→  if (!SHEL) return;
+   228→  SFX.click();
+   229→  shelterHardReset();
+   230→  victory();
+   231→}
+   232→
+   233→/* ---------------------- ۱۳-۴) رندر کات‌سین پناهگاه ---------------------- */
+   234→function renderShelterCine() {
+   235→  if (!SHEL) return;
+   236→  const ph = SHEL.phase;
+   237→  const t = SHEL.t;
+   238→  ctx.save();
+   239→  if (state.shake > 0.2 && SETT.shake) ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+   240→
+   241→  if (ph === 'walk') renderShelterWalk(t);
+   242→  else if (ph === 'gate') renderShelterGate(t);
+   243→  else if (ph === 'inside' || ph === 'alarm' || ph === 'tbc') renderShelterInside(t, ph);
+   244→
+   245→  /* زیرنویس سینمایی (مراحل بدون DLG) */
+   246→  if (SHEL.subT > 0 && SHEL.sub && ph !== 'tbc') {
+   247→    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+   248→    ctx.font = 'bold 14.5px Tahoma, sans-serif';
+   249→    const a = Math.min(1, SHEL.subT / 0.3);
+   250→    ctx.globalAlpha = a;
+   251→    const tw = ctx.measureText(SHEL.sub).width + 30;
+   252→    ctx.fillStyle = 'rgba(0,0,0,0.68)';
+   253→    rr(W / 2 - tw / 2, H - 60, tw, 27, 13); ctx.fill();
+   254→    ctx.fillStyle = '#f3e9cf';
+   255→    ctx.fillText(SHEL.sub, W / 2, H - 46);
+   256→    ctx.globalAlpha = 1;
+   257→  }
+   258→  /* محوِ سیاهِ انتقال‌ها */
+   259→  if (SHEL.fade > 0.003) {
+   260→    ctx.fillStyle = 'rgba(0,0,0,' + SHEL.fade.toFixed(3) + ')';
+   261→    ctx.fillRect(0, 0, W, H);
+   262→  }
+   263→  drawParticles();
+   264→  drawTexts();
+   265→  ctx.restore();
+   266→}
+   267→
+   268→/* --- صحنه‌ی ۱: پیاده‌روی سحرگاهی تا پناهگاه --- */
+   269→function renderShelterWalk(t) {
+   270→  const d = 0.9;                                   /* سحرِ روشن */
+   271→  /* آسمانِ سحر گرم */
+   272→  const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
+   273→  g.addColorStop(0, '#2c2440'); g.addColorStop(0.45, '#7a4a3a'); g.addColorStop(0.8, '#d88a4e'); g.addColorStop(1, '#f0c884');
+   274→  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
+   275→  /* خورشیدِ تازه‌درآمده */
+   276→  const sx = 130, sy = 120;
+   277→  const sg = ctx.createRadialGradient(sx, sy, 8, sx, sy, 120);
+   278→  sg.addColorStop(0, 'rgba(255,220,150,0.8)'); sg.addColorStop(1, 'rgba(255,190,120,0)');
+   279→  ctx.fillStyle = sg; circle(sx, sy, 120);
+   280→  ctx.fillStyle = '#ffe9a8'; circle(sx, sy, 26);
+   281→  /* تپه‌های دور */
+   282→  ctx.fillStyle = '#3a2c34';
+   283→  ctx.beginPath(); ctx.moveTo(-20, GROUND_Y - 40);
+   284→  for (let i = 0; i < 9; i++) {
+   285→    const x = i * 130 - 30;
+   286→    ctx.lineTo(x + 65, GROUND_Y - 96 - ((i * 53) % 70));
+   287→    ctx.lineTo(x + 130, GROUND_Y - 34);
+   288→  }
+   289→  ctx.lineTo(W + 20, GROUND_Y - 40); ctx.closePath(); ctx.fill();
+   290→  /* تپه‌ی پناهگاه (راست) + درِ فولادی + چراغ‌هایش */
+   291→  const hx = 770, hy = GROUND_Y;
+   292→  ctx.fillStyle = '#2c2230';
+   293→  ctx.beginPath();
+   294→  ctx.moveTo(hx - 190, hy);
+   295→  ctx.quadraticCurveTo(hx - 150, hy - 210, hx + 10, hy - 236);
+   296→  ctx.quadraticCurveTo(hx + 160, hy - 210, hx + 190, hy);
+   297→  ctx.closePath(); ctx.fill();
+   298→  /* درِ فولادی وسطِ تپه */
+   299→  const dw = 108, dh = 128;
+   300→  ctx.fillStyle = '#39424e';
+   301→  rr(hx - dw / 2, hy - dh, dw, dh, 9); ctx.fill();
+   302→  ctx.fillStyle = '#4a5664';
+   303→  for (let i = 0; i < 5; i++) ctx.fillRect(hx - dw / 2 + 10, hy - dh + 12 + i * 24, dw - 20, 6);
+   304→  ctx.strokeStyle = '#242c36'; ctx.lineWidth = 3;
+   305→  rr(hx - dw / 2, hy - dh, dw, dh, 9); ctx.stroke();
+   306→  /* چراغ‌های سبز دو طرف در */
+   307→  ctx.fillStyle = '#7be389'; circle(hx - dw / 2 - 12, hy - dh - 8, 3.4);
+   308→  ctx.fillStyle = '#7be389'; circle(hx + dw / 2 + 12, hy - dh - 8, 3.4);
+   309→  const lg = ctx.createRadialGradient(hx - dw / 2 - 12, hy - dh - 8, 2, hx - dw / 2 - 12, hy - dh - 8, 22);
+   310→  lg.addColorStop(0, 'rgba(123,227,137,0.5)'); lg.addColorStop(1, 'rgba(123,227,137,0)');
+   311→  ctx.fillStyle = lg; circle(hx - dw / 2 - 12, hy - dh - 8, 22);
+   312→  /* دکل رادیویی بالای تپه + چراغ قرمز */
+   313→  ctx.strokeStyle = '#241c28'; ctx.lineWidth = 3;
+   314→  ctx.beginPath();
+   315→  ctx.moveTo(hx + 6, hy - 228); ctx.lineTo(hx + 6, hy - 316);
+   316→  ctx.moveTo(hx - 4, hy - 252); ctx.lineTo(hx + 16, hy - 262);
+   317→  ctx.moveTo(hx - 4, hy - 282); ctx.lineTo(hx + 16, hy - 292);
+   318→  ctx.stroke();
+   319→  ctx.fillStyle = 'rgba(255,86,70,' + (0.5 + 0.5 * Math.sin(animTime * 3)).toFixed(2) + ')';
+   320→  circle(hx + 6, hy - 318, 3);
+   321→  /* زمین */
+   322→  const gg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+   323→  gg.addColorStop(0, '#4a3a30'); gg.addColorStop(1, '#2c221c');
+   324→  ctx.fillStyle = gg; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
+   325→  ctx.fillStyle = 'rgba(255,200,130,0.12)';
+   326→  ctx.fillRect(-20, GROUND_Y, W + 40, 3);
+   327→  /* جاده‌ی خاکی تا در */
+   328→  ctx.fillStyle = 'rgba(96,74,56,0.6)';
+   329→  ctx.beginPath();
+   330→  ctx.moveTo(300, H); ctx.lineTo(560, GROUND_Y - 6);
+   331→  ctx.lineTo(680, GROUND_Y - 6); ctx.lineTo(880, H);
+   332→  ctx.closePath(); ctx.fill();
+   333→  /* دو مسافر (بازیکن + ارشان) که نزدیک می‌شوند */
+   334→  const k = clamp(t / 6.2, 0, 1);
+   335→  const bx = 300 + k * 330;
+   336→  const sc = 1.25 + k * 0.5;
+   337→  drawShelterWalker(bx, GROUND_Y - 2, sc, -0.9, false);
+   338→  drawShelterWalker(bx - 34 * sc, GROUND_Y + 2, sc * 0.96, -0.7, true);
+   339→}
+   340→
+   341→/* مسافرِ سحرگاهی — ارشان=true: کلاه قرمز + رادیو روی شانه */
+   342→function drawShelterWalker(x, y, sc, aim, arshan) {
+   343→  ctx.save();
+   344→  ctx.translate(x, y);
+   345→  ctx.scale(sc, sc);
+   346→  const step = animTime * 7 + (arshan ? 1.4 : 0);
+   347→  const legA = Math.sin(step) * 12;
+   348→  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+   349→  ctx.beginPath(); ctx.ellipse(0, 2, 13, 4, 0, 0, Math.PI * 2); ctx.fill();
+   350→  /* پاها */
+   351→  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+   352→  ctx.beginPath();
+   353→  ctx.moveTo(-3, -13); ctx.lineTo(-3 + legA, -1);
+   354→  ctx.moveTo(3, -13); ctx.lineTo(3 - legA, -1);
+   355→  ctx.stroke();
+   356→  /* بدن (بازیکن: آبی؛ ارشان: سبز) + کوله */
+   357→  ctx.fillStyle = arshan ? '#4a7a4a' : '#3d6db5';
+   358→  rr(-8, -27, 16, 16, 5); ctx.fill();
+   359→  ctx.fillStyle = '#6a4a2c'; rr(-14, -26, 6, 11, 2); ctx.fill();
+   360→  /* سر */
+   361→  ctx.fillStyle = '#f0c49a'; circle(2, -32, 6);
+   362→  ctx.fillStyle = arshan ? '#7a2a2a' : '#2c3550';
+   363→  ctx.beginPath(); ctx.arc(2, -32, 6.2, Math.PI, Math.PI * 2); ctx.fill();
+   364→  /* بازوها (راه‌رفتن) */
+   365→  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
+   366→  ctx.beginPath();
+   367→  ctx.moveTo(-3, -24); ctx.lineTo(-3 - legA * 0.7, -16);
+   368→  ctx.moveTo(4, -24); ctx.lineTo(4 + legA * 0.7, -16);
+   369→  ctx.stroke();
+   370→  ctx.restore();
+   371→}
+   372→
+   373→/* --- صحنه‌ی ۲: بازشدن دروازه --- */
+   374→function renderShelterGate(t) {
+   375→  const k = clamp((t - 0.3) / 2.6, 0, 1);          /* در بالا می‌رود */
+   376→  /* پس‌زمینه: دهلیز تیره + درِ بالا رونده */
+   377→  ctx.fillStyle = '#0a0c14'; ctx.fillRect(-20, -20, W + 40, H + 40);
+   378→  /* قاب دروازه */
+   379→  const gx = W / 2, gy = GROUND_Y + 46;
+   380→  const dw = 300, dh = 330;
+   381→  ctx.fillStyle = '#1c222e';
+   382→  rr(gx - dw / 2 - 26, gy - dh - 26, dw + 52, dh + 26, 14); ctx.fill();
+   383→  /* نورِ داخل پناهگاه که از در می‌ریزد */
+   384→  const glow = ctx.createLinearGradient(0, gy - dh, 0, gy);
+   385→  glow.addColorStop(0, 'rgba(255,214,138,' + (0.25 + k * 0.5).toFixed(2) + ')');
+   386→  glow.addColorStop(1, 'rgba(255,214,138,' + (0.1 + k * 0.25).toFixed(2) + ')');
+   387→  ctx.fillStyle = glow;
+   388→  ctx.fillRect(gx - dw / 2, gy - dh, dw, dh);
+   389→  /* درِ فولادی که بالا می‌رود */
+   390→  const rise = k * dh * 0.86;
+   391→  ctx.fillStyle = '#39424e';
+   392→  rr(gx - dw / 2, gy - dh - rise, dw, dh, 8); ctx.fill();
+   393→  ctx.fillStyle = '#4a5664';
+   394→  for (let i = 0; i < 9; i++) ctx.fillRect(gx - dw / 2 + 14, gy - dh - rise + 16 + i * 34, dw - 28, 8);
+   395→  ctx.strokeStyle = '#242c36'; ctx.lineWidth = 4;
+   396→  rr(gx - dw / 2, gy - dh - rise, dw, dh, 8); ctx.stroke();
+   397→  /* پرتوهای نور از شکاف پایینِ در */
+   398→  if (k > 0.05) {
+   399→    ctx.save();
+   400→    ctx.globalCompositeOperation = 'lighter';
+   401→    for (let i = 0; i < 6; i++) {
+   402→      const a2 = (i - 2.5) * 0.1;
+   403→      const lg = ctx.createLinearGradient(gx, gy - rise, gx + a2 * 300, gy);
+   404→      lg.addColorStop(0, 'rgba(255,220,150,' + (0.16 * k).toFixed(2) + ')');
+   405→      lg.addColorStop(1, 'rgba(255,220,150,0)');
+   406→      ctx.fillStyle = lg;
+   407→      ctx.beginPath();
+   408→      ctx.moveTo(gx - 60, gy - rise - 10); ctx.lineTo(gx + 60, gy - rise - 10);
+   409→      ctx.lineTo(gx + 60 + a2 * 300 + 90, gy); ctx.lineTo(gx - 60 + a2 * 300 - 90, gy);
+   410→      ctx.closePath(); ctx.fill();
+   411→    }
+   412→    ctx.restore();
+   413→  }
+   414→  /* زمینِ دهلیز */
+   415→  ctx.fillStyle = '#141822';
+   416→  ctx.fillRect(-20, gy, W + 40, H - gy + 20);
+   417→  ctx.fillStyle = 'rgba(255,214,138,' + (0.1 + k * 0.14).toFixed(2) + ')';
+   418→  ctx.fillRect(gx - dw / 2, gy, dw, 5);
+   419→  /* سایه‌ی دو مسافر که وارد نور می‌شوند (از پایینِ قاب) */
+   420→  const wx = gx - 40 - k * 30;
+   421→  ctx.save();
+   422→  ctx.globalAlpha = 0.92;
+   423→  drawShelterWalker(wx, gy - 4, 2.2, 0, false);
+   424→  drawShelterWalker(wx - 60, gy + 2, 2.1, 0, true);
+   425→  ctx.restore();
+   426→}
+   427→
+   428→/* --- صحنه‌ی ۳: داخل پناهگاه (گفتگو / آژیر) --- */
+   429→function renderShelterInside(t, ph) {
+   430→  const alarm = ph === 'alarm' || ph === 'tbc';
+   431→  /* دیوارهای بتنی + کف */
+   432→  ctx.fillStyle = '#181c26'; ctx.fillRect(-20, -20, W + 40, H + 40);
+   433→  const wg = ctx.createLinearGradient(0, 0, 0, H);
+   434→  wg.addColorStop(0, '#141822'); wg.addColorStop(1, '#1e2432');
+   435→  ctx.fillStyle = wg; ctx.fillRect(-20, 60, W + 40, H - 40);
+   436→  /* درزهای بتنی */
+   437→  ctx.strokeStyle = 'rgba(8,10,16,0.7)'; ctx.lineWidth = 2;
+   438→  for (let i = 0; i < 4; i++) {
+   439→    const y = 110 + i * 108;
+   440→    ctx.beginPath(); ctx.moveTo(-20, y); ctx.lineTo(W + 20, y); ctx.stroke();
+   441→  }
+   442→  for (let i = 0; i < 7; i++) {
+   443→    const x = 70 + i * 140;
+   444→    ctx.beginPath(); ctx.moveTo(x, 60); ctx.lineTo(x, H); ctx.stroke();
+   445→  }
+   446→  /* کف */
+   447→  ctx.fillStyle = '#232a38'; ctx.fillRect(-20, GROUND_Y + 30, W + 40, H - GROUND_Y);
+   448→  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-20, GROUND_Y + 30, W + 40, 4);
+   449→
+   450→  /* قفسه‌های آذوقه (چپ) */
+   451→  for (let i = 0; i < 3; i++) {
+   452→    const sx = 60 + i * 6, sy = 180 + i * 74;
+   453→    ctx.fillStyle = '#3a2c1a';
+   454→    rr(sx, sy, 190, 10, 3); ctx.fill();
+   455→    ctx.strokeStyle = '#241a10'; ctx.lineWidth = 4;
+   456→    ctx.beginPath(); ctx.moveTo(sx + 6, sy); ctx.lineTo(sx + 6, sy + 64); ctx.moveTo(sx + 184, sy); ctx.lineTo(sx + 184, sy + 64); ctx.stroke();
+   457→    /* قوطی‌ها */
+   458→    for (let j = 0; j < 7; j++) {
+   459→      ctx.fillStyle = ['#7a4a28', '#5a6a3a', '#8a5a3a', '#4a5a6a'][(i * 7 + j) % 4];
+   460→      rr(sx + 12 + j * 24, sy - 22, 18, 22, 3); ctx.fill();
+   461→      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+   462→      ctx.fillRect(sx + 12 + j * 24, sy - 20, 18, 4);
+   463→    }
+   464→  }
+   465→  /* تخت‌های اردوگاهی (راست) */
+   466→  for (let i = 0; i < 2; i++) {
+   467→    const bx = 720, by = 250 + i * 96;
+   468→    ctx.fillStyle = '#2c3440';
+   469→    rr(bx, by, 170, 12, 4); ctx.fill();
+   470→    ctx.fillStyle = '#4a5664';
+   471→    ctx.fillRect(bx + 6, by + 12, 8, 34); ctx.fillRect(bx + 156, by + 12, 8, 34);
+   472→    ctx.fillStyle = '#7a6a8a';
+   473→    rr(bx + 8, by - 8, 70, 10, 4); ctx.fill();           // پتوی روی تخت
+   474→  }
+   475→  /* بازمانده‌ها: سه سایه‌ی نشسته دورِ میز (پشت) */
+   476→  drawShelterSurvivor(380, 330, '#6a5a8a', 0);
+   477→  drawShelterSurvivor(452, 336, '#5a6a4a', 1);
+   478→  drawShelterSurvivor(520, 330, '#6a4a4a', 2);
+   479→
+   480→  /* میز رادیو وسط + ارشان کنارش */
+   481→  const rx = 468, ry = GROUND_Y + 6;
+   482→  ctx.fillStyle = '#3a2c1a';
+   483→  rr(rx - 64, ry - 40, 128, 40, 5); ctx.fill();
+   484→  ctx.fillStyle = '#2c2012';
+   485→  ctx.fillRect(rx - 58, ry - 4, 10, 30); ctx.fillRect(rx + 48, ry - 4, 10, 30);
+   486→  /* رادیوی بزرگ روی میز */
+   487→  ctx.fillStyle = '#4a3a22';
+   488→  rr(rx - 40, ry - 86, 80, 48, 6); ctx.fill();
+   489→  ctx.fillStyle = '#c9a24e';
+   490→  rr(rx - 30, ry - 78, 60, 24, 4); ctx.fill();
+   491→  ctx.fillStyle = 'rgba(30,20,6,0.9)';
+   492→  rr(rx - 26, ry - 74, 52, 16, 3); ctx.fill();
+   493→  /* عقربه‌ی فرکانس — حین آژیر می‌پرد */
+   494→  const dial = alarm ? Math.sin(t * 22) * 18 : Math.sin(t * 2) * 6;
+   495→  ctx.strokeStyle = 'rgba(255,90,70,0.9)'; ctx.lineWidth = 2;
+   496→  ctx.beginPath(); ctx.moveTo(rx, ry - 66); ctx.lineTo(rx + dial, ry - 70); ctx.stroke();
+   497→  /* LED رادیو */
+   498→  ctx.fillStyle = alarm && Math.sin(t * 10) > 0 ? '#ff4b3e' : '#7a5a2e';
+   499→  circle(rx + 28, ry - 52, 3);
+   500→  /* آنتن */
+   501→  ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 2;
+   502→  ctx.beginPath(); ctx.moveTo(rx + 32, ry - 86); ctx.lineTo(rx + 52, ry - 122); ctx.stroke();
+   503→  /* موج‌های رادیو (حین خبرِ بد پررنگ) */
+   504→  const rwA = alarm ? 0.55 : 0.22;
+   505→  ctx.strokeStyle = 'rgba(140,190,255,' + rwA.toFixed(2) + ')';
+   506→  ctx.lineWidth = 2;
+   507→  for (let i = 0; i < 3; i++) {
+   508→    const ph2 = (animTime * (alarm ? 1.6 : 0.7) + i * 0.33) % 1;
+   509→    ctx.globalAlpha = (1 - ph2) * 0.6;
+   510→    ctx.beginPath();
+   511→    ctx.arc(rx + 40, ry - 96, 16 + ph2 * (alarm ? 150 : 80), -0.9, 0.6);
+   512→    ctx.stroke();
+   513→  }
+   514→  ctx.globalAlpha = 1;
+   515→
+   516→  /* دکتر مریم — کنار میز، رو به بازیکن */
+   517→  drawDoctorMary(rx - 130, ry, animTime);
+   518→  /* بازیکن (چپِ صحنه، تازه‌وارد) */
+   519→  drawShelterWalker(200, GROUND_Y + 24, 2.3, 0.3, false);
+   520→  /* ارشان — پشت میز، دست روی رادیو */
+   521→  {
+   522→    const ax = rx + 96, ay = ry - 4;
+   523→    ctx.save();
+   524→    ctx.translate(ax, ay);
+   525→    const lean = alarm ? Math.sin(t * 9) * 1.6 : Math.sin(animTime * 2.2) * 1.2;
+   526→    ctx.rotate(lean * 0.02);
+   527→    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+   528→    ctx.beginPath(); ctx.ellipse(0, 2, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+   529→    ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+   530→    ctx.beginPath(); ctx.moveTo(-4, -16); ctx.lineTo(-5, -1); ctx.moveTo(4, -16); ctx.lineTo(5, -1); ctx.stroke();
+   531→    ctx.fillStyle = '#4a7a4a'; rr(-11, -38, 22, 24, 6); ctx.fill();
+   532→    ctx.fillStyle = '#f0c49a'; circle(2, -44, 8);
+   533→    ctx.fillStyle = '#7a2a2a';
+   534→    ctx.beginPath(); ctx.arc(2, -44, 8.4, Math.PI, Math.PI * 2); ctx.fill();
+   535→    ctx.fillRect(-7, -45, 18, 4);
+   536→    /* دستِ دراز به رادیو */
+   537→    ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 5;
+   538→    ctx.beginPath(); ctx.moveTo(-6, -32); ctx.lineTo(-34, -52); ctx.stroke();
+   539→    ctx.restore();
+   540→  }
+   541→
+   542→  /* چراغ‌های آویزی: سه لامپ با حوضچه‌ی نور */
+   543→  for (let i = 0; i < 3; i++) {
+   544→    const lx = 200 + i * 280;
+   545→    const flick = 0.8 + 0.2 * Math.sin(animTime * (3 + i) + i * 2);
+   546→    ctx.strokeStyle = '#0e1218'; ctx.lineWidth = 2;
+   547→    ctx.beginPath(); ctx.moveTo(lx, 60); ctx.lineTo(lx, 150); ctx.stroke();
+   548→    ctx.fillStyle = alarm ? '#5a2430' : '#3a3630';
+   549→    rr(lx - 12, 150, 24, 10, 4); ctx.fill();
+   550→    const col = alarm ? '255,80,60' : '255,214,138';
+   551→    ctx.fillStyle = 'rgba(' + col + ',' + (0.85 * flick).toFixed(2) + ')';
+   552→    circle(lx, 164, 5);
+   553→    const pool = ctx.createRadialGradient(lx, 168, 8, lx, 168, 150);
+   554→    pool.addColorStop(0, 'rgba(' + col + ',' + (0.16 * flick).toFixed(2) + ')');
+   555→    pool.addColorStop(1, 'rgba(' + col + ',0)');
+   556→    ctx.fillStyle = pool; circle(lx, 168, 150);
+   557→  }
+   558→
+   559→  /* آژیر: چراغ گردان قرمز روی همه‌چیز */
+   560→  if (alarm) {
+   561→    const pulse = 0.5 + 0.5 * Math.sin(t * 4.4);
+   562→    ctx.fillStyle = 'rgba(200,30,20,' + (0.1 + pulse * 0.16).toFixed(2) + ')';
+   563→    ctx.fillRect(0, 0, W, H);
+   564→    /* چراغ گردان سقف */
+   565→    const ax = W / 2 + Math.sin(t * 4.4) * 90;
+   566→    const ag = ctx.createRadialGradient(ax, 96, 4, ax, 96, 120);
+   567→    ag.addColorStop(0, 'rgba(255,60,40,' + (0.4 + pulse * 0.3).toFixed(2) + ')');
+   568→    ag.addColorStop(1, 'rgba(255,60,40,0)');
+   569→    ctx.fillStyle = ag; circle(ax, 96, 120);
+   570→    ctx.fillStyle = '#ff4b3e'; circle(ax, 96, 6);
+   571→  }
+   572→}
+   573→
+   574→/* بازمانده‌ی نشسته — سایه‌ی رنگی با سرِ کم‌جان */
+   575→function drawShelterSurvivor(x, y, col, seed) {
+   576→  ctx.save();
+   577→  ctx.translate(x, y);
+   578→  const breathe = Math.sin(animTime * 1.6 + seed * 2) * 1.4;
+   579→  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+   580→  ctx.beginPath(); ctx.ellipse(0, 2, 17, 5, 0, 0, Math.PI * 2); ctx.fill();
+   581→  ctx.fillStyle = col;
+   582→  rr(-14, -34 + breathe, 28, 34, 8); ctx.fill();           // پتو/شانه‌ها
+   583→  ctx.fillStyle = '#c9a084';
+   584→  circle(0, -40 + breathe, 7);
+   585→  ctx.fillStyle = 'rgba(30,24,40,0.85)';
+   586→  ctx.beginPath(); ctx.arc(0, -40 + breathe, 7.4, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+   587→  ctx.restore();
+   588→}
+   589→
+   590→/* دکتر مریم — روسریِ فیروزه‌ای + روپوش + گوشیِ پزشکی */
+   591→function drawDoctorMary(x, y, t2) {
+   592→  ctx.save();
+   593→  ctx.translate(x, y);
+   594→  const breathe = Math.sin(t2 * 1.8) * 1.2;
+   595→  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+   596→  ctx.beginPath(); ctx.ellipse(0, 2, 15, 4.4, 0, 0, Math.PI * 2); ctx.fill();
+   597→  /* پاها */
+   598→  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+   599→  ctx.beginPath(); ctx.moveTo(-4, -18); ctx.lineTo(-5, -1); ctx.moveTo(4, -18); ctx.lineTo(5, -1); ctx.stroke();
+   600→  /* روپوش سفید-نقره‌ای */
+   601→  ctx.fillStyle = '#cfd6e4';
+   602→  rr(-12, -44 + breathe, 24, 28, 8); ctx.fill();
+   603→  ctx.fillStyle = '#a8b2c6';
+   604→  rr(-12, -26 + breathe, 24, 8, 4); ctx.fill();
+   605→  /* سر + روسری فیروزه‌ای */
+   606→  ctx.fillStyle = '#e8c49a';
+   607→  circle(1, -50 + breathe, 8.4);
+   608→  ctx.fillStyle = '#2e8a7a';
+   609→  ctx.beginPath(); ctx.arc(1, -51 + breathe, 9, Math.PI * 0.92, Math.PI * 2.08); ctx.fill();
+   610→  ctx.beginPath();
+   611→  ctx.moveTo(-8, -50 + breathe); ctx.quadraticCurveTo(-12, -36 + breathe, -6, -26 + breathe);
+   612→  ctx.lineTo(2, -28 + breathe); ctx.quadraticCurveTo(-4, -40 + breathe, -6, -50 + breathe);
+   613→  ctx.closePath(); ctx.fill();
+   614→  /* گوشی پزشکی روی سینه */
+   615→  ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 2;
+   616→  ctx.beginPath();
+   617→  ctx.moveTo(-2, -40 + breathe); ctx.quadraticCurveTo(6, -36 + breathe, 8, -30 + breathe);
+   618→  ctx.stroke();
+   619→  ctx.fillStyle = '#39424e'; circle(8.6, -30 + breathe, 3);
+   620→  /* دست‌ها آرام روی هم */
+   621→  ctx.strokeStyle = '#e8c49a'; ctx.lineWidth = 4.6;
+   622→  ctx.beginPath(); ctx.moveTo(-8, -34 + breathe); ctx.lineTo(8, -32 + breathe); ctx.stroke();
+   623→  ctx.restore();
+   624→}
+   625→
+   626→/* ---------------------- ۱۳-۵) صفحه‌ی بردِ سینمایی (بازنویسی) ----------------------
+   627→   تعریف قدیمی در v3_part3 با این جایگزین می‌شود (تعریفِ آخر برنده است):
+   628→   مدال طلایی + پرتوهای چرخان (CSS) + کارت‌های آمار + آتش‌بازیِ
+   629→   پشتِ پنل (ذراتِ canvas از حلقه‌ی اصلی) + منوی کامل + قلابِ سری دوم */
+   630→function victory() {
+   631→  if (state.mode === 'victory') return;
+   632→  state.mode = 'victory';
+   633→  state.mouse.down = false;
+   634→  state.placing = null;
+   635→  state.combo = 0;
+   636→  state.dayTarget = 1;
+   637→  state.shake = 0; state.flash = 0;
+   638→  hideDayPanel();
+   639→  hidePeddlerPanel();
+   640→  hideAnnounce();
+   641→  $('bossBar').style.display = 'none'; bossBarVisible = false;
+   642→  hideScreen('tbcScreen');
+   643→  $('wrap').classList.remove('cine-mode');
+   644→  $('skipCs').classList.add('hidden');
+   645→  /* کارت‌های آمار */
+   646→  const cards = [
+   647→    ['🧟', faNum(state.stats.kills), 'کشتار'],
+   648→    ['💰', faNum(state.stats.earned), 'سکه‌ی جمع‌شده'],
+   649→    ['🔥', '×' + faNum(state.stats.maxCombo), 'بهترین کمبو'],
+   650→    ['🛡', faNum(state.stats.turKills), 'کشتار برجک‌ها'],
+   651→    ['❤️', faNum(Math.ceil(state.tower.hp)), 'جونِ برجِ آخر'],
+   652→    ['🌙', faNum(FINAL_WAVE) + '/' + faNum(FINAL_WAVE), 'شبِ زنده‌ماندن'],
+   653→  ];
+   654→  $('vStats').innerHTML = cards.map(c =>
+   655→    '<div class="vic-card"><div class="vc-ic">' + c[0] + '</div><div class="vc-n">' + c[1] +
+   656→    '</div><div class="vc-l">' + c[2] + '</div></div>').join('');
+   657→  /* شلیکِ اولین آتش‌بازی + زنگِ پیروزی */
+   658→  VICFX.t = 0.2;
+   659→  SFX.victory();
+   660→  showScreen('victoryScreen');
+   661→}
+   662→
+   663→/* آتش‌بازی صفحه‌ی برد — از updateFx صدا می‌شود (حالت victory)؛
+   664→   UPDATE_HOOKS فقط در playing/intermission/day می‌چرخد */
+   665→function victoryFireworks(dt) {
+   666→  if (state.mode !== 'victory') return;
+   667→  const vs = document.getElementById('victoryScreen');
+   668→  if (!vs || vs.classList.contains('hidden')) return;
+   669→  VICFX.t -= dt;
+   670→  if (VICFX.t > 0) return;
+   671→  VICFX.t = 1.05 + Math.random() * 0.85;
+   672→  const x = rand(110, W - 110), y = rand(70, 250);
+   673→  const cols = ['#ffd873', '#7bd389', '#ff8a72', '#8fd6ff', '#f0b53c', '#d8a3ff'];
+   674→  const col = cols[irand(0, cols.length - 1)];
+   675→  spawnParticles(x, y, 26, col, { speed: 150 + Math.random() * 140, life: 1.25, size: 2.7, grav: 95 });
+   676→  spawnParticles(x, y, 9, '#fff3cf', { speed: 90, life: 1.0, size: 1.9, grav: 70 });
+   677→  try { SFX.combo(irand(5, 11)); } catch (e) {}
+   678→}
+   679→
+   680→/* ---------------------- ۱۳-۶) صداها و اتصال‌ها ---------------------- */
+   681→/* صدای آژیر پناهگاه — دو نُتِ برجسته‌ی تکراری */
+   682→try {
+   683→  SFX.alarm = function () {
+   684→    Snd.tone({ type: 'square', f0: 880, f1: 660, dur: 0.18, vol: 0.09 });
+   685→    Snd.tone({ type: 'square', f0: 660, f1: 880, dur: 0.18, vol: 0.09, delay: 0.2 });
+   686→  };
+   687→} catch (e) {}
+   688→
+   689→/* دکمه‌های جدید صفحه‌ی برد و «ادامه دارد» */
+   690→window.addEventListener('load', () => {
+   691→  const vm = $('btnVicMenu');
+   692→  if (vm) vm.addEventListener('click', () => { SFX.click(); exitToMenu(); });
+   693→  const tc = $('tbcContinue');
+   694→  if (tc) tc.addEventListener('click', tbcContinueToVictory);
+   695→});
+   696→
+   697→/* دیباگ/تست: پرش مستقیم به کات‌سین پناهگاه و مراحلش */
+   698→window.addEventListener('load', () => {
+   699→  if (typeof window.GAME === 'undefined') return;
+   700→  GAME.v19 = {
+   701→    startShelterCine, skipShelterCine, startTbcScreen, tbcContinueToVictory,
+   702→    get SHEL() { return SHEL; },
+   703→    shelterGoto(phase, t) {          /* پرش به فاز مشخص (برای تست فریم‌ها) */
+   704→      if (!SHEL) startShelterCine();
+   705→      SHEL.phase = phase; SHEL.t = t || 0; SHEL.dlgStarted = false; SHEL.dlgDone = false;
+   706→      if (phase === 'tbc') startTbcScreen();
+   707→    },
+   708→  };
+   709→});
+   710→

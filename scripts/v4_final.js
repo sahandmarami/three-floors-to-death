@@ -21,26 +21,34 @@ let VC = null;      // وضعیت صحنه‌ی پیروزی (victory cinematic)
    کریت (سر) ×۱٫۲۵ قبل از ضریب داخلی ×۲ = ×۲٫۵؛ حین stagger کامل می‌خورد */
 const _hitZombieBase = hitZombie;
 /* (۱۹٫۰) زره سخت‌تر + «شکستنِ یورش»: دمیج متمرکز موقع شارژ نگهبان
-   یورشش را قطع می‌کند و او زمین می‌خورد (پاداش آتشِ دقیق) */
+   یورشش را قطع می‌کند و او زمین می‌خورد (پاداش آتشِ دقیق)
+   (۲۰٫۰) بازخورد کاربر «رییس بازم راحته»: زره ×۰٫۳۰/۰٫۳۸، شکستِ زره
+   دیرتر (۱۱۵۰)، بریدن یورش سخت‌تر (۱۳۰) و — مهم‌تر از همه —
+   «صفحه‌ی زره‌ضدِّبرجک»: گلوله‌ی برجک‌ها فقط ×۰٫۳۳ می‌مانَد (src='tur')؛
+   تیر خود بازیکن کامل اثر می‌کند تا میدان فقط با برجک‌ها برنده نشود */
 hitZombie = function (z, dmg, bx, by, dir, crit, knock, src) {
   if (z && z.type === 'boss' && !z.dead && state.wave >= FINAL_WAVE) {
     const ai = z.ai || (z.ai = {});
     let d = dmg;
+    /* (۲۰٫۰) برجک‌ها روی زره‌ی نگهبان تقریباً بی‌اثرند — کار اصلی با خودِ توست
+       (src برای گلوله‌ی برجک = نام نوع برجک: gatling/sniper/frost/tesla/...) */
+    const fromTurret = !!src && src !== 'player' && src !== 'airstrike';   /* حمله‌ی هوایی هم سلاحِ خود بازیکن است */
+    if (fromTurret && !(ai.staggerT > 0)) d = Math.max(1, Math.round(d * 0.33));
     if (ai.staggerT > 0) {
-      d = Math.max(1, Math.round(d * 1.15));                   // پنجره‌ی زره‌ترکیده
-    } else if (crit) {
+      d = Math.max(1, Math.round(d * (fromTurret ? 1.0 : 1.2)));      // پنجره‌ی زره‌ترکیده
+    } else if (crit && !fromTurret) {
       d = Math.max(1, Math.round(d * 1.22));                   // سر = نقطه‌ضعف
-    } else {
-      d = Math.max(1, Math.round(d * (ai.hardened ? 0.36 : 0.45)));   // زره (فاز ۲ سخت‌تر)
+    } else if (!fromTurret) {
+      d = Math.max(1, Math.round(d * (ai.hardened ? 0.38 : 0.30)));   // زره (فاز ۲ سخت‌تر)
     }
     /* (۱۹٫۰) شکستن یورش: دمیجِ متمرکز در فاز شارژ → نگهبان می‌لغزد
        (آستانه بعد ازِ زره حساب می‌شود — حدود ۲۰۰ دمیج خامِ متمرکز) */
     if ((ai.charge || 0) > 0 || (ai.dash || 0) > 0) {
       ai.breakAcc = (ai.breakAcc || 0) + d;
-      if (ai.breakAcc >= 90) {
+      if (ai.breakAcc >= 130) {
         ai.breakAcc = 0;
-        ai.charge = 0; ai.dash = 0; ai.chargeT = 13;
-        ai.staggerT = 2.6;
+        ai.charge = 0; ai.dash = 0; ai.chargeT = 11;
+        ai.staggerT = 2.2;
         z.stagger = 0.3;
         z.x += Math.sign(z.x - TOWER.x) * 60;                  // از پایه دور شود
         setAnnounce('💥 یورشِ نگهبان شکست!', 'زمین خورد — الان وقتشه!', 1.8);
@@ -51,9 +59,9 @@ hitZombie = function (z, dmg, bx, by, dir, crit, knock, src) {
       }
     }
     ai.dmgAcc = (ai.dmgAcc || 0) + d;
-    if (ai.dmgAcc >= 900 && (ai.staggerT || 0) <= 0) {         // پلکانی‌شدن (۱۹٫۰: دیرتر می‌شکند)
+    if (ai.dmgAcc >= 1150 && (ai.staggerT || 0) <= 0) {        // پلکانی‌شدن (۲۰٫۰: دیرتر می‌شکند)
       ai.dmgAcc = 0;
-      ai.staggerT = 1.9;
+      ai.staggerT = 1.7;
       z.stagger = 0.3;
       setAnnounce('🛡 زره‌ی نگهبان ترکید!', 'فرصت داری — ببار!', 1.6);
       SFX.crit();
@@ -69,7 +77,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
   if (state.mode !== 'playing' || state.wave < FINAL_WAVE) return;
   const boss = state.zombies.find(z => z.type === 'boss' && !z.dead);
   if (boss) {
-    if (!boss.ai) boss.ai = { throwT: 2.9, summonT: 7.5, slamT: 4.5, slam: 0, rage: false, staggerT: 0, dmgAcc: 0, hinted: false, baseSpd: boss.speed, chargeT: 8, charge: 0, dash: 0, dashDir: 1, breakAcc: 0, hardened: false, phase2: false };
+    if (!boss.ai) boss.ai = { throwT: 2.6, summonT: 6.5, slamT: 4.0, slam: 0, rage: false, staggerT: 0, dmgAcc: 0, hinted: false, turretWarned: false, baseSpd: boss.speed, chargeT: 6.5, charge: 0, dash: 0, dashDir: 1, breakAcc: 0, hardened: false, phase2: false };
     const ai = boss.ai;
     const hpFrac = boss.hp / boss.maxHp;
     const rage = hpFrac < 0.42;
@@ -79,8 +87,14 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
       ai.hinted = true;
       try { bark('fbw1', 'a', 'آوارها رو بترکون! نذار به برج بخورن!', '🎯 [ارشان]: آوارها رو بترکون!', 'گلوله‌ات آوارِ پرتابی را در هوا می‌ترکاند — نذار به بام بخوره!', 3); } catch (e) {}
     }
-    /* (۱۹٫۰) فاز ۲ در ۵۵٪: زره‌ی سنگین — مبارزه دو پله‌ای شد */
-    if (!ai.phase2 && hpFrac < 0.55) {
+    /* (۲۰٫۰) هشدار «زره ضدِّبرجک» — در همان دمِ شروعِ مبارزه */
+    if (!ai.turretWarned) {
+      ai.turretWarned = true;
+      try { bark('fbz1', 'a', 'برجک‌ها روی زره‌ش زیاد اثر ندارن! خودت باید بزنی!', '🛡 [ارشان]: زره‌ش برجک‌ها رو پس می‌زنه!', 'گلوله‌ی برجک‌ها روی زره‌اش ×۰٫۳۳ اثر دارد — تیرِ خودت را نگه‌دار برای او!', 3.4); } catch (e) {}
+    }
+    /* (۱۹٫۰) فاز ۲ در ۵۵٪: زره‌ی سنگین — مبارزه دو پله‌ای شد
+       (۲۰٫۰) زودتر: ۶۲٪ */
+    if (!ai.phase2 && hpFrac < 0.62) {
       ai.phase2 = true;
       ai.hardened = true;
       boss.speed = ai.baseSpd * 1.3;
@@ -113,7 +127,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
         spawnParticles(boss.x + rand(-40, 40), boss.y, 1, '#8a7a5c', { speed: 60, life: 0.4, size: 2.4, grav: 200, up: true });
       }
       if (ai.charge <= 0) {
-        ai.dash = 0.95;
+        ai.dash = 0.9;
         ai.dashDir = Math.sign(TOWER.x - boss.x) || 1;
         SFX.csEngine();
       }
@@ -124,9 +138,9 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
       state.shake = Math.max(state.shake, 4);
       spawnParticles(boss.x - ai.dashDir * 40, boss.y, 2, '#8a7a5c', { speed: 90, life: 0.4, size: 2.6, grav: 260, up: true });
       if (Math.abs(boss.x - TOWER.x) < 125) {
-        /* رسید: کوبشِ یورش — سنگین‌تر از کوبش معمولی */
+        /* رسید: کوبشِ یورش — سنگین‌تر از کوبش معمولی (۲۰٫۰: ۳۸) */
         ai.dash = 0;
-        damageTower(30, TOWER.x + (boss.x < TOWER.x ? -40 : 40));
+        damageTower(38, TOWER.x + (boss.x < TOWER.x ? -40 : 40));
         state.shake = 22;
         SFX.csBoom(); SFX.roar();
         for (let i = 0; i < 30; i++) {
@@ -136,7 +150,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
         }
         ai.slamT = Math.max(ai.slamT, 4.5);
       } else if (ai.dash <= 0) {
-        ai.chargeT = rage ? 10 : 14;
+        ai.chargeT = rage ? 8.5 : 12;
       }
     } else if (ai.staggerT <= 0) {
       ai.chargeT = (ai.chargeT || 12) - dt;
@@ -154,7 +168,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
       ai.slam -= dt;
       boss.stagger = 0.3;                                    // حین آماده‌باش نمی‌جنبد
       if (ai.slam <= 0) {
-        damageTower(24, TOWER.x + (boss.x < TOWER.x ? -55 : 55));   /* (۱۹٫۰) سنگین‌تر */
+        damageTower(28, TOWER.x + (boss.x < TOWER.x ? -55 : 55));   /* (۲۰٫۰) سنگین‌تر */
         state.shake = 20;
         SFX.csBoom();
         for (let i = 0; i < 26; i++) {
@@ -173,22 +187,23 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
     ai.throwT -= dt;
     if (ai.throwT <= 0 && ai.slam <= 0 && ai.staggerT <= 0 && (ai.charge || 0) <= 0 && (ai.dash || 0) <= 0) {
       if (Math.abs(boss.x - TOWER.x) > 150) {
-        ai.throwT = rage ? 1.7 : (ai.hardened ? 2.4 : 3.0);   /* (۱۹٫۰) فاز دوم تندتر */
+        ai.throwT = rage ? 1.45 : (ai.hardened ? 2.0 : 2.6);     /* (۲۰٫۰) تندتر */
         bossThrowDebris(boss);
         if (ai.hardened) bossThrowDebris(boss);               /* فاز ۲+: دو آوار */
-        if (desp) bossThrowDebris(boss);                      // آخرین نفس: سه آوار
-      } else ai.throwT = 1.1;
+        if (desp) { bossThrowDebris(boss); bossThrowDebris(boss); }   /* آخرین نفس: چهارآوار */
+      } else ai.throwT = 1.0;
     }
     /* فراخوان زامبی‌ها */
     ai.summonT -= dt;
-    if (ai.summonT <= 0 && state.zombies.filter(z => !z.dead).length < 9) {
-      ai.summonT = rage ? 6 : (ai.hardened ? 8 : 9.5);        /* (۱۹٫۰) فراخوان بیشتر */
+    if (ai.summonT <= 0 && state.zombies.filter(z => !z.dead).length < 12) {
+      ai.summonT = rage ? 5 : (ai.hardened ? 6.5 : 8);         /* (۲۰٫۰) فراخوان بیشتر */
       setAnnounce('💀 نگهبان فراخوان می‌کند!', 'زامبی‌های سریع در راه‌اند — جلویشون رو بگیر!', 1.8);
       SFX.roar();
       spawnZombie('fast');
       if (ai.hardened) spawnZombie('fast');
       if (rage) spawnZombie('fast');
-      if (desp) { spawnZombie('normal'); spawnZombie('tank'); }
+      if (ai.hardened && rage) spawnZombie('tank');            /* (۲۰٫۰) تانک هم می‌آورد */
+      if (desp) { spawnZombie('normal'); spawnZombie('tank'); spawnZombie('fast'); }
     }
   }
   /* فیزیک آوار پرتابی + برخوردها */
@@ -200,7 +215,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
     /* برخورد با برج: آسیب به بام (۱۱٫۰: ۲۲ — محسوس‌تر) */
     if (Math.abs(p.x - TOWER.x) < 40 && p.y > TOWER_TOP_Y - 26 && p.y < GROUND_Y) {
       p.dead = true;
-      damageTower(26, p.x);                                   /* (۱۹٫۰) آوار سنگین‌تر */
+      damageTower(30, p.x);                                   /* (۲۰٫۰) آوار سنگین‌تر */
       debrisBurst(p.x, p.y);
       continue;
     }

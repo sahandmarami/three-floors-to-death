@@ -71,12 +71,19 @@ const BUILD_DEFS = [
   { tab: 'up', kind: 'health', key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
   { tab: 'up', kind: 'weapon', key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
   { tab: 'up', kind: 'trap',   key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
-  { tab: 'wpn', kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید، خودش در دستت می‌آید' },
-  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید، خودش در دستت می‌آید' },
-  { tab: 'tur', kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۳ • برد ۲۳۰' },
+  /* (۲۰٫۰) پیشرفتِ تک‌خطی سلاح: کلت ← شاتگان ← مسلسل — خریدِ تازه،
+     قبلی را تحویل می‌دهد؛ تب فقط سلاحِ فعلی + بعدی را نشان می‌دهد */
+  { tab: 'wpn', kind: 'pistol',  key: '۱', codes: [], name: 'کلت',      desc: 'سلاح شروع بازی — با خرید شاتگان تحویل داده می‌شود' },
+  { tab: 'wpn', kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — با خریدنش، کلت را تحویل می‌دهی' },
+  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — با خریدنش، شاتگان را تحویل می‌دهی' },
+  { tab: 'tur', kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
   { tab: 'tur', kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
   { tab: 'tur', kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
-  { tab: 'tur', kind: 'turretUp',key: 'T', codes: ['KeyT'],              name: 'ارتقای برجک‌ها', desc: '+۳۰٪ دمیج و +۱۲٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
+  /* (۲۰٫۰) برجک‌های ویژه — فقط بعد از خریدِ نقشه از فروشنده‌ی مرموز ظاهر می‌شوند */
+  { tab: 'tur', kind: 'tesla',   key: 'Y', codes: ['KeyY'], name: 'برجک تسلا',       desc: 'آذرخش زنجیره‌ای به ۳ هدف • دمیج ۹ • برد ۲۶۰ — ویژه‌ی دستفروش' },
+  { tab: 'tur', kind: 'missile', key: 'M', codes: ['KeyM'], name: 'برجک موشک‌انداز', desc: 'موشک با انفجارِ محدوده‌ای • دمیج ۲۶ • برد ۵۲۰ — ویژه‌ی دستفروش' },
+  { tab: 'tur', kind: 'flame',   key: 'N', codes: ['KeyN'], name: 'برجک شعله‌افکن',  desc: 'شعله‌ی پیوسته + آتش‌گیرندگی • برد ۱۵۰ — ویژه‌ی دستفروش' },
+  { tab: 'tur', kind: 'turretUp',key: 'T', codes: ['KeyT'],              name: 'ارتقای برجک‌ها', desc: '+۲۲٪ دمیج و +۹٪ سرعت شلیک همه‌ی برجک‌ها در هر سطح' },
   { tab: 'sur', kind: 'flashlight', key: 'J', codes: ['KeyJ'], name: 'چراغ‌قوه',
     desc: 'با L روشن/خاموش می‌شود — دید در مه و قطع برق (باتری مصرف می‌کند)' },
   { tab: 'sur', kind: 'battery',    key: 'K', codes: ['KeyK'], name: 'باتری',
@@ -106,6 +113,11 @@ function paintIcon(kind, cv) {
   const im = CUBE_IMGS[kind];
   if (!im && typeof GEAR !== 'undefined' && GEAR[kind] && typeof paintGearIcon === 'function') {
     paintGearIcon(kind, cv);                     // (۱۴٫۰) آیکون واقعی وسایل بقا
+    return;
+  }
+  /* (۲۰٫۰) برجک‌های ویژه‌ی دستفروش — آیکونِ نقشه‌ای از paintGearIcon */
+  if (!im && typeof TURRETS !== 'undefined' && TURRETS[kind] && TURRETS[kind].rare && typeof paintGearIcon === 'function') {
+    paintGearIcon(kind, cv);
     return;
   }
   c.clearRect(0, 0, 88, 88);
@@ -149,16 +161,21 @@ function tileStatus(kind) {
     return 'داخل کوله: ' + faNum(state.backpack.filter(s => s && s.id === kind).length)
       + ' • قیمت: ' + faNum(g.price) + ' سکه';
   }
-  if (kind === 'shotgun' || kind === 'mg') {
-    if (!WEAPONS[kind].owned) return 'قفل — بعد از خرید، خودش در دستت می‌آید';
-    return state.weapon === kind ? 'همین الان در دستته ✅' : 'خریده شد — کلیک کن تا در دستت بیاید';
+  if (kind === 'pistol' || kind === 'shotgun' || kind === 'mg') {
+    if (kind === state.weapon) return 'همین الان در دستته ✅';
+    const next = kind === 'pistol' ? null : (kind === 'shotgun' ? 'mg' : null);
+    if (kind === 'shotgun' && state.weapon === 'pistol') return 'خریدش = کلت تحویل می‌شود و این در دستت می‌آید';
+    if (kind === 'mg' && state.weapon === 'shotgun') return 'خریدش = شاتگان تحویل می‌شود و این در دستت می‌آید';
+    return 'قفل — بعد از سلاحِ قبلی باز می‌شود';
   }
   if (kind === 'repair') {
     return state.tower.hp >= state.tower.maxHp - 0.5
       ? 'برج سرِ سلامتی است'
       : 'جون برج: ' + faNum(Math.ceil(state.tower.hp)) + '/' + faNum(state.tower.maxHp);
   }
-  if (kind === 'gatling' || kind === 'sniper' || kind === 'frost') {
+  if (TURRETS[kind]) {
+    if (TURRETS[kind].rare && !(state.bps && state.bps[kind]))
+      return '🔒 نقشه‌ی ساختش فقط از «فروشنده‌ی مرموز» می‌آید';
     const cnt = state.turrets.filter(t => t.type === kind).length;
     return (cnt ? faNum(cnt) + ' عدد فعال • ' : '') + 'قیمت: ' + faNum(TURRETS[kind].price) + ' سکه';
   }
@@ -250,8 +267,11 @@ function toggleBuildPanel() {
   setBuildPanel(!$('buildPanel').classList.contains('collapsed'));
 }
 
-/* به‌روزرسانی وضعیت کاشی‌های پنل (۱۲٫۰: تب‌دار + سلاحِ در دست) */
+/* به‌روزرسانی وضعیت کاشی‌های پنل (۱۲٫۰: تب‌دار + سلاحِ در دست)
+   (۲۰٫۰) تب سلاح‌ها فقط «سلاحِ فعلی + سلاحِ بعدی» را نشان می‌دهد و
+   تب برجک‌ها برجک‌های ویژه را فقط با نقشه‌ی خریداری‌شده نشان می‌دهد */
 function refreshBuildPanel() {
+  const WORDER = ['pistol', 'shotgun', 'mg'];
   for (const d of BUILD_DEFS) {
     const item = $('bp-' + d.kind);
     if (!item) continue;
@@ -260,14 +280,24 @@ function refreshBuildPanel() {
     /* فقط کاشی‌های تبِ فعال دیده شوند */
     item.style.display = (d.tab === BP_TAB) ? '' : 'none';
 
-    /* --- سلاح‌های یک‌بار خرید (۱۲٫۰: بعد از خرید = انتخاب/در دست) --- */
-    if (d.kind === 'shotgun' || d.kind === 'mg') {
-      const owned = WEAPONS[d.kind].owned;
-      const armed = owned && state.weapon === d.kind;
-      item.classList.toggle('armed', armed);
-      item.classList.toggle('max', owned && !armed);
-      cost.textContent = armed ? 'در دست' : (owned ? 'انتخاب' : faNum(UPGRADES[d.kind].price));
-      item.classList.toggle('poor', !owned && state.coins < UPGRADES[d.kind].price);
+    /* --- سلاح‌ها (۲۰٫۰: پیشرفتِ تک‌خطی — فعلی + بعدی) --- */
+    if (WORDER.indexOf(d.kind) >= 0) {
+      const curIdx = WORDER.indexOf(state.weapon);
+      const idx = WORDER.indexOf(d.kind);
+      const owned = !!WEAPONS[d.kind].owned;
+      const isCur = d.kind === state.weapon;
+      const isNext = idx === curIdx + 1;
+      const visible = (d.tab === BP_TAB) && (isCur || isNext);
+      item.style.display = visible ? '' : 'none';
+      item.classList.toggle('armed', isCur);
+      item.classList.toggle('max', false);
+      if (isCur) {
+        cost.textContent = 'در دست';
+      } else if (isNext) {
+        cost.textContent = faNum(UPGRADES[d.kind].price);
+        item.classList.toggle('poor', state.coins < UPGRADES[d.kind].price);
+      }
+      if (!isNext) item.classList.remove('poor');
       continue;
     }
 
@@ -280,8 +310,12 @@ function refreshBuildPanel() {
       continue;
     }
 
-    /* --- برجک‌های دفاعی: خرید → حالت نصب --- */
-    if (d.kind === 'gatling' || d.kind === 'sniper' || d.kind === 'frost') {
+    /* --- برجک‌های دفاعی: خرید → حالت نصب (۲۰٫۰: ویژه‌ها فقط با نقشه) --- */
+    if (TURRETS[d.kind]) {
+      if (TURRETS[d.kind].rare && !(state.bps && state.bps[d.kind])) {
+        item.style.display = 'none';
+        continue;
+      }
       const def = TURRETS[d.kind];
       const maxed = state.turrets.length >= MAX_TURRETS;
       const isPlacing = state.placing && state.placing.type === d.kind;
@@ -568,6 +602,17 @@ window.GAME = {
     arshanForce,
     arshanOnRoof,
     get ARSHAN_BARKS() { return (typeof ARSHAN_BARKS !== 'undefined') ? ARSHAN_BARKS : null; },
+  },
+  /* ---- (۲۰٫۰) رابط تست فروشنده‌ی چندچهره/برجک ویژه/پیشرفت سلاح/APK ---- */
+  v20: {
+    get PED_LOOKS() { return (typeof PED_LOOKS !== 'undefined' ? PED_LOOKS : null); },
+    get BLUEPRINTS() { return (typeof BLUEPRINTS !== 'undefined' ? BLUEPRINTS : null); },
+    get bps() { return state.bps; },
+    setBP(k) { state.bps[k] = true; refreshBuildPanel(); },
+    peddlerRoll, pickRareStock, buyRare, renderPeddlerStock,
+    teslaDischarge, missileBurst, useAirstrike, drvNearMiss,
+    get DRV() { return (typeof DRV !== 'undefined' ? DRV : null); },
+    apkBackButton: (typeof apkBackButton !== 'undefined' ? apkBackButton : null),
   },
   /* انداختن دستی جعبه‌ی قدرت (برای تست) */
   dropPower(type) { spawnPowerupObj(type || pickPowerType(), TOWER.x - 130, GROUND_Y - 60); },

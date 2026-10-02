@@ -2,8 +2,12 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۱۹٫۰: مینی‌گیم‌های سواره‌ی تازه (قایق در مه + اسنوموبیل در توفان برفی)، دودِ متحرک خانه‌های سوخته، نگهبانِ سخت‌تر با یورش و فاز دوم، کات‌سین ورود به پناهگاه با پایانِ «ادامه دارد» و صفحه‌ی پیروزی بازطراحی‌شده — بهینه برای موبایل و اندروید">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#04060d">
+<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۲۰٫۰: بازی طولانی‌تر (۳۶ شب)، نگهبانِ سخت‌تر با مقاومت در برابر برجک‌ها، فروشنده‌ی مرموز با چهره‌ها و کالاهای تازه + برجک‌های ویژه (تسلا/موشک/شعله)، پیشرفت سلاح، مینی‌گیم‌های امتیازدار، داخلِ پناهگاهِ بازطراحی‌شده و آماده‌ی ساخت APK اندروید — بهینه برای موبایل">
 <title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
@@ -27,8 +31,10 @@
 /* ---------- ۱) ریست و قاب کلی ---------- */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e8ecf5;
-  font-family:Tahoma,'Segoe UI','Noto Naskh Arabic','Noto Sans Arabic',Arial,sans-serif}
-body{display:flex;align-items:center;justify-content:center}
+  font-family:Tahoma,'Segoe UI','Noto Naskh Arabic','Noto Sans Arabic',Arial,sans-serif;
+  overscroll-behavior:none;position:fixed;inset:0}
+body{display:flex;align-items:center;justify-content:center;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
 
 /* قاب بازی: (۱۴٫۰) اندازه‌ی نهایی را «کنترل‌کننده‌ی fitWrap» با JS می‌گذارد
    (همیشه کل صحنه در صفحه جا می‌شود — حتی گوشی/مرورگر درون‌اپ)؛
@@ -36,6 +42,8 @@ body{display:flex;align-items:center;justify-content:center}
 #wrap{position:relative;width:min(97vw,calc(97vh*960/560));aspect-ratio:960/560;
   border-radius:12px;overflow:hidden;
   box-shadow:0 12px 70px rgba(0,0,0,.75),0 0 0 1px #24345e,0 0 0 3px rgba(255,209,102,.12)}
+/* (۲۰٫۰) داخل APK/درون‌اپ: گوشه‌ها تخت و بی‌سایه — بازی تمام‌صفحه است */
+body.in-app #wrap{border-radius:0;box-shadow:none}
 #game{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
 
 /* ---------- (۱۲٫۰) جعبه‌ی گفتگوی داستانی: پرتره + حباب ---------- */
@@ -442,6 +450,13 @@ body{display:flex;align-items:center;justify-content:center}
 .pd-item .pd-sub{font-size:8.5px;color:#9f8fd0;display:block}
 .pd-item .pd-price{margin-inline-start:auto;font-size:10px;font-weight:bold;color:#ffd873;white-space:nowrap}
 .pd-item.poor{opacity:.6}.pd-item.poor .pd-price{color:#e06a5a}
+/* (۲۰٫۰) نقشه‌ی ساخت برجک ویژه — قاب طلایی برجسته + برچسب «تازه!» */
+.pd-item.pd-bp{background:rgba(48,34,18,.9);border-color:#c9954a;box-shadow:0 0 10px rgba(232,181,74,.25)}
+.pd-item.pd-bp:hover{border-color:#ffd873;box-shadow:0 0 14px rgba(232,181,74,.45)}
+.pd-item .pd-new{font-style:normal;font-size:8.5px;font-weight:bold;color:#0d2a12;background:#7be389;
+  border-radius:5px;padding:0 4px;margin-inline-start:4px}
+/* دکمه‌ی کارنامه در «ادامه دارد» — کوچک‌تر از دکمه‌ی اصلی */
+.btn-tbc-stats{font-size:12.5px;padding:7px 14px}
 #peddlerPanel.scammed{animation:pdScam .7s}
 @keyframes pdScam{0%,100%{transform:translateX(0);border-color:#4a3a6a}
   20%,60%{transform:translateX(-6px);border-color:#e04b3a}
@@ -797,7 +812,7 @@ body{display:flex;align-items:center;justify-content:center}
       <div class="vic-rays"></div>
       <div class="vic-medal">🏆</div>
       <h1 class="vic-title">پیروزی!</h1>
-      <div class="vic-ribbon">قهرمانِ ۲۸ شب — از محله‌ی قدیمی تا پناهگاه</div>
+      <div class="vic-ribbon">قهرمانِ <span id="vicNights">۳۶</span> شب — از محله‌ی قدیمی تا پناهگاه</div>
       <div class="vic-stats" id="vStats"></div>
       <div class="btn-row vic-menu">
         <button class="btn-main" id="btnRestart2">🌙 بازی دوباره از شب اول</button>
@@ -814,7 +829,8 @@ body{display:flex;align-items:center;justify-content:center}
       <div class="tbc-sub" id="tbcSub">سری دوم: <b>«محاصره‌ی پناهگاه»</b></div>
       <div class="tbc-tease" id="tbcTease">🧟 گله‌ی بزرگ... پشتِ درِ پناهگاه...</div>
       <div class="btn-row tbc-row" id="tbcRow">
-        <button class="btn-main" id="tbcContinue">ادامه‌ی داستان → صفحه‌ی پیروزی</button>
+        <button class="btn-main" id="tbcContinue">🏠 بازگشت به منوی اصلی</button>
+        <button class="btn-sec btn-tbc-stats" id="tbcStats">🏅 کارنامه‌ی نبرد</button>
       </div>
     </div>
   </div>

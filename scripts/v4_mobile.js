@@ -132,6 +132,52 @@ function toggleFullscreen() {
   } catch (e) {}
 }
 
+/* ---------------------- (۲۰٫۰) آماده‌ی APK: دکمه‌ی بازگشت اندروید ----------------------
+   داخل کپاسیتور/کوردوا، دکمه‌ی Back گوشی رویداد «backbutton» می‌دهد؛
+   در وبِ معمولی popstate. رفتار: صفحه‌ی راهنما/تنظیمات باز → بستن؛
+   وسط بازی → توقف؛ در توقف → بازگشت به بازی؛ در منو → هیچ (خروج با دکمه) */
+function apkBackButton() {
+  try {
+    /* صفحات کمکی باز هستند؟ */
+    const open = ['howtoScreen', 'settingsScreen', 'aboutScreen', 'saveCodeScreen', 'confirmBox'];
+    for (const id of open) {
+      const el = $(id);
+      if (el && !el.classList.contains('hidden')) {
+        SFX.click();
+        hideScreen(id);
+        if (id === 'settingsScreen') { try { applySettings(); saveSettings(); } catch (e) {} }
+        return;
+      }
+    }
+    if (state.mode === 'paused') { resumeGame(); return; }
+    if (state.mode === 'playing' || state.mode === 'day' || state.mode === 'intermission') {
+      pauseGame();
+      return;
+    }
+    /* در حالت‌های سینمایی/انتقال، چیزی نکن — دکمه‌ی «رد کردن» خودش هست */
+  } catch (e) {}
+}
+document.addEventListener('backbutton', apkBackButton, false);          /* کوردوا/کپاسیتور */
+window.addEventListener('popstate', () => {                            /* مرورگر/APK های وب‌محور */
+  if (window.Capacitor || document.body.classList.contains('in-app')) apkBackButton();
+});
+/* تشخیص درون‌اپ: کپاسیتور/کوردوا → حالت تمام‌صفحه بدون سایه */
+(function detectInApp() {
+  const inApp = !!(window.Capacitor || window.cordova || (window.androidBridge));
+  if (inApp) document.body.classList.add('in-app');
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+    try { window.Capacitor.Plugins.App.addListener('backButton', apkBackButton); } catch (e) {}
+  }
+})();
+/* جلوگیری از pull-to-refresh و اسکرول لمسی — فقط روی صحنه‌ی بازی
+   (پنل‌های HTML داخل #wrap خودشان مدیریت می‌شوند) */
+document.addEventListener('touchmove', e => {
+  const t = e.target;
+  if (t && (t.id === 'game' || t === document.body || t === document.documentElement)) {
+    if (e.cancelable) e.preventDefault();
+  }
+}, { passive: false });
+
 /* ---------------------- ۱۱-۳) ذخیره و خروج + سیو خودکارِ خروج ---------------------- */
 /* دکمه‌ی پنل توقف: ذخیره‌ی وسط بازی و برگشت امن به منو */
 window.addEventListener('load', () => {

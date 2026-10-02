@@ -454,7 +454,9 @@ function mgOutro() {
   TR.t = 0;
   TR.ev = {};
   MG.obs = [];
-  setTransSub(MGCFG[TR.ch].outroSub, 2.6);
+  const sc = Math.round(typeof DRV !== 'undefined' ? (DRV.score || 0) : 0);
+  setTransSub(MGCFG[TR.ch].outroSub, 2.2);
+  setTimeout(() => { try { setTransSub('🏁 امتیاز فرار: ' + faNum(sc) + (MG.hits ? ' — برخوردها: ' + faNum(MG.hits) : ' — بدون برخورد! ✨'), 2.4); } catch (e) {} }, 2400);
   SFX.clear();
   const b = TR_BARKS[TR.ch];         /* (۱۲٫۰) صدای پایان فرار */
   if (b && b.outro) transBark(b.outro, MGCFG[TR.ch].outroSub, 3.2);
@@ -637,6 +639,56 @@ function drawTransitionOverlay() {
     ctx.fillStyle = '#e8563f';
     rr(bx + 3 + Math.max(0, fw - 8), by + 1.5, 15, 11, 3); ctx.fill();
     drawMiniTower(bx + bw + 22, by + 14);
+    /* (۲۰٫۰) چیپ امتیاز + کمبوی «نزدک بود!» — بالا-راست */
+    if (typeof DRV !== 'undefined') {
+      const D = DRV;
+      const scoreTxt = '⭐ ' + faNum(Math.round(D.score || 0));
+      ctx.font = 'bold 13px Tahoma, sans-serif';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      const sw2 = ctx.measureText(scoreTxt).width + 26;
+      ctx.fillStyle = 'rgba(5,9,22,0.92)';
+      rr(W - sw2 - 14, by - 26, sw2, 24, 12); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,216,115,0.5)'; ctx.lineWidth = 1.4;
+      rr(W - sw2 - 14, by - 26, sw2, 24, 12); ctx.stroke();
+      ctx.fillStyle = '#ffd873';
+      ctx.fillText(scoreTxt, W - 26, by - 13.5);
+      if ((D.combo || 0) >= 2) {
+        const pulse = 0.75 + 0.25 * Math.sin(animTime * 9);
+        ctx.globalAlpha = pulse;
+        const cTxt = '🔥 کمبو ×' + faNum(D.combo) + (D.boost > 0 ? '  ⚡بوست' : '');
+        const cw2 = ctx.measureText(cTxt).width + 24;
+        ctx.fillStyle = 'rgba(64,28,10,0.92)';
+        rr(W - cw2 - 14, by - 54, cw2, 24, 12); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,154,61,0.65)';
+        rr(W - cw2 - 14, by - 54, cw2, 24, 12); ctx.stroke();
+        ctx.fillStyle = '#ffb26e';
+        ctx.fillText(cTxt, W - 26, by - 41.5);
+        ctx.globalAlpha = 1;
+      }
+      ctx.textAlign = 'center';
+    }
+    /* (۲۰٫۰) موبایل: نشانگرهای لمسیِ نیمه‌شفاف فرمان/ترمز — همیشه دیده شوند */
+    if ((typeof IS_TOUCH !== 'undefined') && IS_TOUCH && TR.phase === 2) {
+      ctx.save();
+      ctx.globalAlpha = 0.22 + 0.1 * Math.sin(animTime * 2.4);
+      ctx.fillStyle = '#dfe8f5';
+      ctx.strokeStyle = 'rgba(223,232,245,0.8)'; ctx.lineWidth = 2;
+      /* چپ: فرمان */
+      circle(56, H - 64, 30); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(66, H - 64); ctx.lineTo(46, H - 74); ctx.lineTo(46, H - 54);
+      ctx.closePath(); ctx.fill();
+      /* راست: فرمان */
+      circle(W - 56, H - 64, 30); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(W - 66, H - 64); ctx.lineTo(W - 46, H - 74); ctx.lineTo(W - 46, H - 54);
+      ctx.closePath(); ctx.fill();
+      /* وسط: ترمز */
+      circle(W / 2, H - 52, 20); ctx.stroke();
+      ctx.fillRect(W / 2 - 7, H - 58, 14, 5);
+      ctx.fillRect(W / 2 - 7, H - 49, 14, 5);
+      ctx.restore();
+    }
     /* راهنمای کنترل (۵ ثانیه‌ی اول) — (۱۷٫۰) رانندگی متن خودش را دارد */
     const k = clamp(MG.t2 / 0.5, 0, 1) * clamp((5.6 - MG.t2) / 0.8, 0, 1);
     if (k > 0.03) {

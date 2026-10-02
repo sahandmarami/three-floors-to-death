@@ -1,0 +1,1017 @@
+     1→/* ==================================================================
+     2→   سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۵: فصل‌بندی، جریان موج‌ها و سیو
+     3→   ==================================================================
+     4→   ساختار چهار فصل بازی (هر فصل ۸ موج + موج ۳۳ = «آخرین شب»):
+     5→     ۱) محله‌ی قدیمی   — آجری، شب معمولی، برج سنگی/آجری
+     6→     ۲) منطقه‌ی انبارها — صنعتی، مه‌گرفته، برج فولادی + قطع برق تصادفی
+     7→     ۳) پاسگاه نظامی    — خرابه‌ها، ماه خونی و بارش خاکستر (شهر سوخته‌ی ۷٫۰)
+     8→     ۴) برج مخابراتی   — بارانی/برفی، رعدوبرق پرتواتر، برج لاجوردی
+     9→   قواعد:
+    10→     - جون، سکه، سلاح‌ها، ارتقاها و کوله‌پشتی بین فصل‌ها حفظ می‌شوند
+    11→     - برجک‌ها روی برج قبلی می‌مانند (هر فصل از نو ساخته می‌شود)
+    12→     - پایان هر فصل = انتقال سه‌فازی سینمایی-قابل‌بازی (بخش ۷)
+    13→     - سیو خودکار localStorage: پایان هر موج + هر خرید + شروع هر فصل
+    14→   این فایل توابع جریان نسخه‌های قبل (startGame/startWave/waveComplete/
+    15→   startNight/spawnZombie) را با نسخه‌ی فصل‌دار بازنویسی می‌کند.
+    16→   ================================================================== */
+    17→
+    18→/* ---------------------- ۵-۱) ثابت‌های فصل‌بندی ---------------------- */
+    19→const WAVES_CH = [4, 6, 8, 10];              // (۱۸٫۰) موج‌های هر فصل — که جلو می‌ریم بیشتر
+    20→const WAVES_PER_CH = 8;                    // مبنای مقیاس‌گذاری سختی (نسخه‌های ۱۵-۱۷)
+    21→const FINAL_WAVE = 28;                     // ۴+۶+۸+۱۰ = آخرین شبِ کل بازی
+    22→
+    23→/* شماره‌ی فصل/موجِ درون‌فصلی از شماره‌ی موجِ سراسری (۱۸٫۰: هر فصل طول متفاوت) */
+    24→function wavesInChapter(ch) { return WAVES_CH[clamp(ch, 1, 4) - 1]; }
+    25→function waveChapter(w) {
+    26→  w = clamp(w, 1, FINAL_WAVE);
+    27→  let acc = 0;
+    28→  for (let c = 1; c <= 4; c++) { acc += WAVES_CH[c - 1]; if (w <= acc) return c; }
+    29→  return 4;
+    30→}
+    31→function waveInChapter(w) {
+    32→  w = clamp(w, 1, FINAL_WAVE);
+    33→  const ch = waveChapter(w);
+    34→  let acc = 0;
+    35→  for (let c = 1; c < ch; c++) acc += WAVES_CH[c - 1];
+    36→  return w - acc;
+    37→}
+    38→/* (۱۸٫۰) موجِ «معادل» روی مقیاس ۱..۸ برای سختی/ترکیب/فاصله‌ی تولد —
+    39→   اولین موج هر فصل = ۱ و آخرین موج هر فصل = ۸؛ یعنی انتهای هر فصل
+    40→   دقیقاً به سختیِ نسخه‌های ۱۵-۱۷ می‌رسد، فقط راهِ رسیدن کوتاهتر است */
+    41→function wvEff(w) {
+    42→  const ch = waveChapter(w), wv = waveInChapter(w), n = wavesInChapter(ch);
+    43→  return n <= 1 ? 1 : 1 + (wv - 1) * 7 / (n - 1);
+    44→}
+    45→/* سیوهای نسخه‌های ۳۳موجی به‌تناسب به بازه‌ی ۱..۲۸ منتقل می‌شوند */
+    46→function compatWave(w) {
+    47→  w = Math.round(Number(w) || 1);
+    48→  if (w > FINAL_WAVE) w = Math.max(1, Math.round(w * FINAL_WAVE / 33));
+    49→  return clamp(w, 1, FINAL_WAVE);
+    50→}
+    51→
+    52→/* ابزارهای تصادفی مکمل */
+    53→function irand(a, b) { return Math.floor(rand(a, b + 0.999)); }
+    54→function chance(p) { return Math.random() < p; }
+    55→
+    56→/* تنظیمات کامل هر فصل:
+    57→   mulHp/mulSpd/mulCount = ضریب سختی دشمن‌ها • unlock = موجِ درون‌فصلیِ ورود انواع
+    58→   blackout = تعداد قطع‌برق‌های تصادفی هر شب • theme = پالت و حال‌وهوای صحنه
+    59→   (۱۵٫۰) همه‌ی ضرایب سختی ~۱۵٪ ملایم‌تر شدند — بازخورد «سخت است» */
+    60→const CHAPTERS = [
+    61→  { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
+    62→    name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
+    63→    waves: WAVES_CH[0],
+    64→    mulHp: 1.00, mulSpd: 1.00, mulCount: 1.08,
+    65→    unlock: { fast: 3, tank: 6 },
+    66→    blackout: null,
+    67→    theme: {
+    68→      sky: [['#05091a', '#41a8ef'], ['#0d1734', '#6fc8f8'], ['#182550', '#b8e8fd'], ['#233865', '#e2f4ff']],
+    69→      moon: { x: 176, y: 88, r: 37 },
+    70→      skyline: 'city', grade: 'cold',
+    71→      ground: {
+    72→        h1: ['#16244a', '#82c163'], h1c: ['#2c4272', '#abd97e'],
+    73→        h2: ['#101d3d', '#6fb556'], h2c: ['#263a63', '#9ccf74'],
+    74→        soil: ['#1e2815', '#568c3e'], soilD: ['#0c110a', '#2a4a22'],
+    75→        grass: ['#273418', '#68ac4c'], blade: ['#33451f', '#7cc266'],
+    76→      },
+    77→      fog: 0, snow: false, ash: false, emberEyes: false, deadTrees: false,
+    78→      lightning: [13, 30], darkBase: 0, props: 'village',
+    79→    },
+    80→  },
+    81→  { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
+    82→    name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
+    83→    waves: WAVES_CH[1],
+    84→    mulHp: 1.30, mulSpd: 1.08, mulCount: 1.18,
+    85→    unlock: { fast: 1, tank: 3 },
+    86→    blackout: { min: 1, max: 2 },
+    87→    theme: {
+    88→      sky: [['#070d16', '#77a3bd'], ['#10202e', '#a5c2d4'], ['#1a3441', '#c8dae4'], ['#24424a', '#e0ecf2']],
+    89→      smoke: { c: '110,130,145', a: [0.26, 0.12] },
+    90→      moon: { x: 760, y: 70, r: 26, dim: 0.75 },
+    91→      skyline: 'warehouse', grade: 'cold',
+    92→      ground: {
+    93→        h1: ['#15202e', '#8e9aa6'], h1c: ['#243448', '#b7c2ca'],
+    94→        h2: ['#101a26', '#7c8892'], h2c: ['#1e2c3e', '#a5b0b8'],
+    95→        soil: ['#232a30', '#6a7278'], soilD: ['#101418', '#3a4046'],
+    96→        grass: ['#2e3844', '#7d8894'], blade: ['#3a4654', '#8d99a6'],
+    97→      },
+    98→      fog: 0.9, snow: false, ash: false, emberEyes: false, deadTrees: false,
+    99→      lightning: [22, 46], darkBase: 0.62, props: 'warehouse',
+   100→    },
+   101→  },
+   102→  { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
+   103→    name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
+   104→    waves: WAVES_CH[2],
+   105→    mulHp: 1.58, mulSpd: 1.14, mulCount: 1.28,
+   106→    unlock: { fast: 1, tank: 1 },
+   107→    blackout: { min: 0, max: 1 },
+   108→    theme: {
+   109→      sky: [['#170b1c', '#8a7560'], ['#241028', '#a58b70'], ['#3a1626', '#c2a784'], ['#4a1c28', '#d8bc95']],
+   110→      smoke: { c: '150,85,55', a: [0.30, 0.15] },
+   111→      moon: { x: 806, y: 96, r: 44, blood: true },
+   112→      skyline: 'ruin', grade: 'ember',
+   113→      ground: {
+   114→        h1: ['#242028', '#8d7f6c'], h1c: ['#3a3440', '#a8977f'],
+   115→        h2: ['#1c1820', '#7c6e5c'], h2c: ['#302a34', '#97866f'],
+   116→        soil: ['#2a2118', '#6b5a44'], soilD: ['#120e0a', '#3a3227'],
+   117→        grass: ['#3a3125', '#7d6d54'], blade: ['#4a4030', '#948266'],
+   118→        scorch: true,
+   119→      },
+   120→      fog: 0.15, snow: false, ash: true, emberEyes: true, deadTrees: true,
+   121→      lightning: [16, 34], darkBase: 0.22, props: 'military',
+   122→    },
+   123→  },
+   124→  { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
+   125→    name: 'برج مخابراتی', sub: 'آخرین قله',
+   126→    waves: WAVES_CH[3],
+   127→    mulHp: 1.92, mulSpd: 1.20, mulCount: 1.38,
+   128→    unlock: { fast: 1, tank: 1 },
+   129→    blackout: { min: 1, max: 2 },
+   130→    theme: {
+   131→      sky: [['#0a1020', '#96b6d4'], ['#152238', '#bcd2e6'], ['#20304a', '#d8e6f2'], ['#2c3f5c', '#f0f6fc']],
+   132→      smoke: { c: '90,105,130', a: [0.20, 0.10] },
+   133→      moon: { x: 250, y: 64, r: 30, dim: 0.6 },
+   134→      skyline: 'mountain', grade: 'frost',
+   135→      ground: {
+   136→        h1: ['#1a2740', '#aebfd4'], h1c: ['#2c3f5e', '#d4e2ef'],
+   137→        h2: ['#141f36', '#94a8c2'], h2c: ['#243450', '#bccce0'],
+   138→        soil: ['#2a3342', '#8e9db2'], soilD: ['#141a26', '#4a566a'],
+   139→        grass: ['#39465a', '#a8bacf'], blade: ['#46536a', '#bcd0e2'],
+   140→      },
+   141→      fog: 0.1, snow: true, ash: false, emberEyes: false, deadTrees: false,
+   142→      lightning: [5, 12], darkBase: 0.3, props: 'telecom',
+   143→    },
+   144→  },
+   145→];
+   146→
+   147→/* فصل فعال (برای خواندن تم/ضریب‌ها در توابع رندر) */
+   148→function curCh() { return CHAPTERS[clamp(state.chapter - 1, 0, 3)]; }
+   149→
+   150→/* برچسب موج برای HUD: «فصل ۲ • موج ۳/۸» یا «آخرین شب» */
+   151→function waveLabel() {
+   152→  if (state.wave >= FINAL_WAVE) return '🌑 آخرین شب';
+   153→  const w = clamp(state.wave, 1, FINAL_WAVE);
+   154→  return 'فصل ' + faNum(waveChapter(w)) + ' • موج ' + faNum(waveInChapter(w)) + '/' + faNum(wavesInChapter(waveChapter(w)));
+   155→}
+   156→
+   157→/* ---------------------- ۵-۲) تولید ترکیب موج‌ها ---------------------- */
+   158→/* ترکیب هر موج به‌صورت رویه‌ای از (فصل، شماره‌ی درون‌فصلی) ساخته می‌شود؛
+   159→   موج آخرِ کل بازی فقط نگهبان است (زامبی‌هایش را خودش فراخوان می‌کند) */
+   160→function buildWaveQueue(w) {
+   161→  if (w >= FINAL_WAVE) return ['boss'];
+   162→  const ch = waveChapter(w), e = wvEff(w), C = CHAPTERS[ch - 1];
+   163→  let n = Math.round((5 + e * 1.85) * C.mulCount);         // (۱۱٫۰) موج‌ها پرتر
+   164→  const f = e >= C.unlock.fast ? Math.round(n * 0.32) : 0;
+   165→  const t = e >= C.unlock.tank ? Math.max(1, Math.round(n * 0.16)) : 0;
+   166→  n = Math.max(3, n - Math.round((f + t) * 0.55));
+   167→  const q = [];
+   168→  for (let i = 0; i < n; i++) q.push('normal');
+   169→  for (let i = 0; i < f; i++) q.push('fast');
+   170→  for (let i = 0; i < t; i++) q.push('tank');
+   171→  for (let i = q.length - 1; i > 0; i--) {          // شافل فیشر–ییتس
+   172→    const j = Math.floor(rand(0, i + 1));
+   173→    const tmp = q[i]; q[i] = q[j]; q[j] = tmp;
+   174→  }
+   175→  return q;
+   176→}
+   177→
+   178→/* فاصله‌ی تولد زامبی‌ها: هر موج و هر فصل فشرده‌تر
+   179→   (۱۵٫۰) کمی بازتر — فشار هجوم روی گوشی قابل‌تحمل شد */
+   180→function spawnInterval(w) {
+   181→  const ch = waveChapter(w), e = wvEff(w);
+   182→  return clamp(2.15 - e * 0.12 - (ch - 1) * 0.16, 0.6, 2.15);
+   183→}
+   184→
+   185→/* ---------------------- ۵-۳) بازنویسی جریان اصلی ---------------------- */
+   186→/* (جایگزین نسخه‌های بخش ۲ — فصل‌دار و سیو‌دار) */
+   187→
+   188→function startGame() {
+   189→  state.mode = 'intermission';
+   190→  state.prevMode = null;
+   191→  state.time = 0; state.wave = 0;
+   192→  state.coins = 40;                       // سرمایه‌ی شروع (۱۵٫۰ کمی بیشتر)
+   193→  state.dayness = 0; state.dayTarget = 0; state.goingNight = false;
+   194→  state.tower.hp = 100; state.tower.maxHp = 100;
+   195→  state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 };
+   196→  state.weapon = 'pistol';
+   197→  state.chapter = 1;                      // (۱۰٫۰) فصل ۱
+   198→  state.towerVariant = 0;
+   199→  state.cutsceneDone = false;
+   200→  state.weaponSpent = 0;
+   201→  /* (۱۰٫۰) ریست نظام‌های جدید */
+   202→  state.backpack = [null, null, null, null, null, null];
+   203→  state.torch = { owned: false, on: false, battery: 0 };
+   204→  state.buffs = { vest: false, goldAmmo: false, helmet: false };
+   205→  state.regen = 0;
+   206→  state.peddler = { cd: 0, here: false, stock: [] };
+   207→  state.blackout = { on: false, waveT: 0, schedule: [], until: 0 };
+   208→  state.projectiles = [];
+   209→  state.cardT = 0;
+   210→  cutsceneHardReset();                    // کات‌سین معلق نباشد (۷٫۰)
+   211→  transitionHardReset();                  // انتقال فصل معلق نباشد (۱۰٫۰)
+   212→  introHardReset();                       // کات‌سین افتتاحیه معلق نباشد (۱۰٫۰)
+   213→  defeatHardReset();                      // (۱۲٫۰) سینماییِ باخت معلق نباشد
+   214→  shelterHardReset();                     // (۱۹٫۰) کات‌سین پناهگاه/«ادامه دارد» معلق نماند
+   215→  wipeSave();                             // بازی تازه = سیو تازه
+   216→  WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
+   217→  state.zombies = []; state.bullets = []; state.coinsArr = [];
+   218→  state.turrets = []; state.placing = null; state.tipTurret = false;
+   219→  state.particles = []; state.texts = []; state.zaps = [];
+   220→  state.powerups = []; state.decals = [];
+   221→  state.powerTimers = { rapid: 0, freeze: 0 };
+   222→  state.combo = 0; state.comboT = 0; state.comboPop = 0;
+   223→  state.killsSinceDrop = 0; state.heartT = 0;
+   224→  state.shake = 0; state.flash = 0;   // فلش قرمز آسیب (عدد) — چراغ‌قوه state.torch است
+   225→  state.hitMark = 0; state.muzzleGlow = 0; state.slowmo = 0;
+   226→  state.lightning = { t: rand(9, 20), a: 0 };
+   227→  state.stats = { kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 };
+   228→  state.spawn = { queue: [], timer: 0, interval: 2, bossDelay: false };
+   229→  state.mouse.down = false; fireTimer = 0; announceTimer = 0;
+   230→  state.intermission = INTERMISSION_FIRST;
+   231→  hideOverlays();
+   232→  hideDayPanel();
+   233→  hidePeddlerPanel();                     // (۱۰٫۰)
+   234→  if (typeof PED !== 'undefined') PED.reset();   // (۱۴٫۰) داستان دستفروع معلق نماند
+   235→  hideChapterCard();                      // (۱۰٫۰)
+   236→  $('wrap').classList.remove('menu-mode', 'cs-mode', 'cine-mode', 'dlg-on');
+   237→  $('lockBadge').classList.add('hidden'); // (۱۰٫۰)
+   238→  setBuildPanel(false, true);
+   239→  setPauseIcon(false);   // (۱۳٫۰) ریل چپ
+   240→  $('bpHead').classList.remove('attention');
+   241→  $('bossBar').style.display = 'none'; bossBarVisible = false;
+   242→  updateHUD(); refreshBuildPanel(); refreshWeaponBar();
+   243→  refreshBackpack(); refreshGearHUD();    // (۱۰٫۰)
+   244→}
+   245→
+   246→/* آغاز موج سراسری n — صف ترکیبِ فصل‌محور + زمان‌بندی قطع برق */
+   247→function startWave(n) {
+   248→  state.wave = n;
+   249→  state.mode = 'playing';
+   250→  const isFinal = n >= FINAL_WAVE;
+   251→  state.spawn = {
+   252→    queue: buildWaveQueue(n),
+   253→    timer: 1.2,
+   254→    interval: spawnInterval(n),
+   255→    bossDelay: false,
+   256→  };
+   257→  /* (۱۰٫۰) زمان‌بندی قطع‌برق‌های تصادفیِ این موج (فصل‌های ۲ به بعد) */
+   258→  state.blackout.waveT = 0;
+   259→  state.blackout.on = false;
+   260→  state.blackout.schedule = [];
+   261→  const C = curCh();
+   262→  if (!isFinal && C.blackout) {
+   263→    const k = irand(C.blackout.min, C.blackout.max);
+   264→    for (let i = 0; i < k; i++) {
+   265→      state.blackout.schedule.push({ at: rand(5, 24), dur: rand(8, 13), fired: false });
+   266→    }
+   267→  }
+   268→  if (isFinal) {
+   269→    $('lockBadge').classList.remove('hidden');    // فروشگاه قفل
+   270→    setAnnounce('🌑 آخرین شب', 'فروشگاه قفل است — فقط کوله‌پشتی و برجت', 2.6);
+   271→    SFX.roar();
+   272→  } else {
+   273→    setAnnounce(waveLabel(), 'دفاع کن! 🧟', 2);
+   274→    SFX.wave();
+   275→  }
+   276→  SFX.dusk();
+   277→  setBuildPanel(true, true);             // شب: پنل جمع
+   278→  if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفروع باید رفته باشد
+   279→  hidePeddlerPanel();
+   280→  $('bpHead').classList.remove('attention');
+   281→  saveGame();                             // (۱۵٫۰) سیوِ شروع موج: با باخت، خریدهای همین روز هم می‌ماند
+   282→  updateHUD();
+   283→}
+   284→
+   285→/* پایان موج: جایزه + مسیر جدید (انتقال فصل / روز / پیروزی) */
+   286→function waveComplete() {
+   287→  if (state.wave >= FINAL_WAVE) { startVictoryCine(); return; }   // برد واقعی (۱۰٫۰)
+   288→  const bonus = 14 + state.wave * 4;      // (۱۵٫۰) جایزه‌ی کمی بیشتر — اقتصاد نفس‌گیرتر
+   289→  state.coins += bonus;
+   290→  state.stats.earned += bonus;
+   291→  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
+   292→  pulseCoins();
+   293→  state.zombies = []; state.bullets = []; state.projectiles = [];
+   294→  state.blackout.on = false;              // برق برمی‌گردد
+   295→  $('lockBadge').classList.add('hidden');
+   296→  /* آخرین موجِ فصل → انتقال سینمایی-قابل‌بازی به فصل بعد (۱۰٫۰) */
+   297→  const ch = waveChapter(state.wave), wv = waveInChapter(state.wave);
+   298→  if (wv === wavesInChapter(ch) && ch < 4) {
+   299→    startTransition(ch);
+   300→    return;
+   301→  }
+   302→  enterDay();
+   303→}
+   304→
+   305→/* ورود به روز: پنل فروشگاه + دستفروش + سیو خودکار */
+   306→function enterDay() {
+   307→  state.mode = 'day';
+   308→  state.dayTarget = 1;
+   309→  state.goingNight = false;
+   310→  state.slowmo = Math.max(state.slowmo, 0.45);
+   311→  $('bossBar').style.display = 'none'; bossBarVisible = false;
+   312→  const isFinalNext = state.wave + 1 >= FINAL_WAVE;
+   313→  setAnnounce('☀️ صبح شد!',
+   314→    isFinalNext ? '⚠️ شب بعدی «آخرین شب» است — آخرین فرصت خرید!'
+   315→                : 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
+   316→  SFX.clear();
+   317→  SFX.morning();
+   318→  showDayPanel();                          /* (۱۶٫۰) دکمه‌ی طلایی داخل پنل ساخت‌وساز */
+   319→  peddlerRoll();                          // (۱۰٫۰) شانس آمدن دستفروش مرموز
+   320→  saveGame();                             // (۱۰٫۰) سیو خودکارِ پایان موج
+   321→  /* (۱۱٫۰) روی موبایل پنلِ باز شلوغ است — جمع شروع می‌شود (با ضربه باز می‌شود) */
+   322→  setBuildPanel((typeof IS_TOUCH !== 'undefined' && IS_TOUCH) ? true : false, true);
+   323→  $('bpHead').classList.add('attention');
+   324→  updateHUD(); refreshBackpack();
+   325→}
+   326→
+   327→/* کلیک «شب شود» — با هشدار ویژه‌ی آخرین شب (۱۰٫۰)
+   328→   (۱۴٫۰) دستفروش مرموز هم همین‌جا بدرقه می‌شود — شب‌ها کنار برج نمی‌ماند */
+   329→function startNight() {
+   330→  if (state.mode !== 'day' || state.goingNight) return;
+   331→  state.goingNight = true;
+   332→  hideDayPanel();
+   333→  if (typeof PED !== 'undefined') PED.leave();
+   334→  hidePeddlerPanel();
+   335→  state.dayTarget = 0;
+   336→  if (state.wave + 1 >= FINAL_WAVE) {
+   337→    showBossWarn();
+   338→    SFX.dusk();
+   339→    SFX.roar();
+   340→  } else {
+   341→    setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+   342→    SFX.dusk();
+   343→  }
+   344→}
+   345→
+   346→/* هشدار تمام‌صفحه «آخرین شب» */
+   347→function showBossWarn() {
+   348→  const el = $('bossWarn');
+   349→  el.classList.add('show');
+   350→  setTimeout(() => el.classList.remove('show'), 3400);
+   351→}
+   352→
+   353→/* تولید زامبی با مقیاسِ فصل (جون/سرعت به موجِ درون‌فصلی و ضریب فصل وابسته است) */
+   354→function spawnZombie(type) {
+   355→  const T = ZTYPES[type || 'normal'];
+   356→  const C = curCh();
+   357→  const wv = wvEff(clamp(state.wave, 1, FINAL_WAVE));   // (۱۸٫۰) مقیاس سختی ۱..۸
+   358→  const side = Math.random() < 0.5 ? -1 : 1;
+   359→  /* (۱۱٫۰) نگهبانِ آخرین شب جونِ ثابت دارد — ضریب فصل روی او اعمال نمی‌شود
+   360→     (زرهاش خودش سختی را می‌سازند: ×۰٫۵ معمولی، ×۲٫۶ کریتِ سر) */
+   361→  const hp = Math.max(1, Math.round((T.hpBase + T.hpWave * wv) * ((type || 'normal') === 'boss' ? 1 : C.mulHp)));
+   362→  state.zombies.push({
+   363→    type: type || 'normal',
+   364→    x: side < 0 ? -30 : W + 30,
+   365→    y: GROUND_Y + rand(-3, 3),
+   366→    yJit: rand(-3, 3),
+   367→    dir: side < 0 ? 1 : -1,
+   368→    hp, maxHp: hp,
+   369→    speed: (T.spdBase + T.spdWave * wv) * C.mulSpd * rand(0.85, 1.15),
+   370→    radius: T.r,
+   371→    biteInt: T.bite, biteTimer: rand(0.2, 0.6),
+   372→    dmg: T.dmg,
+   373→    walkPhase: Math.random() * Math.PI * 2,
+   374→    attackAnim: 0,
+   375→    attacking: false, attackSide: 0,
+   376→    lane: 0, depth: 1,
+   377→    stagger: 0,
+   378→    chill: 0,
+   379→    hitFlash: 0, dead: false, deathT: 0,
+   380→  });
+   381→  spawnParticles(side < 0 ? 8 : W - 8, GROUND_Y - 4, 5, '#5a4a33',
+   382→    { speed: 55, life: 0.4, size: 2.2, grav: 180, up: true });
+   383→  updateHUD();
+   384→}
+   385→
+   386→/* ---------------------- ۵-۴) شروع فصل جدید + کارت فصل ---------------------- */
+   387→const CH_ORD = ['اول', 'دوم', 'سوم', 'چهارم'];
+   388→
+   389→/* ورود به فصل ch: برج تازه + حفظ پیشرفت بازیکن (۱۰٫۰)
+   390→   برجک‌ها/تله‌های فیزیکی مکان قبلی هستند؛ ارتقاها و وسایل می‌آیند */
+   391→function startChapter(ch) {
+   392→  ch = clamp(ch, 1, 4);
+   393→  state.chapter = ch;
+   394→  state.towerVariant = ch - 1;                 // پوسته‌ی برج فصل
+   395→  state.wave = WAVES_CH.slice(0, ch - 1).reduce((a, b) => a + b, 0);   // (۱۸٫۰) موج بعدی = این + ۱
+   396→  state.turrets = [];                          // برجک‌ها روی برج قبلی ماندند
+   397→  state.placing = null;
+   398→  state.zombies = []; state.bullets = []; state.projectiles = [];
+   399→  state.powerups = []; state.decals = [];
+   400→  state.blackout.on = false; state.blackout.schedule = [];
+   401→  state.dayTarget = 1; state.dayness = Math.max(state.dayness, 0.85);
+   402→  state.goingNight = false;
+   403→  saveGame();                                  // سیو شروع فصل
+   404→  state.mode = 'day';
+   405→  enterDay();
+   406→  setAnnounce('🗺 فصل ' + CH_ORD[ch - 1] + ': ' + curCh().name,
+   407→    curCh().sub + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(ch)) + ' در راه است', 3.2);
+   408→  showChapterCard(ch);
+   409→}
+   410→
+   411→/* کارت تمام‌صفحه‌ی فصل جدید */
+   412→function showChapterCard(ch) {
+   413→  const C = CHAPTERS[ch - 1];
+   414→  $('ccNum').textContent = 'فصل ' + CH_ORD[ch - 1];
+   415→  $('ccName').textContent = C.name;
+   416→  $('ccSub').textContent = C.sub;
+   417→  $('chapterCard').classList.add('show');
+   418→  state.cardT = 2.9;                           // در هوک به‌روزرسانی کم می‌شود
+   419→  SFX.clear();
+   420→}
+   421→function hideChapterCard() {
+   422→  $('chapterCard').classList.remove('show');
+   423→  state.cardT = 0;
+   424→}
+   425→
+   426→/* ---------------------- ۵-۵) سیستم سیو localStorage (۱۳٫۰ مقاوم‌سازی) ---------------------- */
+   427→const SAVE_KEY = 'ttb3_save_v1';
+   428→
+   429→/* (۱۳٫۰) لایه‌ی ذخیره‌سازی مقاوم: اگر localStorage در دسترس نباشد
+   430→   (مرورگر خصوصی / وب‌ویو / مرورگر درون‌اپ)، بازی نه قفل می‌شود نه
+   431→   بی‌صدا سیو را می‌بلعد — حافظه‌ی موقت جایگزین می‌شود + هشدار منو
+   432→   + «کد سیو» برای انتقال دستی پیشرفت. */
+   433→const STORE = {
+   434→  ok: true, mem: {},
+   435→  _check() {
+   436→    try {
+   437→      localStorage.setItem('__ttb3_probe', '1');
+   438→      localStorage.removeItem('__ttb3_probe');
+   439→      this.ok = true;
+   440→    } catch (e) { this.ok = false; }
+   441→    return this.ok;
+   442→  },
+   443→  get(k) {
+   444→    if (this.ok) { try { return localStorage.getItem(k); } catch (e) { return (k in this.mem) ? this.mem[k] : null; } }
+   445→    return (k in this.mem) ? this.mem[k] : null;
+   446→  },
+   447→  set(k, v) {
+   448→    if (this.ok) {
+   449→      try { localStorage.setItem(k, v); return true; } catch (e) { this.ok = false; }
+   450→    }
+   451→    this.mem[k] = v;
+   452→    return this.mem[k] === v;
+   453→  },
+   454→  del(k) {
+   455→    if (this.ok) { try { localStorage.removeItem(k); } catch (e) {} }
+   456→    delete this.mem[k];
+   457→  },
+   458→};
+   459→STORE._check();
+   460→
+   461→/* (۱۳٫۰) اعلان کوچک «ذخیره شد» — فقط روز/وقفه، حداکثر هر ۳۰ ثانیه */
+   462→let _toastSavedAt = -1e9;
+   463→function toastSaved() {
+   464→  if (!(state.mode === 'day' || state.mode === 'intermission')) return;
+   465→  const now = performance.now();
+   466→  if (now - _toastSavedAt < 30000) return;
+   467→  _toastSavedAt = now;
+   468→  const el = $('saveToast');
+   469→  if (!el) return;
+   470→  el.classList.add('show');
+   471→  clearTimeout(toastSaved._t);
+   472→  toastSaved._t = setTimeout(() => el.classList.remove('show'), 1400);
+   473→}
+   474→
+   475→/* عکس‌الوضعتی که ذخیره می‌شود: فصل/موج بعدی، جون، سکه، سلاح‌ها و ارتقاها،
+   476→   محتویات کوله‌پشتی، باتری چراغ‌قوه، دستفروش و آمار
+   477→   (۱۵٫۰) برجک‌های نصب‌شده هم ذخیره می‌شوند — با باخت/ادامه، «وسایلی که
+   478→   ساخته‌ای» از بین نمی‌رود (بازخورد کاربر) */
+   479→function collectSave() {
+   480→  return {
+   481→    v: 1,
+   482→    chapter: state.chapter,
+   483→    /* (۱۱٫۰) حین شبِ N → خودِ N ذخیره می‌شود (همان شب از اول بازی شود)؛
+   484→       در روز/وقفه بعد از موج N → N+۱ (موج بعدی) */
+   485→    wave: state.wave + (state.mode === 'playing' ? 0 : 1),
+   486→    coins: state.coins,
+   487→    hp: Math.ceil(state.tower.hp), maxHp: state.tower.maxHp,
+   488→    upgrades: Object.assign({}, state.upgrades),
+   489→    weapon: state.weapon,
+   490→    owned: { shotgun: WEAPONS.shotgun.owned, mg: WEAPONS.mg.owned },
+   491→    turrets: state.turrets.map(t => ({ t: t.type, x: Math.round(t.x), y: Math.round(t.y) })),
+   492→    backpack: state.backpack.map(s => (s ? s.id : null)),
+   493→    flash: { owned: state.torch.owned, battery: Math.round(state.torch.battery) },
+   494→    buffs: Object.assign({}, state.buffs),
+   495→    peddlerCd: state.peddler.cd,
+   496→    weaponSpent: state.weaponSpent,
+   497→    stats: Object.assign({}, state.stats),
+   498→  };
+   499→}
+   500→
+   501→function saveGame() {
+   502→  if (state.mode === 'gameover' || state.mode === 'victory' || state.mode === 'defeatcine') return false;
+   503→  const ok = STORE.set(SAVE_KEY, JSON.stringify(collectSave()));
+   504→  refreshMenuContinue();
+   505→  if (ok) toastSaved();
+   506→  return ok;
+   507→}
+   508→
+   509→/* (۱۳٫۰) ذخیره‌سازی دوره‌ای در روز/وقفه — هر ۱۰ ثانیه؛ حتی اگر
+   510→   رویدادهای پایان موج/خرید از دست برود، سیو تازه می‌ماند.
+   511→   (ثبت هوک پایین‌تر — بعد از تعریف UPDATE_HOOKS) */
+   512→let _autoSaveT = 0;
+   513→function autoSaveTick(dt) {
+   514→  if (!(state.mode === 'day' || state.mode === 'intermission')) { _autoSaveT = 0; return; }
+   515→  _autoSaveT += dt;
+   516→  if (_autoSaveT >= 10) { _autoSaveT = 0; try { saveGame(); } catch (e) {} }
+   517→}
+   518→
+   519→/* خواندن امن سیو: ساختار نامعتبر = null (بدون کرش) */
+   520→function loadSaveData() {
+   521→  try {
+   522→    const d = JSON.parse(STORE.get(SAVE_KEY));
+   523→    if (!d || d.v !== 1) return null;
+   524→    if (!CHAPTERS[(d.chapter | 0) - 1]) return null;
+   525→    if (typeof d.wave !== 'number' || d.wave < 1) return null;
+   526→    d.wave = compatWave(d.wave);               // (۱۸٫۰) سیوهای ۳۳موجی هم خوانده می‌شوند
+   527→    if (typeof d.coins !== 'number' || !d.upgrades || !d.stats || !d.flash) return null;
+   528→    return d;
+   529→  } catch (e) { return null; }
+   530→}
+   531→
+   532→/* اعمال سیو روی state (بعد از ریست کامل) — مقاوم در برابر داده‌های ناقص
+   533→   (۱۲٫۰) در پایان، سیو دوباره نوشته می‌شود تا اگر ریستِ داخلی چیزی پاک
+   534→   کرد، «ادامه‌ی بازی» هرگز بی‌سیو نماند (رفع باگ دکمه‌ی خاموش‌مانده)
+   535→   (۱۳٫۰) کل بدنه در try/finally — حتی اگر داده‌ی سیو ناقص باشد،
+   536→   بازنویسی سیو هرگز از دست نمی‌رود */
+   537→function applySave(d) {
+   538→  try {
+   539→    startGame();
+   540→    state.chapter = waveChapter(clamp(d.wave | 0, 1, FINAL_WAVE));   // (۱۸٫۰) فصل از خودِ موج
+   541→    state.towerVariant = state.chapter - 1;
+   542→    state.wave = clamp(d.wave | 0, 1, FINAL_WAVE) - 1;   // enterDay با +1 ادامه می‌دهد
+   543→    state.coins = Math.max(0, d.coins | 0);
+   544→    state.tower.maxHp = Math.max(100, d.maxHp | 0);
+   545→    state.tower.hp = clamp(d.hp | 0, 1, state.tower.maxHp);
+   546→    state.upgrades = Object.assign({ weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 }, d.upgrades);
+   547→    WEAPONS.shotgun.owned = !!(d.owned && d.owned.shotgun);
+   548→    WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
+   549→    state.weapon = (d.weapon && WEAPONS[d.weapon]) ? d.weapon : 'pistol';
+   550→    state.weaponSpent = d.weaponSpent | 0;
+   551→    /* (۱۵٫۰) برجک‌های نصب‌شده برمی‌گردند — فقط نوع/جای معتبر، حداکثر MAX_TURRETS */
+   552→    state.turrets = (Array.isArray(d.turrets) ? d.turrets : [])
+   553→      .filter(tr => tr && TURRETS[tr.t] && isFinite(tr.x) && isFinite(tr.y))
+   554→      .slice(0, MAX_TURRETS)
+   555→      .map(tr => ({
+   556→        type: tr.t, x: clamp(tr.x, 26, W - 200), y: clamp(tr.y, GROUND_Y - 34, GROUND_Y + 16),
+   557→        cd: 0.45, aim: tr.x < TOWER.x ? 0 : Math.PI,
+   558→        spin: 0, flash: 0, recoil: 0, hover: false, bob: rand(0, 6.28),
+   559→      }));
+   560→    state.backpack = (d.backpack || []).slice(0, 6)
+   561→      .map(id => ((id && GEAR[id]) || (id && RARE[id])) ? { id } : null);
+   562→    while (state.backpack.length < 6) state.backpack.push(null);
+   563→    state.torch = {
+   564→      owned: !!(d.flash && d.flash.owned),
+   565→      on: false,
+   566→      battery: clamp((d.flash && d.flash.battery) | 0, 0, 100),
+   567→    };
+   568→    state.buffs = Object.assign({ vest: false, goldAmmo: false, helmet: false }, d.buffs);
+   569→    state.peddler = { cd: d.peddlerCd | 0, here: false, stock: [] };
+   570→    state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
+   571→    state.intermission = 0;
+   572→    state.dayness = 1; state.dayTarget = 1;
+   573→    updateHUD(); refreshBackpack(); refreshGearHUD(); refreshBuildPanel();
+   574→  } finally {
+   575→    saveGame();                      // (۱۳٫۰) حتی در صورت خطا هم سیو بازنویسی می‌شود
+   576→  }
+   577→}
+   578→
+   579→function wipeSave() {
+   580→  STORE.del(SAVE_KEY);
+   581→  refreshMenuContinue();
+   582→}
+   583→function wipeSaveAndUI() {
+   584→  SFX.click();
+   585→  wipeSave();
+   586→  hideScreen('confirmBox');
+   587→  setAnnounce('🗑 سیو پاک شد', 'برای شروع تازه «بازی جدید» را بزن', 2.4);
+   588→}
+   589→
+   590→/* فعال/غیرفعال‌شدن دکمه‌ی «ادامه‌ی بازی» منو */
+   591→function refreshMenuContinue() {
+   592→  const btn = $('btnContinue');
+   593→  const warn = $('storageWarn');
+   594→  if (warn) warn.classList.toggle('hidden', STORE.ok);   // (۱۳٫۰) هشدار مرورگرِ ذخیره‌نکردن
+   595→  if (!btn) return;
+   596→  const d = loadSaveData();
+   597→  btn.disabled = !d;
+   598→  btn.textContent = d
+   599→    ? '▶ ادامه — فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave))
+   600→    : '▶ ادامه‌ی بازی (سیوی نیست)';
+   601→}
+   602→
+   603→/* ---------------------- (۱۳٫۰) کد سیو: انتقال دستی پیشرفت ----------------------
+   604→   حتی اگر مرورگر localStorage را نپذیرد یا فایل بازی جابه‌جا شود،
+   605→   پیشرفت با این کدِ متنی ذخیره/برمی‌گردد. */
+   606→function exportSaveCode() {
+   607→  const raw = STORE.get(SAVE_KEY);
+   608→  if (!raw) return null;
+   609→  try { return 'TTB13.' + btoa(unescape(encodeURIComponent(raw))); } catch (e) { return null; }
+   610→}
+   611→function importSaveCode(code) {
+   612→  try {
+   613→    const c = String(code || '').trim();
+   614→    if (c.indexOf('TTB13.') !== 0) return false;
+   615→    const raw = decodeURIComponent(escape(atob(c.slice(6))));
+   616→    const d = JSON.parse(raw);
+   617→    if (!d || d.v !== 1 || !CHAPTERS[(d.chapter | 0) - 1]) return false;
+   618→    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > 33) return false;   // (۱۸٫۰) قدیمی‌ها هنگام خواندن نرمال می‌شوند
+   619→    STORE.set(SAVE_KEY, raw);
+   620→    refreshMenuContinue();
+   621→    return true;
+   622→  } catch (e) { return false; }
+   623→}
+   624→/* صفحه‌ی کد سیو: گرفتن/بارگذاری */
+   625→function initSaveCodeUI() {
+   626→  let mode = 'export';
+   627→  const open = (m) => {
+   628→    mode = m;
+   629→    SFX.click();
+   630→    $('scTitle').textContent = m === 'export' ? '📤 کد سیو' : '📥 بارگذاری کد سیو';
+   631→    $('scHint').textContent = m === 'export'
+   632→      ? 'این کد پیشرفت توست — جایی امن ذخیره‌اش کن'
+   633→      : 'کد سیو را این‌جا بچسبان و «تأیید» را بزن';
+   634→    $('scText').value = m === 'export' ? (exportSaveCode() || '— سیوی برای ساختن کد نیست؛ اول بازی را شروع کن —') : '';
+   635→    $('scText').readOnly = (m === 'export');
+   636→    $('scText').style.direction = 'ltr';
+   637→    showScreen('saveCodeScreen');
+   638→    if (m === 'export') setTimeout(() => { try { $('scText').select(); } catch (e) {} }, 60);
+   639→  };
+   640→  const bs = $('btnSaveCode'), bl = $('btnLoadCode'), bd = $('scDone'), bc = $('scCopy');
+   641→  if (bs) bs.addEventListener('click', () => open('export'));
+   642→  if (bl) bl.addEventListener('click', () => open('import'));
+   643→  if (bc) bc.addEventListener('click', () => {
+   644→    const t = $('scText');
+   645→    try {
+   646→      t.select();
+   647→      const okc = document.execCommand('copy');
+   648→      if (!okc && navigator.clipboard) navigator.clipboard.writeText(t.value);
+   649→      setAnnounce('📋 کپی شد', 'کد سیو در حافظه است', 1.8);
+   650→    } catch (e) {}
+   651→  });
+   652→  if (bd) bd.addEventListener('click', () => {
+   653→    SFX.click();
+   654→    if (mode === 'import') {
+   655→      if (importSaveCode($('scText').value)) {
+   656→        hideScreen('saveCodeScreen');
+   657→        setAnnounce('📥 سیو بارگذاری شد!', 'از منو «ادامه» را بزن', 3);
+   658→      } else {
+   659→        setAnnounce('❌ کد معتبر نیست', 'کل کد را بدون تغییر کپی کن', 2.6);
+   660→      }
+   661→    } else hideScreen('saveCodeScreen');
+   662→  });
+   663→}
+   664→
+   665→/* ادامه از سیو: دقیقاً از روزِ موجِ ذخیره‌شده */
+   666→function continueGame() {
+   667→  const d = loadSaveData();
+   668→  if (!d) { SFX.deny(); refreshMenuContinue(); return; }
+   669→  SFX.click();
+   670→  doFade(() => {
+   671→    applySave(d);
+   672→    hideOverlays();
+   673→    state.mode = 'day';
+   674→    enterDay();
+   675→    setAnnounce('💾 بازی ادامه پیدا کرد',
+   676→      'فصل ' + faNum(state.chapter) + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(state.chapter)), 2.8);
+   677→  });
+   678→}
+   679→
+   680→/* (۱۱٫۰) ذخیره‌ی وسط بازی + خروج امن به منو — «ادامه» از اولِ همان شب/روز
+   681→   سیوِ حین شبِ N → ادامه در روزِ قبل از N با دکمه‌ی «شب شود — موج N» */
+   682→function saveAndExit() {
+   683→  SFX.click();
+   684→  saveGame();                       // حین playing/day/intermission مجاز است
+   685→  exitToMenu();
+   686→  setTimeout(() => setAnnounce('💾 ذخیره شد!', 'هر وقت خواستی از منو «ادامه‌ی بازی» را بزن', 3), 350);
+   687→}
+   688→
+   689→function exitToMenu() {
+   690→  try { VOICE.stop(); } catch (e) {}
+   691→  try { DLG.skip(); } catch (e) {}
+   692→  try { MUSIC.set('menu'); } catch (e) {}
+   693→  cutsceneHardReset();
+   694→  transitionHardReset();
+   695→  introHardReset();
+   696→  defeatHardReset();                      // (۱۲٫۰)
+   697→  hideOverlays();
+   698→  hideDayPanel();
+   699→  hidePeddlerPanel();
+   700→  if (typeof PED !== 'undefined') PED.reset();   // (۱۴٫۰)
+   701→  hideChapterCard();
+   702→  hideAnnounce();
+   703→  $('skipCs').classList.add('hidden');
+   704→  state.mode = 'start';
+   705→  state.prevMode = null;
+   706→  state.mouse.down = false;
+   707→  state.placing = null;
+   708→  state.goingNight = false;
+   709→  state.zombies = []; state.bullets = []; state.projectiles = [];
+   710→  state.coinsArr = []; state.powerups = []; state.particles = []; state.texts = [];
+   711→  state.bossBar && ($('bossBar').style.display = 'none');
+   712→  bossBarVisible = false;
+   713→  $('lockBadge').classList.add('hidden');
+   714→  setPauseIcon(false);   // (۱۳٫۰) ریل چپ
+   715→  $('wrap').classList.add('menu-mode');
+   716→  $('wrap').classList.remove('cs-mode', 'cine-mode', 'dlg-on');
+   717→  initMenuZ();                       // صحنه‌ی زنده‌ی منو
+   718→  refreshMenuContinue();
+   719→  showScreen('startScreen');
+   720→  updateHUD();
+   721→}
+   722→
+   723→/* بعد از باخت: تلاش دوباره از آخرین سیو — وسایل ساخته‌شده همه با تو می‌مانند
+   724→   (۱۵٫۰) سیو در شروع هر موج هم گرفته می‌شود؛ اگر سیو نبود: شروع تازه */
+   725→function retryFromSave() {
+   726→  const d = loadSaveData();
+   727→  SFX.click();
+   728→  hideOverlays();
+   729→  if (d) {
+   730→    applySave(d);
+   731→    state.mode = 'day';
+   732→    enterDay();
+   733→    setAnnounce('🔄 تلاش دوباره',
+   734→      'همه‌ی وسایلت همین است — فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(state.chapter)), 2.6);
+   735→  } else {
+   736→    startGame();
+   737→  }
+   738→}
+   739→
+   740→/* «بازی جدید» منو: اگر سیو هست تأیید بگیر، بعد کات‌سین افتتاحیه */
+   741→function startNewGame() {
+   742→  SFX.click();
+   743→  if (loadSaveData()) {
+   744→    askConfirm('با شروع بازی جدید، سیوِ قبلی پاک می‌شود. ادامه بدهم؟', () => {
+   745→      hideScreen('confirmBox');
+   746→      wipeSave();
+   747→      startIntroCine();
+   748→    });
+   749→    return;
+   750→  }
+   751→  startIntroCine();
+   752→}
+   753→
+   754→/* ---------------------- ۵-۶) محو نرم + جعبه‌ی تایید ---------------------- */
+   755→let fadeBusy = false;
+   756→function doFade(mid, dur) {
+   757→  const d = dur || 0.45;
+   758→  if (fadeBusy) { mid && mid(); return; }
+   759→  fadeBusy = true;
+   760→  const el = $('fadeDiv');
+   761→  el.style.transition = 'opacity ' + d + 's ease';
+   762→  el.classList.add('on');
+   763→  setTimeout(() => {
+   764→    try { mid && mid(); } catch (e) {}
+   765→    setTimeout(() => { el.classList.remove('on'); fadeBusy = false; }, 90);
+   766→  }, d * 1000 + 40);
+   767→}
+   768→
+   769→let _cfYes = null;
+   770→function askConfirm(msg, onYes) {
+   771→  $('cfMsg').textContent = msg;
+   772→  _cfYes = onYes;
+   773→  showScreen('confirmBox');
+   774→}
+   775→$('cfYes').addEventListener('click', () => {
+   776→  SFX.click();
+   777→  hideScreen('confirmBox');
+   778→  if (_cfYes) { const f = _cfYes; _cfYes = null; f(); }
+   779→});
+   780→
+   781→/* ---------------------- ۵-۷) هوک‌های به‌روزرسانی/رندر ---------------------- */
+   782→/* ماژول‌های نسخه‌ی ۱۰ منطق اضافه‌ی خودشان را این‌جا ثبت می‌کنند تا update/render
+   783→   اصلی فقط دو خط هوک داشته باشند */
+   784→const UPDATE_HOOKS = [];
+   785→const RENDER_HOOKS = [];
+   786→function hooksUpdate(dt) { for (const f of UPDATE_HOOKS) f(dt); }
+   787→function hooksRender() { for (const f of RENDER_HOOKS) f(); }
+   788→
+   789→UPDATE_HOOKS.push(autoSaveTick);   // (۱۳٫۰) سیو دوره‌ای روز/وقفه
+   790→
+   791→/* هوک فصل‌ها: تایمر کارت فصل */
+   792→UPDATE_HOOKS.push(function chaptersUpdate(dt) {
+   793→  if (state.cardT > 0) {
+   794→    state.cardT -= dt;
+   795→    if (state.cardT <= 0) hideChapterCard();
+   796→  }
+   797→});
+   798→
+   799→/* ---------------------- ۵-۸) افق‌های جدید: انبارها و کوهستان ---------------------- */
+   800→/* افق صنعتیِ فصل ۲: انبارهای جعبه‌ای + جرثقیل + دودکش + چراغ‌های سدیم */
+   801→const WH_SKYLINE = [];
+   802→{
+   803→  let x = -10;
+   804→  while (x < W + 10) {
+   805→    const bw = 66 + srand() * 88, bh = 34 + srand() * 62;
+   806→    WH_SKYLINE.push({ x, w: bw, h: bh, win: 2 + Math.floor(srand() * 4), stack: srand() > 0.72, lamp: srand() > 0.5 });
+   807→    x += bw + 16;
+   808→  }
+   809→}
+   810→function drawWarehouseSkyline(d) {
+   811→  const body = mixHex('#0d141c', '#7d8a96', d);
+   812→  const edge = mixHex('#18222e', '#9aa8b4', d);
+   813→  for (const b of WH_SKYLINE) {
+   814→    ctx.fillStyle = body;
+   815→    ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
+   816→    ctx.fillStyle = edge;                                     // لبه‌ی بام ساده (شیب‌دار)
+   817→    ctx.beginPath();
+   818→    ctx.moveTo(b.x - 4, GROUND_Y - b.h); ctx.lineTo(b.x + b.w / 2, GROUND_Y - b.h - 9);
+   819→    ctx.lineTo(b.x + b.w + 4, GROUND_Y - b.h); ctx.closePath(); ctx.fill();
+   820→    /* پنجره‌های نواری روشن (شب) */
+   821→    if (d < 0.95) {
+   822→      const nf = 1 - d;
+   823→      ctx.fillStyle = 'rgba(255,196,110,' + (0.5 * nf).toFixed(2) + ')';
+   824→      for (let i = 0; i < b.win; i++) {
+   825→        ctx.fillRect(b.x + 8 + i * ((b.w - 16) / b.win), GROUND_Y - b.h + 12, (b.w - 16) / b.win - 8, 5);
+   826→      }
+   827→    }
+   828→    /* دودکش یکی‌یکی */
+   829→    if (b.stack) {
+   830→      ctx.fillStyle = body;
+   831→      ctx.fillRect(b.x + b.w * 0.7, GROUND_Y - b.h - 22, 9, 26);
+   832→      ctx.fillStyle = edge;
+   833→      ctx.fillRect(b.x + b.w * 0.7 - 2, GROUND_Y - b.h - 24, 13, 4);
+   834→    }
+   835→    /* چراغ سدیم نارنجی روی بام (شب) */
+   836→    if (b.lamp && d < 0.7) {
+   837→      const lx = b.x + 10, ly = GROUND_Y - b.h - 4;
+   838→      const blink = 0.75 + 0.25 * Math.sin(animTime * 2.2 + b.x);
+   839→      ctx.strokeStyle = mixHex('#18222e', '#5a6570', d); ctx.lineWidth = 2;
+   840→      ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx, ly - 10); ctx.lineTo(lx + 8, ly - 10); ctx.stroke();
+   841→      const g2 = ctx.createRadialGradient(lx + 8, ly - 8, 1, lx + 8, ly - 8, 16);
+   842→      g2.addColorStop(0, 'rgba(255,170,80,' + (0.5 * blink * (1 - d)).toFixed(2) + ')');
+   843→      g2.addColorStop(1, 'rgba(255,170,80,0)');
+   844→      ctx.fillStyle = g2; circle(lx + 8, ly - 8, 16);
+   845→      ctx.fillStyle = 'rgba(255,200,120,' + (blink * (1 - d)).toFixed(2) + ')';
+   846→      circle(lx + 8, ly - 8, 2);
+   847→    }
+   848→  }
+   849→  /* مه غلیظ پایه‌ی انبارها */
+   850→  const fog = ctx.createLinearGradient(0, GROUND_Y - 60, 0, GROUND_Y);
+   851→  fog.addColorStop(0, 'rgba(140,160,175,0)');
+   852→  fog.addColorStop(1, 'rgba(140,160,175,' + (d > 0.5 ? 0.30 * d : 0.34 * (1 - d)).toFixed(2) + ')');
+   853→  ctx.fillStyle = fog;
+   854→  ctx.fillRect(-20, GROUND_Y - 60, W + 40, 60);
+   855→}
+   856→
+   857→/* افق کوهستانی فصل ۴: قله‌های برفی + دکل مخابراتی بزرگ با چراغ قرمز */
+   858→const MT_PEAKS = [];
+   859→{
+   860→  let x = -30;
+   861→  while (x < W + 30) {
+   862→    const pw = 120 + srand() * 130, ph = 90 + srand() * 110;
+   863→    MT_PEAKS.push({ x, w: pw, h: ph });
+   864→    x += pw * 0.62;
+   865→  }
+   866→}
+   867→function drawMountainSkyline(d) {
+   868→  /* دو ردیف قله برای عمق */
+   869→  ctx.fillStyle = mixHex('#0e1626', '#8fa6bd', d);
+   870→  ctx.beginPath(); ctx.moveTo(-20, GROUND_Y);
+   871→  for (const p of MT_PEAKS) {
+   872→    ctx.lineTo(p.x + p.w * 0.5, GROUND_Y - p.h * 0.72);
+   873→    ctx.lineTo(p.x + p.w, GROUND_Y - p.h * 0.3);
+   874→  }
+   875→  ctx.lineTo(W + 20, GROUND_Y); ctx.closePath(); ctx.fill();
+   876→  /* برف‌گیر قله‌ها */
+   877→  ctx.fillStyle = mixHex('#2c3f5e', '#e8f0f8', d);
+   878→  ctx.beginPath(); ctx.moveTo(-20, GROUND_Y);
+   879→  for (const p of MT_PEAKS) {
+   880→    ctx.lineTo(p.x + p.w * 0.5, GROUND_Y - p.h * 0.72);
+   881→    ctx.lineTo(p.x + p.w * 0.62, GROUND_Y - p.h * 0.5);
+   882→  }
+   883→  ctx.lineTo(W + 20, GROUND_Y); ctx.closePath(); ctx.fill();
+   884→  /* دکل مخابراتی بزرگ (پس‌زمینه‌ی فصل ۴) — شبکه‌ای با چراغ قرمز چشمک‌زن */
+   885→  const mx = 780, mtop = GROUND_Y - 208, mbase = GROUND_Y - 4;
+   886→  ctx.strokeStyle = mixHex('#1a2438', '#6a7a92', d); ctx.lineWidth = 2;
+   887→  ctx.beginPath();
+   888→  ctx.moveTo(mx - 34, mbase); ctx.lineTo(mx - 8, mtop);
+   889→  ctx.moveTo(mx + 34, mbase); ctx.lineTo(mx + 8, mtop);
+   890→  for (let i = 0; i < 6; i++) {                 // مهاربندهای X
+   891→    const t = i / 6, t2 = (i + 1) / 6;
+   892→    const w1 = 34 - 26 * t, w2 = 34 - 26 * t2;
+   893→    const y1 = mbase - (mbase - mtop) * t, y2 = mbase - (mbase - mtop) * t2;
+   894→    ctx.moveTo(mx - w1, y1); ctx.lineTo(mx + w2, y2);
+   895→    ctx.moveTo(mx + w1, y1); ctx.lineTo(mx - w2, y2);
+   896→  }
+   897→  ctx.moveTo(mx - 20, mtop + 46); ctx.lineTo(mx + 20, mtop + 46);
+   898→  ctx.moveTo(mx - 12, mtop + 12); ctx.lineTo(mx + 12, mtop + 12);
+   899→  ctx.stroke();
+   900→  ctx.fillStyle = mixHex('#1a2438', '#6a7a92', d);
+   901→  ctx.fillRect(mx - 11, mtop + 6, 22, 8);       // سکوی آنتن
+   902→  ctx.strokeStyle = mixHex('#243450', '#7d8ca2', d);
+   903→  ctx.beginPath(); ctx.moveTo(mx - 6, mtop + 6); ctx.lineTo(mx - 6, mtop - 26);
+   904→  ctx.moveTo(mx + 6, mtop + 6); ctx.lineTo(mx + 6, mtop - 20); ctx.stroke();
+   905→  if (d < 0.8) {                                // چراغ قرمز هشدار
+   906→    const blink = Math.sin(animTime * 2.4) > 0.2 ? 1 : 0.1;
+   907→    const aa = (1 - d * 0.7) * blink;
+   908→    const g2 = ctx.createRadialGradient(mx - 6, mtop - 26, 1, mx - 6, mtop - 26, 12);
+   909→    g2.addColorStop(0, 'rgba(255,70,60,' + (0.9 * aa).toFixed(2) + ')');
+   910→    g2.addColorStop(1, 'rgba(255,70,60,0)');
+   911→    ctx.fillStyle = g2; circle(mx - 6, mtop - 26, 12);
+   912→    ctx.fillStyle = 'rgba(255,120,110,' + aa.toFixed(2) + ')';
+   913→    circle(mx - 6, mtop - 26, 2);
+   914→  }
+   915→}
+   916→
+   917→/* ---------------------- ۵-۹) اسباب‌متعلقات صحنه‌ی هر فصل ---------------------- */
+   918→/* جعبه‌ها/بشکه‌های انبار، کیسه‌شن و خودروی سوخته‌ی پاسگاه، تل‌های برف قله */
+   919→function drawChapterProps() {
+   920→  const th = curCh().theme;
+   921→  const d = state.dayness;
+   922→  if (th.props === 'warehouse') {
+   923→    /* بشکه‌های زنگاری + جعبه‌های چوبی کنار برج */
+   924→    for (const bx of [122, 176, 794, 848]) {
+   925→      ctx.fillStyle = mixHex('#3a3038', '#7d6a70', d);
+   926→      rr(bx, GROUND_Y - 20, 13, 20, 3); ctx.fill();
+   927→      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+   928→      ctx.fillRect(bx, GROUND_Y - 13, 13, 2.5);
+   929→      ctx.fillStyle = mixHex('#22262e', '#5a6270', d);
+   930→      ctx.fillRect(bx - 1, GROUND_Y - 22, 15, 3);
+   931→    }
+   932→    ctx.fillStyle = mixHex('#3d3020', '#8a7452', d);
+   933→    rr(300, GROUND_Y - 16, 26, 16, 2); ctx.fill();
+   934→    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.4;
+   935→    ctx.strokeRect(300, GROUND_Y - 16, 26, 16);
+   936→    ctx.beginPath(); ctx.moveTo(300, GROUND_Y - 8); ctx.lineTo(326, GROUND_Y - 8); ctx.stroke();
+   937→  } else if (th.props === 'military') {
+   938→    /* کیسه‌های شن دو طرف پایه‌ی برج */
+   939→    ctx.fillStyle = mixHex('#5a5544', '#a89f84', d);
+   940→    const bags = [[-92, -13], [-80, -13], [-86, -24], [70, -13], [82, -13], [76, -24]];
+   941→    for (const [dx, dy] of bags) {
+   942→      ctx.beginPath();
+   943→      ctx.ellipse(TOWER.x + dx, GROUND_Y + dy, 9, 5.5, dx < 0 ? 0.3 : -0.3, 0, Math.PI * 2);
+   944→      ctx.fill();
+   945→      ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+   946→    }
+   947→    /* خودروی زرهی سوخته در راست صحنه */
+   948→    const vx = 828, vy = GROUND_Y - 6;
+   949→    ctx.fillStyle = mixHex('#2c3038', '#5f6870', d);
+   950→    rr(vx, vy - 20, 72, 20, 6); ctx.fill();
+   951→    rr(vx + 16, vy - 30, 34, 12, 4); ctx.fill();
+   952→    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+   953→    circle(vx + 16, vy - 2, 7); circle(vx + 56, vy - 2, 7);
+   954→    ctx.strokeStyle = mixHex('#3a4048', '#7d8890', d); ctx.lineWidth = 2;
+   955→    ctx.beginPath(); ctx.moveTo(vx + 50, vy - 30); ctx.lineTo(vx + 58, vy - 44); ctx.stroke();
+   956→    /* زبانه‌ی آتش کوچک از موتور (شب) */
+   957→    if (d < 0.6 && Math.sin(animTime * 7) > 0) {
+   958→      ctx.fillStyle = 'rgba(255,140,60,0.5)';
+   959→      circle(vx + 8, vy - 22, 3 + Math.sin(animTime * 11) * 1.5);
+   960→    }
+   961→  } else if (th.props === 'telecom') {
+   962→    /* تل‌های برف کنار برج + سیم‌های آویخته */
+   963→    for (const sx of [130, 240, 760, 860]) {
+   964→      ctx.fillStyle = mixHex('#3c4a60', '#d4e2ef', d);
+   965→      ctx.beginPath();
+   966→      ctx.ellipse(sx, GROUND_Y + 2, 30, 9, 0, Math.PI, Math.PI * 2); ctx.fill();
+   967→      ctx.beginPath(); ctx.ellipse(sx, GROUND_Y + 2, 18, 5, 0, Math.PI, Math.PI * 2); ctx.fill();
+   968→    }
+   969→  }
+   970→  /* صحنه‌ی فاز ۱ انتقال فصل‌ها: درِ سردابه (فصل ۲) / دکل زیپ‌لاین (فصل ۳) */
+   971→  if (state.mode === 'transition' && TR && TR.phase === 1) drawTransitionIntroProps();
+   972→}
+   973→
+   974→/* ---------------------- ۵-۱۰) آب‌وهوای فصل: مه روان و برف ---------------------- */
+   975→const FOG_BLOBS = Array.from({ length: 9 }, () => ({
+   976→  x: srand() * (W + 300), y: 70 + srand() * (GROUND_Y - 200),
+   977→  s: 0.8 + srand() * 1.5, v: 4 + srand() * 8, a: 0.05 + srand() * 0.06,
+   978→}));
+   979→const SNOW_FLAKES = Array.from({ length: 90 }, () => ({
+   980→  x: srand() * W, y0: srand() * H, v: 22 + srand() * 42,
+   981→  sw: 0.5 + srand() * 1.1, ph: srand() * 6.28, r: 1 + srand() * 1.8,
+   982→}));
+   983→
+   984→function drawChapterWeather() {
+   985→  const th = curCh().theme;
+   986→  const d = state.dayness;
+   987→  /* مهِ روان — انبارها (شب پررنگ‌تر) + یک نسخه‌ی آرام در منوی اصلی */
+   988→  const fogA = (state.mode === 'start' ? 0.55 : th.fog) * (1 - 0.55 * d);
+   989→  if (fogA > 0.02) {
+   990→    for (const f of FOG_BLOBS) {
+   991→      const m = W + 300;
+   992→      const x = (((f.x - animTime * f.v) % m) + m) % m - 150;
+   993→      ctx.fillStyle = 'rgba(168,188,203,' + Math.min(0.34, f.a * fogA * 2).toFixed(3) + ')';
+   994→      ctx.beginPath();
+   995→      ctx.ellipse(x, f.y, 95 * f.s, 20 * f.s, 0, 0, Math.PI * 2);
+   996→      ctx.fill();
+   997→    }
+   998→  }
+   999→  /* برف فصل ۴ — با بادِ جانبی و رگبار باران‌گونه */
+  1000→  if (th.snow) {
+  1001→    for (const f of SNOW_FLAKES) {
+  1002→      const m = W + 40;
+  1003→      const x = (((f.x - animTime * 13) % m) + m) % m - 20 + Math.sin(animTime * f.sw + f.ph) * 16;
+  1004→      const y = (f.y0 + animTime * f.v) % (H + 24) - 12;
+  1005→      const a = 0.5 + 0.4 * (1 - d * 0.5);
+  1006→      ctx.fillStyle = 'rgba(235,244,252,' + a.toFixed(2) + ')';
+  1007→      ctx.beginPath(); ctx.arc(x, y, f.r, 0, Math.PI * 2); ctx.fill();
+  1008→    }
+  1009→  }
+  1010→}
+  1011→
+  1012→/* پارالاکس ملایم منو: افق/تپه‌ها کمی با ماوس جابه‌جا می‌شوند (۱۰٫۰) */
+  1013→function menuPar(k) {
+  1014→  if (state.mode !== 'start') return 0;
+  1015→  return (state.mouse.x - W / 2) / W * k;
+  1016→}
+  1017→

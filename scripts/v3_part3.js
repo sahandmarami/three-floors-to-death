@@ -151,6 +151,7 @@ function update(dt) {
   /* زمان‌سنج قدرت‌های ویژه */
   state.powerTimers.rapid = Math.max(0, state.powerTimers.rapid - dt);
   state.powerTimers.freeze = Math.max(0, state.powerTimers.freeze - dt);
+  state.adren = Math.max(0, (state.adren || 0) - dt);       // (۲۰٫۰) آدرنالین
 
   /* کمبو: اگر به‌موقع کشتار تازه نکنی محو می‌شود */
   if (state.combo > 0) {
@@ -1243,6 +1244,84 @@ function drawTurret(t) {
       circle(def.len + 8, 0, 8 * a + 3);
     }
     ctx.restore();
+  } else if (t.type === 'tesla') {
+    /* (۲۰٫۰) برجک تسلا: پایه‌ی فلزی + سیم‌پیچ مسی + گویِ بنفشِ شناور
+       که دائم جرقه می‌زند؛ موقع تخلیه فلاش می‌زند */
+    ctx.fillStyle = '#2c3440'; rr(-11, -12, 22, 13, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1; ctx.strokeRect(-11, -12, 22, 13);
+    /* سیم‌پیچ مسی */
+    ctx.strokeStyle = '#b0793c'; ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    for (let k = 0; k < 5; k++) {
+      ctx.moveTo(-8, -14 - k * 3.4); ctx.lineTo(8, -14 - k * 3.4);
+    }
+    ctx.stroke();
+    const bob = Math.sin(animTime * 3.2 + (t.bob || 0)) * 2.4;
+    ctx.save();
+    ctx.translate(0, -def.h - 4 + bob);
+    const tg = ctx.createRadialGradient(0, 0, 2, 0, 0, 17);
+    tg.addColorStop(0, 'rgba(192,77,255,0.6)');
+    tg.addColorStop(1, 'rgba(192,77,255,0)');
+    ctx.fillStyle = tg; circle(0, 0, 17);
+    ctx.fillStyle = t.flash > 0 ? '#f3d9ff' : '#b46ae8';
+    circle(0, 0, 6.4);
+    ctx.fillStyle = '#e8c3ff'; circle(0, 0, 2.8);
+    ctx.restore();
+    /* دو میله‌ی آنتن اطراف گوی */
+    ctx.strokeStyle = '#5d6a7a'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-10, -12); ctx.lineTo(-13, -def.h - 8);
+    ctx.moveTo(10, -12); ctx.lineTo(13, -def.h - 8);
+    ctx.stroke();
+  } else if (t.type === 'missile') {
+    /* (۲۰٫۰) موشک‌انداز: جعبه‌ی زره‌پوش با دو لوله‌ی نصب‌شده + موشکِ آماده */
+    ctx.fillStyle = '#3a4150'; rr(-13, -16, 26, 15, 4); ctx.fill();
+    ctx.fillStyle = '#565f6e'; rr(-13, -16, 26, 5, 3); ctx.fill();
+    /* نوار زرد خطر */
+    ctx.fillStyle = '#e8b54a'; ctx.fillRect(-13, -8, 26, 3);
+    ctx.save();
+    ctx.translate(0, -def.h - 2);
+    ctx.rotate(t.aim);
+    ctx.translate(-t.recoil * 3, 0);
+    /* دو لوله‌ی موشک (بالا/پایین) */
+    ctx.fillStyle = '#2b2f38';
+    rr(-4, -8.5, 22, 7.5, 3); ctx.fill();
+    rr(-4, 1, 22, 7.5, 3); ctx.fill();
+    /* موشکِ آماده در لوله‌ی بالایی */
+    ctx.fillStyle = '#c9542e'; rr(12, -7.4, 10, 5.2, 2); ctx.fill();
+    ctx.fillStyle = '#ffd873'; circle(21, -4.8, 1.8);
+    if (t.flash > 0) {
+      const a = t.flash / 0.14;
+      ctx.fillStyle = 'rgba(255,170,90,' + a.toFixed(2) + ')';
+      circle(def.len + 8, -4.8, 9 * a + 3);
+      circle(def.len + 8, 4.8, 7 * a + 2);
+    }
+    ctx.restore();
+  } else if (t.type === 'flame') {
+    /* (۲۰٫۰) شعله‌افکن: مخزن گاز سرخ + لوله‌ی آبراهی + فتیله‌ی روشن */
+    ctx.fillStyle = '#6e2a22'; rr(-10, -14, 20, 12, 5); ctx.fill();
+    ctx.fillStyle = '#8a3a2c'; rr(-10, -14, 20, 4, 3); ctx.fill();
+    ctx.strokeStyle = '#e8b54a'; ctx.lineWidth = 1.4; rr(-10, -14, 20, 12, 5); ctx.stroke();
+    ctx.save();
+    ctx.translate(0, -def.h);
+    ctx.rotate(t.aim);
+    ctx.translate(-t.recoil * 1.4, 0);
+    /* لوله‌ی کوتاه + سرپوش */
+    ctx.strokeStyle = '#4a4436'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(def.len, 0); ctx.stroke();
+    ctx.fillStyle = '#2c2620'; circle(def.len, 0, 3.4);
+    /* فتیله‌ی همیشه‌روشن */
+    const fp = 0.6 + 0.4 * Math.sin(animTime * 12);
+    ctx.fillStyle = 'rgba(255,170,70,' + fp.toFixed(2) + ')';
+    circle(def.len + 2.6, 0, 2.6 * fp + 1);
+    if (t.flash > 0) {
+      const a = t.flash / 0.06;
+      const fg2 = ctx.createRadialGradient(def.len + 4, 0, 1, def.len + 4, 0, 16);
+      fg2.addColorStop(0, 'rgba(255,200,90,' + (0.8 * a).toFixed(2) + ')');
+      fg2.addColorStop(1, 'rgba(255,90,30,0)');
+      ctx.fillStyle = fg2; circle(def.len + 4, 0, 16);
+    }
+    ctx.restore();
   } else {
     /* برجک یخ‌زن: پایه‌ی سنگی + بلور شناور */
     ctx.fillStyle = '#3f4a5e'; rr(-11, -10, 22, 11, 3); ctx.fill();
@@ -2119,8 +2198,41 @@ function drawPowerTimers() {
   }
 }
 
-/* گلوله با دنباله درخشان — ساچمه/مسلسل ریز، تیر تک‌تیرانداز ردِ بلند، یخی لوزی (۴٫۰) */
+/* گلوله با دنباله درخشان — ساچمه/مسلسل ریز، تیر تک‌تیرانداز ردِ بلند، یخی لوزی (۴٫۰)
+   (۲۰٫۰) موشک = بدنه‌ی نارنجی با شعله‌ی دُم • شعله = گوی آتشین نرم */
 function drawBullet(b) {
+  if (b.missile) {
+    /* موشک: بدنه‌ی چرخان + شعله‌ی دُم */
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(Math.atan2(b.vy, b.vx));
+    /* شعله‌ی دُم */
+    const fl = 10 + Math.sin(animTime * 40) * 3;
+    const fg = ctx.createLinearGradient(-6, 0, -6 - fl, 0);
+    fg.addColorStop(0, 'rgba(255,180,90,0.9)');
+    fg.addColorStop(1, 'rgba(255,90,40,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.moveTo(-6, -3); ctx.lineTo(-6 - fl, 0); ctx.lineTo(-6, 3); ctx.closePath(); ctx.fill();
+    /* بدنه + باله‌ها */
+    ctx.fillStyle = '#c9542e'; rr(-7, -3.4, 14, 6.8, 3); ctx.fill();
+    ctx.fillStyle = '#8a3a20';
+    ctx.beginPath(); ctx.moveTo(-7, -3.4); ctx.lineTo(-11, -5.6); ctx.lineTo(-7, 0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-7, 3.4); ctx.lineTo(-11, 5.6); ctx.lineTo(-7, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffd873'; circle(4.6, 0, 2.4);
+    ctx.restore();
+    return;
+  }
+  if (b.flame) {
+    /* گوی آتشین: هاله‌ی نارنجی + مغز زرد — آرام بزرگ می‌شود */
+    const age = 1 - clamp(b.life / 0.45, 0, 1);
+    const r = 4.5 + age * 3;
+    const g = ctx.createRadialGradient(b.x, b.y, 1, b.x, b.y, r * 2);
+    g.addColorStop(0, 'rgba(255,235,150,0.95)');
+    g.addColorStop(0.45, 'rgba(255,140,50,0.75)');
+    g.addColorStop(1, 'rgba(255,80,30,0)');
+    ctx.fillStyle = g; circle(b.x, b.y, r * 2);
+    return;
+  }
   if (b.frost) {
     /* گلوله‌ی یخی: لوزی درخشان آبی + رد محو */
     ctx.strokeStyle = 'rgba(160,225,255,0.45)'; ctx.lineWidth = 3;
@@ -2221,10 +2333,22 @@ function drawPowerups() {
 function drawZaps() {
   for (const zp of state.zaps) {
     const a = 1 - zp.age / zp.life;
-    const passes = [
-      [4, 'rgba(255,227,110,' + (a * 0.25).toFixed(2) + ')'],
-      [2, 'rgba(255,240,160,' + a.toFixed(2) + ')'],
-    ];
+    /* (۲۰٫۰) حلقه‌ی موجِ انفجار موشک */
+    if (zp.ring) {
+      const k = zp.age / zp.life;
+      ctx.strokeStyle = 'rgba(255,190,110,' + ((1 - k) * 0.75).toFixed(2) + ')';
+      ctx.lineWidth = 3.5 - k * 2;
+      ctx.beginPath();
+      ctx.ellipse(zp.pts[0].x, zp.pts[0].y, zp.rr * (0.3 + k * 0.85), zp.rr * (0.3 + k * 0.85) * 0.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      continue;
+    }
+    /* (۲۰٫۰) آذرخش تسلا = بنفش؛ برق تله = زرد */
+    const passes = zp.tesla
+      ? [[4, 'rgba(192,77,255,' + (a * 0.3).toFixed(2) + ')'],
+         [2, 'rgba(232,170,255,' + a.toFixed(2) + ')']]
+      : [[4, 'rgba(255,227,110,' + (a * 0.25).toFixed(2) + ')'],
+         [2, 'rgba(255,240,160,' + a.toFixed(2) + ')']];
     for (const [lw, col] of passes) {
       ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineJoin = 'round';
       ctx.beginPath();

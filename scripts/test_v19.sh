@@ -30,9 +30,9 @@ R=$(agent-browser eval "!document.getElementById('wrap').classList.contains('sui
 echo "===== ۳) مینی‌گیم قایق (فصل ۲→۳): انتقال کامل ====="
 agent-browser eval "GAME.v10.wipeSave();GAME.v10.startNewGame();'ok'" >/dev/null; sleep 1
 agent-browser eval "GAME.v10.skipIntro();'ok'" >/dev/null; sleep 1
-agent-browser eval "GAME.skipToWave(10);GAME.startNight();'ok'" >/dev/null; sleep 2
+agent-browser eval "GAME.skipToWave(14);GAME.startNight();'ok'" >/dev/null; sleep 2
 agent-browser eval "GAME.endWave();'ok'" >/dev/null; sleep 1
-R=$(agent-browser eval "GAME.v10.TR&&GAME.v10.TR.ch===2&&GAME.v10.TR.phase===1?1:0" | tail -1); ck "پایان موج ۱۰ → انتقال فصل ۲ (فاز ۱)" "$R"
+R=$(agent-browser eval "GAME.v10.TR&&GAME.v10.TR.ch===2&&GAME.v10.TR.phase===1?1:0" | tail -1); ck "پایان موج ۱۴ → انتقال فصل ۲ (فاز ۱)" "$R"
 agent-browser eval "GAME.v10.trGoto(7.2);'ok'" >/dev/null; sleep 1
 R=$(agent-browser eval "GAME.v10.TR&&GAME.v10.TR.phase===2?1:0" | tail -1); ck "فاز ۲ شروع شد" "$R"
 R=$(agent-browser eval "MG.cfg.theme==='river'&&DRV.theme==='river'?1:0" | tail -1); ck "تم رودخانه فعال (river)" "$R"
@@ -56,9 +56,9 @@ agent-browser eval "GAME.v10.trResume();'ok'" >/dev/null; sleep 4
 R=$(agent-browser eval "state.mode!=='transition'&&state.chapter===3?1:0" | tail -1); ck "پایان انتقال → فصل ۳ شروع شد" "$R"
 
 echo "===== ۴) مینی‌گیم اسنوموبیل (فصل ۳→۴) ====="
-agent-browser eval "GAME.skipToWave(18);GAME.startNight();'ok'" >/dev/null; sleep 2
+agent-browser eval "GAME.skipToWave(24);GAME.startNight();'ok'" >/dev/null; sleep 2
 agent-browser eval "GAME.endWave();'ok'" >/dev/null; sleep 1
-R=$(agent-browser eval "GAME.v10.TR&&GAME.v10.TR.ch===3&&GAME.v10.TR.phase===1?1:0" | tail -1); ck "پایان موج ۱۸ → انتقال فصل ۳" "$R"
+R=$(agent-browser eval "GAME.v10.TR&&GAME.v10.TR.ch===3&&GAME.v10.TR.phase===1?1:0" | tail -1); ck "پایان موج ۲۴ → انتقال فصل ۳" "$R"
 agent-browser eval "GAME.v10.trGoto(7.5);'ok'" >/dev/null; sleep 1
 R=$(agent-browser eval "MG.cfg.theme==='snow'&&DRV.theme==='snow'?1:0" | tail -1); ck "تم برفی فعال (snow)" "$R"
 R=$(agent-browser eval "SNOW_OBSTACLES.some(d=>d.t==='iceRock')&&SNOW_OBSTACLES.some(d=>d.t==='pineDown')?1:0" | tail -1); ck "موانع برفی: iceRock/pineDown" "$R"
@@ -68,7 +68,7 @@ agent-browser eval "GAME.v10.trResume();DRV.T=DRV.goalT-40;DRV.px=roadCXf(DRV.T)
 R=$(agent-browser eval "state.mode!=='transition'&&state.chapter===4?1:0" | tail -1); ck "پایان انتقال → فصل ۴ شروع شد" "$R"
 
 echo "===== ۵) رگرسیون: مینی‌گیم رانندگی (فصل ۱→۲) ====="
-agent-browser eval "GAME.skipToWave(4);GAME.startNight();'ok'" >/dev/null; sleep 2
+agent-browser eval "GAME.skipToWave(6);GAME.startNight();'ok'" >/dev/null; sleep 2
 agent-browser eval "GAME.endWave();'ok'" >/dev/null; sleep 1
 agent-browser eval "GAME.v10.trGoto(8.5);'ok'" >/dev/null; sleep 1
 R=$(agent-browser eval "MG.cfg.theme==='drive'&&DRV.theme==='road'?1:0" | tail -1); ck "تم جاده (road) دست‌نخورده" "$R"
@@ -76,7 +76,7 @@ agent-browser eval "GAME.v10.trResume();DRV.T=DRV.goalT-40;DRV.px=roadCXf(DRV.T)
 R=$(agent-browser eval "state.chapter===2?1:0" | tail -1); ck "پایان انتقال → فصل ۲" "$R"
 
 echo "===== ۶) دود متحرک خانه‌های سوخته (فصل ۳) + دودکش انبار (فصل ۲) ====="
-agent-browser eval "GAME.skipToWave(14);GAME.startNight();'ok'" >/dev/null; sleep 3
+agent-browser eval "GAME.skipToWave(20);GAME.startNight();'ok'" >/dev/null; sleep 3
 R=$(agent-browser eval "typeof drawRuinLiveFx==='function'&&typeof smokeSpr==='function'&&smokeSpr().width===64?1:0" | tail -1); ck "لایه‌ی زنده‌ی دود + اسپرایت ۶۴px" "$R"
 agent-browser eval "window.__smk=0;const _o=drawRuinLiveFx;drawRuinLiveFx=function(){window.__smk++;return _o.apply(null,arguments)};'ok'" >/dev/null; sleep 0.8
 R=$(agent-browser eval "window.__smk>=20?1:0" | tail -1); ck "drawRuinLiveFx هر فریم صدا می‌شود (>=20/0.8s)" "$R"
@@ -89,17 +89,17 @@ R=$(agent-browser eval "typeof drawWhLiveSmoke==='function'&&WH_SKYLINE.some(b=>
 agent-browser screenshot /home/z/my-project/scripts/shots19/05_ch2_chimneys.png >/dev/null
 
 echo "===== ۷) باسِ سخت‌تر: آمار + فاز دوم + شکست یورش ====="
-agent-browser eval "GAME.skipToWave(28);GAME.startNight();'ok'" >/dev/null; sleep 4
-R=$(agent-browser eval "ZTYPES.boss.hpBase===5400?1:0" | tail -1); ck "جون باس ۵۴۰۰" "$R"
-R=$(agent-browser eval "const b=state.zombies.find(z=>z.type==='boss');b&&Math.round(b.maxHp)===5400?1:0" | tail -1); ck "باسِ تولدشده با ۵۴۰۰ جون" "$R"
+agent-browser eval "GAME.skipToWave(36);GAME.startNight();'ok'" >/dev/null; sleep 4
+R=$(agent-browser eval "ZTYPES.boss.hpBase===7000?1:0" | tail -1); ck "جون باس ۷۰۰۰" "$R"
+R=$(agent-browser eval "const b=state.zombies.find(z=>z.type==='boss');b&&Math.round(b.maxHp)===7000?1:0" | tail -1); ck "باسِ تولدشده با ۷۰۰۰ جون" "$R"
 R=$(agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');return b&&b.ai&&('chargeT' in b.ai)&&('breakAcc' in b.ai)?1:0})()" | tail -1); ck "فیلدهای یورش در AI باس" "$R"
 # فاز دوم با کاهش جون
-agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');if(b)b.hp=b.maxHp*0.5;return 'ok'})()" >/dev/null; sleep 0.6
-R=$(agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');return b&&b.ai&&b.ai.hardened===true?1:0})()" | tail -1); ck "۵۰٪ جون → فاز دوم (زره سنگین)" "$R"
+agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');if(b)b.hp=b.maxHp*0.6;return 'ok'})()" >/dev/null; sleep 0.6
+R=$(agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');return b&&b.ai&&b.ai.hardened===true?1:0})()" | tail -1); ck "۶۰٪ جون → فاز دوم (زره سنگین، آستانه ۶۲٪)" "$R"
 # شکست یورش: دمیج متمرکز در حالت شارژ
-R=$(agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');if(!b)return 0;b.ai.charge=0.5;b.ai.dash=0;b.ai.breakAcc=0;b.ai.staggerT=0;hitZombie(b,400,b.x,b.y-40,1,false,0,'t');return (b.ai.charge===0&&b.ai.staggerT>0)?1:0})()" | tail -1); ck "یورش با آتش متمرکز (۴۰۰ خام → ~۱۴۰ بعد از زره) قطع می‌شود" "$R"
+R=$(agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');if(!b)return 0;b.ai.charge=0.5;b.ai.dash=0;b.ai.breakAcc=0;b.ai.staggerT=0;hitZombie(b,600,b.x,b.y-40,1,false,0,'player');return (b.ai.charge===0&&b.ai.staggerT>0)?1:0})()" | tail -1); ck "یورش با آتش متمرکز (۶۰۰ خام، آستانه ۱۳۰) قطع می‌شود" "$R"
 # زره: ضربه‌ی معمولی نیم‌اثر
-R=$(agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');if(!b)return 0;b.ai.staggerT=0;b.ai.dmgAcc=0;b.hp=b.maxHp;const hp0=b.hp;hitZombie(b,100,b.x,b.y-40,1,false,0,'t');return (hp0-b.hp)<=60?1:0})()" | tail -1); ck "زره: ضربه‌ی ۱۰۰ → حداکثر ~۴۵-۶۰ دمیج" "$R"
+R=$(agent-browser eval "(()=>{const b=state.zombies.find(z=>z.type==='boss');if(!b)return 0;b.ai.staggerT=0;b.ai.dmgAcc=0;b.hp=b.maxHp;const hp0=b.hp;hitZombie(b,100,b.x,b.y-40,1,false,0,'t');return (hp0-b.hp)<=38?1:0})()" | tail -1); ck "زره ضدِّبرجک: ضربه‌ی ۱۰۰ → حداکثر ~۳۸ دمیج" "$R"
 agent-browser eval "GAME.endWave();'ok'" >/dev/null; sleep 1
 
 echo "===== ۸) کات‌سین پناهگاه: مراحل + گفتگو + آژیر ====="
@@ -121,8 +121,11 @@ sleep 2.6
 R=$(agent-browser eval "document.getElementById('tbcTitle').textContent.indexOf('ادامه دارد')>=0?1:0" | tail -1); ck "متن کامل «این داستان ادامه دارد...»" "$R"
 R=$(agent-browser eval "document.getElementById('tbcSub').classList.contains('on')?1:0" | tail -1); ck "تیتر سری دوم ظاهر شد" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots19/08_tbc.png >/dev/null
-agent-browser eval "GAME.v19.tbcContinueToVictory();'ok'" >/dev/null; sleep 1
-R=$(agent-browser eval "state.mode==='victory'&&!document.getElementById('victoryScreen').classList.contains('hidden')?1:0" | tail -1); ck "ادامه → صفحه‌ی برد سینمایی" "$R"
+agent-browser eval "GAME.v19.tbcContinueToMenu();'ok'" >/dev/null; sleep 1
+R=$(agent-browser eval "state.mode==='start'&&!document.getElementById('startScreen').classList.contains('hidden')?1:0" | tail -1); ck "ادامه → مستقیم منوی اصلی (بدون صفحه‌ی برد)" "$R"
+agent-browser eval "GAME.v19.startShelterCine();GAME.v19.startTbcScreen();'ok'" >/dev/null; sleep 0.3
+agent-browser eval "GAME.v19.tbcShowStats();'ok'" >/dev/null; sleep 1
+R=$(agent-browser eval "state.mode==='victory'&&!document.getElementById('victoryScreen').classList.contains('hidden')?1:0" | tail -1); ck "کارنامه‌ی نبرد → صفحه‌ی برد سینمایی" "$R"
 R=$(agent-browser eval "document.querySelectorAll('#vStats .vic-card').length===6?1:0" | tail -1); ck "۶ کارت آمار" "$R"
 R=$(agent-browser eval "document.querySelector('.vic-medal')&&document.querySelector('.vic-next')?1:0" | tail -1); ck "مدال + قلاب سری دوم" "$R"
 sleep 2.2

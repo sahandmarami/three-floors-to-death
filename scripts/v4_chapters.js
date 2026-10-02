@@ -1,7 +1,7 @@
 /* ==================================================================
    سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۵: فصل‌بندی، جریان موج‌ها و سیو
    ==================================================================
-   ساختار چهار فصل بازی (هر فصل ۸ موج + موج ۳۳ = «آخرین شب»):
+   ساختار چهار فصل بازی (۲۰٫۰: هر فصل ۶/۸/۱۰/۱۲ موج + موج ۳۶ = «آخرین شب»):
      ۱) محله‌ی قدیمی   — آجری، شب معمولی، برج سنگی/آجری
      ۲) منطقه‌ی انبارها — صنعتی، مه‌گرفته، برج فولادی + قطع برق تصادفی
      ۳) پاسگاه نظامی    — خرابه‌ها، ماه خونی و بارش خاکستر (شهر سوخته‌ی ۷٫۰)
@@ -16,9 +16,9 @@
    ================================================================== */
 
 /* ---------------------- ۵-۱) ثابت‌های فصل‌بندی ---------------------- */
-const WAVES_CH = [4, 6, 8, 10];              // (۱۸٫۰) موج‌های هر فصل — که جلو می‌ریم بیشتر
+const WAVES_CH = [6, 8, 10, 12];             /* (۲۰٫۰) موج‌های هر فصل — بازی طولانی‌تر شد */              // (۱۸٫۰) موج‌های هر فصل — که جلو می‌ریم بیشتر
 const WAVES_PER_CH = 8;                    // مبنای مقیاس‌گذاری سختی (نسخه‌های ۱۵-۱۷)
-const FINAL_WAVE = 28;                     // ۴+۶+۸+۱۰ = آخرین شبِ کل بازی
+const FINAL_WAVE = 36;                     /* ۶+۸+۱۰+۱۲ = آخرین شبِ کل بازی */                     // ۴+۶+۸+۱۰ = آخرین شبِ کل بازی
 
 /* شماره‌ی فصل/موجِ درون‌فصلی از شماره‌ی موجِ سراسری (۱۸٫۰: هر فصل طول متفاوت) */
 function wavesInChapter(ch) { return WAVES_CH[clamp(ch, 1, 4) - 1]; }
@@ -61,8 +61,8 @@ const CHAPTERS = [
   { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
     name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
     waves: WAVES_CH[0],
-    mulHp: 1.00, mulSpd: 1.00, mulCount: 1.08,
-    unlock: { fast: 3, tank: 6 },
+    mulHp: 1.10, mulSpd: 1.00, mulCount: 1.16,
+    unlock: { fast: 3, tank: 5 },
     blackout: null,
     theme: {
       sky: [['#05091a', '#41a8ef'], ['#0d1734', '#6fc8f8'], ['#182550', '#b8e8fd'], ['#233865', '#e2f4ff']],
@@ -81,7 +81,7 @@ const CHAPTERS = [
   { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
     name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
     waves: WAVES_CH[1],
-    mulHp: 1.30, mulSpd: 1.08, mulCount: 1.18,
+    mulHp: 1.44, mulSpd: 1.08, mulCount: 1.28,
     unlock: { fast: 1, tank: 3 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -102,7 +102,7 @@ const CHAPTERS = [
   { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
     name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
     waves: WAVES_CH[2],
-    mulHp: 1.58, mulSpd: 1.14, mulCount: 1.28,
+    mulHp: 1.74, mulSpd: 1.14, mulCount: 1.40,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 0, max: 1 },
     theme: {
@@ -124,7 +124,7 @@ const CHAPTERS = [
   { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
     name: 'برج مخابراتی', sub: 'آخرین قله',
     waves: WAVES_CH[3],
-    mulHp: 1.92, mulSpd: 1.20, mulCount: 1.38,
+    mulHp: 2.10, mulSpd: 1.20, mulCount: 1.50,
     unlock: { fast: 1, tank: 1 },
     blackout: { min: 1, max: 2 },
     theme: {
@@ -203,7 +203,7 @@ function startGame() {
   state.torch = { owned: false, on: false, battery: 0 };
   state.buffs = { vest: false, goldAmmo: false, helmet: false };
   state.regen = 0;
-  state.peddler = { cd: 0, here: false, stock: [] };
+  state.peddler = { cd: 0, here: false, stock: [], visits: 0 };   /* (۲۰٫۰) visits = شمار آمدن دستفروش */
   state.blackout = { on: false, waveT: 0, schedule: [], until: 0 };
   state.projectiles = [];
   state.cardT = 0;
@@ -214,11 +214,14 @@ function startGame() {
   shelterHardReset();                     // (۱۹٫۰) کات‌سین پناهگاه/«ادامه دارد» معلق نماند
   wipeSave();                             // بازی تازه = سیو تازه
   WEAPONS.shotgun.owned = false; WEAPONS.mg.owned = false;
+  WEAPONS.pistol.owned = true;                  /* (۲۰٫۰) پیشرفت سلاح: کلت دوباره برمی‌گردد */
+  state.bps = { tesla: false, missile: false, flame: false };   /* (۲۰٫۰) نقشه‌های برجک ویژه */
   state.zombies = []; state.bullets = []; state.coinsArr = [];
   state.turrets = []; state.placing = null; state.tipTurret = false;
   state.particles = []; state.texts = []; state.zaps = [];
   state.powerups = []; state.decals = [];
   state.powerTimers = { rapid: 0, freeze: 0 };
+  state.adren = 0;                       // (۲۰٫۰) آدرنالین
   state.combo = 0; state.comboT = 0; state.comboPop = 0;
   state.killsSinceDrop = 0; state.heartT = 0;
   state.shake = 0; state.flash = 0;   // فلش قرمز آسیب (عدد) — چراغ‌قوه state.torch است
@@ -487,12 +490,14 @@ function collectSave() {
     hp: Math.ceil(state.tower.hp), maxHp: state.tower.maxHp,
     upgrades: Object.assign({}, state.upgrades),
     weapon: state.weapon,
-    owned: { shotgun: WEAPONS.shotgun.owned, mg: WEAPONS.mg.owned },
+    owned: { pistol: WEAPONS.pistol.owned, shotgun: WEAPONS.shotgun.owned, mg: WEAPONS.mg.owned },
     turrets: state.turrets.map(t => ({ t: t.type, x: Math.round(t.x), y: Math.round(t.y) })),
     backpack: state.backpack.map(s => (s ? s.id : null)),
     flash: { owned: state.torch.owned, battery: Math.round(state.torch.battery) },
     buffs: Object.assign({}, state.buffs),
     peddlerCd: state.peddler.cd,
+    bps: Object.assign({}, state.bps || {}),          /* (۲۰٫۰) نقشه‌های ساختِ برجک‌های ویژه */
+    peddlerVisits: state.peddler.visits | 0,          /* (۲۰٫۰) شمار بازدیدهای دستفروش */
     weaponSpent: state.weaponSpent,
     stats: Object.assign({}, state.stats),
   };
@@ -546,7 +551,13 @@ function applySave(d) {
     state.upgrades = Object.assign({ weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 }, d.upgrades);
     WEAPONS.shotgun.owned = !!(d.owned && d.owned.shotgun);
     WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
-    state.weapon = (d.weapon && WEAPONS[d.weapon]) ? d.weapon : 'pistol';
+    /* (۲۰٫۰) پیشرفت سلاح: کلت فقط وقتی می‌ماند که هنوز شاتگان نخریده باشیم */
+    WEAPONS.pistol.owned = d.owned ? (d.owned.pistol !== false) : true;
+    state.bps = Object.assign({ tesla: false, missile: false, flame: false }, d.bps);
+    if (d.weapon && WEAPONS[d.weapon] && WEAPONS[d.weapon].owned) state.weapon = d.weapon;
+    else if (WEAPONS.mg.owned) state.weapon = 'mg';
+    else if (WEAPONS.shotgun.owned) state.weapon = 'shotgun';
+    else state.weapon = 'pistol';
     state.weaponSpent = d.weaponSpent | 0;
     /* (۱۵٫۰) برجک‌های نصب‌شده برمی‌گردند — فقط نوع/جای معتبر، حداکثر MAX_TURRETS */
     state.turrets = (Array.isArray(d.turrets) ? d.turrets : [])
@@ -566,7 +577,7 @@ function applySave(d) {
       battery: clamp((d.flash && d.flash.battery) | 0, 0, 100),
     };
     state.buffs = Object.assign({ vest: false, goldAmmo: false, helmet: false }, d.buffs);
-    state.peddler = { cd: d.peddlerCd | 0, here: false, stock: [] };
+    state.peddler = { cd: d.peddlerCd | 0, here: false, stock: [], visits: d.peddlerVisits | 0 };
     state.stats = Object.assign({ kills: 0, earned: 0, shots: 0, maxCombo: 0, turKills: 0 }, d.stats);
     state.intermission = 0;
     state.dayness = 1; state.dayTarget = 1;
@@ -615,7 +626,7 @@ function importSaveCode(code) {
     const raw = decodeURIComponent(escape(atob(c.slice(6))));
     const d = JSON.parse(raw);
     if (!d || d.v !== 1 || !CHAPTERS[(d.chapter | 0) - 1]) return false;
-    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > 33) return false;   // (۱۸٫۰) قدیمی‌ها هنگام خواندن نرمال می‌شوند
+    if (typeof d.wave !== 'number' || d.wave < 1 || d.wave > 99) return false;   // (۲۰٫۰) قدیمی‌ها هنگام خواندن نرمال می‌شوند
     STORE.set(SAVE_KEY, raw);
     refreshMenuContinue();
     return true;

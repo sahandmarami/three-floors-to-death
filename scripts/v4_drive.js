@@ -33,6 +33,8 @@ const DRV = {
   T: 0, goalT: 0, speed: 0, px: 0, steer: 0, kb: false,
   gas: false, brake: false, obs: [], nextZ: 0, hidden: null,
   hits: 0, hitCool: 0, offroad: 0, itemHinted: false, wheel: 0,
+  /* (۲۰٫۰) سیستم امتیاز/کمبو/بوستِ «نزدک بود!» */
+  score: 0, combo: 0, comboT: 0, boost: 0, scoreAcc: 0,
 };
 
 /* تم‌های سواره — همه فرمان/گاز/ترمز دارند (ورودی مشترک) */
@@ -88,6 +90,7 @@ function driveReset(cfg) {
   };
   DRV.hits = 0; DRV.hitCool = 0;
   DRV.offroad = 0; DRV.itemHinted = false; DRV.wheel = 0;
+  DRV.score = 0; DRV.combo = 0; DRV.comboT = 0; DRV.boost = 0; DRV.scoreAcc = 0;
 }
 
 const DRV_OBSTACLES = [
@@ -105,6 +108,9 @@ function driveUpdate(dt) {
   TR.fade = Math.max(0, TR.fade - dt * 1.9);
   MG.t2 += dt;
   D.hitCool = Math.max(0, D.hitCool - dt);
+  /* (۲۰٫۰) پنجره‌ی کمبو و بوستِ «نزدک بود!» */
+  if (D.comboT > 0) { D.comboT -= dt; if (D.comboT <= 0) D.combo = 0; }
+  if (D.boost > 0) D.boost -= dt;
 
   /* فرمان: px = موقعیت افقی ماشین در جهان */
   D.px += D.steer * 1500 * dt;
@@ -112,10 +118,11 @@ function driveUpdate(dt) {
   D.px = clamp(D.px, rc - 1450, rc + 1450);
   D.wheel += D.speed * dt * 0.004;
 
-  /* گاز / ترمز (لمس: گاز خودکار مگر ترمز) */
+  /* گاز / ترمز (لمس: گاز خودکار مگر ترمز) — (۲۰٫۰) بوستِ ردشدنِ مویی */
   let tgt = 2050;
   const touchAuto = (typeof IS_TOUCH !== 'undefined') && IS_TOUCH;
   if (D.gas || (touchAuto && !D.brake)) tgt = 3350;
+  if (D.boost > 0) tgt += 700;
   if (D.brake) tgt = 850;
   if (D.offroad > 0.2) tgt = Math.min(tgt, 1150);       // شانه‌ی جاده = شنِ سست
   D.speed += (tgt - D.speed) * Math.min(1, dt * 1.05);
@@ -159,17 +166,31 @@ function driveUpdate(dt) {
     D.nextZ += rand(950, 1600) + D.speed * 0.22;
   }
 
-  /* برخورد: مانع از صفحه‌ی بازیکن می‌گذرد (z ~ 740..1000) */
+  /* برخورد: مانع از صفحه‌ی بازیکن می‌گذرد (z ~ 740..1000)
+     (۲۰٫۰) «نزدک بود!»: ردشدنِ مویی از کنار مانع = امتیاز + کمبو + بوست */
   for (const o of D.obs) {
     if (o.hit) continue;
     const z = o.k * DRV.SEG - D.T;
-    if (z < 420) { o.hit = true; continue; }             // رد شد
+    if (z < 420) {
+      o.hit = true;
+      const miss = Math.abs(o.wx - D.px);
+      if (miss < 245 + o.hw + 250) drvNearMiss(o);
+      continue;                                   // رد شد
+    }
     if (z < 1000 && D.hitCool <= 0 && Math.abs(o.wx - D.px) < 245 + o.hw) {
       driveHit(o);
     }
   }
   /* زادآوری آرایه (حذف رد‌شده‌ها) */
   if (D.obs.length > 90) D.obs = D.obs.filter(o => o.k * DRV.SEG - D.T > 300);
+
+  /* (۲۰٫۰) امتیازِ مسافت — هر ۱۰ متر یک امتیاز */
+  D.scoreAcc += D.speed * dt * 0.012;
+  if (D.scoreAcc >= 1) {
+    const add = Math.floor(D.scoreAcc);
+    D.scoreAcc -= add;
+    D.score += add;
+  }
 
   /* آیتم مخفی: ستون نورش از دور دیده می‌شود؛ نزدیک‌شدن → هشدار ارشان
      (۱۹٫۰) جمله‌ی هشدار از پیکربندیِ هر تم می‌آید */
@@ -186,8 +207,9 @@ function driveUpdate(dt) {
     if (z > 640 && z < 1120 && Math.abs(hwx - D.px) < 330) {
       HI.got = true;
       giveItem(HI.id);
+      DRV.score += 200;                          /* (۲۰٫۰) جایزه‌ی امتیازی آیتم مخفی */
       SFX.csGift();
-      setTransSub('💎 آیتم مخفی پیدا شد! (' + (GEAR[HI.id] || RARE[HI.id]).name + ')', 2.6);
+      setTransSub('💎 آیتم مخفی پیدا شد! (' + (GEAR[HI.id] || RARE[HI.id]).name + ') +۲۰۰ امتیاز', 2.6);
       spawnParticles(drvX(hwx, 900), 470, 24,
         (GEAR[HI.id] || RARE[HI.id]).color, { speed: 200, life: 0.9, size: 2.8, grav: 260 });
     }
@@ -215,12 +237,36 @@ function driveUpdate(dt) {
   if (D.T >= D.goalT) mgOutro();
 }
 
+/* (۲۰٫۰) ردشدنِ مویی از مانع: «نزدک بود!» — امتیازِ فزاینده +
+   بوستِ کوتاه؛ رشته‌ی پیوسته = کمبوی داغ (تا ×۵) */
+function drvNearMiss(o) {
+  const D = DRV;
+  D.combo = Math.min(9, D.combo + 1);
+  D.comboT = 2.6;
+  D.boost = Math.max(D.boost, 1.15);
+  const mult = 1 + Math.floor(D.combo / 3);          /* ×۱ تا ×۴ */
+  const add = 25 * mult;
+  D.score += add;
+  const sx = drvX(o.wx, DRV.PLZ);
+  const hot = D.combo >= 4;
+  addText(sx, 440, hot ? 'داغ! +' + faNum(add) : 'نزدک بود! +' + faNum(add),
+    hot ? '#ff9a3d' : '#8fd6ff', 15);
+  spawnParticles(sx, 470, 6, hot ? '#ffb26e' : '#8fd6ff',
+    { speed: 130, life: 0.5, size: 2.4, grav: 180, up: true });
+  try { SFX.combo(Math.min(9, 3 + D.combo)); } catch (e) {}
+  if (D.combo === 3) setTransSub('🔥 سه‌تای پیوسته! بوست گرفتی', 1.6);
+  if (D.combo === 6) setTransSub('🔥🔥 شش‌تای پیوسته! داغش کن!', 1.6);
+}
+
 /* برخورد: زامبی = له‌شدن (سبک) • جسم سخت = تصادف سنگین
-   (۱۹٫۰) «سبک/سنگین» موقع تولید مانع ذخیره می‌شود (o.soft) */
+   (۱۹٫۰) «سبک/سنگین» موقع تولید مانع ذخیره می‌شود (o.soft)
+   (۲۰٫۰) برخورد = قطعِ کمبو + جریمه‌ی امتیاز */
 function driveHit(o) {
   o.hit = true;
   DRV.hits++;
   DRV.hitCool = 0.55;
+  DRV.combo = 0; DRV.comboT = 0;
+  DRV.score = Math.max(0, DRV.score - 50);
   const soft = !!o.soft;
   const th = DRV.theme;
   if (soft) {

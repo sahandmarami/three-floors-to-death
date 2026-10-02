@@ -53,12 +53,17 @@ function shelterHardReset() {
   try { DLG.skip(); } catch (e) {}
 }
 
-/* رد کردن: مستقیم صفحه‌ی برد (برای دوباره‌بازی/تست) */
+/* رد کردن: مستقیم صفحه‌ی «ادامه دارد» (۲۰٫۰ — دیگر به صفحه‌ی برد نمی‌رود) */
 function skipShelterCine() {
   if (!SHEL) return;
   SFX.click();
-  shelterHardReset();
-  doFade(() => victory(), 0.35);
+  const wasTbc = SHEL.phase === 'tbc';
+  if (!wasTbc) {
+    SHEL.phase = 'alarm';
+    SHEL.dlgDone = true;                 /* گفتگو را وارونه رد کن */
+    SHEL.t = 6.0;
+    startTbcScreen();
+  }
 }
 
 /* گفتگوی داخل پناهگاه — با صدای دکتر مریم (m) و رادیو (r) */
@@ -222,8 +227,16 @@ function startTbcScreen() {
   SFX.slowmo();
 }
 
-/* دکمه‌ی ادامه: از «ادامه دارد» به صفحه‌ی برد */
-function tbcContinueToVictory() {
+/* دکمه‌ی اصلی «ادامه دارد» (۲۰٫۰): بازگشت به منو — طبق بازخورد کاربر،
+   دکمه دیگر به صفحه‌ی پیروزی نمی‌رود؛ کارنامه از دکمه‌ی کوچک جدا باز می‌شود */
+function tbcContinueToMenu() {
+  if (!SHEL) return;
+  SFX.click();
+  shelterHardReset();
+  exitToMenu();
+}
+/* دکمه‌ی کوچک: فقط دیدن کارنامه‌ی آمار (اختیاری) */
+function tbcShowStats() {
   if (!SHEL) return;
   SFX.click();
   shelterHardReset();
@@ -425,101 +438,316 @@ function renderShelterGate(t) {
   ctx.restore();
 }
 
-/* --- صحنه‌ی ۳: داخل پناهگاه (گفتگو / آژیر) --- */
+/* --- صحنه‌ی ۳: داخل پناهگاه — بازطراحی ۲۰٫۰ ---
+   (بازخورد کاربر: «داخل پناهگاه خیلی بد دیده می‌شه»)
+   حالا یک سالنِ بتنیِ «تک‌نقطه‌ای» با عمق واقعی است:
+     • دیوارهای جانبی همگرا + سقف تیرک‌دار با لوله‌ها و سیم‌های کشیده
+     • کف با شیارهای همگرا + بازتاب چراغ‌ها
+     • دیوار انتهایی: درِ فولادی چرخ‌دار + نقشه‌ی شهر سنجاقی + تخته‌گچی
+     • چپ: آشپزخانه (قفسه‌ی کنسرو + بخاریِ ذغالی با لوله و شعله) • راست:
+       تخت‌های دوطبقه + جعبه‌ها و بشکه‌ها + بند رخت با لباس
+     • میز رادیو وسط + ایستگاه کمک‌های دکتر مریم + ۵ بازمانده‌ی زنده
+       (پیرمردِ عصایی، زنِ بافتنی، بچه‌ی خوابیده، نگهبانِ در، پتوپیچ)
+     • سه چراغ آویز با مخروط نورِ حجمی + گردوغبار معلق + وینیت */
 function renderShelterInside(t, ph) {
   const alarm = ph === 'alarm' || ph === 'tbc';
-  /* دیوارهای بتنی + کف */
-  ctx.fillStyle = '#181c26'; ctx.fillRect(-20, -20, W + 40, H + 40);
-  const wg = ctx.createLinearGradient(0, 0, 0, H);
-  wg.addColorStop(0, '#141822'); wg.addColorStop(1, '#1e2432');
-  ctx.fillStyle = wg; ctx.fillRect(-20, 60, W + 40, H - 40);
-  /* درزهای بتنی */
-  ctx.strokeStyle = 'rgba(8,10,16,0.7)'; ctx.lineWidth = 2;
-  for (let i = 0; i < 4; i++) {
-    const y = 110 + i * 108;
-    ctx.beginPath(); ctx.moveTo(-20, y); ctx.lineTo(W + 20, y); ctx.stroke();
-  }
-  for (let i = 0; i < 7; i++) {
-    const x = 70 + i * 140;
-    ctx.beginPath(); ctx.moveTo(x, 60); ctx.lineTo(x, H); ctx.stroke();
-  }
-  /* کف */
-  ctx.fillStyle = '#232a38'; ctx.fillRect(-20, GROUND_Y + 30, W + 40, H - GROUND_Y);
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-20, GROUND_Y + 30, W + 40, 4);
+  /* نقطه‌ی گریز پرسپکتیو و قاب دیوار انتهایی */
+  const VX = W / 2, VY = 232;
+  const BW = 300, BH = 262;                       /* پهنای دیوار عقب */
+  const bx0 = VX - BW / 2, bx1 = VX + BW / 2;      /* 330..630 */
+  const byT = VY - BH / 2 + 12, byB = VY + BH / 2 + 12;   /* ~123..385 */
 
-  /* قفسه‌های آذوقه (چپ) */
-  for (let i = 0; i < 3; i++) {
-    const sx = 60 + i * 6, sy = 180 + i * 74;
-    ctx.fillStyle = '#3a2c1a';
-    rr(sx, sy, 190, 10, 3); ctx.fill();
-    ctx.strokeStyle = '#241a10'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(sx + 6, sy); ctx.lineTo(sx + 6, sy + 64); ctx.moveTo(sx + 184, sy); ctx.lineTo(sx + 184, sy + 64); ctx.stroke();
-    /* قوطی‌ها */
-    for (let j = 0; j < 7; j++) {
-      ctx.fillStyle = ['#7a4a28', '#5a6a3a', '#8a5a3a', '#4a5a6a'][(i * 7 + j) % 4];
-      rr(sx + 12 + j * 24, sy - 22, 18, 22, 3); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.fillRect(sx + 12 + j * 24, sy - 20, 18, 4);
+  /* ===== پس‌زمینه‌ی کلی ===== */
+  ctx.fillStyle = '#0d1018'; ctx.fillRect(-20, -20, W + 40, H + 40);
+
+  /* ===== دیوار انتهایی ===== */
+  const wg = ctx.createLinearGradient(0, byT, 0, byB);
+  wg.addColorStop(0, '#1a1f2c'); wg.addColorStop(0.6, '#232a3a'); wg.addColorStop(1, '#2c3546');
+  ctx.fillStyle = wg; ctx.fillRect(bx0, byT, BW, BH);
+  /* درزهای بتنی دیوار عقب */
+  ctx.strokeStyle = 'rgba(8,10,16,0.55)'; ctx.lineWidth = 2;
+  for (let i = 1; i < 4; i++) {
+    const y = byT + (BH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(bx0, y); ctx.lineTo(bx1, y); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(VX, byT); ctx.lineTo(VX, byB); ctx.stroke();
+
+  /* ===== دیوارهای جانبیِ همگرا ===== */
+  const wallL = ctx.createLinearGradient(0, 0, bx0, 0);
+  wallL.addColorStop(0, '#151a26'); wallL.addColorStop(1, '#232a3a');
+  ctx.fillStyle = wallL;
+  ctx.beginPath();
+  ctx.moveTo(-20, -20); ctx.lineTo(bx0, byT); ctx.lineTo(bx0, byB); ctx.lineTo(-20, H + 20);
+  ctx.closePath(); ctx.fill();
+  const wallR = ctx.createLinearGradient(W, 0, bx1, 0);
+  wallR.addColorStop(0, '#151a26'); wallR.addColorStop(1, '#232a3a');
+  ctx.fillStyle = wallR;
+  ctx.beginPath();
+  ctx.moveTo(W + 20, -20); ctx.lineTo(bx1, byT); ctx.lineTo(bx1, byB); ctx.lineTo(W + 20, H + 20);
+  ctx.closePath(); ctx.fill();
+  /* درزهای موربِ دیوار جانبی */
+  ctx.strokeStyle = 'rgba(8,10,16,0.4)'; ctx.lineWidth = 1.6;
+  for (let i = 1; i <= 4; i++) {
+    const k = i / 5;
+    ctx.beginPath();
+    ctx.moveTo(-20, k * (H + 20));
+    ctx.lineTo(bx0, byT + k * (byB - byT));
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(W + 20, k * (H + 20));
+    ctx.lineTo(bx1, byT + k * (byB - byT));
+    ctx.stroke();
+  }
+
+  /* ===== سقف: تیرک‌ها + لوله‌ها + سیم‌ها ===== */
+  const cg = ctx.createLinearGradient(0, 0, 0, byT);
+  cg.addColorStop(0, '#0e1219'); cg.addColorStop(1, '#1c2230');
+  ctx.fillStyle = cg;
+  ctx.beginPath();
+  ctx.moveTo(-20, -20); ctx.lineTo(W + 20, -20); ctx.lineTo(bx1, byT); ctx.lineTo(bx0, byT);
+  ctx.closePath(); ctx.fill();
+  /* تیرک‌های عرضی (به سمت گریز) */
+  ctx.strokeStyle = 'rgba(6,9,14,0.75)'; ctx.lineWidth = 7;
+  for (let i = 0; i < 5; i++) {
+    const k = (i + 0.6) / 5.4;
+    const xL = -20 + (bx0 + 20) * k, xR = W + 20 - (W + 20 - bx1) * k;
+    const y = -18 + (byT + 18) * k;
+    ctx.beginPath(); ctx.moveTo(xL, y); ctx.lineTo(xR, y); ctx.stroke();
+  }
+  /* دو لوله‌ی بخار در طول سقفِ راست */
+  ctx.strokeStyle = '#39424e'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(W + 16, 44); ctx.lineTo(bx1 - 8, byT + 34); ctx.stroke();
+  ctx.strokeStyle = '#4a5664'; ctx.lineWidth = 3.4;
+  ctx.beginPath(); ctx.moveTo(W + 16, 26); ctx.lineTo(bx1 - 20, byT + 22); ctx.stroke();
+  /* یقه‌های لوله */
+  ctx.fillStyle = '#5d6a7a';
+  for (let i = 0; i < 4; i++) {
+    const k = (i + 0.5) / 4;
+    const x = W + 16 - (W + 16 - bx1 + 8) * k, y = 44 - (44 - byT - 34) * k;
+    ctx.fillRect(x - 4, y - 6, 8, 12);
+  }
+  /* سیم برق آویزان روی چپ */
+  ctx.strokeStyle = 'rgba(16,20,28,0.9)'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(-16, 30);
+  ctx.quadraticCurveTo(VX - 40, 96, bx0 + 10, byT + 28);
+  ctx.stroke();
+
+  /* ===== کف: بتنی با شیارهای همگرا ===== */
+  const fg = ctx.createLinearGradient(0, byB, 0, H);
+  fg.addColorStop(0, '#232a38'); fg.addColorStop(1, '#2e3748');
+  ctx.fillStyle = fg;
+  ctx.beginPath();
+  ctx.moveTo(-20, H + 20); ctx.lineTo(bx0, byB); ctx.lineTo(bx1, byB); ctx.lineTo(W + 20, H + 20);
+  ctx.closePath(); ctx.fill();
+  /* شیارها */
+  ctx.strokeStyle = 'rgba(10,13,20,0.5)'; ctx.lineWidth = 2;
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(VX + i * 46, byB);
+    ctx.lineTo(VX + i * 240, H + 20);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 4; i++) {
+    const k = (i + 0.7) / 4;
+    ctx.beginPath();
+    ctx.moveTo(-20, byB + k * (H - byB) * 1.1);
+    ctx.lineTo(W + 20, byB + k * (H - byB) * 1.1);
+    ctx.stroke();
+  }
+
+  /* ===== دیوار عقب: درِ فولادی + نقشه + تخته‌گچی ===== */
+  /* درِ فولادی وسط */
+  const dw2 = 76, dx = VX - dw2 / 2, dyT = byT + 62, dyB = byB - 4;
+  ctx.fillStyle = '#39424e'; rr(dx, dyT, dw2, dyB - dyT, 7); ctx.fill();
+  ctx.fillStyle = '#4a5664';
+  for (let i = 0; i < 5; i++) ctx.fillRect(dx + 7, dyT + 10 + i * 24, dw2 - 14, 5);
+  ctx.strokeStyle = '#242c36'; ctx.lineWidth = 2.4; rr(dx, dyT, dw2, dyB - dyT, 7); ctx.stroke();
+  /* چرخِ قفل در */
+  ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 3;
+  circle(VX, dyT + (dyB - dyT) / 2, 9); ctx.stroke();
+  ctx.beginPath();
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) {
+    ctx.moveTo(VX + Math.cos(a) * 9, dyT + (dyB - dyT) / 2 + Math.sin(a) * 9);
+    ctx.lineTo(VX + Math.cos(a) * 13, dyT + (dyB - dyT) / 2 + Math.sin(a) * 13);
+  }
+  ctx.stroke();
+  ctx.fillStyle = alarm && Math.sin(t * 8) > 0 ? '#ff4b3e' : '#7be389';
+  circle(dx - 12, dyT - 8, 3);
+  circle(dx + dw2 + 12, dyT - 8, 3);
+  /* نقشه‌ی شهر سنجاقی (چپِ در) */
+  ctx.save();
+  ctx.translate(bx0 + 24, byT + 26);
+  ctx.fillStyle = '#cbb98a'; rr(0, 0, 66, 52, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(60,54,40,0.25)'; rr(0, 0, 66, 52, 3); ctx.fill();
+  ctx.strokeStyle = '#5a5040'; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(8, 12); ctx.lineTo(26, 8); ctx.lineTo(44, 18); ctx.lineTo(58, 12);
+  ctx.moveTo(12, 34); ctx.lineTo(30, 26); ctx.lineTo(50, 36);
+  ctx.stroke();
+  /* پین‌های قرمز = آلودگی */
+  ctx.fillStyle = '#d84a3a';
+  circle(20, 18, 2.6); circle(40, 30, 2.6); circle(52, 15, 2.6);
+  /* دایره‌ی سبز = پناهگاه */
+  ctx.strokeStyle = '#2e8a4a'; ctx.lineWidth = 1.8;
+  circle(46, 40, 6); ctx.stroke();
+  ctx.restore();
+  /* تخته‌گچی (راستِ در): خط‌کشیِ روزهای مانده */
+  ctx.save();
+  ctx.translate(bx1 - 92, byT + 24);
+  ctx.fillStyle = '#2c3630'; rr(0, 0, 70, 48, 3); ctx.fill();
+  ctx.strokeStyle = '#4a5a4e'; ctx.lineWidth = 2; rr(0, 0, 70, 48, 3); ctx.stroke();
+  ctx.strokeStyle = 'rgba(226,232,240,0.75)'; ctx.lineWidth = 1.2;
+  for (let r = 0; r < 4; r++) {
+    for (let c2 = 0; c2 < 7; c2++) {
+      if (r * 7 + c2 > 26) break;
+      ctx.beginPath();
+      ctx.moveTo(8 + c2 * 8.6, 10 + r * 9.5);
+      ctx.lineTo(12 + c2 * 8.6, 14 + r * 9.5);
+      ctx.stroke();
     }
   }
-  /* تخت‌های اردوگاهی (راست) */
-  for (let i = 0; i < 2; i++) {
-    const bx = 720, by = 250 + i * 96;
-    ctx.fillStyle = '#2c3440';
-    rr(bx, by, 170, 12, 4); ctx.fill();
-    ctx.fillStyle = '#4a5664';
-    ctx.fillRect(bx + 6, by + 12, 8, 34); ctx.fillRect(bx + 156, by + 12, 8, 34);
-    ctx.fillStyle = '#7a6a8a';
-    rr(bx + 8, by - 8, 70, 10, 4); ctx.fill();           // پتوی روی تخت
-  }
-  /* بازمانده‌ها: سه سایه‌ی نشسته دورِ میز (پشت) */
-  drawShelterSurvivor(380, 330, '#6a5a8a', 0);
-  drawShelterSurvivor(452, 336, '#5a6a4a', 1);
-  drawShelterSurvivor(520, 330, '#6a4a4a', 2);
+  ctx.restore();
 
-  /* میز رادیو وسط + ارشان کنارش */
-  const rx = 468, ry = GROUND_Y + 6;
-  ctx.fillStyle = '#3a2c1a';
-  rr(rx - 64, ry - 40, 128, 40, 5); ctx.fill();
+  /* ===== آشپزخانه چپ (روی دیوار جانبی، مقیاس کم‌عمق) ===== */
+  /* قفسه‌ی کنسرو دوطبقه */
+  for (let s = 0; s < 2; s++) {
+    const sx = 88 + s * 8, sy = 288 + s * 66;
+    const sw = 168 - s * 10;
+    ctx.fillStyle = '#3a2c1a'; rr(sx, sy, sw, 9, 3); ctx.fill();
+    ctx.strokeStyle = '#241a10'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(sx + 5, sy); ctx.lineTo(sx + 1, sy + 52);
+    ctx.moveTo(sx + sw - 5, sy); ctx.lineTo(sx + sw - 1, sy + 52);
+    ctx.stroke();
+    for (let j = 0; j < 6; j++) {
+      ctx.fillStyle = ['#7a4a28', '#5a6a3a', '#8a5a3a', '#4a5a6a'][(s * 6 + j) % 4];
+      rr(sx + 8 + j * (sw - 16) / 6, sy - 21, 15, 21, 3); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(sx + 8 + j * (sw - 16) / 6, sy - 19, 15, 4);
+    }
+  }
+  /* بخاری ذغالی + لوله تا سقف */
+  const stx = 252, sty = 470;
+  ctx.fillStyle = '#2c2622'; rr(stx - 22, sty - 54, 44, 54, 6); ctx.fill();
+  ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 2; rr(stx - 22, sty - 54, 44, 54, 6); ctx.stroke();
+  const fireA = 0.65 + 0.35 * Math.sin(t * 7.3);
+  const fr = ctx.createRadialGradient(stx, sty - 26, 3, stx, sty - 26, 26);
+  fr.addColorStop(0, 'rgba(255,150,60,' + (0.55 * fireA).toFixed(2) + ')');
+  fr.addColorStop(1, 'rgba(255,110,40,0)');
+  ctx.fillStyle = fr; circle(stx, sty - 26, 26);
+  ctx.fillStyle = 'rgba(255,180,80,' + (0.8 * fireA).toFixed(2) + ')';
+  rr(stx - 10, sty - 32, 20, 14, 4); ctx.fill();
+  ctx.strokeStyle = '#39424e'; ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(stx + 14, sty - 50);
+  ctx.quadraticCurveTo(stx + 38, sty - 88, stx + 20, sty - 122);
+  ctx.stroke();
+  /* گلدان آب روی شلف کوچک */
+  ctx.fillStyle = '#7fb3c9'; rr(60, 430, 22, 30, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(60, 430, 22, 6);
+
+  /* ===== منطقه‌ی خواب راست ===== */
+  /* تخت دوطبقه */
+  const bx = 688, by = 300;
+  ctx.strokeStyle = '#39424e'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bx, by); ctx.lineTo(bx, by + 210);
+  ctx.moveTo(bx + 150, by - 8); ctx.lineTo(bx + 150, by + 210);
+  ctx.stroke();
+  for (let lvl = 0; lvl < 2; lvl++) {
+    const ly = by + 34 + lvl * 86;
+    ctx.fillStyle = '#2c3440'; rr(bx - 4, ly, 158, 11, 4); ctx.fill();
+    /* پتو + بالش */
+    ctx.fillStyle = lvl ? '#7a6a8a' : '#5a7a6a';
+    rr(bx + 4, ly - 7, 92, 10, 4); ctx.fill();
+    ctx.fillStyle = '#d8d2c4'; rr(bx + 118, ly - 9, 30, 12, 5); ctx.fill();
+  }
+  /* بچه‌ی خوابیده روی تخت پایین (پتوپیچِ نفس‌کش) */
+  const kidB = Math.sin(animTime * 1.4) * 1.3;
+  ctx.save();
+  ctx.translate(bx + 46, by + 120 + kidB);
+  ctx.fillStyle = '#8a7f9a';
+  ctx.beginPath(); ctx.ellipse(0, -4, 26, 9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#c9a084'; circle(26, -8, 6.4);
+  ctx.fillStyle = '#4a3d2a';
+  ctx.beginPath(); ctx.arc(26, -8, 6.6, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();
+  ctx.restore();
+  /* جعبه‌ها و بشکه‌ها */
+  ctx.fillStyle = '#4a3a22'; rr(660, 430, 52, 46, 4); ctx.fill();
+  ctx.strokeStyle = '#2c2012'; ctx.lineWidth = 2; rr(660, 430, 52, 46, 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(660, 452); ctx.lineTo(712, 452); ctx.stroke();
+  ctx.fillStyle = '#3f4a5e'; rr(668, 476, 34, 40, 4); ctx.fill();
+  ctx.strokeStyle = '#5d6a7a'; ctx.lineWidth = 1.5; rr(668, 476, 34, 40, 4); ctx.stroke();
+  /* بشکه‌ی سوخت با علامت خطر */
+  ctx.fillStyle = '#7a4a28'; rr(832, 440, 34, 44, 5); ctx.fill();
+  ctx.fillStyle = '#e8b54a';
+  ctx.font = 'bold 13px Tahoma'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('⚡', 849, 462);
+  /* بند رخت با دو لباس */
+  ctx.strokeStyle = 'rgba(200,205,215,0.35)'; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(W + 10, 250);
+  ctx.quadraticCurveTo(780, 300, 700, 286);
+  ctx.stroke();
+  ctx.fillStyle = '#6a5a8a';
+  ctx.beginPath();
+  ctx.moveTo(790, 280); ctx.lineTo(806, 280); ctx.lineTo(803, 318); ctx.lineTo(793, 318);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#5a6a4a';
+  ctx.beginPath();
+  ctx.moveTo(748, 288); ctx.lineTo(760, 288); ctx.lineTo(758, 320); ctx.lineTo(750, 320);
+  ctx.closePath(); ctx.fill();
+
+  /* ===== بازمانده‌ها ===== */
+  drawShelterSurvivorOld(370, 470, animTime);          /* پیرمردِ عصایی روی جعبه */
+  drawShelterSurvivorKnit(258, 505, animTime);         /* زنِ بافتنی روی صندلی */
+  drawShelterSurvivor(560, 372, '#6a5a8a', 0);         /* پتوپیچِ دورِ میز عقب */
+  drawShelterGuard(bx1 - 44, byB + 26, animTime);      /* نگهبانِ در با تفنگ */
+
+  /* ===== میز رادیو وسط + ایستگاه دکتر ===== */
+  const rx = 468, ry = 512;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(rx, ry + 4, 86, 12, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3a2c1a'; rr(rx - 72, ry - 42, 144, 42, 6); ctx.fill();
   ctx.fillStyle = '#2c2012';
-  ctx.fillRect(rx - 58, ry - 4, 10, 30); ctx.fillRect(rx + 48, ry - 4, 10, 30);
+  ctx.fillRect(rx - 64, ry - 4, 11, 34); ctx.fillRect(rx + 53, ry - 4, 11, 34);
   /* رادیوی بزرگ روی میز */
-  ctx.fillStyle = '#4a3a22';
-  rr(rx - 40, ry - 86, 80, 48, 6); ctx.fill();
-  ctx.fillStyle = '#c9a24e';
-  rr(rx - 30, ry - 78, 60, 24, 4); ctx.fill();
-  ctx.fillStyle = 'rgba(30,20,6,0.9)';
-  rr(rx - 26, ry - 74, 52, 16, 3); ctx.fill();
-  /* عقربه‌ی فرکانس — حین آژیر می‌پرد */
-  const dial = alarm ? Math.sin(t * 22) * 18 : Math.sin(t * 2) * 6;
+  ctx.fillStyle = '#4a3a22'; rr(rx - 42, ry - 92, 84, 50, 7); ctx.fill();
+  ctx.fillStyle = '#c9a24e'; rr(rx - 32, ry - 84, 64, 26, 5); ctx.fill();
+  ctx.fillStyle = 'rgba(30,20,6,0.9)'; rr(rx - 28, ry - 80, 56, 18, 4); ctx.fill();
+  const dial = alarm ? Math.sin(t * 22) * 20 : Math.sin(t * 2) * 6;
   ctx.strokeStyle = 'rgba(255,90,70,0.9)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(rx, ry - 66); ctx.lineTo(rx + dial, ry - 70); ctx.stroke();
-  /* LED رادیو */
+  ctx.beginPath(); ctx.moveTo(rx, ry - 71); ctx.lineTo(rx + dial, ry - 75); ctx.stroke();
   ctx.fillStyle = alarm && Math.sin(t * 10) > 0 ? '#ff4b3e' : '#7a5a2e';
-  circle(rx + 28, ry - 52, 3);
-  /* آنتن */
+  circle(rx + 30, ry - 56, 3);
   ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(rx + 32, ry - 86); ctx.lineTo(rx + 52, ry - 122); ctx.stroke();
-  /* موج‌های رادیو (حین خبرِ بد پررنگ) */
+  ctx.beginPath(); ctx.moveTo(rx + 34, ry - 92); ctx.lineTo(rx + 54, ry - 130); ctx.stroke();
   const rwA = alarm ? 0.55 : 0.22;
   ctx.strokeStyle = 'rgba(140,190,255,' + rwA.toFixed(2) + ')';
-  ctx.lineWidth = 2;
   for (let i = 0; i < 3; i++) {
     const ph2 = (animTime * (alarm ? 1.6 : 0.7) + i * 0.33) % 1;
     ctx.globalAlpha = (1 - ph2) * 0.6;
     ctx.beginPath();
-    ctx.arc(rx + 40, ry - 96, 16 + ph2 * (alarm ? 150 : 80), -0.9, 0.6);
+    ctx.arc(rx + 42, ry - 104, 16 + ph2 * (alarm ? 150 : 80), -0.9, 0.6);
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
+  /* ایستگاه کمک‌های اولیه (پشتِ دکتر): صندوق قرمز + ستاند سرم */
+  ctx.fillStyle = '#8a3a30'; rr(392, 452, 34, 26, 4); ctx.fill();
+  ctx.fillStyle = '#e8ecf5';
+  ctx.fillRect(404, 458, 10, 3.6); ctx.fillRect(404, 466, 10, 3.6);
+  ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(430, 478); ctx.lineTo(430, 414); ctx.stroke();
+  ctx.fillStyle = 'rgba(140,190,255,0.3)';
+  ctx.beginPath(); ctx.moveTo(430, 414); ctx.lineTo(424, 426); ctx.lineTo(436, 426);
+  ctx.closePath(); ctx.fill();
 
   /* دکتر مریم — کنار میز، رو به بازیکن */
-  drawDoctorMary(rx - 130, ry, animTime);
-  /* بازیکن (چپِ صحنه، تازه‌وارد) */
-  drawShelterWalker(200, GROUND_Y + 24, 2.3, 0.3, false);
+  drawDoctorMary(rx - 128, ry - 8, animTime);
+  /* بازیکن (چپِ صحنه، تازه‌وارد، بزرگ‌تر = نزدیک‌تر) */
+  drawShelterWalker(178, 532, 2.5, 0.3, false);
   /* ارشان — پشت میز، دست روی رادیو */
   {
-    const ax = rx + 96, ay = ry - 4;
+    const ax = rx + 104, ay = ry - 6;
     ctx.save();
     ctx.translate(ax, ay);
     const lean = alarm ? Math.sin(t * 9) * 1.6 : Math.sin(animTime * 2.2) * 1.2;
@@ -533,45 +761,71 @@ function renderShelterInside(t, ph) {
     ctx.fillStyle = '#7a2a2a';
     ctx.beginPath(); ctx.arc(2, -44, 8.4, Math.PI, Math.PI * 2); ctx.fill();
     ctx.fillRect(-7, -45, 18, 4);
-    /* دستِ دراز به رادیو */
     ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(-6, -32); ctx.lineTo(-34, -52); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6, -32); ctx.lineTo(-38, -54); ctx.stroke();
     ctx.restore();
   }
 
-  /* چراغ‌های آویزی: سه لامپ با حوضچه‌ی نور */
+  /* ===== سه چراغ آویز + مخروط نور حجمی ===== */
   for (let i = 0; i < 3; i++) {
-    const lx = 200 + i * 280;
+    const lx = 208 + i * 272;
     const flick = 0.8 + 0.2 * Math.sin(animTime * (3 + i) + i * 2);
     ctx.strokeStyle = '#0e1218'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(lx, 60); ctx.lineTo(lx, 150); ctx.stroke();
-    ctx.fillStyle = alarm ? '#5a2430' : '#3a3630';
-    rr(lx - 12, 150, 24, 10, 4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(lx, 30); ctx.lineTo(lx, 118); ctx.stroke();
     const col = alarm ? '255,80,60' : '255,214,138';
-    ctx.fillStyle = 'rgba(' + col + ',' + (0.85 * flick).toFixed(2) + ')';
-    circle(lx, 164, 5);
-    const pool = ctx.createRadialGradient(lx, 168, 8, lx, 168, 150);
-    pool.addColorStop(0, 'rgba(' + col + ',' + (0.16 * flick).toFixed(2) + ')');
+    ctx.fillStyle = alarm ? '#5a2430' : '#3a3630';
+    rr(lx - 13, 118, 26, 11, 5); ctx.fill();
+    ctx.fillStyle = 'rgba(' + col + ',' + (0.9 * flick).toFixed(2) + ')';
+    circle(lx, 133, 5.5);
+    /* مخروط نور حجمی */
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const cone = ctx.createLinearGradient(0, 133, 0, 520);
+    cone.addColorStop(0, 'rgba(' + col + ',' + (0.13 * flick).toFixed(2) + ')');
+    cone.addColorStop(1, 'rgba(' + col + ',0)');
+    ctx.fillStyle = cone;
+    ctx.beginPath();
+    ctx.moveTo(lx - 9, 133); ctx.lineTo(lx + 9, 133);
+    ctx.lineTo(lx + 108, 520); ctx.lineTo(lx - 108, 520);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    /* بازتاب روی کف */
+    const pool = ctx.createRadialGradient(lx, 512, 10, lx, 512, 120);
+    pool.addColorStop(0, 'rgba(' + col + ',' + (0.10 * flick).toFixed(2) + ')');
     pool.addColorStop(1, 'rgba(' + col + ',0)');
-    ctx.fillStyle = pool; circle(lx, 168, 150);
+    ctx.fillStyle = pool;
+    ctx.beginPath(); ctx.ellipse(lx, 512, 120, 26, 0, 0, Math.PI * 2); ctx.fill();
+    /* گردوغبار معلق داخل نور */
+    if (Math.random() < 0.16) {
+      state.particles.push({
+        x: lx + rand(-40, 40), y: rand(150, 460),
+        vx: rand(-4, 4), vy: rand(3, 9),
+        age: 0, life: rand(1.5, 3.2), size: rand(0.8, 1.6),
+        color: 'rgba(255,226,168,0.30)', grav: 0,
+      });
+    }
   }
 
-  /* آژیر: چراغ گردان قرمز روی همه‌چیز */
+  /* ===== آژیر: جاروب قرمز + غبار ===== */
   if (alarm) {
     const pulse = 0.5 + 0.5 * Math.sin(t * 4.4);
     ctx.fillStyle = 'rgba(200,30,20,' + (0.1 + pulse * 0.16).toFixed(2) + ')';
     ctx.fillRect(0, 0, W, H);
-    /* چراغ گردان سقف */
-    const ax = W / 2 + Math.sin(t * 4.4) * 90;
-    const ag = ctx.createRadialGradient(ax, 96, 4, ax, 96, 120);
+    const ax = W / 2 + Math.sin(t * 4.4) * 110;
+    const ag = ctx.createRadialGradient(ax, 96, 4, ax, 96, 130);
     ag.addColorStop(0, 'rgba(255,60,40,' + (0.4 + pulse * 0.3).toFixed(2) + ')');
     ag.addColorStop(1, 'rgba(255,60,40,0)');
-    ctx.fillStyle = ag; circle(ax, 96, 120);
+    ctx.fillStyle = ag; circle(ax, 96, 130);
     ctx.fillStyle = '#ff4b3e'; circle(ax, 96, 6);
   }
+
+  /* ===== وینیت سینمایی ===== */
+  const vg = ctx.createRadialGradient(VX, 300, 240, VX, 300, 660);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 }
 
-/* بازمانده‌ی نشسته — سایه‌ی رنگی با سرِ کم‌جان */
+/* بازمانده‌ی پتوپیچ (دورِ میز عقب) */
 function drawShelterSurvivor(x, y, col, seed) {
   ctx.save();
   ctx.translate(x, y);
@@ -579,11 +833,74 @@ function drawShelterSurvivor(x, y, col, seed) {
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 17, 5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = col;
-  rr(-14, -34 + breathe, 28, 34, 8); ctx.fill();           // پتو/شانه‌ها
+  rr(-14, -34 + breathe, 28, 34, 8); ctx.fill();
   ctx.fillStyle = '#c9a084';
   circle(0, -40 + breathe, 7);
   ctx.fillStyle = 'rgba(30,24,40,0.85)';
   ctx.beginPath(); ctx.arc(0, -40 + breathe, 7.4, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+  ctx.restore();
+}
+
+/* پیرمردِ عصایی — روی جعبه نشسته، دست‌ش روی عصا می‌لرزد */
+function drawShelterSurvivorOld(x, y, t2) {
+  ctx.save();
+  ctx.translate(x, y);
+  const tremble = Math.sin(t2 * 5.2) * 0.9;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 19, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#54423a'; rr(-15, -30, 30, 32, 9); ctx.fill();       /* پالتوی کهنه */
+  ctx.fillStyle = '#c9a084'; circle(0, -36, 7);
+  ctx.fillStyle = '#d8d2c4';
+  ctx.beginPath(); ctx.arc(0, -36, 7.4, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();  /* موی سفید */
+  ctx.strokeStyle = '#6a543a'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(20, -26); ctx.stroke();            /* عصا */
+  ctx.strokeStyle = '#c9a084'; ctx.lineWidth = 3.2;
+  ctx.beginPath(); ctx.moveTo(-8, -22); ctx.lineTo(6 + tremble, -14); ctx.stroke();  /* دست روی عصا */
+  ctx.restore();
+}
+
+/* زنِ بافتنی — روی صندلی، سوزن‌ها حرکت آرام */
+function drawShelterSurvivorKnit(x, y, t2) {
+  ctx.save();
+  ctx.translate(x, y);
+  const knit = Math.sin(t2 * 3.1) * 2.4;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 17, 4.6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#4a3b28'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-10, 0); ctx.lineTo(-10, -22); ctx.moveTo(10, 0); ctx.lineTo(10, -22);
+  ctx.stroke();
+  ctx.fillStyle = '#6a4a5a'; rr(-12, -46, 24, 26, 8); ctx.fill();       /* شال */
+  ctx.fillStyle = '#c9a084'; circle(0, -52, 6.6);
+  ctx.fillStyle = '#3a2d22';
+  ctx.beginPath(); ctx.arc(0, -52, 7, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+  ctx.strokeStyle = '#c9a084'; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(-6, -32); ctx.lineTo(-6 + knit, -24); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(6, -32); ctx.lineTo(6 - knit, -24); ctx.stroke();
+  ctx.fillStyle = '#b0533f'; circle(0, -22, 3);                        /* گلوله پشم */
+  ctx.restore();
+}
+
+/* نگهبانِ در — به دیوار تکیه داده، تفنگ بغل */
+function drawShelterGuard(x, y, t2) {
+  ctx.save();
+  ctx.translate(x, y);
+  const breathe = Math.sin(t2 * 1.5) * 1.1;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 4.4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-3, -14); ctx.lineTo(-6, -1); ctx.moveTo(3, -14); ctx.lineTo(6, -1);
+  ctx.stroke();
+  ctx.fillStyle = '#4a4436'; rr(-9, -34 + breathe, 18, 22, 6); ctx.fill();
+  ctx.fillStyle = '#c9a084'; circle(1, -40 + breathe, 6.6);
+  ctx.fillStyle = '#2c2620';
+  ctx.beginPath(); ctx.arc(1, -40 + breathe, 6.9, Math.PI, Math.PI * 2); ctx.fill();
+  /* تفنگِ بغل */
+  ctx.strokeStyle = '#33302a'; ctx.lineWidth = 2.8;
+  ctx.beginPath(); ctx.moveTo(-14, -8); ctx.lineTo(12, -20); ctx.stroke();
+  ctx.strokeStyle = '#5a5040'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-8, -11); ctx.lineTo(-2, -13.4); ctx.stroke();
   ctx.restore();
 }
 
@@ -657,6 +974,8 @@ function victory() {
   /* شلیکِ اولین آتش‌بازی + زنگِ پیروزی */
   VICFX.t = 0.2;
   SFX.victory();
+  const vn = $('vicNights');
+  if (vn) vn.textContent = faNum(FINAL_WAVE);
   showScreen('victoryScreen');
 }
 
@@ -691,14 +1010,16 @@ window.addEventListener('load', () => {
   const vm = $('btnVicMenu');
   if (vm) vm.addEventListener('click', () => { SFX.click(); exitToMenu(); });
   const tc = $('tbcContinue');
-  if (tc) tc.addEventListener('click', tbcContinueToVictory);
+  if (tc) tc.addEventListener('click', tbcContinueToMenu);
+  const ts = $('tbcStats');
+  if (ts) ts.addEventListener('click', tbcShowStats);
 });
 
 /* دیباگ/تست: پرش مستقیم به کات‌سین پناهگاه و مراحلش */
 window.addEventListener('load', () => {
   if (typeof window.GAME === 'undefined') return;
   GAME.v19 = {
-    startShelterCine, skipShelterCine, startTbcScreen, tbcContinueToVictory,
+    startShelterCine, skipShelterCine, startTbcScreen, tbcContinueToMenu, tbcShowStats,
     get SHEL() { return SHEL; },
     shelterGoto(phase, t) {          /* پرش به فاز مشخص (برای تست فریم‌ها) */
       if (!SHEL) startShelterCine();

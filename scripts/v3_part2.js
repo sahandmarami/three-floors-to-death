@@ -25,18 +25,18 @@ const INTERMISSION_TIME = 5;               // (فقط دیباگ: skipToWave)
 const INTERMISSION_FIRST = 3;              // شمارش معکوس کوتاه قبل از موج اول (شروع شب)
 
 /* چهار نوع دشمن — هر کدام جون/سرعت/آسیب/سکه‌ی مخصوص خودشان را دارند:
-   normal معمولی سبز | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ موج ۱۰
-   (۵٫۰: سکه‌ها تقریباً دوبرابر شد تا خرید راحت‌تر باشد) */
-/* (۱۵٫۰) «سختیِ ملایم‌تر» — بازی روی گوشی سخت از کار درمی‌آمد:
-   جون/آسیب زامبی‌ها کمی کم شد و فاصله‌ی تولدها بازتر */
+   normal معمولی سبک | fast سریعِ کم‌جون | tank زره‌پوش سنگین | boss پادشاهِ آخرین شب
+   (۲۰٫۰) بازخورد کاربر «برجک‌ها بدونِ من بازی رو می‌برن — خیلی راحته»:
+   جون پایه و رشدِ موج زامبی‌ها به‌طور محسوس بالا رفت تا حضور و تیرِ
+   خودِ بازیکن دوباره لازم شود (برجک‌ها هم کمی تنزل کردند — پایین‌تر) */
 const ZTYPES = {
-  normal: { r: 15, hpBase: 8,  hpWave: 2.4, spdBase: 27, spdWave: 7.5, bite: 1.0, dmg: 5,  coins: [5, 7],
+  normal: { r: 15, hpBase: 11, hpWave: 3.1, spdBase: 27, spdWave: 7.5, bite: 1.0, dmg: 5,  coins: [5, 7],
             skin: '#7fa657', shirt: '#4a5d73', pants: '#333d4d' },
-  fast:   { r: 12, hpBase: 5,  hpWave: 1.6, spdBase: 64, spdWave: 9.5, bite: 0.7, dmg: 3,  coins: [4, 5],
+  fast:   { r: 12, hpBase: 7,  hpWave: 2.2, spdBase: 64, spdWave: 9.5, bite: 0.7, dmg: 3,  coins: [4, 5],
             skin: '#c9a35a', shirt: '#7a5a2e', pants: '#4d3d20' },
-  tank:   { r: 22, hpBase: 46, hpWave: 10,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 11, coins: [12, 16],
+  tank:   { r: 22, hpBase: 64, hpWave: 13,  spdBase: 14, spdWave: 2.4, bite: 1.5, dmg: 11, coins: [12, 16],
             skin: '#8a8794', shirt: '#565364', pants: '#3a3846' },
-  boss:   { r: 50, hpBase: 5400, hpWave: 0, spdBase: 13, spdWave: 1,   bite: 1.8, dmg: 48, coins: [80, 100],   /* (۱۹٫۰) سختی بیشتر */
+  boss:   { r: 50, hpBase: 7000, hpWave: 0, spdBase: 13.5, spdWave: 1, bite: 1.8, dmg: 48, coins: [80, 100],   /* (۲۰٫۰) سختی بیشتر */
             skin: '#9c3546', shirt: '#5e1f2c', pants: '#3f151d' },
 };
 
@@ -73,7 +73,7 @@ const UPGRADES = {
   health:  { name: 'افزایش جون برج',   base: 12, growth: 1.45, max: 8, bonus: 30 },
   trap:    { name: 'نصب تله پایه برج', base: 20, growth: 1.55, max: 5,
              dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
-  turretUp:{ name: 'ارتقای برجک‌ها',   base: 90, growth: 1.55, max: 5 },  // +۲۲٪ دمیج و +۱۰٪ سرعت شلیک برجک‌ها در هر سطح
+  turretUp:{ name: 'ارتقای برجک‌ها',   base: 90, growth: 1.55, max: 5 },  /* (۲۰٫۰) +۲۲٪ دمیج و +۹٪ سرعت شلیک در هر سطح */
   shotgun: { price: 120 },                          // خرید یک‌باره
   mg:      { price: 260 },                          // خرید یک‌باره
   repair:  { price: 25, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه (۱۵٫۰ ارزان‌تر)
@@ -83,12 +83,23 @@ const UPGRADES = {
    gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
    frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
 const TURRETS = {
-  gatling: { name: 'برجک مسلسل',    price: 75,  dmg: 2.2, rate: 0.30, range: 230, spd: 640,
+  gatling: { name: 'برجک مسلسل',    price: 85,  dmg: 1.6, rate: 0.34, range: 230, spd: 640,
              len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
-  sniper:  { name: 'برجک تک‌تیرانداز', price: 170, dmg: 16, rate: 1.9,  range: 400, spd: 950,
+  sniper:  { name: 'برجک تک‌تیرانداز', price: 200, dmg: 12, rate: 2.15,  range: 400, spd: 950,
              len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۶ • برد ۴۰۰' },
-  frost:   { name: 'برجک یخ‌زن',     price: 115, dmg: 3,  rate: 1.05, range: 175, spd: 380,
+  frost:   { name: 'برجک یخ‌زن',     price: 125, dmg: 2,  rate: 1.05, range: 175, spd: 380,
              len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۳ • برد ۱۷۵' },
+  /* (۲۰٫۰) برجک‌های ویژه‌ی فروشنده‌ی مرموز — فقط با خریدِ «نقشه‌ی ساخت»
+     از خودِ او باز می‌شوند (در تب برجک‌ها ظاهر می‌شوند) */
+  tesla:   { name: 'برجک تسلا',       price: 240, dmg: 9,  rate: 2.3,  range: 260, spd: 0,
+             len: 14, h: 24, knock: 2, chain: 3, rare: true,
+             sub: 'آذرخش زنجیره‌ای به ۳ هدف • فقط از دستفروش' },
+  missile: { name: 'برجک موشک‌انداز', price: 300, dmg: 26, rate: 3.4,  range: 520, spd: 430,
+             len: 16, h: 20, knock: 5, splash: 95, rare: true,
+             sub: 'انفجارِ محدوده‌ای • فقط از دستفروش' },
+  flame:   { name: 'برجک شعله‌افکن',  price: 210, dmg: 2.4, rate: 0.085, range: 150, spd: 330,
+             len: 15, h: 17, knock: 0.4, burn: 2.4, burnDps: 6, rare: true,
+             sub: 'شعله‌ی پیوسته + آتشِ‌گیرندگی • فقط از دستفروش' },
 };
 const MAX_TURRETS = 6;                       // حداکثر تعداد برجک روی نقشه
 
@@ -384,6 +395,18 @@ const SFX = {
   frostShot(){ if (!sfxGate('frostShot', 150)) return;
                Snd.tone({ type: 'sine',     f0: 1600, f1: 520, dur: 0.22, vol: 0.07 });
                Snd.noise({ dur: 0.14, vol: 0.05, ftype: 'highpass', freq: 5000 }); },
+  /* (۲۰٫۰) صداهای برجک‌های ویژه‌ی دستفروش */
+  zap()        { if (!sfxGate('zap', 120)) return;
+               Snd.tone({ type: 'sawtooth', f0: 2400, f1: 300, dur: 0.10, vol: 0.09 });
+               Snd.noise({ dur: 0.10, vol: 0.06, ftype: 'highpass', freq: 3000 }); },
+  missileShot(){ if (!sfxGate('missileShot', 250)) return;
+               Snd.noise({ dur: 0.4, vol: 0.16, freq: 700 });
+               Snd.tone({ type: 'sawtooth', f0: 320, f1: 640, dur: 0.35, vol: 0.07 }); },
+  missileBoom(){ if (!sfxGate('missileBoom', 90)) return;
+               Snd.noise({ dur: 0.5, vol: 0.24, freq: 200 });
+               Snd.tone({ type: 'sine', f0: 90, f1: 34, dur: 0.5, vol: 0.22 }); },
+  flameShot()  { if (!sfxGate('flameShot', 70)) return;
+               Snd.noise({ dur: 0.12, vol: 0.06, ftype: 'bandpass', freq: 900, q: 0.8 }); },
   placeT()   { Snd.tone({ type: 'sine',     f0: 130, f1: 55,  dur: 0.14, vol: 0.22 });
                Snd.noise({ dur: 0.12, vol: 0.14, freq: 320 }); },
 };
@@ -423,6 +446,7 @@ const state = {
   powerups: [],                            // جعبه‌های قدرتِ روی صحنه
   decals: [],                              // لکه‌های خون روی زمین (۳٫۰)
   powerTimers: { rapid: 0, freeze: 0 },    // زمان‌سنج قدرت‌های فعال
+  adren: 0,                                    // (۲۰٫۰) زمان‌سنج آدرنالینِ دستفروش
   combo: 0, comboT: 0, comboPop: 0,        // سیستم کمبو
   killsSinceDrop: 0,                       // شمارش برای «شفقت»: حتماً جعبه بیفتد
   heartT: 0,                               // زمان‌سنج ضربان قلبِ بحران
@@ -785,6 +809,7 @@ function weaponDmg(w, extra) {
   const L = state.upgrades.weapon + (extra || 0);
   let d = w.dmg + L * (w.pellets > 1 ? 1 : 2);
   if (state.buffs && state.buffs.goldAmmo) d = Math.round(d * 1.25);   // (۱۰٫۰) فشنگ‌های طلایی
+  if (state.adren > 0) d = Math.round(d * 2);                          // (۲۰٫۰) آدرنالینِ دستفروش
   return d;
 }
 
@@ -838,7 +863,9 @@ function spawnShell(ang) {
 }
 
 /* برخورد گلوله با زامبی‌ها + خروج گلوله از صحنه
-   (۳٫۰: اول دایره‌ی سر بررسی می‌شود — برخورد سر = ضربه‌ی بحرانی ×۲) */
+   (۳٫۰: اول دایره‌ی سر بررسی می‌شود — برخورد سر = ضربه‌ی بحرانی ×۲)
+   (۲۰٫۰) موشک با هر برخورد/پایان عمر منفجر می‌شود (آسیب محدوده‌ای) و
+   گلوله‌ی شعله زامبی را «می‌آفتزند» */
 function updateBullets(dt) {
   for (const b of state.bullets) {
     if (b.dead) continue;
@@ -848,12 +875,33 @@ function updateBullets(dt) {
       state.particles.push({ x: b.x, y: b.y, vx: rand(-12, 12), vy: rand(-12, 12),
         age: 0, life: 0.3, size: 1.3, color: 'rgba(205,240,255,0.9)', grav: 30 });
     }
+    /* (۲۰٫۰) دنباله‌ی دودِ موشک */
+    if (b.missile && Math.random() < dt * 55) {
+      state.particles.push({ x: b.x, y: b.y, vx: rand(-9, 9), vy: rand(-9, 9),
+        age: 0, life: rand(0.25, 0.5), size: rand(2, 3.4),
+        color: 'rgba(190,170,150,0.5)', grav: -14 });
+    }
+    /* (۲۰٫۰) رگبارِ ریزِ شعله */
+    if (b.flame && Math.random() < dt * 30) {
+      state.particles.push({ x: b.x, y: b.y, vx: rand(-8, 8), vy: rand(-12, 2),
+        age: 0, life: rand(0.12, 0.26), size: rand(2.2, 3.8),
+        color: Math.random() < 0.6 ? 'rgba(255,150,60,0.85)' : 'rgba(255,220,120,0.8)', grav: -40, glow: true });
+    }
     if (b.y > GROUND_Y + 4) {              // گلوله به زمین خورد
       b.dead = true;
+      if (b.missile) { missileBurst(b); continue; }
+      if (b.flame) {
+        spawnParticles(b.x, GROUND_Y, 3, 'rgba(255,140,60,0.8)', { speed: 40, life: 0.25, size: 2.6, grav: -30 });
+        continue;
+      }
       spawnParticles(b.x, GROUND_Y, 4, '#6a5a43', { speed: 70, life: 0.3, size: 2, grav: 300, up: true });
       continue;
     }
-    if (b.x < -40 || b.x > W + 40 || b.y < -40 || b.life <= 0) { b.dead = true; continue; }
+    if (b.x < -40 || b.x > W + 40 || b.y < -40 || b.life <= 0) {
+      b.dead = true;
+      if (b.missile) missileBurst(b);      // موشکِ رسیده به آخرِ عمر = انفجار هوایی
+      continue;
+    }
     const dir = Math.sign(b.vx) || 1;      // جهت پس‌زنی = جهت حرکت گلوله
     const src = b.tur || 'player';         // منبع گلوله: بازیکن یا برجک (۴٫۰)
     for (const z of state.zombies) {
@@ -863,8 +911,10 @@ function updateBullets(dt) {
       const hx = z.x + z.dir * 3 * s, hy = z.y - 36 * s, hr = 7 * s + b.r;
       if ((b.x - hx) * (b.x - hx) + (b.y - hy) * (b.y - hy) < hr * hr) {
         b.dead = true;
+        if (b.missile) { missileBurst(b); break; }
         hitZombie(z, b.dmg, b.x, b.y, dir, true, b.knock, src);
         if (b.frost) chillZombie(z);
+        if (b.flame) burnZombie(z);
         break;
       }
       /* --- بدن --- */
@@ -872,13 +922,42 @@ function updateBullets(dt) {
       const rr2 = z.radius * (z.depth || 1) + b.r + 3;
       if (dx * dx + dy * dy < rr2 * rr2) {
         b.dead = true;
+        if (b.missile) { missileBurst(b); break; }
         hitZombie(z, b.dmg, b.x, b.y, dir, !!b.crit, b.knock, src);
         if (b.frost) chillZombie(z);
+        if (b.flame) burnZombie(z);
         break;
       }
     }
   }
   state.bullets = state.bullets.filter(b => !b.dead);
+}
+
+/* (۲۰٫۰) انفجار موشک: آسیبِ محدوده‌ای + موج انفجار + لرزش */
+function missileBurst(b) {
+  const R = TURRETS.missile.splash;
+  SFX.missileBoom();
+  state.shake = Math.max(state.shake, 7);
+  spawnParticles(b.x, b.y, 16, '#ffb26e', { speed: 240, life: 0.5, size: 3.2, grav: 240 });
+  spawnParticles(b.x, b.y, 10, 'rgba(255,240,200,0.95)', { speed: 170, life: 0.35, size: 2.4, grav: 120 });
+  spawnParticles(b.x, b.y, 8, 'rgba(120,110,100,0.6)', { speed: 110, life: 0.7, size: 3.4, grav: -20 });
+  /* حلقه‌ی موج انفجار */
+  state.zaps.push({ pts: [{ x: b.x, y: b.y }], age: 0, life: 0.28, ring: true, rr: R });
+  for (const z of state.zombies) {
+    if (z.dead) continue;
+    const d = Math.hypot(z.x - b.x, (z.y - 20) - b.y);
+    if (d < R) {
+      const f = 1 - d / R * 0.55;                 // مرکز انفجار کامل‌تر
+      hitZombie(z, Math.max(2, Math.round(b.dmg * f)), b.x, b.y,
+        Math.sign(z.x - b.x) || 1, false, TURRETS.missile.knock, 'missile');
+    }
+  }
+}
+
+/* (۲۰٫۰) آتش‌گیرندگی زامبی از گلوله‌ی شعله‌افکن */
+function burnZombie(z) {
+  if (z.dead) return;
+  z.burn = Math.max(z.burn || 0, TURRETS.flame.burn);
 }
 
 /* ---------------------- ۸) زامبی‌ها: محاصره‌ی دسته‌جمعی برج ----------------------
@@ -902,6 +981,21 @@ function updateZombies(dt) {
     z.hitFlash = Math.max(0, z.hitFlash - dt);
     z.stagger = Math.max(0, z.stagger - dt);    // سرخوردن بعد از ضربه
     z.chill = Math.max(0, (z.chill || 0) - dt); // یخ‌زدگی برجک یخ‌زن (۴٫۰)
+
+    /* (۲۰٫۰) آتش‌گیرندگی برجک شعله‌افکن: دمیج پیوسته + شعله روی بدن */
+    if (z.burn && z.burn > 0) {
+      z.burn -= dt;
+      z.hp -= (TURRETS.flame.burnDps || 6) * dt;
+      if (Math.random() < dt * 14) {
+        state.particles.push({
+          x: z.x + rand(-8, 8), y: z.y - rand(10, 38),
+          vx: rand(-7, 7), vy: -rand(26, 44), age: 0, life: rand(0.3, 0.55),
+          size: rand(1.8, 3), color: Math.random() < 0.5 ? 'rgba(255,150,60,0.9)' : 'rgba(255,90,40,0.8)',
+          grav: -60, glow: true,
+        });
+      }
+      if (z.hp <= 0) { z.killedBy = 'flame'; killZombie(z); continue; }
+    }
 
     const dx = TOWER.x - z.x;
     const side = z.x < TOWER.x ? -1 : 1;        // کدام دیوار برج؟
@@ -1051,7 +1145,10 @@ function updateTrap(dt) {
   for (const z of state.zombies) {
     if (z.dead) continue;
     if (Math.abs(z.x - TOWER.x) < UPGRADES.trap.radius) {
-      z.hp -= dps * dt;
+      /* (۲۰٫۰) زرهِ نگهبان تله را هم پس می‌زند — مگر در پنجره‌ی ترکیدن زره */
+      let d = dps * dt;
+      if (z.type === 'boss' && state.wave >= FINAL_WAVE && !(z.ai && z.ai.staggerT > 0)) d *= 0.33;
+      z.hp -= d;
       z.hitFlash = Math.max(z.hitFlash, 0.06);
       if (Math.random() < dt * 6) { addZap(z.x, z.y - 18); SFX.trap(); }  // قوس برق نمایشی
       if (z.hp <= 0) { z.killedBy = 'trap'; killZombie(z); }
@@ -1134,7 +1231,10 @@ function chillZombie(z) {
   spawnParticles(z.x, z.y - 20, 4, '#cfeaff', { speed: 60, life: 0.4, size: 1.6, grav: 150 });
 }
 
-/* حلقه‌ی برجک‌ها: هدف‌گیری نزدیک‌ترین زامبی در برد + چرخش لوله + شلیک خودکار */
+/* حلقه‌ی برجک‌ها: هدف‌گیری نزدیک‌ترین زامبی در برد + چرخش لوله + شلیک خودکار
+   (۲۰٫۰) سه برجک ویژه‌ی دستفروش: تسلا (آذرخش زنجیره‌ای فوری)،
+   موشک‌انداز (گلوله‌ی منحنی با انفجار محدوده‌ای) و شعله‌افکن
+   (رگبار کوتاه‌برد + آتش‌گیرندگی زامبی) */
 function updateTurrets(dt) {
   for (const t of state.turrets) {
     const def = TURRETS[t.type];
@@ -1157,7 +1257,12 @@ function updateTurrets(dt) {
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
       t.aim += diff * Math.min(1, dt * 8);   // چرخش نرم لوله به سمت هدف
-      if (t.cd <= 0 && Math.abs(diff) < 0.35) turretFire(t);
+      /* (۲۰٫۰) تسلا: شلیک نیست — تخلیه‌ی فوریِ زنجیره‌ای */
+      if (t.type === 'tesla') {
+        if (t.cd <= 0) teslaDischarge(t);
+      } else if (t.cd <= 0 && Math.abs(diff) < 0.35) {
+        turretFire(t);
+      }
     }
     if (t.type === 'gatling') t.spin += dt * (best ? 16 : 3);   // چرخش لوله‌های مسلسل
     /* برفک‌های محیطی برجک یخ‌زن */
@@ -1166,31 +1271,106 @@ function updateTurrets(dt) {
         vx: rand(-6, 6), vy: rand(8, 20), age: 0, life: rand(0.6, 1.2),
         size: rand(1, 1.8), color: 'rgba(200,235,255,0.8)', grav: 10 });
     }
+    /* (۲۰٫۰) جرقه‌های دوره‌ای گویِ تسلا */
+    if (t.type === 'tesla' && Math.random() < dt * 5) {
+      addZap(t.x + rand(-9, 9), t.y - def.h - rand(0, 9));
+    }
+    /* (۲۰٫۰) شعله‌ی فتیله‌ی شعله‌افکن (همیشه روشن) */
+    if (t.type === 'flame' && Math.random() < dt * 9) {
+      state.particles.push({ x: t.x + Math.cos(t.aim) * 15, y: t.y - def.h + Math.sin(t.aim) * 15,
+        vx: rand(-8, 8), vy: -18, age: 0, life: 0.3, size: 1.6,
+        color: 'rgba(255,170,70,0.9)', grav: -30 });
+    }
   }
 }
 
-/* شلیک برجک: گلوله با پرچم‌های مخصوص (tur/frost/tracer/crit) به صف گلوله‌ها اضافه می‌شود */
+/* (۲۰٫۰) تخلیه‌ی تسلا: آذرخش زنجیره‌ای — تا def.chain هدفِ نزدیک */
+function teslaDischarge(t) {
+  const def = TURRETS.tesla;
+  const lvl = state.upgrades.turretUp;
+  const dmg = Math.round(def.dmg * (1 + 0.22 * lvl));
+  let px = t.x, py = t.y - def.h;
+  const hitSet = new Set();
+  let n = 0;
+  for (let link = 0; link < def.chain; link++) {
+    let best = null, bd = Infinity;
+    for (const z of state.zombies) {
+      if (z.dead || hitSet.has(z)) continue;
+      const d = Math.hypot(z.x - px, (z.y - 20) - py);
+      if (d < (link === 0 ? def.range : 190) && d < bd) { bd = d; best = z; }
+    }
+    if (!best) break;
+    hitSet.add(best);
+    /* قوس آذرخش نمایشی */
+    addTeslaArc(px, py, best.x, best.y - 22);
+    hitZombie(best, dmg, best.x, best.y - 22, Math.sign(best.x - t.x) || 1, false, def.knock, 'tesla');
+    px = best.x; py = best.y - 22;
+    n++;
+  }
+  if (n > 0) {
+    t.cd = def.rate / (1 + 0.09 * lvl);
+    t.flash = 0.12;
+    t.recoil = 1;
+    state.shake = Math.max(state.shake, 2);
+    SFX.zap();
+  }
+}
+
+/* قوس آذرخش تسلا — زیگزاگِ بنفشِ لرزان */
+function addTeslaArc(x0, y0, x1, y1) {
+  const pts = [{ x: x0, y: y0 }];
+  for (let i = 1; i < 5; i++) {
+    const t = i / 5;
+    pts.push({ x: x0 + (x1 - x0) * t + rand(-9, 9), y: y0 + (y1 - y0) * t + rand(-9, 9) });
+  }
+  pts.push({ x: x1, y: y1 });
+  state.zaps.push({ pts, age: 0, life: 0.16, tesla: true });
+  spawnParticles(x1, y1, 4, '#c04dff', { speed: 90, life: 0.3, size: 2, grav: 120 });
+}
+
+/* شلیک برجک: گلوله با پرچم‌های مخصوص (tur/frost/tracer/crit) به صف گلوله‌ها اضافه می‌شود
+   (۲۰٫۰) موشک‌انداز: گلوله‌ی موشک با دنباله + انفجار محدوده‌ای؛
+   شعله‌افکن: گلوله‌های آتشینِ کوتاه‌برد با پراکندگی و «آتش‌گیرندگی» */
 function turretFire(t) {
   const def = TURRETS[t.type];
   const lvl = state.upgrades.turretUp;
-  const dmg = Math.round(def.dmg * (1 + 0.3 * lvl));
+  const dmg = Math.round(def.dmg * (1 + 0.22 * lvl));
   const mx = t.x + Math.cos(t.aim) * (def.len + 4);
   const my = t.y - def.h + Math.sin(t.aim) * (def.len + 4);
+  if (t.type === 'flame') {
+    /* رگبار شعله: دو گلوله‌ی آتشین با پراکندگی زیاد */
+    for (let k = 0; k < 2; k++) {
+      const a = t.aim + rand(-0.16, 0.16);
+      state.bullets.push({
+        x: mx, y: my,
+        vx: Math.cos(a) * def.spd, vy: Math.sin(a) * def.spd,
+        dmg, r: 5.5, life: def.range / def.spd + 0.12,
+        knock: def.knock, dead: false,
+        tur: t.type, flame: true,
+      });
+    }
+    t.cd = def.rate / (1 + 0.09 * lvl);
+    t.flash = 0.06;
+    t.recoil = 0.5;
+    SFX.flameShot();
+    return;
+  }
   const a = t.aim + rand(-0.03, 0.03);
   state.bullets.push({
     x: mx, y: my,
     vx: Math.cos(a) * def.spd, vy: Math.sin(a) * def.spd,
-    dmg, r: t.type === 'sniper' ? 4 : (t.type === 'frost' ? 4.5 : 2.8),
-    life: t.type === 'sniper' ? 1.4 : 1.1,
+    dmg, r: t.type === 'sniper' ? 4 : (t.type === 'missile' ? 6 : (t.type === 'frost' ? 4.5 : 2.8)),
+    life: t.type === 'sniper' ? 1.4 : (t.type === 'missile' ? 2.2 : 1.1),
     knock: def.knock, dead: false,
     pellet: t.type === 'gatling',          // گلوله‌های ریز مسلسل
     tur: t.type,                           // منبع شلیک (برای آمار)
     frost: t.type === 'frost',             // گلوله‌ی یخی
+    missile: t.type === 'missile',         // (۲۰٫۰) موشک — انفجار محدوده‌ای
     tracer: t.type === 'sniper',           // رد بلند تک‌تیرانداز
     crit: t.type === 'sniper' && Math.random() < (def.crit || 0),
   });
-  t.cd = def.rate / (1 + 0.12 * lvl);
-  t.flash = t.type === 'sniper' ? 0.09 : 0.07;
+  t.cd = def.rate / (1 + 0.09 * lvl);
+  t.flash = t.type === 'sniper' ? 0.09 : (t.type === 'missile' ? 0.14 : 0.07);
   t.recoil = 1;
   if (t.type === 'gatling') {
     SFX.turShot();
@@ -1199,6 +1379,9 @@ function turretFire(t) {
     SFX.sniperShot();
     state.shake = Math.min(5, state.shake + 1.2);
     spawnParticles(mx, my, 5, '#fff3c4', { speed: 160, life: 0.22, size: 2.2, grav: 0, dir: t.aim, spread: 0.9 });
+  } else if (t.type === 'missile') {
+    SFX.missileShot();
+    spawnParticles(mx, my, 8, '#ffb26e', { speed: 130, life: 0.35, size: 2.6, grav: 0, dir: t.aim, spread: 0.8 });
   } else {
     SFX.frostShot();
     spawnParticles(mx, my, 4, '#bfe6ff', { speed: 60, life: 0.4, size: 1.8, grav: 60, dir: t.aim, spread: 1.2 });
@@ -1387,9 +1570,9 @@ function denyBPItem(kind) {
 }
 
 /* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی کاشیِ سلاح در پنل ساخت‌وساز — ۱۲٫۰)
-   (۱۳٫۰) اعلان کوتاه بالای برج — چیپ HUD حذف شده است */
+   (۲۰٫۰) سلاح‌های «تحویل‌شده به فروشنده» دیگر انتخاب نمی‌شوند */
 function selectWeapon(id) {
-  if (!WEAPONS[id].owned) { SFX.deny(); denyBPItem(id); return; }
+  if (!WEAPONS[id] || !WEAPONS[id].owned) { SFX.deny(); try { denyBPItem(id); } catch (e) {} return; }
   if (state.weapon === id) return;
   state.weapon = id;
   SFX.click();
@@ -1402,18 +1585,35 @@ function attemptBuy(kind) {
   if (!canPlay()) return;                  // فقط وقتی بازی جریان دارد
   const u = UPGRADES[kind];
 
-  /* --- برجک‌های دفاعی: به حالت انتخاب محل نصب می‌رود (۴٫۰) --- */
-  if (kind === 'gatling' || kind === 'sniper' || kind === 'frost') {
+  /* --- (۲۰٫۰) کلت: سلاحِ شروع — کلیک فقط انتخابش می‌کند --- */
+  if (kind === 'pistol') { selectWeapon('pistol'); return; }
+
+  /* --- برجک‌های دفاعی: به حالت انتخاب محل نصب می‌رود (۴٫۰)
+       (۲۰٫۰) برجک‌های ویژه فقط با «نقشه‌ی ساخت»ِ خریداری‌شده از دستفروش --- */
+  if (TURRETS[kind]) {
+    if (TURRETS[kind].rare && !(state.bps && state.bps[kind])) {
+      SFX.deny();
+      setAnnounce('🔒 نقشه‌ی ساخت نداری!', 'این برجک ویژه فقط از «فروشنده‌ی مرموز» باز می‌شود', 2.2);
+      return;
+    }
     startPlacement(kind);
     return;
   }
 
-  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) — ۱۲٫۰: کلیک بعدی = در دست شدن --- */
+  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) — ۲۰٫۰: خریدِ تازه =
+       تحویلِ سلاحِ قبلی به فروشنده؛ تب ساخت‌وساز فقط سلاحِ فعلی +
+       بعدی را نشان می‌دهد (پیشرفتِ تک‌خطی: کلت ← شاتگان ← مسلسل) --- */
   if (kind === 'shotgun' || kind === 'mg') {
     if (WEAPONS[kind].owned) { selectWeapon(kind); return; }
     if (state.coins < u.price) { denyBPItem(kind); return; }
     state.coins -= u.price;
     state.weaponSpent += u.price;               // مبنای غرامتِ «زیر آوار ماندن»
+    /* سلاحِ قبلی تحویل می‌شود (دیگر در ساخت‌وساز/انتخاب نیست) */
+    const prev = kind === 'shotgun' ? 'pistol' : 'shotgun';
+    if (WEAPONS[prev].owned) {
+      WEAPONS[prev].owned = false;
+      addText(TOWER.x, TOWER_TOP_Y - 70, WEAPONS[prev].name + ' تحویل شد 🔁', '#c3cdea', 13);
+    }
     WEAPONS[kind].owned = true;
     selectWeapon(kind);                    // بلافاصله دستِ کاربر می‌افتد
     setBPTab('wpn', true);                 // (۱۲٫۰) تب سلاح‌ها جلوی چشم باشد

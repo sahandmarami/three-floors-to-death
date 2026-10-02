@@ -24,7 +24,9 @@ const GEAR = {
     desc: '۷۰ جون برج را فوراً برمی‌گرداند' },
 };
 
-/* آیتم‌های کمیاب دستفروش (فعال‌سازی دائمی بعد از مصرف) */
+/* آیتم‌های کمیاب دستفروش (فعال‌سازی دائمی بعد از مصرف)
+   (۲۰٫۰) بازخورد کاربر «هر سری یه چیز جدید بیاره و جالب باشه» —
+   سه کالای مصرفیِ تازه هم اضافه شد: حمله‌ی هوایی، بمب یخی و آدرنالین */
 const RARE = {
   vest:     { name: 'جلیقه‌ی ضدّ دندان', price: 260, icon: 'vest',     color: '#8fd6ff',
     desc: 'آسیب به برج ۲۵٪ کمتر می‌شود — دائمی' },
@@ -32,6 +34,23 @@ const RARE = {
     desc: 'دمیج همه‌ی گلوله‌ها ۲۵٪ بیشتر — دائمی' },
   helmet:   { name: 'کلاهخود فولادی',   price: 200, icon: 'helmet',   color: '#b8c4d4',
     desc: '+۴۰ به حداکثر جون برج (و همین‌جا ترمیم) — دائمی' },
+  airstrike:{ name: 'بی‌سیمِ حمله‌ی هوایی', price: 380, icon: 'airstrike', color: '#ff8a5a',
+    desc: 'مصرف = بمبارانِ همه‌ی زامبی‌های صفحه (یک‌بارمصرف)' },
+  freezeBomb:{ name: 'بمب یخی',          price: 240, icon: 'freezeBomb', color: '#8fd6ff',
+    desc: 'مصرف = انجمادِ کاملِ ۶ ثانیه‌ایِ همه (یک‌بارمصرف)' },
+  adrenaline:{ name: 'آدرنالین',         price: 190, icon: 'adrenaline', color: '#ff6a8a',
+    desc: 'مصرف = ۱۲ ثانیه شلیک سریع + دمیج دوبرابر (یک‌بارمصرف)' },
+};
+
+/* (۲۰٫۰) نقشه‌های ساختِ برجک‌های ویژه — فقط از دستفروش می‌آیند؛
+   بعد از خرید، برجک در تب «برجک‌ها» باز می‌شود و جداگانه نصب می‌شود */
+const BLUEPRINTS = {
+  tesla:   { name: 'نقشه‌ی برجک تسلا',       price: 420, icon: 'bpTesla',   color: '#c04dff',
+    desc: 'برجک آذرخش زنجیره‌ای (۳ هدف) را در ساخت‌وساز باز می‌کند' },
+  missile: { name: 'نقشه‌ی برجک موشک‌انداز', price: 500, icon: 'bpMissile', color: '#ff8a5a',
+    desc: 'برجک انفجارِ محدوده‌ای را در ساخت‌وساز باز می‌کند' },
+  flame:   { name: 'نقشه‌ی برجک شعله‌افکن',  price: 360, icon: 'bpFlame',   color: '#ffb347',
+    desc: 'برجک شعله + آتش‌گیرندگی را در ساخت‌وساز باز می‌کند' },
 };
 
 /* کلیدهای میان‌بر مصرف کوله‌پشتی (اسلات ۱ تا ۶) */
@@ -131,6 +150,27 @@ function useItem(i) {
   } else if (id === 'medkit') {
     healTower(70);
     SFX.power();
+  } else if (id === 'airstrike') {
+    /* (۲۰٫۰) بی‌سیمِ حمله‌ی هوایی: بمبارانِ همه‌ی زامبی‌های زنده */
+    if (!useAirstrike()) return;              /* هدفی نبود → مصرف نشود */
+  } else if (id === 'freezeBomb') {
+    /* (۲۰٫۰) بمب یخی: انجماد کاملِ ۶ ثانیه‌ای */
+    state.powerTimers.freeze = Math.max(state.powerTimers.freeze, 6);
+    SFX.freeze();
+    setAnnounce('❄ انجماد کامل!', 'همه‌ی زامبی‌ها ۶ ثانیه خشک زدند — ببار!', 2.4);
+    for (const z of state.zombies) {
+      if (z.dead) continue;
+      spawnParticles(z.x, z.y - 24, 8, '#cfeaff', { speed: 120, life: 0.6, size: 2.4, grav: 140 });
+    }
+  } else if (id === 'adrenaline') {
+    /* (۲۰٫۰) آدرنالین: ۱۲ ثانیه شلیک سریع + دمیج دوبرابر */
+    state.adren = 12;
+    state.powerTimers.rapid = Math.max(state.powerTimers.rapid, 12);
+    SFX.power();
+    setAnnounce('💉 آدرنالین تزریق شد!', '۱۲ ثانیه: شلیک سریع + دمیج دوبرابر!', 2.4);
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 30, 20, '#ff6a8a',
+      { speed: 190, life: 0.7, size: 2.6, grav: 220, up: true });
+    state.shake = Math.min(8, state.shake + 4);
   } else if (RARE[id]) {
     if (state.buffs[id]) {
       setAnnounce('✅ ' + RARE[id].name + ' از قبل فعال است', 'برای بعد نگهش دار', 1.8);
@@ -149,6 +189,35 @@ function useItem(i) {
   spawnParticles(TOWER.x, TOWER_TOP_Y - 26, 10, '#7be389',
     { speed: 130, life: 0.5, size: 2.2, grav: 220, up: true });
   refreshBackpack();
+}
+
+/* (۲۰٫۰) حمله‌ی هوایی: بمبارانِ صفحه — بمب‌ها از آسمان می‌ریزند */
+function useAirstrike() {
+  const targets = state.zombies.filter(z => !z.dead);
+  if (!targets.length) {
+    setAnnounce('✈ هدفی نیست!', 'برای موج بعد نگهش دار', 1.6);
+    SFX.deny();
+    return false;
+  }
+  state.shake = 14;
+  state.flash = 0.6;
+  setAnnounce('✈ حمله‌ی هوایی!', 'بمبارانِ کلِ صفحه — بگذار آسمان کارش را بکند!', 2.6);
+  for (const z of targets) {
+    /* انفجار زیر پای هر زامبی + آسیب سنگین */
+    spawnParticles(z.x, z.y - 10, 14, '#ffb26e', { speed: 230, life: 0.5, size: 3, grav: 320 });
+    spawnParticles(z.x, z.y - 10, 6, 'rgba(255,240,200,0.95)', { speed: 170, life: 0.35, size: 2.4, grav: 160 });
+    state.zaps.push({ pts: [{ x: z.x, y: z.y - 10 }], age: 0, life: 0.28, ring: true, rr: 60 });
+    hitZombie(z, z.type === 'boss' ? 900 : 160, z.x, z.y - 10,
+      Math.sign(z.x - TOWER.x) || 1, false, 3, 'airstrike');
+  }
+  /* ردِ هواپیمای بالای سر */
+  for (let i = 0; i < 5; i++) {
+    spawnParticles(120 + i * 170, 60, 3, 'rgba(220,230,240,0.7)',
+      { speed: 300, life: 0.4, size: 2.2, grav: 0 });
+  }
+  SFX.missileBoom();
+  try { SFX.roar(); } catch (e) {}
+  return true;
 }
 
 /* ترمیم جون برج (کیت/قدرت‌ها) */
@@ -227,6 +296,9 @@ function bpkStatus(id) {
   if (id === 'battery') return 'کلیک/کلید = شارژ ۵۰٪ چراغ‌قوه';
   if (id === 'canned') return 'کلیک/کلید = شفای تدریجی ۴۵ جون';
   if (id === 'medkit') return 'کلیک/کلید = شفای فوری ۷۰ جون';
+  if (id === 'airstrike') return 'کلیک/کلید = بمبارانِ همه‌ی زامبی‌های صفحه';
+  if (id === 'freezeBomb') return 'کلیک/کلید = انجماد کاملِ ۶ ثانیه‌ای';
+  if (id === 'adrenaline') return 'کلیک/کلید = ۱۲ ثانیه شلیک سریع + دمیج دوبرابر';
   if (RARE[id]) return state.buffs[id] ? 'از قبل فعال است — نگهش دار' : 'کلیک/کلید = فعال‌سازی دائمی';
   return '';
 }
@@ -252,6 +324,8 @@ function showBpkTip(i, el) {
 const GEAR_ICON_COLORS = {
   flashlight: '#f5d76e', battery: '#7be389', canned: '#e8a13c', medkit: '#ff8a8a',
   vest: '#8fd6ff', goldAmmo: '#ffd873', helmet: '#b8c4d4',
+  airstrike: '#ff8a5a', freezeBomb: '#8fd6ff', adrenaline: '#ff6a8a',
+  tesla: '#c04dff', missile: '#ff8a5a', flame: '#ffb347',
 };
 
 function icoRR(c, x, y, w, h, r) {
@@ -389,6 +463,83 @@ function paintGearIcon(kind, cv) {
       c.fillStyle = 'rgba(255,255,255,0.5)';                             // برقِ گنبد
       c.beginPath(); c.ellipse(-4, -4, 4.5, 2.5, -0.6, 0, Math.PI * 2); c.fill();
       c.fillStyle = '#6a788c'; c.fillRect(-10, 6, 20, 3);                // نوار پایین
+      break;
+    }
+    case 'airstrike': {
+      /* بی‌سیم نظامی + موج + هواپیمای کوچک */
+      c.fillStyle = '#39424f'; icoRR(c, -10, -2, 20, 15, 3); c.fill();
+      c.strokeStyle = '#8a97a8'; c.lineWidth = 1.4; icoRR(c, -10, -2, 20, 15, 3); c.stroke();
+      c.strokeStyle = col; c.lineWidth = 1.8;
+      c.beginPath(); c.moveTo(-4, 2); c.lineTo(4, 2); c.moveTo(0, -2); c.lineTo(0, 6); c.stroke();
+      c.strokeStyle = '#c9d4e2'; c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(-6, -6); c.quadraticCurveTo(0, -12, 8, -8); c.stroke();
+      c.fillStyle = '#c9d4e2';
+      c.beginPath(); c.moveTo(6, -12); c.lineTo(16, -12); c.lineTo(13, -9); c.lineTo(8, -9);
+      c.closePath(); c.fill();
+      icoStar(c, -14, 8, 2.6); icoStar(c, 14, 4, 2.2);
+      break;
+    }
+    case 'freezeBomb': {
+      /* بمب گرد + بلور یخ + مه */
+      c.fillStyle = '#39424f'; circle2(c, 0, 2, 11);
+      c.strokeStyle = '#5d6a7a'; c.lineWidth = 1.4;
+      c.beginPath(); c.arc(0, 2, 11, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = col;
+      c.beginPath(); c.moveTo(0, -8); c.lineTo(5.5, 2); c.lineTo(0, 11); c.lineTo(-5.5, 2);
+      c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,255,255,0.8)';
+      c.beginPath(); c.moveTo(0, -8); c.lineTo(2.6, 2); c.lineTo(0, 11); c.closePath(); c.fill();
+      c.strokeStyle = 'rgba(200,235,255,0.75)'; c.lineWidth = 1.2;
+      for (let k = 0; k < 3; k++) {
+        const a = k * 2.09;
+        c.beginPath(); c.moveTo(Math.cos(a) * 13, 2 + Math.sin(a) * 13);
+        c.lineTo(Math.cos(a) * 17, 2 + Math.sin(a) * 17); c.stroke();
+      }
+      break;
+    }
+    case 'adrenaline': {
+      /* سرنگ + قطره‌ی قلب */
+      c.rotate(-0.5);
+      c.fillStyle = '#e8eef5'; icoRR(c, -3, -14, 7, 20, 3); c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = 1.2; icoRR(c, -3, -14, 7, 20, 3); c.stroke();
+      c.fillStyle = col; c.fillRect(-3, -14, 7, 6);
+      c.fillStyle = '#8a97a8'; c.fillRect(-1.4, 6, 3.6, 7);
+      c.fillStyle = col;
+      c.beginPath();
+      c.moveTo(0, -19); c.bezierCurveTo(5, -13, 4, -8, 0, -6);
+      c.bezierCurveTo(-4, -8, -5, -13, 0, -19); c.closePath(); c.fill();
+      break;
+    }
+    case 'tesla': case 'missile': case 'flame': {
+      /* نقشه‌ی ساخت: کاغذ آبیِ مهندسی + طرحِ برجک */
+      c.fillStyle = '#d8e4f0'; icoRR(c, -13, -15, 26, 30, 3); c.fill();
+      c.strokeStyle = '#8aa0b8'; c.lineWidth = 1.2; icoRR(c, -13, -15, 26, 30, 3); c.stroke();
+      c.strokeStyle = 'rgba(70,100,140,0.6)'; c.lineWidth = 0.8;
+      for (let k = -2; k <= 2; k++) {
+        c.beginPath(); c.moveTo(-13, k * 6); c.lineTo(13, k * 6); c.stroke();
+        c.beginPath(); c.moveTo(k * 6, -15); c.lineTo(k * 6, 15); c.stroke();
+      }
+      c.strokeStyle = col; c.lineWidth = 2; c.lineCap = 'round';
+      if (kind === 'tesla') {
+        c.beginPath(); c.moveTo(0, 10); c.lineTo(0, -2); c.stroke();
+        c.fillStyle = col; circle2(c, 0, -6, 4);
+        c.beginPath();
+        c.moveTo(3, -9); c.lineTo(8, -12); c.moveTo(8, -12); c.lineTo(5, -12);
+        c.moveTo(-3, -9); c.lineTo(-8, -12); c.moveTo(-8, -12); c.lineTo(-5, -12);
+        c.stroke();
+      } else if (kind === 'missile') {
+        c.save(); c.rotate(0.6);
+        c.fillStyle = col; icoRR(c, -2.6, -11, 5.2, 18, 2.6); c.fill();
+        c.beginPath(); c.moveTo(-2.6, -11); c.quadraticCurveTo(0, -15, 2.6, -11); c.closePath(); c.fill();
+        c.beginPath(); c.moveTo(-2.6, 7); c.lineTo(-5, 10); c.lineTo(-2.6, 8); c.closePath(); c.fill();
+        c.beginPath(); c.moveTo(2.6, 7); c.lineTo(5, 10); c.lineTo(2.6, 8); c.closePath(); c.fill();
+        c.restore();
+      } else {
+        c.fillStyle = '#6e2a22'; icoRR(c, -7, -3, 14, 12, 4); c.fill();
+        c.strokeStyle = col; c.lineWidth = 2.4;
+        c.beginPath(); c.moveTo(4, 3); c.lineTo(12, -5); c.stroke();
+        c.fillStyle = col; circle2(c, 13, -6, 2.6);
+      }
       break;
     }
   }
@@ -704,32 +855,55 @@ UPDATE_HOOKS.push(function survivalUpdate(dt) {
   }
 });
 
-/* ---------------------- ۶-۸) دستفروش مرموز (استوری‌مود ۱۴٫۰) ----------------------
-   هر چند روز یک‌بار (فقط در روز): از لبه‌ی چپ صحنه می‌آید، تا «پایین برج»
-   راه می‌رود، با بازیکن گفتگو می‌کند (پرتره + صدای مرموزش)، بعد قفسه‌ی
-   کالایش باز می‌شود؛ و به محضِ «شب شود» بدرقه می‌شود — دیگر شب‌ها کنار
-   برج نمی‌ماند. ۳۰٪ مواقع کالایش تقلبی درمی‌آید! */
+/* ---------------------- ۶-۸) دستفروش مرموز — بازطراحی ۲۰٫۰ ----------------------
+   بازخورد کاربر: «شکلش هر سری که میاد عوض شه، جهتش هم عوض شه،
+   هر سری یه چیز جدید بیاره و جالب باشه — حتی برجک‌های خاص»:
+     • ۵ چهره‌ی متفاوت که با هر بازدید عوض می‌شود (شنل کلاسیک /
+       کلاه لبه‌گرد و قترقم‌فروش / هودی ماسک‌دار / بارانی زرد /
+       دستفروشِ چرخ‌دسته)
+     • جهت آمدن تناوبی: یک‌بار از چپ، یک‌بار از راست
+     • قفسه‌ی چرخان: هر بازدید کالای تازه — از بازدید دوم یک
+       «نقشه‌ی ساختِ برجک ویژه» (تسلا/موشک/شعله) هم می‌آورد
+     • شانس آمدن بیشتر شد (۴۰٪ → ۵۵٪) چون حالا ستونِ اصلی وسایل است
+   ۳۰٪ کالای تقلبی هم‌طرح قبل باقی است (ریسکِ خرید از غریبه!) */
+const PED_LOOKS = [
+  { name: 'شنل‌پوش',    cloak: '#221839', hat: '#2e2348', eye: '#d8b0ff', eyeGlow: '#c08aff' },
+  { name: 'کلاه‌لبه‌گرد', cloak: '#4a2e2e', hat: '#7a3a2e', eye: '#9ff0b0', eyeGlow: '#54d07a' },
+  { name: 'ماسک‌دار',   cloak: '#26303a', hat: '#3a4a58', eye: '#ffc37f', eyeGlow: '#ff9a3d' },
+  { name: 'بارانی‌زرد',  cloak: '#8a6a22', hat: '#a8842e', eye: '#a8d8ff', eyeGlow: '#5aa8e8' },
+  { name: 'چرخ‌دسته',   cloak: '#3e3428', hat: '#54452e', eye: '#e8d8a0', eyeGlow: '#c9a24e' },
+];
+
 const PED = {
   active: false, phase: 'idle', x: -46, dir: 1, t: 0, walkT: 0,
+  look: 0, dirFrom: 1,
 
-  /* آمدن: از چپِ صحنه تا پایین برج */
+  /* آمدن: جهتِ این بازدید از state.peddler.visits حساب شده است
+     (بازدید ۱ = چهره‌ی کلاسیک از چپ؛ بعدی تناوبی می‌چرخد) */
   enter() {
     this.active = true;
     this.phase = 'enter';
-    this.x = -46; this.dir = 1; this.t = 0; this.walkT = 0;
+    const v0 = Math.max(0, (state.peddler.visits | 0) - 1);
+    this.look = v0 % PED_LOOKS.length;
+    this.dirFrom = (v0 % 2 === 0) ? 1 : -1;
+    this.x = this.dirFrom > 0 ? -46 : W + 46;
+    this.dir = this.dirFrom;
+    this.t = 0; this.walkT = 0;
     state.peddler.here = true;
     hidePeddlerPanel();
     SFX.peddler();
   },
-  /* رسید پایین برج → گفتگوی استوری */
+  /* رسید پایین برج → گفتگوی استوری (خطِ متنِ هر چهره فرق دارد) */
   talk() {
     this.phase = 'talk';
+    const L = PED_LOOKS[this.look];
+    const lines = [
+      { who: 'd', v: 'pd1a', text: 'شب نزدیک است... و من کالایی کمیاب دارم؛ فقط برای تو.' },
+      { who: 'p', v: 'pd1b', text: 'کالای کمیاب؟ از کجا معلوم تقلبی نباشد؟' },
+      { who: 'd', v: 'pd1c', text: 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
+    ];
     try {
-      DLG.start([
-        { who: 'd', v: 'pd1a', text: 'شب نزدیک است... و من کالایی کمیاب دارم؛ فقط برای تو.' },
-        { who: 'p', v: 'pd1b', text: 'کالای کمیاب؟ از کجا معلوم تقلبی نباشد؟' },
-        { who: 'd', v: 'pd1c', text: 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
-      ], () => { if (PED.phase === 'talk') PED.openShop(); });
+      DLG.start(lines, () => { if (PED.phase === 'talk') PED.openShop(); });
     } catch (e) { this.openShop(); }
   },
   /* پایان گفتگو → قفسه‌ی کالا */
@@ -737,12 +911,12 @@ const PED = {
     this.phase = 'stay';
     renderPeddlerStock();
   },
-  /* شب شد → خداحافظی و رفتن */
+  /* شب شد → خداحافظی و رفتن (از همان سمتی که آمد) */
   leave(farewell) {
     if (!this.active) return;
     if (this.phase !== 'leave') {
       this.phase = 'leave';
-      this.dir = -1;
+      this.dir = -this.dirFrom;
       try { DLG.skip(); } catch (e) {}
       hidePeddlerPanel();
       state.peddler.here = false;
@@ -758,38 +932,45 @@ const PED = {
   update(dt) {
     if (!this.active) return;
     this.t += dt;
-    const TARGET = TOWER.x - 84;                 /* پایین برج، کمی جلوتر */
+    const TARGET = TOWER.x - 84 * this.dirFrom;    /* پایین برج، سمتِ ورود */
     if (this.phase === 'enter') {
       this.walkT += dt;
-      this.x += 118 * dt;
-      if (this.x >= TARGET) { this.x = TARGET; this.talk(); }
+      this.x += 118 * this.dirFrom * dt;
+      const done = this.dirFrom > 0 ? this.x >= TARGET : this.x <= TARGET;
+      if (done) { this.x = TARGET; this.talk(); }
     } else if (this.phase === 'leave') {
       this.walkT += dt;
-      this.x -= 150 * dt;
-      if (this.x < -60) this.reset();
+      this.x += 150 * this.dir * dt;
+      if (this.x < -70 || this.x > W + 70) this.reset();
     }
   },
 
   render() {
     if (!this.active) return;
     if (state.mode !== 'day' && state.mode !== 'intermission') return;
-    drawPeddlerFig(this.x, GROUND_Y + 10, this.phase, this.walkT, this.t);
+    drawPeddlerFig(this.x, GROUND_Y + 10, this.phase, this.walkT, this.t, this.look, this.dirFrom);
   },
 };
 
-/* رسم دستفروش در صحنه: شنل بلند تیره + کلاهِ نوک‌تیز + چشم‌های بنفشِ
-   درخشان + فانوسِ نوسانی که زمین را روشن می‌کند */
-function drawPeddlerFig(x, y, phase, walkT, t) {
+/* رسم دستفروش در صحنه — ۵ چهره (۲۰٫۰):
+   look 0: شنل تیره + کلاه نوک‌تیز + چشم بنفش + فانوس (کلاسیک)
+   look 1: کلاه لبه‌گرد + شال + قترقم‌های آویزانِ کوله‌پشتی
+   look 2: هود + ماسک گاز با عدسی‌های گردِ درخشان
+   look 3: بارانی زرد + چراغ‌قوه‌ی دستی به جای فانوس
+   look 4: دستفروش چرخ‌دسته — قفسه‌ی کوچکِ پر از کالا را هل می‌دهد */
+function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
+  const L = PED_LOOKS[look % PED_LOOKS.length];
   const moving = phase === 'enter' || phase === 'leave';
   const bob = moving ? Math.abs(Math.sin(walkT * 6)) * 2.2 : Math.sin(t * 1.8) * 1.1;
-  const lean = moving ? (phase === 'enter' ? 0.07 : -0.07) : 0;
+  const lean = moving ? 0.07 * (face > 0 ? 1 : -1) : 0;
   ctx.save();
   ctx.translate(x, y);
-  /* سایه روی زمین */
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath(); ctx.ellipse(0, 2, 15, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 2, look === 4 ? 24 : 15, 4.5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.translate(0, -bob);
   ctx.rotate(lean);
+  ctx.scale(face > 0 ? 1 : -1, 1);          /* آینه‌ای وقتی از راست می‌آید */
+
   /* پاها (فقط موقع راه‌رفتن جابه‌جا می‌شوند) */
   ctx.strokeStyle = '#15101f'; ctx.lineWidth = 5; ctx.lineCap = 'round';
   const step = moving ? Math.sin(walkT * 6) * 6 : 0;
@@ -797,60 +978,194 @@ function drawPeddlerFig(x, y, phase, walkT, t) {
   ctx.moveTo(-4, -14); ctx.lineTo(-5 + step, -1);
   ctx.moveTo(4, -14); ctx.lineTo(5 - step, -1);
   ctx.stroke();
-  /* شنل بلند — نرمِ موج‌دار */
-  const sway = Math.sin((moving ? walkT : t) * 2.2) * 3;
-  ctx.fillStyle = '#221839';
-  ctx.beginPath();
-  ctx.moveTo(-13, -46);
-  ctx.quadraticCurveTo(-17 + sway, -26, -14, -12);
-  ctx.lineTo(14, -12);
-  ctx.quadraticCurveTo(17 + sway, -26, 13, -46);
-  ctx.quadraticCurveTo(0, -52, -13, -46);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(90,64,140,0.35)';
-  ctx.fillRect(-14, -18, 28, 3);                 /* کمربندِ براق */
-  /* کلاهِ نوک‌تیزِ روی سرِ در سایه */
-  ctx.fillStyle = '#2e2348';
-  ctx.beginPath();
-  ctx.moveTo(-11, -46); ctx.quadraticCurveTo(-2, -62, 3, -60);
-  ctx.quadraticCurveTo(12, -58, 11, -46);
-  ctx.quadraticCurveTo(0, -50, -11, -46);
-  ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-2, -61); ctx.lineTo(2, -72); ctx.lineTo(6, -59);
-  ctx.closePath(); ctx.fill();
-  /* صورتِ تاریک + چشم‌های بنفش درخشان */
-  ctx.fillStyle = '#0d0918';
-  ctx.beginPath(); ctx.ellipse(0, -50, 8.5, 7, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.save();
-  ctx.shadowColor = '#c08aff'; ctx.shadowBlur = 8;
-  ctx.fillStyle = '#d8b0ff';
-  circle2(ctx, -3.4, -50, 1.7); circle2(ctx, 3.4, -50, 1.7);
-  ctx.restore();
-  /* فانوسِ نوسانی در دست */
-  const lx = 16, ly = -34 + Math.sin((moving ? walkT : t) * 2.6) * 3;
-  ctx.strokeStyle = '#4a3a24'; ctx.lineWidth = 1.8;
-  ctx.beginPath(); ctx.moveTo(10, -40); ctx.lineTo(lx, ly - 6); ctx.stroke();
-  ctx.save();
-  ctx.shadowColor = '#ffd873'; ctx.shadowBlur = 14;
-  ctx.fillStyle = '#c9a24e';
-  ctx.fillRect(lx - 4, ly - 6, 8, 11);
-  ctx.fillStyle = 'rgba(255,232,150,0.95)';
-  ctx.fillRect(lx - 2.4, ly - 4, 4.8, 7);
-  ctx.restore();
-  /* هاله‌ی نورِ فانوس روی زمین */
-  const g2 = ctx.createRadialGradient(lx, ly, 3, lx, ly + 8, 34);
-  g2.addColorStop(0, 'rgba(255,216,115,0.30)');
-  g2.addColorStop(1, 'rgba(255,216,115,0)');
-  ctx.fillStyle = g2;
-  ctx.beginPath(); ctx.arc(lx, ly + 8, 34, 0, Math.PI * 2); ctx.fill();
+
+  if (look === 4) {
+    /* --- دستفروش چرخ‌دسته: قفسه‌ی چوبی با چرخ --- */
+    ctx.strokeStyle = '#4a3a22'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-22, -8); ctx.lineTo(-34, -30);
+    ctx.moveTo(22, -8); ctx.lineTo(34, -30);
+    ctx.stroke();
+    ctx.fillStyle = '#5a4426';
+    rr(-36, -44, 72, 16, 4); ctx.fill();
+    ctx.strokeStyle = '#3a2c18'; ctx.lineWidth = 2; rr(-36, -44, 72, 16, 4); ctx.stroke();
+    /* کالاهای روی قفسه */
+    const goods = ['#7a4a28', '#5a6a3a', '#8fd6ff', '#ffd873', '#ff8a5a'];
+    for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = goods[i];
+      rr(-32 + i * 13, -50, 10, 8, 2); ctx.fill();
+    }
+    /* چرخ */
+    ctx.fillStyle = '#2c2012'; circle(-26, -2, 5.5); circle(26, -2, 5.5);
+    ctx.fillStyle = '#8a6f3a'; circle(-26, -2, 1.8); circle(26, -2, 1.8);
+    /* بدنِ خمیده روی چرخ */
+    ctx.fillStyle = L.cloak;
+    ctx.beginPath();
+    ctx.moveTo(-14, -46);
+    ctx.quadraticCurveTo(-18, -26, -14, -12);
+    ctx.lineTo(14, -12);
+    ctx.quadraticCurveTo(18, -26, 14, -46);
+    ctx.quadraticCurveTo(0, -52, -14, -46);
+    ctx.closePath(); ctx.fill();
+    /* کلاه لبه‌کوتاه + سر */
+    ctx.fillStyle = '#f0c49a'; circle(2, -50, 7.4);
+    ctx.fillStyle = L.hat;
+    ctx.beginPath(); ctx.arc(2, -51, 7.8, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.fillRect(-7, -52, 17, 4);
+    /* دست‌ها روی دسته‌ی چرخ */
+    ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(8, -40); ctx.lineTo(24, -30); ctx.stroke();
+    /* چشم‌های درخشان */
+    ctx.save();
+    ctx.shadowColor = L.eyeGlow; ctx.shadowBlur = 8;
+    ctx.fillStyle = L.eye;
+    circle2(ctx, -0.6, -50, 1.6); circle2(ctx, 4.6, -50, 1.6);
+    ctx.restore();
+    /* فانوس سبز کوچک آویزان از قفسه */
+    ctx.save();
+    ctx.shadowColor = '#7be389'; ctx.shadowBlur = 10;
+    ctx.fillStyle = '#c9a24e'; ctx.fillRect(-33, -38, 6, 8);
+    ctx.fillStyle = 'rgba(150,255,170,0.95)'; ctx.fillRect(-31.6, -36.4, 3.2, 5);
+    ctx.restore();
+  } else {
+    /* --- بدن‌های چهار چهره‌ی پیاده --- */
+    const sway = Math.sin((moving ? walkT : t) * 2.2) * 3;
+    ctx.fillStyle = L.cloak;
+    ctx.beginPath();
+    ctx.moveTo(-13, -46);
+    ctx.quadraticCurveTo(-17 + sway, -26, -14, -12);
+    ctx.lineTo(14, -12);
+    ctx.quadraticCurveTo(17 + sway, -26, 13, -46);
+    ctx.quadraticCurveTo(0, -52, -13, -46);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(90,64,140,0.35)';
+    ctx.fillRect(-14, -18, 28, 3);                 /* کمربندِ براق */
+
+    if (look === 1) {
+      /* کلاه لبه‌گرد قرمز + شال گردن سبز + کوله‌پشتی پر از قترقم */
+      ctx.fillStyle = '#3e5a3a'; rr(-19, -40, 9, 22, 4); ctx.fill();   /* کوله */
+      ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(-14, -38); ctx.lineTo(-6, -42); ctx.stroke();
+      /* قترقم‌های آویزان */
+      ctx.strokeStyle = '#c9a24e'; ctx.lineWidth = 1.4;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath(); ctx.moveTo(-17, -34 + i * 7); ctx.lineTo(-21, -28 + i * 7); ctx.stroke();
+        ctx.fillStyle = ['#ffd873', '#8fd6ff', '#ff8a5a'][i];
+        circle(-21, -27 + i * 7, 2);
+      }
+      /* شال */
+      ctx.fillStyle = '#3e5a3a';
+      ctx.beginPath();
+      ctx.moveTo(-8, -46); ctx.quadraticCurveTo(0, -40, 8, -46);
+      ctx.quadraticCurveTo(6, -36, 0, -35); ctx.quadraticCurveTo(-6, -36, -8, -46);
+      ctx.closePath(); ctx.fill();
+      /* کلاه لبه‌گرد */
+      ctx.fillStyle = L.hat;
+      ctx.beginPath(); ctx.ellipse(2, -48, 14, 3.6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(2, -50, 7, Math.PI, Math.PI * 2); ctx.fill();
+      /* صورت + چشم‌های سبز */
+      ctx.fillStyle = '#0d0918';
+      ctx.beginPath(); ctx.ellipse(2, -48, 8.5, 6.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.shadowColor = L.eyeGlow; ctx.shadowBlur = 8;
+      ctx.fillStyle = L.eye;
+      circle2(ctx, -1.4, -48, 1.7); circle2(ctx, 5.4, -48, 1.7);
+      ctx.restore();
+    } else if (look === 2) {
+      /* هود + ماسک گاز: دو عدسی گردِ نارنجی + فیلترِ زیر */
+      ctx.fillStyle = L.hat;
+      ctx.beginPath();
+      ctx.moveTo(-11, -44); ctx.quadraticCurveTo(-13, -62, 2, -64);
+      ctx.quadraticCurveTo(15, -62, 13, -44);
+      ctx.quadraticCurveTo(2, -50, -11, -44);
+      ctx.closePath(); ctx.fill();
+      /* عدسی‌های ماسک */
+      ctx.save();
+      ctx.shadowColor = L.eyeGlow; ctx.shadowBlur = 9;
+      ctx.fillStyle = '#1a1410';
+      circle2(ctx, -3.6, -50, 4.4); circle2(ctx, 5.6, -50, 4.4);
+      ctx.fillStyle = L.eye;
+      circle2(ctx, -3.6, -50, 2.8); circle2(ctx, 5.6, -50, 2.8);
+      ctx.restore();
+      /* فیلتر گردن */
+      ctx.fillStyle = '#39424e';
+      circle(1, -42, 3.8);
+      ctx.fillStyle = '#5d6a7a'; circle(1, -42, 1.8);
+    } else if (look === 3) {
+      /* بارانی زرد با یقه + چراغ‌قوه به‌جای فانوس */
+      ctx.fillStyle = L.hat;
+      ctx.beginPath();
+      ctx.moveTo(-12, -44); ctx.quadraticCurveTo(-14, -60, 2, -62);
+      ctx.quadraticCurveTo(14, -60, 12, -44);
+      ctx.quadraticCurveTo(0, -50, -12, -44);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(2, -47, 8, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.shadowColor = L.eyeGlow; ctx.shadowBlur = 8;
+      ctx.fillStyle = L.eye;
+      circle2(ctx, -1.4, -47, 1.6); circle2(ctx, 5.4, -47, 1.6);
+      ctx.restore();
+      /* چراغ‌قوه‌ی دستی با مخروط نور */
+      ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(9, -38); ctx.lineTo(17, -30); ctx.stroke();
+      ctx.fillStyle = '#3a4250'; ctx.save();
+      ctx.translate(18, -29); ctx.rotate(0.6);
+      rr(-3, -3, 10, 6, 2); ctx.fill();
+      const beam = ctx.createLinearGradient(5, 0, 30, 0);
+      beam.addColorStop(0, 'rgba(255,238,170,0.5)'); beam.addColorStop(1, 'rgba(255,238,170,0)');
+      ctx.fillStyle = beam;
+      ctx.beginPath(); ctx.moveTo(5, -4); ctx.lineTo(30, -10); ctx.lineTo(30, 10); ctx.lineTo(5, 4);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    } else {
+      /* look 0: کلاسیک — کلاه نوک‌تیز + چشم بنفش + فانوس */
+      ctx.fillStyle = L.hat;
+      ctx.beginPath();
+      ctx.moveTo(-11, -46); ctx.quadraticCurveTo(-2, -62, 3, -60);
+      ctx.quadraticCurveTo(12, -58, 11, -46);
+      ctx.quadraticCurveTo(0, -50, -11, -46);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-2, -61); ctx.lineTo(2, -72); ctx.lineTo(6, -59);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#0d0918';
+      ctx.beginPath(); ctx.ellipse(0, -50, 8.5, 7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.shadowColor = L.eyeGlow; ctx.shadowBlur = 8;
+      ctx.fillStyle = L.eye;
+      circle2(ctx, -3.4, -50, 1.7); circle2(ctx, 3.4, -50, 1.7);
+      ctx.restore();
+    }
+
+    /* فانوس نوسانی (فقط چهره‌های ۰ و ۱) */
+    if (look === 0 || look === 1) {
+      const lx = 16, ly = -34 + Math.sin((moving ? walkT : t) * 2.6) * 3;
+      ctx.strokeStyle = '#4a3a24'; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(10, -40); ctx.lineTo(lx, ly - 6); ctx.stroke();
+      ctx.save();
+      ctx.shadowColor = '#ffd873'; ctx.shadowBlur = 14;
+      ctx.fillStyle = '#c9a24e';
+      ctx.fillRect(lx - 4, ly - 6, 8, 11);
+      ctx.fillStyle = 'rgba(255,232,150,0.95)';
+      ctx.fillRect(lx - 2.4, ly - 4, 4.8, 7);
+      ctx.restore();
+      /* هاله‌ی نورِ فانوس روی زمین */
+      const g2 = ctx.createRadialGradient(lx, ly, 3, lx, ly + 8, 34);
+      g2.addColorStop(0, 'rgba(255,216,115,0.30)');
+      g2.addColorStop(1, 'rgba(255,216,115,0)');
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.arc(lx, ly + 8, 34, 0, Math.PI * 2); ctx.fill();
+    }
+  }
   ctx.restore();
 }
 
-/* هر روز (فقط در حالت day) صدا زده می‌شود: بعد از ۲ روزِ خالی، شانس ۴۰٪ */
+/* هر روز (فقط در حالت day) صدا زده می‌شود: بعد از ۱ روزِ خالی، شانس ۵۵٪ */
 function peddlerRoll(force) {
   if (force) {                                   // برای تست/API
     state.peddler.here = true;
-    state.peddler.cd = 2;
+    state.peddler.cd = 1;
+    state.peddler.visits = (state.peddler.visits | 0) + 1;
     state.peddler.stock = pickRareStock();
     PED.enter();
     return;
@@ -858,50 +1173,83 @@ function peddlerRoll(force) {
   state.peddler.here = false;
   PED.reset();
   if (state.peddler.cd > 0) { state.peddler.cd--; hidePeddlerPanel(); return; }
-  if (Math.random() < 0.4) {
-    state.peddler.cd = 2;                        // دو روز بعد دوباره شانس
+  if (Math.random() < 0.55) {
+    state.peddler.cd = 1;                        // (۲۰٫۰) روز بعد دوباره شانس
     state.peddler.stock = pickRareStock();
-    PED.enter();                                 // (۱۴٫۰) استوری: می‌آید، حرف می‌زند، می‌فروشد
+    state.peddler.visits = (state.peddler.visits | 0) + 1;
+    PED.enter();                                 // استوری: می‌آید، حرف می‌زند، می‌فروشد
   } else {
     hidePeddlerPanel();
   }
 }
 
-/* انتخاب ۱-۲ آیتم کمیاب تصادفی */
+/* انتخاب کالای این بازدید (۲۰٫۰):
+   • ۱-۲ کالای کمیاب (دائمی‌ها فقط اگر هنوز فعال نشده‌اند؛ مصرفی‌ها همیشه)
+   • از بازدید دوم، با شانس ۷۰٪، یک «نقشه‌ی ساختِ برجک ویژه» که هنوز
+     باز نشده — تا وقتی هر سه باز شود، بعدش کالای معمولی می‌آورد */
 function pickRareStock() {
-  const keys = Object.keys(RARE).sort(() => Math.random() - 0.5);
-  const n = Math.random() < 0.5 ? 1 : 2;
-  return keys.slice(0, n).map(k => ({ id: k, bought: false }));
+  const visits = state.peddler.visits | 0;
+  const stock = [];
+  /* جایزه‌ی نقشه‌ی ساخت */
+  if (visits >= 1) {
+    const closed = Object.keys(BLUEPRINTS).filter(k => !(state.bps && state.bps[k]));
+    if (closed.length && Math.random() < 0.7) {
+      closed.sort(() => Math.random() - 0.5);
+      stock.push({ id: closed[0], bp: true, bought: false });
+    }
+  }
+  /* کالاهای معمولی دستفروش */
+  const permLeft = ['vest', 'goldAmmo', 'helmet'].filter(k => !state.buffs[k]);
+  const consum = ['airstrike', 'freezeBomb', 'adrenaline'];
+  const pool = permLeft.concat(consum);
+  pool.sort(() => Math.random() - 0.5);
+  const n = 1 + (Math.random() < 0.65 ? 1 : 0) - (stock.length ? 1 : 0);
+  for (let i = 0; i < Math.max(1, n) && i < pool.length; i++) {
+    stock.push({ id: pool[i], bought: false });
+  }
+  return stock;
 }
 
 function hidePeddlerPanel() { $('peddlerPanel').classList.add('hidden'); }
 
-/* پرتره‌ی دستفروش: شنل تیره + چشم‌های بنفش + فانوس */
+/* پرتره‌ی دستفروش: با چهره‌ی این بازدید (۲۰٫۰) */
 function drawPeddlerFace() {
   const cv = $('pdFace');
   if (!cv) return;
   const c = cv.getContext('2d');
   c.clearRect(0, 0, 92, 92);
+  const look = (PED && PED.active) ? PED.look : 0;
+  const L = PED_LOOKS[look % PED_LOOKS.length];
   const g = c.createRadialGradient(46, 34, 6, 46, 52, 62);
   g.addColorStop(0, '#241a3e'); g.addColorStop(1, '#0a0714');
   c.fillStyle = g; c.fillRect(0, 0, 92, 92);
   /* شنل */
-  c.fillStyle = '#1c1430';
+  c.fillStyle = L.cloak;
   c.beginPath();
   c.moveTo(18, 90); c.quadraticCurveTo(22, 42, 46, 32);
   c.quadraticCurveTo(70, 42, 74, 90); c.closePath(); c.fill();
-  /* کلاه */
-  c.fillStyle = '#2a1f48';
+  /* کلاه/هود */
+  c.fillStyle = L.hat;
   c.beginPath();
   c.moveTo(27, 48); c.quadraticCurveTo(46, 12, 65, 48);
   c.quadraticCurveTo(46, 57, 27, 48); c.closePath(); c.fill();
-  /* چشم‌های بنفش درخشان */
+  /* چشم‌های درخشانِ هم‌رنگِ چهره */
   c.save();
-  c.shadowColor = '#c08aff'; c.shadowBlur = 7;
-  c.fillStyle = '#d8b0ff';
+  c.shadowColor = L.eyeGlow; c.shadowBlur = 7;
+  c.fillStyle = L.eye;
   circle2(c, 39, 45, 3); circle2(c, 53, 45, 3);
   c.restore();
-  /* فانوس */
+  if (look === 2) {
+    /* ماسک گاز: عدسی‌های دور چشم */
+    c.strokeStyle = '#39424e'; c.lineWidth = 2;
+    circle2b(c, 39, 45, 6); circle2b(c, 53, 45, 6);
+  }
+  if (look === 1) {
+    /* لبه‌ی کلاه لبه‌گرد */
+    c.fillStyle = L.hat;
+    c.beginPath(); c.ellipse(46, 50, 24, 5, 0, 0, Math.PI * 2); c.fill();
+  }
+  /* فانوس گوشه */
   c.strokeStyle = '#7a5a20'; c.lineWidth = 1.6;
   c.strokeRect(64, 58, 10, 14);
   c.fillStyle = '#c9a24e'; c.fillRect(64, 58, 10, 14);
@@ -913,12 +1261,13 @@ function drawPeddlerFace() {
   c.strokeStyle = '#4a3a18'; c.lineWidth = 1.4;
   c.beginPath(); c.moveTo(69, 58); c.lineTo(69, 50); c.stroke();
 }
+function circle2b(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.stroke(); }
 
 function initPeddlerUI() {
   drawPeddlerFace();
 }
 
-/* رندر قفسه‌ی دستفروش (هر بار تازه) */
+/* رندر قفسه‌ی دستفروش (هر بار تازه — با برچسب «تازه!» برای کالای نو) */
 function renderPeddlerStock() {
   const box = $('pdStock');
   if (!box) return;
@@ -926,14 +1275,17 @@ function renderPeddlerStock() {
   if (!state.peddler.here) { hidePeddlerPanel(); return; }
   for (const it of state.peddler.stock) {
     if (it.bought) continue;                     // خریداری‌شده‌ها حذف می‌شوند
-    const r = RARE[it.id];
+    const r = it.bp ? BLUEPRINTS[it.id] : RARE[it.id];
+    if (!r) continue;
     const el = document.createElement('div');
-    el.className = 'pd-item' + (state.coins < r.price ? ' poor' : '');
+    el.className = 'pd-item' + (state.coins < r.price ? ' poor' : '') + (it.bp ? ' pd-bp' : '');
     const cv = document.createElement('canvas');
     cv.width = 80; cv.height = 80;
     paintGearIcon(it.id, cv);
     const info = document.createElement('div');
-    info.innerHTML = '<span class="pd-name">' + r.name + '</span><span class="pd-sub">' + r.desc + '</span>';
+    info.innerHTML = '<span class="pd-name">' + (it.bp ? '📐 ' : '') + r.name +
+      (it.fresh ? ' <em class="pd-new">تازه!</em>' : '') +
+      '</span><span class="pd-sub">' + r.desc + '</span>';
     const price = document.createElement('span');
     price.className = 'pd-price';
     price.textContent = faNum(r.price);
@@ -941,19 +1293,22 @@ function renderPeddlerStock() {
     el.addEventListener('click', () => buyRare(it));
     box.appendChild(el);
   }
-  /* اگر هر دو خریداری شد، پنل بسته شود */
+  /* اگر همه خریداری شد، پنل بسته شود */
   if (!box.children.length) { hidePeddlerPanel(); return; }
+  drawPeddlerFace();
   $('peddlerPanel').classList.remove('hidden');
 }
 
-/* خرید از دستفروش: ۳۰٪ تقلبی (سکه می‌سوزد) — ۷۰٪ واقعی و قدرتمند */
+/* خرید از دستفروش: ۳۰٪ تقلبی (سکه می‌سوزد) — ۷۰٪ واقعی و قدرتمند
+   (۲۰٫۰) نقشه‌ی ساخت: مستقیم باز می‌شود و به کوله نمی‌رود */
 function buyRare(it) {
   if (it.bought || !state.peddler.here || !canPlay()) return;
-  const r = RARE[it.id];
+  const r = it.bp ? BLUEPRINTS[it.id] : RARE[it.id];
+  if (!r) return;
   if (state.coins < r.price) { SFX.deny(); return; }
   state.coins -= r.price;
   it.bought = true;
-  if (Math.random() < 0.3) {
+  if (Math.random() < 0.3 && !it.bp) {
     /* کلک خوردی! کالای تقلبی — افکت + پیام */
     SFX.scam();
     const p = $('peddlerPanel');
@@ -961,6 +1316,17 @@ function buyRare(it) {
     setAnnounce('🎭 بهت کلک زد!', 'کالا تقلبی بود — ' + faNum(r.price) + ' سکه‌ات پرت شد!', 3);
     spawnParticles(150, 180, 18, '#9f8fd0', { speed: 170, life: 0.75, size: 2.6, grav: 280 });
     renderPeddlerStock(); updateHUD(); saveGame();
+    return;
+  }
+  if (it.bp) {
+    /* نقشه‌ی ساختِ برجک ویژه — باز شدن دائم */
+    state.bps[it.id] = true;
+    SFX.buy();
+    setAnnounce('📐 ' + r.name + ' باز شد!', 'حالا از تب «برجک‌ها» نصبش کن — ' + TURRETS[it.id].name, 3);
+    spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 22, r.color,
+      { speed: 180, life: 0.7, size: 2.8, grav: 260, up: true });
+    try { setBPTab('tur', true); } catch (e) {}
+    renderPeddlerStock(); updateHUD(); saveGame(); refreshBuildPanel();
     return;
   }
   if (!giveItem(it.id)) {
@@ -972,3 +1338,4 @@ function buyRare(it) {
   setAnnounce('💎 ' + r.name + ' گرفتی!', 'از کوله‌پشتی مصرفش کن — ' + r.desc, 2.6);
   renderPeddlerStock(); updateHUD(); saveGame();
 }
+
