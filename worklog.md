@@ -624,3 +624,26 @@ Stage Summary:
 - تحویل: /home/z/my-project/download/three-floors-to-survival.html (نسخه‌ی ۲۰٫۱ — تک‌فایل ۲٫۶MB) + download/apk/www/index.html به‌روز + README.md به‌روزشده
 - سورس‌ها: ویرایش‌شده‌ها: v3_part1.html، v3_part2.js، v3_part4.js، v4_mobile.js • ساخت: build_v201.sh • تست: test_v201.sh (۱۹) + test_v20.sh (۶۹، رگرسیون کامل) • اسکرین‌شات: shots201/
 - تجربه‌ی جدید: منوی کوچکِ دو دکمه‌ای تمیز، صفحه‌ی درباره که فقط داستان را می‌گوید و با نام سازنده (سهند مرامی) تمام می‌شود.
+
+---
+Task ID: 23
+Agent: Super Z (main agent)
+Task: بازخورد کاربر روی ۲۰٫۲ — نسخه‌ی ۲۰٫۳: بازطراحی منوی اصلی (جذاب‌تر) + اصلاح ادبی دیالوگ‌های محاوره‌ایِ کات‌سین افتتاحیه
+
+Work Log:
+- v3_part1.html (HTML منو): عنصر تازه‌ی .menu-tagline («شهر ساکت است... و شب‌ها تازه شروع شده‌اند») + .menu-divider زیر عنوان اضافه شد؛ شناسه‌های btnStart/btnContinue/btnSettings/btnAbout دست‌نخورده.
+- v3_part1.html (CSS): بخش تازه‌ی «(۲۰٫۳) بازطراحی منوی اصلی» — #menuHero ورود نرم (menuHeroIn)، .menu-btns/.menu-mini ورود پلکانی (menuIn با delay)، .btn-big بزرگ‌تر (۱۸px، radius ۱۴) + برقِ متحرک (::after + btnShine) + نبض نور (btnGlow) + hover/active تازه، .mbtn بهتر (min-width ۲۷۰ + هاله‌ی hover)، .game-title بزرگ‌تر (۵۸px) + drop-shadow دوتایی، قواعد لمسی (#wrap.touch) به‌روز.
+- v4_intro_menu.js: اصلاح ادبی ۶ خط از INTRO_DLGS — i1n1 («از حومه‌ی شهر، بی‌خبر و بی‌صدا، اومد وسطِ مون»)، i3a1 («انگار کلِ این شهر مالِ خودمون شده»)، i4p1 («شاید فقط خودمون موندیم»)، i6n1 («هر چی که دم دستشون بود»)، i10a1 («باید بهش برسیم»)، i11p1 («زنده بیرون بیام») — لحن محاوره‌ای حفظ، فقط جمله‌بندی/ضمیرها درست شد؛ کامنت نسخه به‌روز.
+- edge-tts در venv نصب شد (/home/z/.venv/bin/python -m pip install edge-tts) — python3 سیستم PEP 668 داشت.
+- gen_voices202.py (تازه): بازتولید همان ۶ کلیپ با همان PROFILE (n/a/p = FaridNeural با rate/pitch قبلی، ffmpeg volume=1.05، ۳۲k mono) + وصله‌ی درجا در voices17_data.js — ۶/۶ موفق (d: ۶٫۸۹/۴٫۷۳/۶٫۵/۵٫۷۱/۵٫۲۸/۴٫۴۲s، جمعاً ۱۷۶KB base64)؛ بکاپ voices17_data.js.bak202.
+- build_v203.sh → ۱۵۵۷۳ خط / ۲٫۶MB؛ سینتکس کامل OK.
+- test_v203.sh: ابتدا ۶ FAIL از باگ منطقی خود تست (grep -c/$? به‌جای ۱/۰) — اصلاح با helper های gq/ngq → ۳۶/۳۶ PASS (ساختار فایل ۱۳ + منو در مرورگر ۷ + متن‌های INTRO_DLGS ۶ + صداهای VOICES17 ۵ + رگرسیون جریان ۵).
+- رگرسیون کامل: test_v20.sh ۶۹/۶۹ سبز.
+- تأیید بصری: VLM (createVision — create با عکس ۴۰۰ می‌داد) منوی تازه را تأیید کرد — عنوان+تگ‌لاین+جداکننده‌ی طلایی+۴ دکمه+وسط‌چین+بدون هم‌پوشانی+جذاب؛ اسکرین‌شات shots203/01_menu.png.
+- بسته‌ی APK: download/apk/www/index.html با بیلد تازه جایگزین شد.
+- README.md: سربرگ ۲۰٫۳ + بخش تازه‌های ۲۰٫۳ و ۲۰٫۲ (جای‌افتاده) + خط ساخت/تست به build_v203.sh/gen_voices202.py/test_v203.sh + توضیح v3_part1 و v4_intro_menu در ساختار کد.
+
+Stage Summary:
+- تحویل: /home/z/my-project/download/three-floors-to-survival.html (نسخه‌ی ۲۰٫۳ — تک‌فایل ۲٫۶MB) + download/apk/www/index.html به‌روز + README.md به‌روز
+- سورس‌ها: ویرایش‌شده: v3_part1.html، v4_intro_menu.js، voices17_data.js (۶ کلیپ) • ساخت: build_v203.sh • صدا: gen_voices202.py • تست: test_v203.sh (۳۶) + test_v20.sh (۶۹) • اسکرین‌شات: shots201→203
+- تجربه‌ی جدید: منوی سینمایی‌تر با تگ‌لاین داستانی و دکمه‌ی درخشانِ متحرک؛ دیالوگ‌های افتتاحیه روان‌تر و درست‌تر با صدای هماهنگِ بازتولیدشده.

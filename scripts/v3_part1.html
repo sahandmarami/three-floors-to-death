@@ -537,6 +537,40 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s}
 #saveToast.show{opacity:1;transform:none}
 
+/* ---------- (۲۰٫۳) بازطراحی منوی اصلی — جذاب‌تر و سینمایی‌تر ----------
+   تگ‌لاین داستانی زیر عنوان + خط جداکننده‌ی طلاییِ درخشان + دکمه‌ی اصلی
+   بزرگ‌تر با جلوه‌ی برقِ متحرک (shine) و نبض نور + ورود نرم عناصر.
+   ساختار دکمه‌ها/شناسه‌ها دست‌نخورده (سازگاری کامل با تست‌ها و APK). */
+#menuHero{padding:40px 18px 0;animation:menuHeroIn .7s ease-out both}
+@keyframes menuHeroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.game-title{font-size:58px;letter-spacing:1px;
+  filter:drop-shadow(0 4px 14px rgba(255,180,60,.45)) drop-shadow(0 1px 2px rgba(0,0,0,.7))}
+.menu-tagline{margin-top:8px;font-size:14.5px;font-weight:bold;color:#b9c8ea;letter-spacing:.4px;
+  text-shadow:0 1px 4px #000,0 2px 12px rgba(0,0,0,.9);opacity:.95}
+.menu-divider{width:230px;height:2px;margin:15px auto 4px;border-radius:2px;
+  background:linear-gradient(90deg,transparent 5%,#e8b54a 35%,#ffd873 50%,#e8b54a 65%,transparent 95%);
+  opacity:.6;box-shadow:0 0 14px rgba(255,180,60,.4)}
+.menu-btns{animation:menuIn .6s ease-out .16s both}
+.menu-mini{animation:menuIn .6s ease-out .3s both}
+@keyframes menuIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.btn-big{position:relative;overflow:hidden;font-size:18px;padding:14px 46px;border-radius:14px;
+  box-shadow:0 6px 28px rgba(240,180,60,.45),inset 0 1px 0 rgba(255,255,255,.55);
+  animation:btnGlow 2.6s ease-in-out infinite}
+@keyframes btnGlow{0%,100%{box-shadow:0 6px 28px rgba(240,180,60,.42),inset 0 1px 0 rgba(255,255,255,.55)}
+  50%{box-shadow:0 8px 40px rgba(255,205,90,.75),inset 0 1px 0 rgba(255,255,255,.55)}}
+.btn-big::after{content:'';position:absolute;top:-22%;bottom:-22%;width:34%;left:-58%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:skewX(-18deg);animation:btnShine 3.9s ease-in-out infinite;pointer-events:none}
+@keyframes btnShine{0%,58%{left:-58%}86%,100%{left:138%}}
+.btn-big:hover{transform:translateY(-2px) scale(1.02);filter:brightness(1.08)}
+.btn-big:active{transform:translateY(0) scale(.97)}
+.mbtn{min-width:270px;font-size:15px;padding:12px 22px;border-radius:12px}
+.mbtn:not(:disabled):hover{border-color:#e8b54a;color:#fff;
+  box-shadow:0 4px 20px rgba(232,181,74,.28),inset 0 1px 0 rgba(255,255,255,.12)}
+#wrap.touch .btn-big{font-size:19px;padding:16px 52px}
+#wrap.touch .game-title{font-size:46px}
+#wrap.touch .menu-tagline{font-size:13px}
+
 /* --- (۱۳٫۰) نوار سطح ارتقا زیر کاشی‌ها — جای نقطه‌های نامرئی --- */
 .bp-tile{height:88px}
 .bp-tile .bp-lv{display:flex;gap:2px;width:84%;height:8px;margin-top:1px;padding:1px;
@@ -669,6 +703,8 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div class="overlay" id="startScreen">
     <div id="menuHero">
       <h1 class="game-title">سه طبقه تا بقا</h1>
+      <div class="menu-tagline">شهر ساکت است... و شب‌ها تازه شروع شده‌اند</div>
+      <div class="menu-divider"></div>
       <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
       <div class="menu-btns">
         <button class="btn-main btn-big" id="btnStart">🎮 بازی جدید</button>
