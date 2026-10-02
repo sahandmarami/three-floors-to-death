@@ -647,3 +647,18 @@ Stage Summary:
 - تحویل: /home/z/my-project/download/three-floors-to-survival.html (نسخه‌ی ۲۰٫۳ — تک‌فایل ۲٫۶MB) + download/apk/www/index.html به‌روز + README.md به‌روز
 - سورس‌ها: ویرایش‌شده: v3_part1.html، v4_intro_menu.js، voices17_data.js (۶ کلیپ) • ساخت: build_v203.sh • صدا: gen_voices202.py • تست: test_v203.sh (۳۶) + test_v20.sh (۶۹) • اسکرین‌شات: shots201→203
 - تجربه‌ی جدید: منوی سینمایی‌تر با تگ‌لاین داستانی و دکمه‌ی درخشانِ متحرک؛ دیالوگ‌های افتتاحیه روان‌تر و درست‌تر با صدای هماهنگِ بازتولیدشده.
+
+---
+Task ID: 24
+Agent: Super Z (main agent)
+Task: تحویل فایل بازی — فعال‌سازی سرور پیش‌نمایش وب (port 3000 پشت reverse proxy:81)
+
+Work Log:
+- پروسه‌های بک‌گراند معمولی با پایان دستور کشته می‌شوند ← دایمون دابل‌فورک scripts/serve_game.py
+- webserve/: index.html + three-floors-to-survival.html (هر دو نسخه ۲۰٫۳)
+- نگهبان: scripts/serve_watchdog.py (هر ۲۰ ثانیه چک/ری‌استارت)
+- تأیید: proxy 200، بازی در مرورگر اجرا شد، فایل کامل ۲٫۶MB قابل دریافت
+
+Stage Summary:
+- بازی روی سرور پیش‌نمایش سرو می‌شود — پخش در پنل Preview + دانلود از /three-floors-to-survival.html
+- ری‌استارت در صورت نیاز: python3 scripts/serve_watchdog.py
