@@ -520,10 +520,12 @@ const ZIMG = {
   },
 };
 
-/* اسپرایت‌های زامبی — طبق توضیح سربرگ (۱۸٫۱) */
+/* اسپرایت‌های زامبی — طبق توضیح سربرگ (۱۸٫۱)
+   (۲۱٫۰) جعبه‌ی پخت گشاده‌تر (چنگک‌های حمله/خطوط سرعت/مو‌ها) +
+   قاب‌های بیشتر برای حرکتِ نرم‌تر */
 const ZSPR = {
-  SS: 2.4, X0: -14, Y0: -50, X1: 19, Y1: 3,
-  WF: 10, AF: 6,
+  SS: 2.4, X0: -26, Y0: -52, X1: 22, Y1: 3,
+  WF: 14, AF: 8,
   cache: Object.create(null),
   bucket(ph, n) { const t = ((ph / Math.PI) % 2 + 2) % 2; return Math.floor(t * n) % n; },
   frame(z, flash) {
@@ -1963,7 +1965,7 @@ function drawZombie(z) {
   /* سایه روی زمین (زامبی‌های پرتاب‌شده‌ی کات‌سین سایه‌ی جداگانه دارند — ۷٫۰)
      (۲۰٫۴) در حالت تصویری به‌اندازه‌ی عرض بدنه — حسِ ایستادنِ بهتر */
   if (!z.noShadow) {
-    const shW = ZIMG.ready[z.type] ? ZIMG.BOX[z.type].w * 0.3 * s : 13 * s;
+    const shW = ZIMG.ready[z.type] ? ZIMG.BOX[z.type].w * 0.3 * s : (z.type === 'boss' ? 17 : z.type === 'tank' ? 15 : 12.5) * s;
     const shH = ZIMG.ready[z.type] ? ZIMG.BOX[z.type].w * 0.1 * s : 4 * s;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, shW, shH, 0, 0, Math.PI * 2); ctx.fill();
@@ -2043,106 +2045,326 @@ function drawZombie(z) {
   }
 }
 
-/* (۱۸٫۱) بدنه‌ی زامبی: پاها تا تاج — هم مسیر زنده‌ی پادشاه، هم تابع پخت ZSPR.
-   فقط هندسه/رنگ می‌خواند (نوع/فلاش/فاز گام یا حمله) → با شیء ساختگی
-   هم برای پخت قابل فراخوانی است */
+/* (۲۱٫۰) بدنه‌ی زامبی — بازطراحی کیفی (درخواست کاربر: «زامبی‌ها مثل قبل،
+   فقط گرافیک بهتر»): آناتومی مفصلی — ران/ساق با زانو و کفِ پا، بازوی
+   دوبندی با آرنج و چنگک، فک و حفره‌ی چشم و گوش؛ سایه‌روشنِ چندلایه +
+   لبه‌ی تیره برای خوانایی در شب؛ پیراهن پاره با دنده‌های نمایان، زخم و
+   خون؛ شنلِ موج‌دارِ پادشاه، کلاه‌خود پرچ‌دارِ تانک، مو‌کاکِ سریع‌ها.
+   مختصات سر همان (۳٬ -۳۶) مانده تا drawZombieFx / drawDarkEyes و نوار
+   جون بی‌تغییر کار کنند. هم مسیر زنده‌ی پادشاه، هم تابع پخت ZSPR —
+   فقط نوع/فلاش/فاز گام یا حمله را می‌خواند (با شیء ساختگی هم کار می‌کند). */
+const _ZPAL = Object.create(null);
+function _zsh(hex, m) {
+  const n = parseInt(hex.slice(1), 16);
+  const f = c => Math.max(0, Math.min(255, Math.round(c * m)));
+  return 'rgb(' + f((n >> 16) & 255) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
+}
+function zpal(type, flash) {
+  const k = type + (flash ? 'F' : 'N');
+  if (_ZPAL[k]) return _ZPAL[k];
+  const T = ZTYPES[type];
+  const p = flash ? {
+    skin: '#e9f7d8', skinD: '#cfe6b8', skinL: '#ffffff',
+    shirt: '#b9cbe0', shirtD: '#9db4cc', shirtL: '#eef4fb',
+    pants: '#7d8aa3', pantsD: '#5d6a80',
+    gore: '#e5b0a8', goreD: '#c98a80', hair: '#93a89e',
+  } : {
+    skin: T.skin, skinD: _zsh(T.skin, 0.58), skinL: _zsh(T.skin, 1.34),
+    shirt: T.shirt, shirtD: _zsh(T.shirt, 0.58), shirtL: _zsh(T.shirt, 1.38),
+    pants: T.pants, pantsD: _zsh(T.pants, 0.55),
+    gore: type === 'boss' ? '#5e1420' : '#6e1616', goreD: '#400a0a',
+    hair: type === 'fast' ? '#2e2312' : '#232b1a',
+  };
+  _ZPAL[k] = p;
+  return p;
+}
+/* (۲۱٫۰) کجی/خیزِ مشترکِ بدنه — هم بدنه و هم افکت‌ها همین را می‌چرخانند
+   تا چشم‌های درخشان/خونِ دهان دقیقاً روی سرِ خمیده بنشینند (مشکل قدیمیِ
+   جابه‌جایی در سریع‌ها). خیزِ قوس‌دارِ زامبی‌وار + شیرجه‌ی حمله + کجی دونده */
+function zLean(z) {
+  if (z.dead) return 0;
+  let a = z.type === 'fast' ? -0.15 : z.type === 'tank' ? 0.02
+        : z.type === 'boss' ? 0.05 : 0.045;
+  if (z.attacking) a += 0.09 + Math.sin(z.attackAnim) * 0.05;
+  return a;
+}
 function drawZombieBody(z, flash) {
-  const T = ZTYPES[z.type];
-  const skin = flash ? '#d9f2c6' : T.skin;
-  const shirt = flash ? '#9db4cc' : T.shirt;
-  const pants = flash ? '#5d6a80' : T.pants;
+  const type = z.type;
+  const P = zpal(type, flash);
+  const bulk = type === 'boss' ? 1.5 : type === 'tank' ? 1.28 : type === 'fast' ? 0.88 : 1;
+  const thick = bulk > 1.15 ? 1.26 : 1;          // ضخامت اندام‌های درشت‌اندام‌ها
+  const atk = !!z.attacking;
   const walk = Math.sin(z.walkPhase);
-  const bob = z.attacking ? Math.sin(z.attackAnim) * 1.5 : Math.abs(walk) * 1.2;
+  const bob = atk ? Math.sin(z.attackAnim) * 1.5 : Math.abs(walk) * 1.2;
+  const OUT = 'rgba(8,12,20,0.5)';               // لبه‌ی تیره‌ی خوانایی
 
-  /* نوع سریع: کج به جلو + خط‌های سرعت پشت سرش */
-  if (z.type === 'fast' && !z.dead) {
-    ctx.rotate(-0.12);
-    ctx.strokeStyle = 'rgba(220,190,120,0.3)'; ctx.lineWidth = 1.5;
+  ctx.save();
+  ctx.lineCap = 'round';
+  /* (۲۱٫۰) خیز مشترک — zLean در drawZombieFx هم اعمال می‌شود */
+  ctx.rotate(zLean(z));
+
+  /* خط‌های سرعت پشت سریع‌ها (۲۱٫۰: حالا داخل جعبه‌ی پخت می‌گنجد) */
+  if (type === 'fast' && !z.dead) {
+    ctx.strokeStyle = 'rgba(220,190,120,0.34)'; ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(-14, -20); ctx.lineTo(-24, -20);
-    ctx.moveTo(-13, -14); ctx.lineTo(-21, -14);
+    for (let i = 0; i < 3; i++) {
+      const yy = -23 + i * 6, xx = -11 - i * 3;
+      ctx.moveTo(xx, yy); ctx.lineTo(xx - 8, yy);
+    }
     ctx.stroke();
   }
 
-  /* پاها */
-  ctx.strokeStyle = pants; ctx.lineWidth = 5; ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(-4, -13); ctx.lineTo(-4 + (z.attacking ? 0 : walk * 6), -1);
-  ctx.moveTo(4, -13); ctx.lineTo(4 - (z.attacking ? 0 : walk * 6), -1);
-  ctx.stroke();
-
-  /* بدن و پارگی پیراهن — (۱۱٫۰) سایه‌روشن گرادیانی برای حجم بیشتر */
-  ctx.fillStyle = shirt; rr(-9, -31 + bob * 0.4, 18, 19, 4); ctx.fill();
-  {
-    const shg = ctx.createLinearGradient(-9, -31 + bob * 0.4, 9, -12 + bob * 0.4);
-    shg.addColorStop(0, 'rgba(255,255,255,0.14)');
-    shg.addColorStop(0.55, 'rgba(0,0,0,0)');
-    shg.addColorStop(1, 'rgba(0,0,0,0.34)');
-    ctx.fillStyle = shg; rr(-9, -31 + bob * 0.4, 18, 19, 4); ctx.fill();
+  /* شنلِ موج‌دارِ پادشاه — پشتِ همه‌چیز */
+  if (type === 'boss') {
+    const flap = Math.sin(z.walkPhase) * 2.6;
+    ctx.fillStyle = flash ? '#8d2740' : '#41101c';
+    ctx.beginPath();
+    ctx.moveTo(-5, -29 + bob * 0.4);
+    ctx.quadraticCurveTo(-13 - flap, -21, -11.5 - flap * 1.5, -5 + bob * 0.3);
+    ctx.quadraticCurveTo(-6.5 - flap * 0.5, -9, -1.5, -13);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1; ctx.stroke();
   }
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-3, -24 + bob * 0.4, 6, 7);
-  /* لبه‌ی پاره‌پاره‌ی پیراهن (۶٫۰) */
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.moveTo(-8, -13 + bob * 0.4); ctx.lineTo(-5, -17 + bob * 0.4); ctx.lineTo(-2, -13 + bob * 0.4);
-  ctx.lineTo(1, -13 + bob * 0.4); ctx.lineTo(4, -16.5 + bob * 0.4); ctx.lineTo(7, -13 + bob * 0.4);
-  ctx.closePath(); ctx.fill();
 
-  /* زره‌ی شونه برای تانک و پادشاه — (۱۱٫۰) نگهبان: خار + برق زره */
-  if (z.type === 'tank' || z.type === 'boss') {
-    ctx.fillStyle = z.type === 'boss' ? '#3f151d' : '#39364a';
-    ctx.fillRect(-11, -33 + bob * 0.4, 7, 6);
-    ctx.fillRect(4, -33 + bob * 0.4, 7, 6);
-    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
-    ctx.strokeRect(-11, -33 + bob * 0.4, 7, 6);
-    ctx.strokeRect(4, -33 + bob * 0.4, 7, 6);
-    if (z.type === 'boss') {
-      ctx.fillStyle = '#c44dff';
-      ctx.beginPath();
-      ctx.moveTo(-11, -33 + bob * 0.4); ctx.lineTo(-13, -39 + bob * 0.4); ctx.lineTo(-7, -34 + bob * 0.4);
-      ctx.closePath(); ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(11, -33 + bob * 0.4); ctx.lineTo(13, -39 + bob * 0.4); ctx.lineTo(7, -34 + bob * 0.4);
-      ctx.closePath(); ctx.fill();
-      if (!z.dead && z.ai && z.ai.staggerT > 0) {           // پنجره‌ی زره‌ترکیده
-        ctx.strokeStyle = 'rgba(196,77,223,0.9)'; ctx.lineWidth = 1.6;
+  /* ---- پاها: ران/ساقِ دوبندی با زانو + کف پا ---- */
+  const stride = type === 'fast' ? 8.5 : 6.2;
+  for (let side = -1; side <= 1; side += 2) {    // -1 = پای دور (تیره‌تر)
+    const ph = z.walkPhase + (side < 0 ? Math.PI : 0);
+    const sw = atk ? 0.5 : Math.sin(ph);
+    const lift = atk ? 0 : Math.max(0, Math.cos(ph)) * 2.7;
+    const hx = side * (2.3 * bulk + (bulk > 1.15 ? 1.3 : 0)), hy = -13.5;   // (۲۱٫۰) ایستگاه پهن‌ترِ درشت‌اندام‌ها
+    const fx = hx + sw * stride * (side < 0 ? 0.85 : 1) + (atk ? 2.5 : 0);
+    const fy = -1.7 - lift;
+    const kx = (hx + fx) / 2 + 1.7 * bulk, ky = (hy + fy) / 2 - 0.7;
+    const wT = 4.6 * thick * (side < 0 ? 0.92 : 1), wS = 3.5 * thick * (side < 0 ? 0.86 : 1);
+    ctx.strokeStyle = OUT; ctx.lineWidth = wT + 1.7;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(kx, ky); ctx.lineTo(fx, fy - 1.2); ctx.stroke();
+    ctx.strokeStyle = side < 0 ? P.pantsD : P.pants; ctx.lineWidth = wT;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(kx, ky); ctx.stroke();
+    ctx.strokeStyle = P.pantsD; ctx.lineWidth = wS;
+    ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
+    ctx.fillStyle = P.pantsD;
+    rr(fx - 1.6, fy - 1.7, 6.2 * thick, 3, 1.4); ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 0.8;
+    rr(fx - 1.6, fy - 1.7, 6.2 * thick, 3, 1.4); ctx.stroke();
+  }
+
+  /* ---- بازوی دور (کم‌رنگ‌تر و پایین‌تر — حس عمق) ---- */
+  const swF = atk ? Math.sin(z.attackAnim) * 3 : Math.sin(z.walkPhase * 0.5) * 1.8;
+  {
+    const sx = -5.5 * bulk, sy = -26 + bob * 0.4;
+    const ex = -1.5, ey = -21 + swF * 0.5 + bob * 0.4;
+    const wx = 6.5, wy = -19.2 + swF + bob * 0.4;
+    ctx.strokeStyle = OUT; ctx.lineWidth = 4.3 * thick + 1.6;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.lineTo(wx, wy); ctx.stroke();
+    ctx.strokeStyle = P.skinD; ctx.lineWidth = 4.3 * thick;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.lineWidth = 3.5 * thick;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(wx, wy); ctx.stroke();
+    ctx.fillStyle = P.skinD; circle(wx, wy, 2.6);
+  }
+
+  /* ---- تنه: پیراهن سایه‌روشن + کمربند + پارگی + زخم ---- */
+  const tw = 9 * bulk, ty = -31 + bob * 0.4;
+  rr(-tw, ty, tw * 2, 19.5, 4.5); ctx.fillStyle = P.shirt; ctx.fill();
+  {
+    const g = ctx.createLinearGradient(-tw, ty, tw, ty + 19.5);
+    g.addColorStop(0, 'rgba(255,255,255,0.2)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.38)');
+    ctx.fillStyle = g; rr(-tw, ty, tw * 2, 19.5, 4.5); ctx.fill();
+  }
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.1;
+  rr(-tw, ty, tw * 2, 19.5, 4.5); ctx.stroke();
+  /* (۲۱٫۰) برقِ سردِ لبه‌ی شونه — خوانایی در شب/منو */
+  ctx.strokeStyle = 'rgba(165,200,255,0.16)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(-tw + 2, ty + 1.6); ctx.quadraticCurveTo(0, ty - 0.6, tw - 2, ty + 1.6); ctx.stroke();
+  /* کمربند + سگک */
+  ctx.fillStyle = P.pantsD; ctx.fillRect(-tw + 0.5, ty + 16.6, tw * 2 - 1, 2.6);
+  ctx.fillStyle = P.shirtL; ctx.fillRect(-1.5, ty + 16.6, 3, 2.6);
+  /* پارگیِ سینه که دنده‌ها از آن پیدارند */
+  ctx.fillStyle = 'rgba(10,10,8,0.55)';
+  ctx.beginPath(); ctx.ellipse(tw * 0.45, ty + 7.5, tw * 0.42, 4.4, -0.08, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = P.skin; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const ry = ty + 4.9 + i * 2.5;
+    ctx.moveTo(tw * 0.2, ry); ctx.quadraticCurveTo(tw * 0.55, ry - 0.5, tw * 0.78, ry + 1.1);
+  }
+  ctx.stroke();
+  /* لبه‌ی پاره‌ی دامنِ پیراهن */
+  ctx.fillStyle = P.shirtD;
+  ctx.beginPath();
+  ctx.moveTo(-tw + 1, ty + 19.5);
+  ctx.lineTo(-tw + 4.5, ty + 16.2); ctx.lineTo(-tw + 7.5, ty + 19.5);
+  ctx.lineTo(-tw + 10.5, ty + 17); ctx.lineTo(-tw + 13, ty + 19.5);
+  ctx.lineTo(tw - 11, ty + 17.4); ctx.lineTo(tw - 7, ty + 19.5);
+  ctx.lineTo(tw - 3, ty + 16.6); ctx.lineTo(tw - 1, ty + 19.5);
+  ctx.closePath(); ctx.fill();
+  /* زخمِ لای بدن */
+  ctx.fillStyle = P.gore;
+  ctx.beginPath(); ctx.ellipse(-tw * 0.45, ty + 8.5, 2.5, 1.8, 0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = P.goreD; circle(-tw * 0.45, ty + 8.5, 1);
+
+  /* ---- زره‌ی شونه: تانک = صفحه پرچ‌دار، پادشاه = خار بنفش ---- */
+  if (type === 'tank' || type === 'boss') {
+    for (let side = -1; side <= 1; side += 2) {
+      const ax = side * (tw - 1.2), ay = ty + 2;
+      ctx.fillStyle = type === 'boss' ? '#3f151d' : '#39364a';
+      rr(ax - 4.6, ay - 2.6, 9.2, 7, 2); ctx.fill();
+      ctx.strokeStyle = OUT; ctx.lineWidth = 0.9;
+      rr(ax - 4.6, ay - 2.6, 9.2, 7, 2); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.24)';
+      ctx.fillRect(ax - 3.6, ay - 1.9, 7.2, 1.1);
+      if (type === 'boss') {
+        ctx.fillStyle = flash ? '#e3a8f2' : '#c44dff';
         ctx.beginPath();
-        ctx.moveTo(-9, -31 + bob * 0.4); ctx.lineTo(-4, -26 + bob * 0.4); ctx.lineTo(-1, -30 + bob * 0.4);
-        ctx.moveTo(6, -30 + bob * 0.4); ctx.lineTo(9, -25 + bob * 0.4);
-        ctx.stroke();
+        ctx.moveTo(ax - 2.4, ay - 2.6); ctx.lineTo(ax + side * 2.2, ay - 8.6); ctx.lineTo(ax + 2.4, ay - 2.6);
+        ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillStyle = 'rgba(230,235,250,0.55)';
+        circle(ax - 2.4, ay + 1.3, 0.6); circle(ax + 2.4, ay + 1.3, 0.6);
       }
     }
   }
 
-  /* بازوهای کشیده به جلو (موقع حمله می‌کوبند) */
-  const armY = -27 + bob * 0.4;
-  const armSw = z.attacking ? Math.sin(z.attackAnim) * 4 : Math.sin(z.walkPhase * 0.5) * 2;
-  ctx.strokeStyle = skin; ctx.lineWidth = 4.5;
-  ctx.beginPath();
-  ctx.moveTo(-5, armY + 2); ctx.lineTo(13, armY + armSw);
-  ctx.moveTo(5, armY + 3); ctx.lineTo(14, armY + 5 + armSw * 0.6);
-  ctx.stroke();
-  ctx.fillStyle = skin;
-  circle(13, armY + armSw, 3); circle(14, armY + 5 + armSw * 0.6, 3);
-
-  /* سر + مو */
-  ctx.fillStyle = skin; circle(3, -36 + bob * 0.5, 7);
-  ctx.fillStyle = '#2f3b26';
-  ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
-
-  /* کلاه‌خود فولادی تانک */
-  if (z.type === 'tank') {
-    ctx.fillStyle = '#5c5f74';
-    ctx.fillRect(-4, -44 + bob * 0.5, 14, 4);
-  }
-  /* تاجِ پادشاه */
-  if (z.type === 'boss') {
-    ctx.fillStyle = '#f7c948';
+  /* ---- بازوی نزدیک: آستین + ساعد + دستِ چنگک‌دار ---- */
+  const armSw = atk ? Math.sin(z.attackAnim) * 4.5 : Math.sin(z.walkPhase * 0.5) * 2;
+  {
+    const sx = 5.5 * bulk, sy = -27 + bob * 0.4;
+    const ex = 9.5 + bulk * 1.4, ey = -24 + armSw * 0.6 + bob * 0.4;
+    const wx = 14.5 + (atk ? Math.sin(z.attackAnim) * 2 : 0), wy = -22.6 + armSw + bob * 0.4;
+    /* آستین روی بازو */
+    ctx.strokeStyle = OUT; ctx.lineWidth = 6.6 * thick;
+    ctx.beginPath(); ctx.moveTo(sx, sy - 1.2); ctx.lineTo((sx + ex) / 2, (sy + ey) / 2); ctx.stroke();
+    ctx.strokeStyle = P.shirt; ctx.lineWidth = 5 * thick;
+    ctx.beginPath(); ctx.moveTo(sx, sy - 1.2); ctx.lineTo((sx + ex) / 2, (sy + ey) / 2); ctx.stroke();
+    /* ساعد و دست */
+    ctx.strokeStyle = OUT; ctx.lineWidth = 4.2 * thick + 1.5;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(wx, wy); ctx.stroke();
+    ctx.strokeStyle = P.skin; ctx.lineWidth = 3.7 * thick;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(wx, wy); ctx.stroke();
+    ctx.fillStyle = P.skin; circle(wx, wy, 2.9);
+    ctx.strokeStyle = OUT; ctx.lineWidth = 0.8; ctx.stroke();
+    /* چنگک‌ها */
+    ctx.strokeStyle = P.skinD; ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(-3, -42 + bob * 0.5); ctx.lineTo(-3, -48 + bob * 0.5); ctx.lineTo(0, -44 + bob * 0.5);
-    ctx.lineTo(3, -49 + bob * 0.5); ctx.lineTo(6, -44 + bob * 0.5); ctx.lineTo(9, -48 + bob * 0.5);
-    ctx.lineTo(9, -42 + bob * 0.5); ctx.closePath(); ctx.fill();
+    ctx.moveTo(wx + 1.4, wy - 1.9); ctx.lineTo(wx + 4, wy - 2.7);
+    ctx.moveTo(wx + 2.2, wy - 0.2); ctx.lineTo(wx + 4.9, wy - 0.5);
+    ctx.moveTo(wx + 1.4, wy + 1.6); ctx.lineTo(wx + 3.8, wy + 2.2);
+    ctx.stroke();
   }
+
+  /* ---- سر و صورت (مرکز همان (۳٬ -۳۶)) ---- */
+  const hy = -36 + bob * 0.5;
+  /* گردن */
+  ctx.fillStyle = P.skinD; ctx.fillRect(0.8, hy + 5.4, 4.6, 4.2);
+  /* مو: نوارِ بالای سر + تیغه‌های نامرتب (موه‌کاکِ بلند در سریع‌ها) */
+  if (type !== 'tank') {
+    ctx.fillStyle = P.hair;
+    ctx.beginPath();
+    ctx.arc(3, hy, 7.1, Math.PI * 0.62, Math.PI * 1.78);
+    ctx.closePath(); ctx.fill();
+    const spikes = type === 'fast'
+      ? [[205, 6.5, 13], [240, 6.6, 14.5], [275, 6.6, 14.5], [310, 6.5, 12.5]]
+      : type === 'boss'
+        ? [[125, 6.5, 11], [160, 6.6, 14], [200, 6.6, 13.5], [240, 6.5, 12], [280, 6.4, 11], [315, 6, 9]]
+        : [[130, 6.3, 10], [172, 6.5, 11.3], [218, 6.5, 11.5], [262, 6.4, 11.8], [304, 6.2, 9.6]];
+    for (const sp of spikes) {
+      const A = sp[0] * Math.PI / 180, rb = sp[1], rt = sp[2];
+      ctx.beginPath();
+      ctx.moveTo(3 + rb * Math.cos(A - 0.17), hy + rb * Math.sin(A - 0.17));
+      ctx.lineTo(3 + rt * Math.cos(A), hy + rt * Math.sin(A));
+      ctx.lineTo(3 + rb * Math.cos(A + 0.17), hy + rb * Math.sin(A + 0.17));
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  /* جمجمه + سایه‌روشنِ حجمی */
+  ctx.fillStyle = P.skin; circle(3, hy, 7);
+  {
+    const g = ctx.createRadialGradient(0.8, hy - 2.6, 1, 3, hy, 7.6);
+    g.addColorStop(0, P.skinL);
+    g.addColorStop(0.55, P.skin);
+    g.addColorStop(1, P.skinD);
+    ctx.fillStyle = g; circle(3, hy, 7);
+  }
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.1; ctx.stroke();
+  /* (۲۱٫۰) برقِ سردِ تاجِ سر — نور مهتابِ ثابت (در شب با افکتِ پویا تقویت می‌شود) */
+  ctx.strokeStyle = 'rgba(165,200,255,0.18)'; ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.arc(3, hy, 7.9, Math.PI * 1.04, Math.PI * 1.6); ctx.stroke();
+  /* فک/آرواره + سایه‌ی زیرش */
+  ctx.fillStyle = P.skin; rr(1.2, hy + 3.1, 7.4, 4.6, 2.2); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; rr(1.2, hy + 5.6, 7.4, 2.1, 1.8); ctx.fill();
+  /* دهان: حمله یا پادشاه = باز با دندان‌ها (باس همیشه پوزخند می‌زند)، عادی = خطِ کج */
+  if (atk || type === 'boss') {
+    ctx.fillStyle = '#1c0f0d';
+    ctx.beginPath(); ctx.ellipse(4.9, hy + 4.6, 2.7, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ece8d4';
+    ctx.fillRect(3.6, hy + 3.1, 1.1, 1.5); ctx.fillRect(5.6, hy + 3.3, 1, 1.4);
+    ctx.fillRect(4.6, hy + 5.4, 0.9, 1.2);   // (۲۱٫۰) دندانِ پایینِ باس — پوزخند کامل
+  } else {
+    ctx.strokeStyle = 'rgba(20,14,10,0.7)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(3.2, hy + 4.9); ctx.quadraticCurveTo(5.4, hy + 5.6, 7.4, hy + 4.7); ctx.stroke();
+    /* (۲۱٫۰) دندان‌های نمایان از لبِ کج — چهره‌ی ناکِ زامبی */
+    ctx.fillStyle = 'rgba(232,228,208,0.85)';
+    ctx.fillRect(4.1, hy + 4.55, 0.9, 1.1); ctx.fillRect(5.9, hy + 4.75, 0.8, 1);
+  }
+  /* حفره‌های چشم — چشم‌های درخشانِ افکت روی همین‌ها می‌نشینند */
+  ctx.fillStyle = 'rgba(12,16,10,0.85)';
+  ctx.beginPath(); ctx.ellipse(5.5, hy - 1, 2.3, 1.9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(8.8, hy - 1.5, 2.3, 1.9, 0, 0, Math.PI * 2); ctx.fill();
+  /* ابروهای گره‌خورده */
+  ctx.strokeStyle = P.hair; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(3.9, hy - 3.3); ctx.lineTo(6.9, hy - 2.9);
+  ctx.moveTo(7.4, hy - 3.8); ctx.lineTo(10, hy - 3.4);
+  ctx.stroke();
+  /* گوش */
+  ctx.fillStyle = P.skinD; circle(0.6, hy - 0.4, 1.7);
+  /* زخم پیشانی */
+  ctx.strokeStyle = P.gore; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(1.4, hy - 4.6); ctx.lineTo(3.4, hy - 3.2); ctx.stroke();
+
+  /* کلاه‌خود فولادیِ تانک — لبه‌ی براق + پرچ + بند */
+  if (type === 'tank') {
+    ctx.fillStyle = '#5c5f74';
+    rr(-4.9, hy - 9, 15.2, 5.4, 2.4); ctx.fill();
+    const g = ctx.createLinearGradient(-4.9, hy - 9, 10.3, hy - 3.6);
+    g.addColorStop(0, 'rgba(255,255,255,0.3)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = g; rr(-4.9, hy - 9, 15.2, 5.4, 2.4); ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1;
+    rr(-4.9, hy - 9, 15.2, 5.4, 2.4); ctx.stroke();
+    ctx.fillStyle = 'rgba(230,235,250,0.6)';
+    circle(-2.6, hy - 6.4, 0.6); circle(1.5, hy - 7.2, 0.6); circle(5.8, hy - 7.2, 0.6);
+    ctx.strokeStyle = 'rgba(8,12,20,0.6)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-2.6, hy - 3.8); ctx.lineTo(0.8, hy + 0.6); ctx.stroke();
+  }
+  /* تاجِ پادشاه — با جواهر */
+  if (type === 'boss') {
+    ctx.fillStyle = '#f7c948';
+    rr(-3.2, hy - 9.6, 12.8, 3.2, 1.4); ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 0.9;
+    rr(-3.2, hy - 9.6, 12.8, 3.2, 1.4); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-3, hy - 9.6); ctx.lineTo(-3, hy - 13.4); ctx.lineTo(0.2, hy - 10.6);
+    ctx.lineTo(3.4, hy - 14.2); ctx.lineTo(6.4, hy - 10.6); ctx.lineTo(9.6, hy - 13.4);
+    ctx.lineTo(9.6, hy - 9.6); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = OUT; ctx.stroke();
+    ctx.fillStyle = flash ? '#e3a8f2' : '#c44dff';
+    circle(-0.8, hy - 8, 0.9); circle(3.4, hy - 8, 1.1); circle(7.4, hy - 8, 0.9);
+  }
+
+  /* پنجره‌ی زره‌ترکیده‌ی پادشاه (مسیر زنده) */
+  if (type === 'boss' && !z.dead && z.ai && z.ai.staggerT > 0) {
+    ctx.strokeStyle = 'rgba(196,77,223,0.95)'; ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(-9, -31 + bob * 0.4); ctx.lineTo(-4, -26 + bob * 0.4); ctx.lineTo(-1, -30 + bob * 0.4);
+    ctx.moveTo(6, -30 + bob * 0.4); ctx.lineTo(9, -25 + bob * 0.4);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /* (۱۸٫۱) جزئیات زنده‌ی زامبی — روی بدنه‌ی پخته رسم می‌شود:
@@ -2153,6 +2375,11 @@ function drawZombieFx(z, flash) {
   /* (۲۰٫۴) حالت تصویری: اسپرایت خودش چشم/جزئیات دارد — افکت‌های
      مختصات‌محورِ سر/دهان فقط در حالت برداری رسم می‌شوند */
   const vec = !ZIMG.ready[z.type];
+
+  /* (۲۱٫۰) همان کجیِ بدنه (zLean) — افکت‌های سر روی سرِ خمیده می‌نشینند؛
+     مشکل قدیمیِ جابه‌جایی چشم/خون در سریع‌ها و حمله برطرف شد */
+  ctx.save();
+  ctx.rotate(zLean(z));
 
   /* برق مهتاب روی سر (۶٫۰ — فقط شب) */
   if (vec && state.dayness < 0.55 && !z.dead) {
@@ -2190,6 +2417,7 @@ function drawZombieFx(z, flash) {
     else ctx.ellipse(0, -ZIMG.BOX.boss.h * 0.5, ZIMG.BOX.boss.w * 0.62, ZIMG.BOX.boss.h * 0.52, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
+  ctx.restore();   /* (۲۱٫۰) پایانِ چرخشِ هم‌جهت با بدنه */
 }
 
 /* بازیکن: نگهبان کوچک روی بام برج با اسلحه‌ی چرخانِ رو به ماوس
