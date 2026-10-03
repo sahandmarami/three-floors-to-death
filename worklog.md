@@ -662,3 +662,27 @@ Work Log:
 Stage Summary:
 - بازی روی سرور پیش‌نمایش سرو می‌شود — پخش در پنل Preview + دانلود از /three-floors-to-survival.html
 - ری‌استارت در صورت نیاز: python3 scripts/serve_watchdog.py
+
+---
+Task ID: 25
+Agent: Super Z (main agent)
+Task: اسپرایت‌های تصویری زامبی‌ها (معمولی/سریع/تانک/باس) — ارزیابی و یکپارچه‌سازی در بازی (نسخه ۲۰٫۴)
+
+Work Log:
+- دانلود RAR گوگل‌درایو (unrar) → ۴ PNG: باس نگهبان/تانک/سریع/معمولی — همه پس‌زمینه سرمه‌ای یکسان (RGB~4,14,33)
+- تحلیل: bbox/نسبت/پرشدگی + شیت مقایسه ۴تایی → VLM: هر ۴ KEEP؛ باس کمی پرجزئیات‌تر (هماهنگ‌سازی: Color .93 + Contrast 1.06)
+- gen_spr202.py: برش آلفا → آینه (رو به راست — قرارداد scale(z.dir)) → ۲x نمایش (168/168/212/356px) → پالت ۲۵۵ → base64 → spr_z_data.js (399KB)
+- v3_part3.js: ZIMG (loader + BOX پیش از مقیاس: 64x84/98x95/70x72/43x53.5 → نمایش 84/76/106/178) + ZSPR.bakeImg (تاب گام/فرود دوگام/لونج حمله/پالس مقیاس/تینت قرمز فلاش؛ SS=2×(r/15) — باس در ~356px) + boxFor + مسیر باس از ZSPR + شکست‌های بنفش زره‌ترکیده + سایه/HP/یخ به bodyH تازه
+- v4_survival.js: drawDarkEyes در حالت تصویری به تقریب سرِ اسپرایت
+- نکته مهم: BOX ها پیش از scale نوع تعریف شدند (باگ اولیه: boss 178×3.33=593px!) + bodyH بدون -6 برای نوار جون بالای سر
+- build_v204.sh (spr_z_data.js بعد از v3_part2.js) → 15693 خط / 3.0MB / سینتکس OK
+- test_v204.sh: ۲۲/۲۲ PASS (باس با fresh()+skipToWave(36) درست شد؛ سریع با spawn مستقیم — flaky صف موج)
+- رگرسیون: test_v20.sh ۶۹/۶۹ سبز
+- کارایی: ۶۰fps شب باس + ۹ زامبی هم‌زمان (پخت یک‌بار در کش)
+- VLM تأیید نهایی: شب (۳ زامبی، گام طبیعی، پا روی زمین) / باس کامل (دوطبقه برج، مهیب، هاله بنفش) / زره‌ترکیده (شکست‌های تپنده) / منوی زنده (زامبی هماهنگ) → اصلاح سایه به عرض بدنه (پیشنهاد VLM)
+- تحویل: webserve/ + apk/ + README.md به ۲۰٫۴
+
+Stage Summary:
+- تحویل: download/three-floors-to-survival.html (۲۰٫۴ — 3.0MB) + apk/www/index.html + webserve (preview زنده)
+- سورس: v3_part3.js (ZIMG/ZSPR.bakeImg/drawZombie/drawZombieFx) + v4_survival.js (drawDarkEyes) + spr_z_data.js (تازه) • ساخت: build_v204.sh • تست: test_v204.sh (۲۲) + test_v20.sh (۶۹) • شات‌ها: shots204/
+- سیستم پخت تصویری عمومی شد — اسپرایت‌های بعدی (برج/پرتره/کاراکترها) با همان الگو قابل افزودن‌اند.

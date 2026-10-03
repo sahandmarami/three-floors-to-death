@@ -794,8 +794,17 @@ function drawDarkEyes() {
   for (const z of state.zombies) {
     if (z.dead) continue;
     const s = (z.radius / 15) * (z.depth || 1);
-    const ex = z.x + z.dir * 4 * s, ey = z.y - 37 * s;
     const spr = EYE_GLOW.get(z.type);
+    /* (۲۰٫۴) حالت تصویری: چشم‌ها نزدیک بالای سرِ اسپرایت تقریب زده می‌شوند */
+    if (ZIMG.ready[z.type]) {
+      const B = ZIMG.BOX[z.type];
+      const ex = z.x + z.dir * B.w * 0.2 * s, ey = z.y - B.h * 0.87 * s;
+      const w = B.w * 0.3 * s;
+      ctx.drawImage(spr, ex - w / 2, ey - w / 2, w, w);
+      ctx.drawImage(spr, ex + z.dir * B.w * 0.12 * s - w / 2, ey - w / 2, w, w);
+      continue;
+    }
+    const ex = z.x + z.dir * 4 * s, ey = z.y - 37 * s;
     const w = 16 * s;
     ctx.drawImage(spr, ex - w / 2, ey - w / 2, w, w);
     ctx.drawImage(spr, ex + z.dir * 3.4 * s - w / 2, ey - 0.6 * s - w / 2, w, w);

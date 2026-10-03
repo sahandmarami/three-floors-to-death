@@ -489,6 +489,37 @@ const CLOUDSPR = {
   },
 };
 
+/* (۲۰٫۴) اسپرایت‌های تصویری زامبی — اگر ZIMG_DATA (spr_z_data.js) لود شده
+   باشد، بدنه‌ی زامبی‌ها از تصویر واقعی پخته می‌شود (ZSPR.bakeImg)؛ در غیر
+   این صورت مسیر برداری قدیمی دست‌نخورده می‌ماند (fallback).
+   قرارداد جهت: تصاویر ذخیره‌شده «رو به راست»اند (آینه‌شده در gen_spr202.py)
+   تا scale(z.dir) موجود همان رفتار گذشته بدهد.
+   اندازه‌ها (واحد جهان، قبل از scale نوع/عمق): پا در y=+2 */
+const ZIMG = {
+  imgs: {}, ready: Object.create(null),
+  /* جعبه‌ها «پیش از scale نوع»اند (s = radius/15): normal s=1 → نمایش ۸۴؛
+     fast s=0.8 → ۹۵×0.8=۷۶؛ tank s≈1.47 → ۷۲×1.47=۱۰۶؛ boss s≈3.33 →
+     53.5×3.33=۱۷۸ — همان اندازه‌های توصیه‌شده برای خوانایی */
+  BOX: {
+    normal: { w: 64,   h: 84  },
+    fast:   { w: 98,   h: 95  },
+    tank:   { w: 70,   h: 72  },
+    boss:   { w: 43,   h: 53.5 },
+  },
+  init() {
+    if (typeof ZIMG_DATA === 'undefined') return;
+    for (const k in ZIMG_DATA) {
+      const im = new Image();
+      im.onload = () => {
+        ZIMG.ready[k] = true;
+        ZSPR.cache = Object.create(null);      // قاب‌های برداری را دور بریز
+      };
+      im.src = ZIMG_DATA[k];
+      this.imgs[k] = im;
+    }
+  },
+};
+
 /* اسپرایت‌های زامبی — طبق توضیح سربرگ (۱۸٫۱) */
 const ZSPR = {
   SS: 2.4, X0: -14, Y0: -50, X1: 19, Y1: 3,
@@ -499,12 +530,21 @@ const ZSPR = {
     const mode = z.attacking ? 'a' : 'w';
     const n = mode === 'a' ? this.AF : this.WF;
     const b = this.bucket(mode === 'a' ? z.attackAnim : z.walkPhase, n);
-    const key = z.type + (flash ? 1 : 0) + mode + b;
+    const key = z.type + (flash ? 1 : 0) + mode + b + (ZIMG.ready[z.type] ? 'i' : 'v');
     let c = this.cache[key];
     if (!c) { c = this.bake(z.type, flash, mode, b); this.cache[key] = c; }
     return c;
   },
+  /* جعبه‌ی رسم (واحد جهان، قبل از scale) — تصویری یا برداری */
+  boxFor(type) {
+    if (ZIMG.ready[type]) {
+      const B = ZIMG.BOX[type];
+      return { x0: -B.w / 2, y0: -B.h + 2, x1: B.w / 2, y1: 2 };
+    }
+    return { x0: this.X0, y0: this.Y0, x1: this.X1, y1: this.Y1 };
+  },
   bake(type, flash, mode, b) {
+    if (ZIMG.ready[type]) return this.bakeImg(type, flash, mode, b);
     const n = mode === 'a' ? this.AF : this.WF;
     const ph = (b + 0.5) / n * Math.PI * 2;
     const mock = { type, attacking: mode === 'a', walkPhase: ph, attackAnim: ph, dead: false };
@@ -517,7 +557,40 @@ const ZSPR = {
     try { drawZombieBody(mock, flash); } finally { ctx = main; }
     return c;
   },
+  /* (۲۰٫۴) پختِ قابِ تصویری: تاب‌رفتن/فرود گام در راه‌رفتن، لونج کوبشی در
+     حمله، تینتِ قرمزِ فلاشِ آسیب — همان ساختار کشِ قاب‌های برداری */
+  bakeImg(type, flash, mode, b) {
+    const im = ZIMG.imgs[type], B = ZIMG.BOX[type];
+    const n = mode === 'a' ? this.AF : this.WF;
+    const ph = (b + 0.5) / n * Math.PI * 2;
+    /* رزولوشن پخت وابسته به مقیاس نوع: ۲x اندازه‌ی نهایی روی صفحه
+       (boss با s≈3.33 در ~۳۵۶px پخته می‌شود — بدون تاری) */
+    const SS = 2 * (ZTYPES[type].r / 15);
+    const w = Math.ceil(B.w * SS) + 8, h = Math.ceil(B.h * SS) + 8;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    const sway = mode === 'a'
+      ? -(0.09 + 0.05 * Math.sin(ph))              // حمله: شیرجه به جلو (راست)
+      : Math.sin(ph) * 0.045;                      // گام: تاب ملایم دوطرفه
+    const bob = mode === 'a'
+      ? Math.abs(Math.sin(ph)) * 2.2
+      : Math.abs(Math.sin(ph * 2)) * 1.9;          // فرودِ دوگام
+    const sc = mode === 'a' ? 1 + 0.03 * Math.sin(ph) : 1;
+    g.translate(w / 2, h - 4);                     // لنگر: وسطِ کف
+    g.rotate(sway);
+    const dw = B.w * SS * sc, dh = B.h * SS * sc;
+    g.drawImage(im, -dw / 2, -dh + bob * SS, dw, dh);
+    if (flash) {                                    // تینتِ فلاشِ آسیب
+      g.globalCompositeOperation = 'source-atop';
+      g.fillStyle = 'rgba(255,90,70,0.45)';
+      g.fillRect(-w, -h, w * 2, h * 2);
+      g.globalCompositeOperation = 'source-over';
+    }
+    return c;
+  },
 };
+ZIMG.init();
 
 /* پوسته‌ی برج — پخت per (پوسته | گام روزشدگی | سطح ترک) */
 const TOWER_BAKE = {
@@ -1887,10 +1960,13 @@ function drawZombie(z) {
   const s = (z.radius / 15) * (z.depth || 1);   // اندازه‌ی نوع × عمق ردیف
   const flash = z.hitFlash > 0;
 
-  /* سایه روی زمین (زامبی‌های پرتاب‌شده‌ی کات‌سین سایه‌ی جداگانه دارند — ۷٫۰) */
+  /* سایه روی زمین (زامبی‌های پرتاب‌شده‌ی کات‌سین سایه‌ی جداگانه دارند — ۷٫۰)
+     (۲۰٫۴) در حالت تصویری به‌اندازه‌ی عرض بدنه — حسِ ایستادنِ بهتر */
   if (!z.noShadow) {
+    const shW = ZIMG.ready[z.type] ? ZIMG.BOX[z.type].w * 0.3 * s : 13 * s;
+    const shH = ZIMG.ready[z.type] ? ZIMG.BOX[z.type].w * 0.1 * s : 4 * s;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, 13 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(z.x, z.y + 2, shW, shH, 0, 0, Math.PI * 2); ctx.fill();
   }
 
   ctx.save();
@@ -1909,22 +1985,42 @@ function drawZombie(z) {
   ctx.scale(z.dir * s, s);                 // آینه بر اساس جهت حرکت + مقیاس نوع
 
   /* (۱۸٫۱) بدنه‌ی پخته‌شده: یک drawImage به‌جای ~۳۵ عملیات برداری + گرادیان
-     پادشاه همیشه زنده رسم می‌شود (تکی است — سربارش دیده نمی‌شود) */
-  if (z.type === 'boss') {
+     پادشاه همیشه زنده رسم می‌شود (تکی است — سربارش دیده نمی‌شود)
+     (۲۰٫۴) اسپرایت تصویری: همه‌ی انواع (بامیز باس) از ZSPR.frame؛
+     fallback برداری فقط وقتی تصویر هنوز لود نشده باشد */
+  if (z.type === 'boss' && !ZIMG.ready.boss) {
     drawZombieBody(z, flash);
   } else {
     const c = ZSPR.frame(z, flash);
-    ctx.drawImage(c, ZSPR.X0, ZSPR.Y0, ZSPR.X1 - ZSPR.X0, ZSPR.Y1 - ZSPR.Y0);
+    const B = ZSPR.boxFor(z.type);
+    ctx.drawImage(c, B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    /* پنجره‌ی زره‌ترکیده‌ی باس (۲۰٫۰) — روی اسپرایت تصویری: شکست‌های بنفشِ تپنده */
+    if (z.type === 'boss' && !z.dead && z.ai && z.ai.staggerT > 0) {
+      const BB = ZIMG.BOX.boss;
+      ctx.save();
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(animTime * 12);
+      ctx.strokeStyle = '#c44dff'; ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(-BB.w * 0.18, -BB.h * 0.92); ctx.lineTo(-BB.w * 0.08, -BB.h * 0.74); ctx.lineTo(-BB.w * 0.2, -BB.h * 0.6);
+      ctx.moveTo(BB.w * 0.1, -BB.h * 0.55); ctx.lineTo(BB.w * 0.2, -BB.h * 0.42);
+      ctx.moveTo(-BB.w * 0.05, -BB.h * 0.35); ctx.lineTo(BB.w * 0.07, -BB.h * 0.22);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
   drawZombieFx(z, flash);                  // جزئیات زنده: برق مهتاب/چشم/خون/اورا
 
   ctx.restore();
 
+  /* (۲۰٫۴) ارتفاع بدنه — تصویری: از جعبه‌ی نوع (ضرب در s بیرون انجام می‌شود)؛
+     برداری: ۵۰ (مانند قبل) */
+  const bodyH = ZIMG.ready[z.type] ? ZIMG.BOX[z.type].h : 50;
+
   /* لایه‌ی یخ هنگام انجماد (۳٫۰) */
   if (!z.dead && state.powerTimers.freeze > 0) {
     ctx.globalAlpha = 0.28;
     ctx.fillStyle = '#a5d8ff';
-    circle(z.x, z.y - 18 * s, 14 * s + 3);
+    circle(z.x, z.y - bodyH * 0.45 * s, (ZIMG.ready[z.type] ? ZIMG.BOX[z.type].w * 0.42 : 14) * s + 3);
     ctx.globalAlpha = 1;
   }
 
@@ -1932,14 +2028,14 @@ function drawZombie(z) {
   if (!z.dead && z.chill > 0) {
     ctx.globalAlpha = Math.min(0.30, 0.12 + z.chill * 0.09);
     ctx.fillStyle = '#a5d8ff';
-    circle(z.x, z.y - 18 * s, 14 * s + 3);
+    circle(z.x, z.y - bodyH * 0.45 * s, (ZIMG.ready[z.type] ? ZIMG.BOX[z.type].w * 0.42 : 14) * s + 3);
     ctx.globalAlpha = 1;
   }
 
   /* نوار جون بالای سر (وقتی آسیب دیده) */
   if (!z.dead && z.hp < z.maxHp - 0.001) {
     const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
-    const by = z.y - 50 * s - 8;
+    const by = z.y - bodyH * s - 8;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     rr(z.x - w2 / 2, by, w2, 4.5, 2); ctx.fill();
     ctx.fillStyle = ratio2 > 0.5 ? '#6fce62' : (ratio2 > 0.25 ? '#e7b53a' : '#e04b3a');
@@ -2054,9 +2150,12 @@ function drawZombieBody(z, flash) {
 function drawZombieFx(z, flash) {
   const walk = Math.sin(z.walkPhase);
   const bob = z.attacking ? Math.sin(z.attackAnim) * 1.5 : Math.abs(walk) * 1.2;
+  /* (۲۰٫۴) حالت تصویری: اسپرایت خودش چشم/جزئیات دارد — افکت‌های
+     مختصات‌محورِ سر/دهان فقط در حالت برداری رسم می‌شوند */
+  const vec = !ZIMG.ready[z.type];
 
   /* برق مهتاب روی سر (۶٫۰ — فقط شب) */
-  if (state.dayness < 0.55 && !z.dead) {
+  if (vec && state.dayness < 0.55 && !z.dead) {
     ctx.strokeStyle = 'rgba(195,220,255,' + (0.38 * (1 - state.dayness)).toFixed(2) + ')';
     ctx.lineWidth = 1.3;
     ctx.beginPath(); ctx.arc(3, -36 + bob * 0.5, 7, Math.PI * 1.05, Math.PI * 1.62); ctx.stroke();
@@ -2064,7 +2163,7 @@ function drawZombieFx(z, flash) {
 
   /* چشم‌های درخشان (قرمز؛ نگهبان بنفش؛ فصل خرابه: اخگریِ نارنجی)
      (۱۲٫۰) بدون shadowBlur — هاله با دایره‌ی کم‌آلفا: روی موبایل روان */
-  if (!z.dead) {
+  if (vec && !z.dead) {
     const emberE = !!curCh().theme.emberEyes && z.type !== 'boss';
     const eCol = z.type === 'boss' ? '#c44dff' : (emberE ? '#ff8a3c' : '#ff4b3e');
     ctx.globalAlpha = 0.3;
@@ -2076,17 +2175,20 @@ function drawZombieFx(z, flash) {
   }
 
   /* لکه‌ی خون گوشه‌ی دهان + چکه (۶٫۰) */
-  if (!z.dead) {
+  if (vec && !z.dead) {
     ctx.fillStyle = 'rgba(110,22,22,0.85)';
     circle(7.5, -33.4 + bob * 0.5, 1.4);
     ctx.fillRect(6.9, -33 + bob * 0.5, 1.1, 2.1);
   }
 
-  /* هاله‌ی مهیب و تپنده‌ی پادشاه */
+  /* هاله‌ی مهیب و تپنده‌ی پادشاه — (۲۰٫۴) در حالت تصویری به اندازه‌ی بدنه */
   if (z.type === 'boss' && !z.dead) {
     ctx.strokeStyle = 'rgba(196,77,223,' + (0.22 + 0.12 * Math.sin(animTime * 3)).toFixed(2) + ')';
     ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(4, -22, 30, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    if (vec) ctx.arc(4, -22, 30, 0, Math.PI * 2);
+    else ctx.ellipse(0, -ZIMG.BOX.boss.h * 0.5, ZIMG.BOX.boss.w * 0.62, ZIMG.BOX.boss.h * 0.52, 0, 0, Math.PI * 2);
+    ctx.stroke();
   }
 }
 
