@@ -435,6 +435,8 @@ function frame(now) {
 }
 
 function init() {
+  /* (۲۰٫۵) اسپلش بوت را بردار — بازی آماده است */
+  const _bs = document.getElementById('bootSplash'); if (_bs) _bs.remove();
   /* اتصال دکمه‌های منو و اورلی‌ها */
   $('btnStart').addEventListener('click', startNewGame);   // تأیید پاک‌کردن سیو + کات‌سین افتتاحیه
   /* (۲۰٫۱) دکمه/صفحه‌ی راهنما حذف شد — درخواست کاربر */

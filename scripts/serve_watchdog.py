@@ -12,7 +12,8 @@ while True:
         urllib.request.urlopen('http://127.0.0.1:3000/', timeout=4).read(64)
     except Exception:
         try:
-            subprocess.Popen(['python3', '-m', 'http.server', '3000', '--bind', '0.0.0.0'],
+            # (۲۰٫۵) سرورِ no-cache — همیشه نسخه‌ی تازه به مرورگر می‌رسد
+            subprocess.Popen(['python3', '/home/z/my-project/scripts/serve_nocache.py'],
                              stdout=log, stderr=log, start_new_session=True)
         except Exception:
             pass

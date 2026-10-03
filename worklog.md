@@ -686,3 +686,24 @@ Stage Summary:
 - تحویل: download/three-floors-to-survival.html (۲۰٫۴ — 3.0MB) + apk/www/index.html + webserve (preview زنده)
 - سورس: v3_part3.js (ZIMG/ZSPR.bakeImg/drawZombie/drawZombieFx) + v4_survival.js (drawDarkEyes) + spr_z_data.js (تازه) • ساخت: build_v204.sh • تست: test_v204.sh (۲۲) + test_v20.sh (۶۹) • شات‌ها: shots204/
 - سیستم پخت تصویری عمومی شد — اسپرایت‌های بعدی (برج/پرتره/کاراکترها) با همان الگو قابل افزودن‌اند.
+
+---
+Task ID: 26
+Agent: Super Z (main agent)
+Task: رفع «چیزی نمی‌بینم» — تشخیص مشکل دیدن بازی در پنل پیش‌نمایش (نسخه ۲۰٫۵)
+
+Work Log:
+- تشخیص: سرور ۳۰۰۰/۸۱ هر دو ۲۰۰ و webserve روی ۲۰٫۴ بود؛ بازی در مرورگر سالم لود می‌شود (منو ۸۶۰ رنگ، ZIMG=۴ اسپرایت، گیم‌پلی با زامبی) — پس مشکل سمت کاربر: (الف) صفحه‌ی سیاه در طول دانلود ۳MB (body در خط ۵۹۳ اما اولین اسکریپت ۸۴۶؛ منو فقط بعد از init نمایان می‌شود) (ب) کشِ کهنه در مرورگر
+- v3_part1.html: اسپلش بوتِ فوری (#bootSplash) با CSS خالص درست بعد از <body> — عنوان طلایی + جداکننده + چرخ‌داننده + «در حال بارگذاری بازی…»؛ با چند KB اول نقاشی می‌شود
+- v3_part4.js: init() خط اول _bs.remove() — اسپلش بعد از آماده‌شدن بازی محو می‌شود
+- serve_nocache.py تازه: SimpleHTTPRequestHandler + Cache-Control: no-cache, must-revalidate — مرورگر همیشه نسخه‌ی تازه
+- serve_game.py + serve_watchdog.py: مهاجرت به serve_nocache.py (watchdog قبلاً مستقیم http.server قدیمی را بالا می‌آورد!)
+- build_v205.sh → ۱۵۷۲۲ خط / ۳٫۰MB / سینتکس OK
+- تست: test_v204.sh ۲۲/۲۲ + test_v20.sh ۶۹/۶۹ سبز
+- مرورگر: اسپلش بعد از لود حذف می‌شود، menu-mode فعال، گیم‌پلی با ZIMG=۴ — VLM تأیید منو/گیم‌پلی (بدون صفحه‌ی خالی/شکست)
+- تحویل: webserve/ + apk/www/ + README.md به ۲۰٫۵
+
+Stage Summary:
+- v20.5 آماده: اسپلش بارگذاری فوری + هدر no-cache — دو عامل «چیزی نمی‌بینم» هر دو برطرف شد
+- برنامه‌ی موج‌ها برای راهنمای کاربر: معمولی از موج ۱ / سریع از ۳ / تانک از ۵ / باس موج ۳۶ (FINAL_WAVE)
+- راهنمای کاربر: رفرش پنل پیش‌نمایش یا بازکردن دوباره لینک؛ در صورت کهنه‌ماندن، Hard Refresh (Ctrl+Shift+R)

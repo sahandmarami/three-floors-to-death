@@ -589,8 +589,35 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   background:#0a1128;border:1px solid #33518f;border-radius:9px;padding:8px 10px;margin-top:10px}
 
 </style>
+<style>
+/* ---------- (۲۰٫۵) اسپلش بوتِ فوری ----------
+   فایلِ بازی ~۳MB است؛ تا رسیدنِ کاملِ اسکریپت‌ها روی اینترنتِ کند، صفحه‌ی سیاه
+   دیده می‌شد. این اسپلش با CSS خالص، بلافاصله بعد از دریافتِ چند کیلوبایتِ اول
+   نقاشی می‌شود و init() آن را حذف می‌کند. */
+#bootSplash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;background:#04060d;
+  direction:rtl;animation:bsFade .5s ease-out both}
+@keyframes bsFade{from{opacity:0}to{opacity:1}}
+#bootSplash .bs-title{font-size:26px;font-weight:bold;color:#ffd873;letter-spacing:1px;
+  text-shadow:0 2px 16px rgba(255,180,60,.45),0 1px 2px #000}
+#bootSplash .bs-divider{width:170px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,transparent 5%,#e8b54a 35%,#ffd873 50%,#e8b54a 65%,transparent 95%);
+  opacity:.65;box-shadow:0 0 12px rgba(255,180,60,.4)}
+#bootSplash .bs-spin{width:38px;height:38px;border-radius:50%;
+  border:3px solid rgba(212,164,55,.18);border-top-color:#e8b54a;
+  animation:bsSpin .9s linear infinite}
+@keyframes bsSpin{to{transform:rotate(360deg)}}
+#bootSplash .bs-text{font-size:13.5px;color:#8b93a7;font-weight:bold}
+</style>
 </head>
 <body>
+<!-- (۲۰٫۵) اسپلش بارگذاری — قبل از همه‌ی عناصر تا فوری نقاشی شود؛ init() پاکش می‌کند -->
+<div id="bootSplash" aria-label="در حال بارگذاری بازی">
+  <div class="bs-title">سه طبقه تا بقا</div>
+  <div class="bs-divider"></div>
+  <div class="bs-spin"></div>
+  <div class="bs-text">در حال بارگذاری بازی…</div>
+</div>
 <div id="wrap">
 
   <!-- بوم اصلی؛ همه‌چیز داخل بازی با Canvas API رسم می‌شود (بدون تصویر خارجی) -->
