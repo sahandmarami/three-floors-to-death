@@ -15,23 +15,21 @@ fresh() {
 echo "===== ۱) ساختار فایل ====="
 G=download/three-floors-to-survival.html
 gq(){ grep -q "$1" $G && echo 1 || echo 0; }
-R=$(gq "ZIMG_DATA"); ck "داده‌ی اسپرایت‌ها (ZIMG_DATA) در فایل" "$R"
-R=$(grep -c "data:image/png;base64" $G); [ "$R" -ge 4 ]; ck "۴ تصویر base64 جاسازی شد" "1"
-R=$(gq "bakeImg"); ck "تابع پخت تصویری (bakeImg)" "$R"
+# (۲۱٫۰+) مسیر تصویری ZIMG خاموش و از بیلد خارج شد — زامبی‌ها برداری‌اند
+R=$(gq "drawZombieBody"); ck "تابع بدنه‌ی برداری زامبی (drawZombieBody)" "$R"
 R=$(gq "boxFor"); ck "جعبه‌ی per-type (boxFor)" "$R"
-R=$(gq "ZIMG.init"); ck "لودر ZIMG" "$R"
+R=$(gq "ZSPR.frame"); ck "پخت قاب برداری (ZSPR.frame)" "$R"
+R=$(gq "drawMenuFX"); ck "جوّ سینمایی منو (drawMenuFX) — ۲۱٫۱" "$R"
 
 echo "===== ۲) لود و رندر در مرورگر ====="
 agent-browser close --all >/dev/null 2>&1; sleep 0.5
 agent-browser set viewport 1100 640 >/dev/null
 agent-browser open "$URL" >/dev/null; sleep 4
-R=$(agent-browser eval "typeof ZIMG_DATA==='object'&&Object.keys(ZIMG_DATA).length===4?1:0" | tail -1); ck "ZIMG_DATA با ۴ کلید" "$R"
 sleep 2
-R=$(agent-browser eval "ZIMG.ready.normal&&ZIMG.ready.fast&&ZIMG.ready.tank&&ZIMG.ready.boss?1:0" | tail -1); ck "هر ۴ تصویر لود شد" "$R"
-R=$(agent-browser eval "(()=>{const z={type:'normal',attacking:false,walkPhase:1.2,attackAnim:0};const c=ZSPR.frame(z,false);return c&&c.width>100&&c.height>140?1:0})()" | tail -1); ck "قاب تصویری normal پخته شد (~128x168)" "$R"
-R=$(agent-browser eval "(()=>{const z={type:'boss',attacking:false,walkPhase:0.5,attackAnim:0};const c=ZSPR.frame(z,false);return c&&c.width>250&&c.height>330?1:0})()" | tail -1); ck "قاب باس در رزولوشن بالا (~290x365)" "$R"
-R=$(agent-browser eval "(()=>{const z={type:'tank',attacking:true,attackAnim:2,walkPhase:0};const c=ZSPR.frame(z,true);return c&&c.width>190?1:0})()" | tail -1); ck "قاب حمله+فلاش تانک پخته شد" "$R"
-R=$(agent-browser eval "(()=>{const b=ZSPR.boxFor('normal');return Math.abs(b.x0+32)<0.01&&Math.abs(b.y0+82)<0.01?1:0})()" | tail -1); ck "boxFor: پا در y=+2 (normal)" "$R"
+R=$(agent-browser eval "(()=>{const z={type:'normal',attacking:false,walkPhase:1.2,attackAnim:0};const c=ZSPR.frame(z,false);return c&&c.width>40&&c.height>100?1:0})()" | tail -1); ck "قاب برداری normal پخته شد" "$R"
+R=$(agent-browser eval "(()=>{try{const z={type:'boss',x:400,y:GROUND_Y,dir:1,radius:ZTYPES.boss.r,walkPhase:1,attacking:false,attackAnim:0,dead:false,deathT:0,hitFlash:0,lane:0,depth:1};drawZombie(z);return 1}catch(e){return 0}})()" | tail -1); ck "باس زنده رسم می‌شود (بدون پخت — معماری ۲۱٫۰)" "$R"
+R=$(agent-browser eval "(()=>{const z={type:'tank',attacking:true,attackAnim:2,walkPhase:0};const c=ZSPR.frame(z,true);return c&&c.width>60?1:0})()" | tail -1); ck "قاب حمله+فلاش تانک پخته شد" "$R"
+R=$(agent-browser eval "(()=>{const b=ZSPR.boxFor('normal');return b.x0===-26&&b.y0===-52&&b.x1===22?1:0})()" | tail -1); ck "boxFor: جعبه‌ی گشاده‌ی ۲۱٫۰ (-26/-52/22)" "$R"
 
 echo "===== ۳) منوی زنده با اسپرایت تازه ====="
 R=$(agent-browser eval "menuZ.length>=2?1:0" | tail -1); ck "زامبی‌های منوی زنده موجود" "$R"

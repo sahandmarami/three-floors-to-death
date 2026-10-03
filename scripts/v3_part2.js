@@ -57,7 +57,7 @@ const WAVES = [
 /* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک)
    (۵٫۰: قیمت شاتگان و مسلسل حدود نصف شد) */
 const WEAPONS = {
-  pistol:  { name: 'تپانچه', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
+  pistol:  { name: 'کلت', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
              price: 0,   owned: true,  barrel: 18, flash: 5, knock: 5,   sfx: 'shootP' },
   shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
              price: 120, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
@@ -86,9 +86,9 @@ const TURRETS = {
   gatling: { name: 'برجک مسلسل',    price: 85,  dmg: 1.6, rate: 0.34, range: 230, spd: 640,
              len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
   sniper:  { name: 'برجک تک‌تیرانداز', price: 200, dmg: 12, rate: 2.15,  range: 400, spd: 950,
-             len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۶ • برد ۴۰۰' },
+             len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۲ • برد ۴۰۰' },
   frost:   { name: 'برجک یخ‌زن',     price: 125, dmg: 2,  rate: 1.05, range: 175, spd: 380,
-             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۳ • برد ۱۷۵' },
+             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۲ • برد ۱۷۵' },
   /* (۲۰٫۰) برجک‌های ویژه‌ی فروشنده‌ی مرموز — فقط با خریدِ «نقشه‌ی ساخت»
      از خودِ او باز می‌شوند (در تب برجک‌ها ظاهر می‌شوند) */
   tesla:   { name: 'برجک تسلا',       price: 240, dmg: 9,  rate: 2.3,  range: 260, spd: 0,
@@ -1592,7 +1592,7 @@ function attemptBuy(kind) {
   if (TURRETS[kind]) {
     if (TURRETS[kind].rare && !(state.bps && state.bps[kind])) {
       SFX.deny();
-      setAnnounce('🔒 نقشه‌ی ساخت نداری!', 'این برجک ویژه فقط از «فروشنده‌ی مرموز» باز می‌شود', 2.2);
+      setAnnounce('🔒 نقشه‌ی ساخت نداری!', 'این برجک ویژه فقط از «دستفروش مرموز» باز می‌شود', 2.2);
       return;
     }
     startPlacement(kind);

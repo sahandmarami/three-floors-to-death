@@ -28,8 +28,8 @@ const GEAR = {
    (۲۰٫۰) بازخورد کاربر «هر سری یه چیز جدید بیاره و جالب باشه» —
    سه کالای مصرفیِ تازه هم اضافه شد: حمله‌ی هوایی، بمب یخی و آدرنالین */
 const RARE = {
-  vest:     { name: 'جلیقه‌ی ضدّ دندان', price: 260, icon: 'vest',     color: '#8fd6ff',
-    desc: 'آسیب به برج ۲۵٪ کمتر می‌شود — دائمی' },
+  vest:     { name: 'جلیقه‌ی ضدّ گازگزش', price: 260, icon: 'vest',     color: '#8fd6ff',
+    desc: 'گازِ زامبی‌ها کمتر می‌گیرد — آسیب ۲۵٪ کمتر، دائمی' },
   goldAmmo: { name: 'فشنگ‌های طلایی',   price: 320, icon: 'goldAmmo', color: '#ffd873',
     desc: 'دمیج همه‌ی گلوله‌ها ۲۵٪ بیشتر — دائمی' },
   helmet:   { name: 'کلاهخود فولادی',   price: 200, icon: 'helmet',   color: '#b8c4d4',
@@ -224,7 +224,7 @@ function useAirstrike() {
 function healTower(n) {
   const heal = Math.min(n, state.tower.maxHp - state.tower.hp);
   if (heal <= 0) {
-    setAnnounce('❤️ برج سرِ سلامتی است', 'فعلاً لازم نیست', 1.4);
+    setAnnounce('❤️ برج سالم است', 'فعلاً لازم نیست', 1.4);
     return;
   }
   state.tower.hp += heal;
@@ -1292,13 +1292,15 @@ function renderPeddlerStock() {
     cv.width = 80; cv.height = 80;
     paintGearIcon(it.id, cv);
     const info = document.createElement('div');
+    info.className = 'pd-info';
     info.innerHTML = '<span class="pd-name">' + (it.bp ? '📐 ' : '') + r.name +
       (it.fresh ? ' <em class="pd-new">تازه!</em>' : '') +
       '</span><span class="pd-sub">' + r.desc + '</span>';
     const price = document.createElement('span');
     price.className = 'pd-price';
-    price.textContent = faNum(r.price);
-    el.appendChild(cv); el.appendChild(info); el.appendChild(price);
+    price.textContent = '💰 ' + faNum(r.price);
+    info.appendChild(price);
+    el.appendChild(cv); el.appendChild(info);
     el.addEventListener('click', () => buyRare(it));
     box.appendChild(el);
   }

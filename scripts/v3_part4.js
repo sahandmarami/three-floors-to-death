@@ -71,11 +71,11 @@ const BUILD_DEFS = [
   { tab: 'up', kind: 'health', key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
   { tab: 'up', kind: 'weapon', key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
   { tab: 'up', kind: 'trap',   key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
-  /* (۲۰٫۰) پیشرفتِ تک‌خطی سلاح: کلت ← شاتگان ← مسلسل — خریدِ تازه،
-     قبلی را تحویل می‌دهد؛ تب فقط سلاحِ فعلی + بعدی را نشان می‌دهد */
+  /* (۲۱٫۱) پیشرفتِ تک‌خطی سلاح: کلت ← شاتگان ← مسلسل — همه‌ی سه‌تا در تب
+     دیده می‌شوند: فعلی (در دست)، بعدی (قابل خرید)، بعدترها (قفل) */
   { tab: 'wpn', kind: 'pistol',  key: '۱', codes: [], name: 'کلت',      desc: 'سلاح شروع بازی — با خرید شاتگان تحویل داده می‌شود' },
   { tab: 'wpn', kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — با خریدنش، کلت را تحویل می‌دهی' },
-  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — با خریدنش، شاتگان را تحویل می‌دهی' },
+  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'دکمه را نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — با خریدنش، شاتگان را تحویل می‌دهی' },
   { tab: 'tur', kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
   { tab: 'tur', kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
   { tab: 'tur', kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
@@ -163,19 +163,22 @@ function tileStatus(kind) {
   }
   if (kind === 'pistol' || kind === 'shotgun' || kind === 'mg') {
     if (kind === state.weapon) return 'همین الان در دستته ✅';
-    const next = kind === 'pistol' ? null : (kind === 'shotgun' ? 'mg' : null);
-    if (kind === 'shotgun' && state.weapon === 'pistol') return 'خریدش = کلت تحویل می‌شود و این در دستت می‌آید';
-    if (kind === 'mg' && state.weapon === 'shotgun') return 'خریدش = شاتگان تحویل می‌شود و این در دستت می‌آید';
-    return 'قفل — بعد از سلاحِ قبلی باز می‌شود';
+    const wo = ['pistol', 'shotgun', 'mg'];
+    const idx = wo.indexOf(kind), cur = wo.indexOf(state.weapon);
+    if (idx === cur + 1) {
+      if (kind === 'shotgun') return 'خریدش = کلت تحویل می‌شود و این در دستت می‌آید';
+      return 'خریدش = شاتگان تحویل می‌شود و این در دستت می‌آید';
+    }
+    return '🔒 قفل — اول سلاحِ قبلی را بخر';
   }
   if (kind === 'repair') {
     return state.tower.hp >= state.tower.maxHp - 0.5
-      ? 'برج سرِ سلامتی است'
+      ? 'برج سالم است'
       : 'جون برج: ' + faNum(Math.ceil(state.tower.hp)) + '/' + faNum(state.tower.maxHp);
   }
   if (TURRETS[kind]) {
     if (TURRETS[kind].rare && !(state.bps && state.bps[kind]))
-      return '🔒 نقشه‌ی ساختش فقط از «فروشنده‌ی مرموز» می‌آید';
+      return '🔒 نقشه‌ی ساختش فقط از «دستفروش مرموز» می‌آید';
     const cnt = state.turrets.filter(t => t.type === kind).length;
     return (cnt ? faNum(cnt) + ' عدد فعال • ' : '') + 'قیمت: ' + faNum(TURRETS[kind].price) + ' سکه';
   }
@@ -268,8 +271,8 @@ function toggleBuildPanel() {
 }
 
 /* به‌روزرسانی وضعیت کاشی‌های پنل (۱۲٫۰: تب‌دار + سلاحِ در دست)
-   (۲۰٫۰) تب سلاح‌ها فقط «سلاحِ فعلی + سلاحِ بعدی» را نشان می‌دهد و
-   تب برجک‌ها برجک‌های ویژه را فقط با نقشه‌ی خریداری‌شده نشان می‌دهد */
+   (۲۱٫۱) تب سلاح‌ها هر سه سلاح را نشان می‌دهد: فعلی (در دست)،
+   بعدی (قیمت) و بعدیِ بعدی (قفل) — برگشت تفنگ سوم به فروشگاه */
 function refreshBuildPanel() {
   const WORDER = ['pistol', 'shotgun', 'mg'];
   for (const d of BUILD_DEFS) {
@@ -280,22 +283,22 @@ function refreshBuildPanel() {
     /* فقط کاشی‌های تبِ فعال دیده شوند */
     item.style.display = (d.tab === BP_TAB) ? '' : 'none';
 
-    /* --- سلاح‌ها (۲۰٫۰: پیشرفتِ تک‌خطی — فعلی + بعدی) --- */
+    /* --- سلاح‌ها (۲۱٫۱: هر سه دیده می‌شوند — فعلی/بعدی/قفل) --- */
     if (WORDER.indexOf(d.kind) >= 0) {
       const curIdx = WORDER.indexOf(state.weapon);
       const idx = WORDER.indexOf(d.kind);
-      const owned = !!WEAPONS[d.kind].owned;
       const isCur = d.kind === state.weapon;
       const isNext = idx === curIdx + 1;
-      const visible = (d.tab === BP_TAB) && (isCur || isNext);
-      item.style.display = visible ? '' : 'none';
+      const isFar = idx > curIdx + 1;
       item.classList.toggle('armed', isCur);
-      item.classList.toggle('max', false);
+      item.classList.toggle('locked', isFar);
       if (isCur) {
         cost.textContent = 'در دست';
       } else if (isNext) {
         cost.textContent = faNum(UPGRADES[d.kind].price);
         item.classList.toggle('poor', state.coins < UPGRADES[d.kind].price);
+      } else if (isFar) {
+        cost.textContent = '🔒';
       }
       if (!isNext) item.classList.remove('poor');
       continue;

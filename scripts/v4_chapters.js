@@ -609,6 +609,19 @@ function refreshMenuContinue() {
   btn.textContent = d
     ? '▶ ادامه — فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave))
     : '▶ ادامه‌ی بازی (سیوی نیست)';
+  /* (۲۱٫۱) چیپ‌های آمارِ منو: پیشرفت سیو + زامبی‌های کشته‌شده —
+     انگیزه‌ی «ادامه بده» و حس زنده‌بودن منو */
+  const ms = $('menuStats');
+  if (ms) {
+    if (d && d.stats && typeof d.stats.kills === 'number') {
+      ms.innerHTML =
+        '<span class="ms-chip">🌙 شب ' + faNum(d.wave) + ' از ' + faNum(FINAL_WAVE) + '</span>' +
+        '<span class="ms-chip">🧟 ' + faNum(d.stats.kills) + ' زامبی‌کُش</span>' +
+        '<span class="ms-chip">💰 ' + faNum(Math.round(d.coins || 0)) + ' سکه</span>';
+    } else {
+      ms.innerHTML = '<span class="ms-chip">🌑 ' + faNum(FINAL_WAVE) + ' شبِ سخت تا پناهگاه — آماده‌ای؟</span>';
+    }
+  }
 }
 
 /* ---------------------- (۱۳٫۰) کد سیو: انتقال دستی پیشرفت ----------------------

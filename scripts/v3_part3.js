@@ -256,6 +256,7 @@ function updateFx(dt) {
    چند زامبی تزئینی دور صحنه خزند و هرگز به برج نمی‌رسند؛
    نزدیک که شدند از اولِ لبه‌ی صفحه با نوعی تازه ظاهر می‌شوند. */
 const menuZ = [];
+let menuFxT = 0;                    /* (۲۱٫۱) زمان جهانی جوّ منو — سوسوی نور و مه */
 function makeMenuZombie(type, x) {
   const T = ZTYPES[type];
   return {
@@ -269,9 +270,10 @@ function makeMenuZombie(type, x) {
 }
 function initMenuZ() {
   menuZ.length = 0;
-  /* (۱۴٫۰) منوی آرام‌تر: فقط ۲ زامبیِ دور و کُند — پس‌زمینه دیگر شلوغ نیست */
-  const types = ['normal', 'tank'];
-  const xs = [-200, W + 260];
+  /* (۲۱٫۱) منوی پرجون‌تر: ۴ زامبی با تنوع (معمولی/سریع/تانک) که از دو
+     سو خزنده‌اند — صحنه‌ی زنده اما شلوغ نمی‌شود (برج و قاب منو معلوم می‌ماند) */
+  const types = ['normal', 'fast', 'tank', 'normal'];
+  const xs = [-200, W + 260, -420, W + 120];
   for (let i = 0; i < types.length; i++) menuZ.push(makeMenuZombie(types[i], xs[i]));
 }
 function updateMenuScene(dt) {
@@ -285,7 +287,43 @@ function updateMenuScene(dt) {
       Object.assign(z, makeMenuZombie(type, TOWER.x + side * (W / 2 + rand(40, 260))));
     }
   }
+  menuFxT += dt;                                 /* (۲۱٫۱) زمانِ جوّ منو (نور پنجره‌ها/مه) */
   updateParticles(dt); updateTexts(dt);   // ذراتِ شلیک آزمایشی/پوکه در منو هم تمام شوند
+}
+
+/* (۲۱٫۱) جوّ سینماییِ منوی اصلی — فقط در حالت منو رسم می‌شود:
+   ۱) هاله‌ی گرمِ سوسوزنِ پنجره‌های برج (برج قهرمانِ قاب می‌شود)
+   ۲) مهِ آبیِ روی زمین که صحنه را از قاب منو جدا می‌کند
+   ۳) تاریکیِ لبه‌ها تا چشم به وسط و برج کشیده شود */
+function drawMenuFX() {
+  /* نور گرمِ پنجره‌ها — با نُرمِ آرام سوسو می‌زند */
+  const flick = 0.82 + 0.18 * Math.sin(menuFxT * 1.7) * Math.sin(menuFxT * 0.53 + 1.2);
+  const ty = GROUND_Y - TOWER.floorH * 1.45;
+  const g = ctx.createRadialGradient(TOWER.x, ty, 24, TOWER.x, ty, 310);
+  g.addColorStop(0, 'rgba(255,186,88,' + (0.16 * flick).toFixed(3) + ')');
+  g.addColorStop(0.55, 'rgba(255,170,70,' + (0.07 * flick).toFixed(3) + ')');
+  g.addColorStop(1, 'rgba(255,170,70,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  /* مهِ زمین */
+  const f = ctx.createLinearGradient(0, H - 130, 0, H);
+  f.addColorStop(0, 'rgba(126,148,198,0)');
+  f.addColorStop(1, 'rgba(126,148,198,.17)');
+  ctx.fillStyle = f;
+  ctx.fillRect(0, H - 130, W, 130);
+  /* تاریکی لبه‌ها */
+  const vl = ctx.createLinearGradient(0, 0, 235, 0);
+  vl.addColorStop(0, 'rgba(3,5,12,.55)');
+  vl.addColorStop(1, 'rgba(3,5,12,0)');
+  ctx.fillStyle = vl; ctx.fillRect(0, 0, 235, H);
+  const vr = ctx.createLinearGradient(W - 235, 0, W, 0);
+  vr.addColorStop(0, 'rgba(3,5,12,0)');
+  vr.addColorStop(1, 'rgba(3,5,12,.55)');
+  ctx.fillStyle = vr; ctx.fillRect(W - 235, 0, 235, H);
+  const vt = ctx.createLinearGradient(0, 0, 0, 110);
+  vt.addColorStop(0, 'rgba(3,5,12,.42)');
+  vt.addColorStop(1, 'rgba(3,5,12,0)');
+  ctx.fillStyle = vt; ctx.fillRect(0, 0, W, 110);
 }
 
 /* اعلان مرکزی: در وقفه «موج بعدی + شمارش» و در شروع موج بنر موقت */
@@ -2981,6 +3019,9 @@ function render() {
   Dark.render();                               // (۱۰٫۰) تاریکی/مه دید + دایره‌ی نور چراغ‌قوه
   drawDarkEyes();                              // (۱۰٫۰) چشم‌های زامبی‌ها در تاریکی
   ctx.restore();
+  /* (۲۱٫۱) جوّ سینمایی منو: هاله‌ی گرم پنجره‌های برج + مهِ زمین +
+     تاریکی لبه‌ها — برج قهرمانِ قاب می‌شود و منو عمق می‌گیرد */
+  if (state.mode === 'start') drawMenuFX();
   /* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم */
   drawColorGrade();
   /* لایه‌ی UI: بدون لرزش */

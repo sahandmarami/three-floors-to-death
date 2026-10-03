@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#04060d">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۲۰٫۰: بازی طولانی‌تر (۳۶ شب)، نگهبانِ سخت‌تر با مقاومت در برابر برجک‌ها، فروشنده‌ی مرموز با چهره‌ها و کالاهای تازه + برجک‌های ویژه (تسلا/موشک/شعله)، پیشرفت سلاح، مینی‌گیم‌های امتیازدار، داخلِ پناهگاهِ بازطراحی‌شده و آماده‌ی ساخت APK اندروید — بهینه برای موبایل">
+<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۲۱٫۱: بازی طولانی‌تر (۳۶ شب)، نگهبانِ سخت‌تر با مقاومت در برابر برجک‌ها، دستفروش مرموز با چهره‌ها و کالاهای تازه + برجک‌های ویژه (تسلا/موشک/شعله)، پیشرفت سلاح، مینی‌گیم‌های امتیازدار، داخلِ پناهگاهِ بازطراحی‌شده و آماده‌ی ساخت APK اندروید — بهینه برای موبایل">
 <title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
@@ -240,16 +240,25 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 .bp-tile.max{opacity:.82}
 .bp-tile.max .bp-price{color:#7be389}
 .bp-tile.placing{border-color:#ffd873;background:rgba(45,58,100,.95);animation:bpPulse 1s infinite}
+/* (۲۱٫۱) سلاح قفل — بعدیِ بعدی: خط‌چین + بی‌رنگ + نشان قفل */
+.bp-tile.locked{border-style:dashed;border-color:#2c3f70;opacity:.82}
+.bp-tile.locked .bp-ic{filter:grayscale(.8) brightness(.6)}
+.bp-tile.locked .bp-price{color:#9fb2dd;border-color:#26355c}
+.bp-tile.locked .bp-price::before{display:none}
+.bp-tile.locked:hover{border-color:#4d6aa8}
 @keyframes bpPulse{0%,100%{box-shadow:0 0 6px rgba(255,216,115,.25)}50%{box-shadow:0 0 14px rgba(255,216,115,.5)}}
 /* لرزش کاشی وقتی سکه کافی نیست */
 @keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .bp-tile.deny{animation:bpDeny .3s;border-color:#e04b3a}
-/* تولتیپ آیتم‌ها: نام + توضیح + وضعیت (جای متنِ حذف‌شده‌ی کاشی‌ها) */
-#bpTip{position:absolute;z-index:8;width:172px;background:rgba(10,16,36,.97);border:1px solid #4d6aa8;
-  border-radius:10px;padding:8px 10px;font-size:11px;color:#cdd8f2;pointer-events:none;
-  display:none;box-shadow:0 8px 24px rgba(0,0,0,.55);text-align:right;line-height:1.55}
-#bpTip b{display:block;color:#ffd873;font-size:12px;margin-bottom:2px}
-#bpTip .t-status{display:block;margin-top:4px;color:#8fd6ff;font-size:10.5px}
+/* تولتیپ آیتم‌ها: نام + توضیح + وضعیت (۲۱٫۱: پهن‌تر + جداکننده‌های خوانا) */
+#bpTip{position:absolute;z-index:8;width:198px;background:rgba(10,16,36,.97);border:1px solid #4d6aa8;
+  border-radius:11px;padding:9px 11px;font-size:11.5px;color:#d7e0f5;pointer-events:none;
+  display:none;box-shadow:0 8px 24px rgba(0,0,0,.55);text-align:right;line-height:1.7}
+#bpTip b{display:block;color:#ffd873;font-size:12.5px;margin-bottom:3px;padding-bottom:4px;
+  border-bottom:1px solid rgba(77,106,168,.35)}
+#bpTip span{display:block}
+#bpTip .t-status{display:block;margin-top:6px;padding-top:5px;color:#8fd6ff;font-size:10.5px;
+  border-top:1px dashed rgba(77,106,168,.4)}
 
 /* ---------- ۵٫۵) (۱۶٫۰) «شب شود» داخل پنل ساخت‌وساز ============
        بازخورد کاربر: دکمه‌ی شناورِ گوشه‌ی راست «بد دیده می‌شود و
@@ -428,21 +437,26 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 
 /* --- پنل دستفروش مرموز (۱۵٫۰: بالاتر و کمی راست‌تر — گوشه‌اش دیگر
    روی دکمه‌ی توقفِ ریل چپ نمی‌نشیند؛ فقط روزها) --- */
-#peddlerPanel{position:absolute;top:48px;left:66px;width:178px;z-index:6;background:rgba(13,10,26,.95);
-  border:1px solid #4a3a6a;border-radius:12px;padding:8px;
+#peddlerPanel{position:absolute;top:48px;left:66px;width:228px;z-index:6;background:rgba(13,10,26,.95);
+  border:1px solid #4a3a6a;border-radius:12px;padding:9px;
   box-shadow:0 10px 34px rgba(0,0,0,.5);animation:pdIn .4s ease}
 #wrap.touch #peddlerPanel{left:72px}
 @keyframes pdIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-#peddlerPanel .pd-head{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:bold;color:#d8c9ff}
+#peddlerPanel .pd-head{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:bold;color:#d8c9ff}
 #peddlerPanel .pd-face{width:46px;height:46px;border-radius:9px;background:#0a0818;border:1px solid #4a3a6a;flex:none}
-#peddlerPanel .pd-note{font-size:9.5px;color:#9f8fd0;margin:5px 2px 1px;font-style:italic}
-.pd-item{display:flex;align-items:center;gap:7px;background:rgba(30,22,52,.85);border:1px solid #56427c;
-  border-radius:9px;padding:5px 7px;margin-top:6px;cursor:pointer;transition:border-color .15s,transform .15s}
+#peddlerPanel .pd-note{font-size:10px;color:#9f8fd0;margin:6px 2px 1px;font-style:italic}
+/* (۲۱٫۱) کالای دستفروش: چیدمان ستونی خوانا — آیکون کنار، نام + توضیح +
+   قیمت (قرص طلایی) زیر هم؛ دیگر اسم و توضیح و قیمت روی هم نمی‌افتند */
+.pd-item{display:flex;align-items:flex-start;gap:9px;background:rgba(30,22,52,.85);border:1px solid #56427c;
+  border-radius:10px;padding:7px 9px;margin-top:7px;cursor:pointer;transition:border-color .15s,transform .15s}
 .pd-item:hover{border-color:#ffd873;transform:translateY(-1px)}
-.pd-item canvas{width:34px;height:34px;flex:none}
-.pd-item .pd-name{font-size:10.5px;font-weight:bold;color:#e8ecf5;line-height:1.5}
-.pd-item .pd-sub{font-size:8.5px;color:#9f8fd0;display:block}
-.pd-item .pd-price{margin-inline-start:auto;font-size:10px;font-weight:bold;color:#ffd873;white-space:nowrap}
+.pd-item canvas{width:42px;height:42px;flex:none}
+.pd-item .pd-info{flex:1;min-width:0}
+.pd-item .pd-name{display:block;font-size:11.5px;font-weight:bold;color:#eef1fa;line-height:1.55}
+.pd-item .pd-sub{display:block;font-size:9.5px;color:#bcb1e0;line-height:1.7;margin-top:1px}
+.pd-item .pd-price{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:10.5px;
+  font-weight:bold;color:#ffd873;white-space:nowrap;background:rgba(4,8,18,.85);
+  border:1px solid #4a3d1e;border-radius:999px;padding:2px 10px}
 .pd-item.poor{opacity:.6}.pd-item.poor .pd-price{color:#e06a5a}
 /* (۲۰٫۰) نقشه‌ی ساخت برجک ویژه — قاب طلایی برجسته + برچسب «تازه!» */
 .pd-item.pd-bp{background:rgba(48,34,18,.9);border-color:#c9954a;box-shadow:0 0 10px rgba(232,181,74,.25)}
@@ -517,14 +531,14 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 @keyframes logoPulse{0%,100%{filter:drop-shadow(0 4px 16px rgba(255,180,60,.5))}
   50%{filter:drop-shadow(0 4px 30px rgba(255,180,60,.85))}}
 
-/* --- (۱۳٫۰) منوی تمیز: دکمه‌های کوچک زیر دکمه‌های اصلی --- */
-.menu-mini{display:flex;justify-content:center;gap:8px;margin-top:13px;flex-wrap:wrap}
-.mini-btn{cursor:pointer;font-family:inherit;font-size:12px;font-weight:bold;color:#cdd8f2;
-  background:linear-gradient(180deg,rgba(26,38,74,.94),rgba(15,24,50,.94));border:1px solid #33518f;
-  border-radius:999px;padding:8px 18px;transition:.15s;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 10px rgba(0,0,0,.35)}
+/* --- (۱۳٫۰) منوی تمیز: دکمه‌های کوچک زیر دکمه‌های اصلی (۲۱٫۱: درشت‌تر) --- */
+.menu-mini{display:flex;justify-content:center;gap:9px;margin-top:14px;flex-wrap:wrap}
+.mini-btn{cursor:pointer;font-family:inherit;font-size:13px;font-weight:bold;color:#dfe6f8;
+  background:linear-gradient(180deg,rgba(26,38,74,.94),rgba(15,24,50,.94));border:1px solid #3d5da0;
+  border-radius:999px;padding:9px 22px;transition:.15s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 12px rgba(0,0,0,.4)}
 .mini-btn:hover{color:#ffd873;border-color:#e8b54a;background:rgba(34,52,100,.95);transform:translateY(-1px)}
-#wrap.touch .mini-btn{padding:10px 20px;font-size:13px}
+#wrap.touch .mini-btn{padding:11px 24px;font-size:14px}
 /* هشدار ذخیره‌سازی خراب */
 #storageWarn{display:inline-block;margin-top:10px;font-size:11px;font-weight:bold;color:#ffb3ab;
   background:rgba(30,6,10,.85);border:1px solid #7c2d2e;border-radius:999px;padding:6px 16px;
@@ -537,47 +551,67 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s}
 #saveToast.show{opacity:1;transform:none}
 
-/* ---------- (۲۰٫۳) بازطراحی منوی اصلی — جذاب‌تر و سینمایی‌تر ----------
-   تگ‌لاین داستانی زیر عنوان + خط جداکننده‌ی طلاییِ درخشان + دکمه‌ی اصلی
-   بزرگ‌تر با جلوه‌ی برقِ متحرک (shine) و نبض نور + ورود نرم عناصر.
-   ساختار دکمه‌ها/شناسه‌ها دست‌نخورده (سازگاری کامل با تست‌ها و APK). */
-#menuHero{padding:40px 18px 0;animation:menuHeroIn .7s ease-out both}
+/* ---------- (۲۱٫۱) بازطراحی کامل منوی اصلی — جذاب و سینمایی ----------
+   قاب شیشه‌ایِ تیره با هاله‌ی طلایی + نسخه‌ی بازی روی قاب + عنوان بزرگ‌تر
+   با لهجه‌ی قرمز «بقا» + دکمه‌ی فرمان پررنگ + چیپ‌های آمار پیشرفت +
+   پانوشت سازنده. شناسه‌ی دکمه‌ها دست‌نخورده (سازگاری با تست‌ها و APK). */
+#menuHero{padding:30px 18px 0;animation:menuHeroIn .7s ease-out both}
 @keyframes menuHeroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.game-title{font-size:58px;letter-spacing:1px;
+.menu-frame{position:relative;background:linear-gradient(180deg,rgba(9,14,32,.8),rgba(5,9,22,.68));
+  border:1px solid rgba(232,181,74,.4);border-radius:22px;padding:26px 36px 20px;
+  box-shadow:0 20px 70px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07),0 0 46px rgba(255,190,80,.1);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  animation:menuIn .6s ease-out .08s both}
+.menu-ver{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:10.5px;
+  font-weight:900;color:#1a1206;background:linear-gradient(180deg,#ffe9a8,#f0b53c);
+  border-radius:999px;padding:3px 15px;letter-spacing:.5px;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(240,180,60,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+.game-title{font-size:60px;letter-spacing:1px;line-height:1.3;
   filter:drop-shadow(0 4px 14px rgba(255,180,60,.45)) drop-shadow(0 1px 2px rgba(0,0,0,.7))}
-.menu-tagline{margin-top:8px;font-size:14.5px;font-weight:bold;color:#b9c8ea;letter-spacing:.4px;
+.game-title .t-red{color:#ff6a52;text-shadow:0 0 24px rgba(255,80,50,.5),0 3px 10px rgba(120,10,0,.85)}
+.menu-tagline{margin-top:7px;font-size:14.5px;font-weight:bold;color:#b9c8ea;letter-spacing:.4px;
   text-shadow:0 1px 4px #000,0 2px 12px rgba(0,0,0,.9);opacity:.95}
-.menu-divider{width:230px;height:2px;margin:15px auto 4px;border-radius:2px;
+.menu-divider{width:250px;height:2px;margin:15px auto 6px;border-radius:2px;
   background:linear-gradient(90deg,transparent 5%,#e8b54a 35%,#ffd873 50%,#e8b54a 65%,transparent 95%);
   opacity:.6;box-shadow:0 0 14px rgba(255,180,60,.4)}
 .menu-btns{animation:menuIn .6s ease-out .16s both}
 .menu-mini{animation:menuIn .6s ease-out .3s both}
 @keyframes menuIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-.btn-big{position:relative;overflow:hidden;font-size:18px;padding:14px 46px;border-radius:14px;
-  box-shadow:0 6px 28px rgba(240,180,60,.45),inset 0 1px 0 rgba(255,255,255,.55);
+.btn-big{position:relative;overflow:hidden;font-size:19px;padding:15px 52px;border-radius:14px;
+  font-weight:900;letter-spacing:.3px;
+  box-shadow:0 8px 32px rgba(240,180,60,.5),inset 0 1px 0 rgba(255,255,255,.55);
   animation:btnGlow 2.6s ease-in-out infinite}
-@keyframes btnGlow{0%,100%{box-shadow:0 6px 28px rgba(240,180,60,.42),inset 0 1px 0 rgba(255,255,255,.55)}
-  50%{box-shadow:0 8px 40px rgba(255,205,90,.75),inset 0 1px 0 rgba(255,255,255,.55)}}
+@keyframes btnGlow{0%,100%{box-shadow:0 8px 32px rgba(240,180,60,.45),inset 0 1px 0 rgba(255,255,255,.55)}
+  50%{box-shadow:0 10px 46px rgba(255,205,90,.8),inset 0 1px 0 rgba(255,255,255,.55)}}
 .btn-big::after{content:'';position:absolute;top:-22%;bottom:-22%;width:34%;left:-58%;
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);
   transform:skewX(-18deg);animation:btnShine 3.9s ease-in-out infinite;pointer-events:none}
 @keyframes btnShine{0%,58%{left:-58%}86%,100%{left:138%}}
 .btn-big:hover{transform:translateY(-2px) scale(1.02);filter:brightness(1.08)}
 .btn-big:active{transform:translateY(0) scale(.97)}
-.mbtn{min-width:270px;font-size:15px;padding:12px 22px;border-radius:12px}
+.mbtn{min-width:272px;font-size:15px;padding:12px 22px;border-radius:12px;font-weight:bold;
+  background:linear-gradient(180deg,rgba(22,33,64,.92),rgba(14,22,44,.92))}
 .mbtn:not(:disabled):hover{border-color:#e8b54a;color:#fff;
   box-shadow:0 4px 20px rgba(232,181,74,.28),inset 0 1px 0 rgba(255,255,255,.12)}
+.mini-btn{background:rgba(14,22,44,.85);font-weight:bold}
+/* چیپ‌های آمار منو (۲۱٫۱) */
+.menu-stats{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap;
+  animation:menuIn .6s ease-out .4s both}
+.menu-stats .ms-chip{font-size:11px;font-weight:bold;color:#ffd873;background:rgba(26,20,6,.72);
+  border:1px solid rgba(232,181,74,.42);border-radius:999px;padding:5px 15px;white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.menu-foot{margin-top:13px;font-size:10.5px;font-weight:bold;color:#7d88a8;letter-spacing:.3px;
+  text-shadow:0 1px 3px #000}
 #wrap.touch .btn-big{font-size:19px;padding:16px 52px}
-#wrap.touch .game-title{font-size:46px}
+#wrap.touch .game-title{font-size:44px}
 #wrap.touch .menu-tagline{font-size:13px}
+#wrap.touch .menu-frame{padding:20px 18px 16px}
 
 /* --- (۱۳٫۰) نوار سطح ارتقا زیر کاشی‌ها — جای نقطه‌های نامرئی --- */
 .bp-tile{height:88px}
-.bp-tile .bp-lv{display:flex;gap:2px;width:84%;height:8px;margin-top:1px;padding:1px;
+.bp-tile .bp-lv{display:flex;gap:2px;width:84%;height:8px;margin-top:2px;padding:1px;
   background:rgba(4,8,18,.9);border:1px solid #26355c;border-radius:5px;position:relative}
-.bp-tile .bp-lv::before{content:'سطح';position:absolute;top:-4.5px;right:4px;font-size:7.5px;font-weight:900;
-  color:#ffd873;background:#0b1330;padding:0 4px;border-radius:4px;line-height:1.3;
-  border:1px solid #3a3d20;text-shadow:0 1px 1px #000}
+/* (۲۱٫۱) برچسب «سطح» حذف شد — نوار خودش گویاست و کاشی شلوغ نمی‌شود */
 .bp-tile .bp-lv i{flex:1;border-radius:3px;background:#1e2c52;
   box-shadow:inset 0 1px 0 rgba(0,0,0,.45);transition:background .25s}
 .bp-tile .bp-lv i.on{background:linear-gradient(180deg,#ffe9a8,#f0b53c);
@@ -677,7 +711,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div id="peddlerPanel" class="hidden">
     <div class="pd-head"><canvas class="pd-face" id="pdFace" width="92" height="92"></canvas>
       <span>دستفروشِ<br>مرموز</span></div>
-    <div class="pd-note">«فقط امروز این‌جام...»</div>
+    <div class="pd-note">«فقط امروز اینجام...»</div>
     <div id="pdStock"></div>
   </div>
 
@@ -726,21 +760,26 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <!-- ============ (۱۰٫۰) پوشش محو نرم بین حالت‌ها ============ -->
   <div id="fadeDiv"></div>
 
-  <!-- ============ منوی اصلی: تمیز و کم‌ازدحام روی صحنه‌ی زنده (۱۴٫۰) ============ -->
+  <!-- ============ (۲۱٫۱) منوی اصلی — قاب شیشه‌ای + آمار + نسخه ============ -->
   <div class="overlay" id="startScreen">
     <div id="menuHero">
-      <h1 class="game-title">سه طبقه تا بقا</h1>
-      <div class="menu-tagline">شهر ساکت است... و شب‌ها تازه شروع شده‌اند</div>
-      <div class="menu-divider"></div>
-      <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
-      <div class="menu-btns">
-        <button class="btn-main btn-big" id="btnStart">🎮 بازی جدید</button>
-        <button class="btn-sec mbtn" id="btnContinue" disabled>▶ ادامه‌ی بازی</button>
+      <div class="menu-frame">
+        <div class="menu-ver">نسخه‌ی ۲۱٫۱</div>
+        <h1 class="game-title">سه طبقه تا <span class="t-red">بقا</span></h1>
+        <div class="menu-tagline">شهر ساکت است... و شب‌ها تازه شروع شده‌اند</div>
+        <div class="menu-divider"></div>
+        <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
+        <div class="menu-btns">
+          <button class="btn-main btn-big" id="btnStart">🎮 بازی جدید</button>
+          <button class="btn-sec mbtn" id="btnContinue" disabled>▶ ادامه‌ی بازی</button>
+        </div>
+        <div class="menu-mini">
+          <button class="mini-btn" id="btnSettings">⚙️ تنظیمات</button>
+          <button class="mini-btn" id="btnAbout">ℹ️ درباره</button>
+        </div>
+        <div class="menu-stats" id="menuStats"></div>
       </div>
-      <div class="menu-mini">
-        <button class="mini-btn" id="btnSettings">⚙️ تنظیمات</button>
-        <button class="mini-btn" id="btnAbout">ℹ️ درباره</button>
-      </div>
+      <div class="menu-foot">ساخته‌ی سهند مرامی — ۳۶ شبِ سخت تا پناهگاه</div>
     </div>
   </div>
 
@@ -930,7 +969,7 @@ const WAVES = [
 /* سه سلاح — knock = میزان پس‌زنیِ زامبی در هر برخورد (حس فیزیکی شلیک)
    (۵٫۰: قیمت شاتگان و مسلسل حدود نصف شد) */
 const WEAPONS = {
-  pistol:  { name: 'تپانچه', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
+  pistol:  { name: 'کلت', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
              price: 0,   owned: true,  barrel: 18, flash: 5, knock: 5,   sfx: 'shootP' },
   shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
              price: 120, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
@@ -959,9 +998,9 @@ const TURRETS = {
   gatling: { name: 'برجک مسلسل',    price: 85,  dmg: 1.6, rate: 0.34, range: 230, spd: 640,
              len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
   sniper:  { name: 'برجک تک‌تیرانداز', price: 200, dmg: 12, rate: 2.15,  range: 400, spd: 950,
-             len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۶ • برد ۴۰۰' },
+             len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۲ • برد ۴۰۰' },
   frost:   { name: 'برجک یخ‌زن',     price: 125, dmg: 2,  rate: 1.05, range: 175, spd: 380,
-             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۳ • برد ۱۷۵' },
+             len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۲ • برد ۱۷۵' },
   /* (۲۰٫۰) برجک‌های ویژه‌ی فروشنده‌ی مرموز — فقط با خریدِ «نقشه‌ی ساخت»
      از خودِ او باز می‌شوند (در تب برجک‌ها ظاهر می‌شوند) */
   tesla:   { name: 'برجک تسلا',       price: 240, dmg: 9,  rate: 2.3,  range: 260, spd: 0,
@@ -2465,7 +2504,7 @@ function attemptBuy(kind) {
   if (TURRETS[kind]) {
     if (TURRETS[kind].rare && !(state.bps && state.bps[kind])) {
       SFX.deny();
-      setAnnounce('🔒 نقشه‌ی ساخت نداری!', 'این برجک ویژه فقط از «فروشنده‌ی مرموز» باز می‌شود', 2.2);
+      setAnnounce('🔒 نقشه‌ی ساخت نداری!', 'این برجک ویژه فقط از «دستفروش مرموز» باز می‌شود', 2.2);
       return;
     }
     startPlacement(kind);
@@ -2798,6 +2837,7 @@ function updateFx(dt) {
    چند زامبی تزئینی دور صحنه خزند و هرگز به برج نمی‌رسند؛
    نزدیک که شدند از اولِ لبه‌ی صفحه با نوعی تازه ظاهر می‌شوند. */
 const menuZ = [];
+let menuFxT = 0;                    /* (۲۱٫۱) زمان جهانی جوّ منو — سوسوی نور و مه */
 function makeMenuZombie(type, x) {
   const T = ZTYPES[type];
   return {
@@ -2811,9 +2851,10 @@ function makeMenuZombie(type, x) {
 }
 function initMenuZ() {
   menuZ.length = 0;
-  /* (۱۴٫۰) منوی آرام‌تر: فقط ۲ زامبیِ دور و کُند — پس‌زمینه دیگر شلوغ نیست */
-  const types = ['normal', 'tank'];
-  const xs = [-200, W + 260];
+  /* (۲۱٫۱) منوی پرجون‌تر: ۴ زامبی با تنوع (معمولی/سریع/تانک) که از دو
+     سو خزنده‌اند — صحنه‌ی زنده اما شلوغ نمی‌شود (برج و قاب منو معلوم می‌ماند) */
+  const types = ['normal', 'fast', 'tank', 'normal'];
+  const xs = [-200, W + 260, -420, W + 120];
   for (let i = 0; i < types.length; i++) menuZ.push(makeMenuZombie(types[i], xs[i]));
 }
 function updateMenuScene(dt) {
@@ -2827,7 +2868,43 @@ function updateMenuScene(dt) {
       Object.assign(z, makeMenuZombie(type, TOWER.x + side * (W / 2 + rand(40, 260))));
     }
   }
+  menuFxT += dt;                                 /* (۲۱٫۱) زمانِ جوّ منو (نور پنجره‌ها/مه) */
   updateParticles(dt); updateTexts(dt);   // ذراتِ شلیک آزمایشی/پوکه در منو هم تمام شوند
+}
+
+/* (۲۱٫۱) جوّ سینماییِ منوی اصلی — فقط در حالت منو رسم می‌شود:
+   ۱) هاله‌ی گرمِ سوسوزنِ پنجره‌های برج (برج قهرمانِ قاب می‌شود)
+   ۲) مهِ آبیِ روی زمین که صحنه را از قاب منو جدا می‌کند
+   ۳) تاریکیِ لبه‌ها تا چشم به وسط و برج کشیده شود */
+function drawMenuFX() {
+  /* نور گرمِ پنجره‌ها — با نُرمِ آرام سوسو می‌زند */
+  const flick = 0.82 + 0.18 * Math.sin(menuFxT * 1.7) * Math.sin(menuFxT * 0.53 + 1.2);
+  const ty = GROUND_Y - TOWER.floorH * 1.45;
+  const g = ctx.createRadialGradient(TOWER.x, ty, 24, TOWER.x, ty, 310);
+  g.addColorStop(0, 'rgba(255,186,88,' + (0.16 * flick).toFixed(3) + ')');
+  g.addColorStop(0.55, 'rgba(255,170,70,' + (0.07 * flick).toFixed(3) + ')');
+  g.addColorStop(1, 'rgba(255,170,70,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  /* مهِ زمین */
+  const f = ctx.createLinearGradient(0, H - 130, 0, H);
+  f.addColorStop(0, 'rgba(126,148,198,0)');
+  f.addColorStop(1, 'rgba(126,148,198,.17)');
+  ctx.fillStyle = f;
+  ctx.fillRect(0, H - 130, W, 130);
+  /* تاریکی لبه‌ها */
+  const vl = ctx.createLinearGradient(0, 0, 235, 0);
+  vl.addColorStop(0, 'rgba(3,5,12,.55)');
+  vl.addColorStop(1, 'rgba(3,5,12,0)');
+  ctx.fillStyle = vl; ctx.fillRect(0, 0, 235, H);
+  const vr = ctx.createLinearGradient(W - 235, 0, W, 0);
+  vr.addColorStop(0, 'rgba(3,5,12,0)');
+  vr.addColorStop(1, 'rgba(3,5,12,.55)');
+  ctx.fillStyle = vr; ctx.fillRect(W - 235, 0, 235, H);
+  const vt = ctx.createLinearGradient(0, 0, 0, 110);
+  vt.addColorStop(0, 'rgba(3,5,12,.42)');
+  vt.addColorStop(1, 'rgba(3,5,12,0)');
+  ctx.fillStyle = vt; ctx.fillRect(0, 0, W, 110);
 }
 
 /* اعلان مرکزی: در وقفه «موج بعدی + شمارش» و در شروع موج بنر موقت */
@@ -5523,6 +5600,9 @@ function render() {
   Dark.render();                               // (۱۰٫۰) تاریکی/مه دید + دایره‌ی نور چراغ‌قوه
   drawDarkEyes();                              // (۱۰٫۰) چشم‌های زامبی‌ها در تاریکی
   ctx.restore();
+  /* (۲۱٫۱) جوّ سینمایی منو: هاله‌ی گرم پنجره‌های برج + مهِ زمین +
+     تاریکی لبه‌ها — برج قهرمانِ قاب می‌شود و منو عمق می‌گیرد */
+  if (state.mode === 'start') drawMenuFX();
   /* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم */
   drawColorGrade();
   /* لایه‌ی UI: بدون لرزش */
@@ -7495,6 +7575,19 @@ function refreshMenuContinue() {
   btn.textContent = d
     ? '▶ ادامه — فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave))
     : '▶ ادامه‌ی بازی (سیوی نیست)';
+  /* (۲۱٫۱) چیپ‌های آمارِ منو: پیشرفت سیو + زامبی‌های کشته‌شده —
+     انگیزه‌ی «ادامه بده» و حس زنده‌بودن منو */
+  const ms = $('menuStats');
+  if (ms) {
+    if (d && d.stats && typeof d.stats.kills === 'number') {
+      ms.innerHTML =
+        '<span class="ms-chip">🌙 شب ' + faNum(d.wave) + ' از ' + faNum(FINAL_WAVE) + '</span>' +
+        '<span class="ms-chip">🧟 ' + faNum(d.stats.kills) + ' زامبی‌کُش</span>' +
+        '<span class="ms-chip">💰 ' + faNum(Math.round(d.coins || 0)) + ' سکه</span>';
+    } else {
+      ms.innerHTML = '<span class="ms-chip">🌑 ' + faNum(FINAL_WAVE) + ' شبِ سخت تا پناهگاه — آماده‌ای؟</span>';
+    }
+  }
 }
 
 /* ---------------------- (۱۳٫۰) کد سیو: انتقال دستی پیشرفت ----------------------
@@ -11419,8 +11512,8 @@ const GEAR = {
    (۲۰٫۰) بازخورد کاربر «هر سری یه چیز جدید بیاره و جالب باشه» —
    سه کالای مصرفیِ تازه هم اضافه شد: حمله‌ی هوایی، بمب یخی و آدرنالین */
 const RARE = {
-  vest:     { name: 'جلیقه‌ی ضدّ دندان', price: 260, icon: 'vest',     color: '#8fd6ff',
-    desc: 'آسیب به برج ۲۵٪ کمتر می‌شود — دائمی' },
+  vest:     { name: 'جلیقه‌ی ضدّ گازگزش', price: 260, icon: 'vest',     color: '#8fd6ff',
+    desc: 'گازِ زامبی‌ها کمتر می‌گیرد — آسیب ۲۵٪ کمتر، دائمی' },
   goldAmmo: { name: 'فشنگ‌های طلایی',   price: 320, icon: 'goldAmmo', color: '#ffd873',
     desc: 'دمیج همه‌ی گلوله‌ها ۲۵٪ بیشتر — دائمی' },
   helmet:   { name: 'کلاهخود فولادی',   price: 200, icon: 'helmet',   color: '#b8c4d4',
@@ -11615,7 +11708,7 @@ function useAirstrike() {
 function healTower(n) {
   const heal = Math.min(n, state.tower.maxHp - state.tower.hp);
   if (heal <= 0) {
-    setAnnounce('❤️ برج سرِ سلامتی است', 'فعلاً لازم نیست', 1.4);
+    setAnnounce('❤️ برج سالم است', 'فعلاً لازم نیست', 1.4);
     return;
   }
   state.tower.hp += heal;
@@ -12683,13 +12776,15 @@ function renderPeddlerStock() {
     cv.width = 80; cv.height = 80;
     paintGearIcon(it.id, cv);
     const info = document.createElement('div');
+    info.className = 'pd-info';
     info.innerHTML = '<span class="pd-name">' + (it.bp ? '📐 ' : '') + r.name +
       (it.fresh ? ' <em class="pd-new">تازه!</em>' : '') +
       '</span><span class="pd-sub">' + r.desc + '</span>';
     const price = document.createElement('span');
     price.className = 'pd-price';
-    price.textContent = faNum(r.price);
-    el.appendChild(cv); el.appendChild(info); el.appendChild(price);
+    price.textContent = '💰 ' + faNum(r.price);
+    info.appendChild(price);
+    el.appendChild(cv); el.appendChild(info);
     el.addEventListener('click', () => buyRare(it));
     box.appendChild(el);
   }
@@ -15358,11 +15453,11 @@ const BUILD_DEFS = [
   { tab: 'up', kind: 'health', key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
   { tab: 'up', kind: 'weapon', key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
   { tab: 'up', kind: 'trap',   key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
-  /* (۲۰٫۰) پیشرفتِ تک‌خطی سلاح: کلت ← شاتگان ← مسلسل — خریدِ تازه،
-     قبلی را تحویل می‌دهد؛ تب فقط سلاحِ فعلی + بعدی را نشان می‌دهد */
+  /* (۲۱٫۱) پیشرفتِ تک‌خطی سلاح: کلت ← شاتگان ← مسلسل — همه‌ی سه‌تا در تب
+     دیده می‌شوند: فعلی (در دست)، بعدی (قابل خرید)، بعدترها (قفل) */
   { tab: 'wpn', kind: 'pistol',  key: '۱', codes: [], name: 'کلت',      desc: 'سلاح شروع بازی — با خرید شاتگان تحویل داده می‌شود' },
   { tab: 'wpn', kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — با خریدنش، کلت را تحویل می‌دهی' },
-  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — با خریدنش، شاتگان را تحویل می‌دهی' },
+  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'دکمه را نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — با خریدنش، شاتگان را تحویل می‌دهی' },
   { tab: 'tur', kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
   { tab: 'tur', kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
   { tab: 'tur', kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
@@ -15450,19 +15545,22 @@ function tileStatus(kind) {
   }
   if (kind === 'pistol' || kind === 'shotgun' || kind === 'mg') {
     if (kind === state.weapon) return 'همین الان در دستته ✅';
-    const next = kind === 'pistol' ? null : (kind === 'shotgun' ? 'mg' : null);
-    if (kind === 'shotgun' && state.weapon === 'pistol') return 'خریدش = کلت تحویل می‌شود و این در دستت می‌آید';
-    if (kind === 'mg' && state.weapon === 'shotgun') return 'خریدش = شاتگان تحویل می‌شود و این در دستت می‌آید';
-    return 'قفل — بعد از سلاحِ قبلی باز می‌شود';
+    const wo = ['pistol', 'shotgun', 'mg'];
+    const idx = wo.indexOf(kind), cur = wo.indexOf(state.weapon);
+    if (idx === cur + 1) {
+      if (kind === 'shotgun') return 'خریدش = کلت تحویل می‌شود و این در دستت می‌آید';
+      return 'خریدش = شاتگان تحویل می‌شود و این در دستت می‌آید';
+    }
+    return '🔒 قفل — اول سلاحِ قبلی را بخر';
   }
   if (kind === 'repair') {
     return state.tower.hp >= state.tower.maxHp - 0.5
-      ? 'برج سرِ سلامتی است'
+      ? 'برج سالم است'
       : 'جون برج: ' + faNum(Math.ceil(state.tower.hp)) + '/' + faNum(state.tower.maxHp);
   }
   if (TURRETS[kind]) {
     if (TURRETS[kind].rare && !(state.bps && state.bps[kind]))
-      return '🔒 نقشه‌ی ساختش فقط از «فروشنده‌ی مرموز» می‌آید';
+      return '🔒 نقشه‌ی ساختش فقط از «دستفروش مرموز» می‌آید';
     const cnt = state.turrets.filter(t => t.type === kind).length;
     return (cnt ? faNum(cnt) + ' عدد فعال • ' : '') + 'قیمت: ' + faNum(TURRETS[kind].price) + ' سکه';
   }
@@ -15555,8 +15653,8 @@ function toggleBuildPanel() {
 }
 
 /* به‌روزرسانی وضعیت کاشی‌های پنل (۱۲٫۰: تب‌دار + سلاحِ در دست)
-   (۲۰٫۰) تب سلاح‌ها فقط «سلاحِ فعلی + سلاحِ بعدی» را نشان می‌دهد و
-   تب برجک‌ها برجک‌های ویژه را فقط با نقشه‌ی خریداری‌شده نشان می‌دهد */
+   (۲۱٫۱) تب سلاح‌ها هر سه سلاح را نشان می‌دهد: فعلی (در دست)،
+   بعدی (قیمت) و بعدیِ بعدی (قفل) — برگشت تفنگ سوم به فروشگاه */
 function refreshBuildPanel() {
   const WORDER = ['pistol', 'shotgun', 'mg'];
   for (const d of BUILD_DEFS) {
@@ -15567,22 +15665,22 @@ function refreshBuildPanel() {
     /* فقط کاشی‌های تبِ فعال دیده شوند */
     item.style.display = (d.tab === BP_TAB) ? '' : 'none';
 
-    /* --- سلاح‌ها (۲۰٫۰: پیشرفتِ تک‌خطی — فعلی + بعدی) --- */
+    /* --- سلاح‌ها (۲۱٫۱: هر سه دیده می‌شوند — فعلی/بعدی/قفل) --- */
     if (WORDER.indexOf(d.kind) >= 0) {
       const curIdx = WORDER.indexOf(state.weapon);
       const idx = WORDER.indexOf(d.kind);
-      const owned = !!WEAPONS[d.kind].owned;
       const isCur = d.kind === state.weapon;
       const isNext = idx === curIdx + 1;
-      const visible = (d.tab === BP_TAB) && (isCur || isNext);
-      item.style.display = visible ? '' : 'none';
+      const isFar = idx > curIdx + 1;
       item.classList.toggle('armed', isCur);
-      item.classList.toggle('max', false);
+      item.classList.toggle('locked', isFar);
       if (isCur) {
         cost.textContent = 'در دست';
       } else if (isNext) {
         cost.textContent = faNum(UPGRADES[d.kind].price);
         item.classList.toggle('poor', state.coins < UPGRADES[d.kind].price);
+      } else if (isFar) {
+        cost.textContent = '🔒';
       }
       if (!isNext) item.classList.remove('poor');
       continue;
