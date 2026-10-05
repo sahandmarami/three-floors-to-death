@@ -790,3 +790,33 @@ Stage Summary:
 - تحویل v21.2: هر ۶ درخواست کاربر برطرف + APK بومی ۱٫۴MB + رپوی گیت‌هاب
 - الگوی d8 8.2: از رابط جنریک/کلاس بی‌نام پرهیز کن؛ ابزار: scripts/build_apk.sh قابل اجرای مجدد
 - APK: download/three-floors-to-survival.apk (امضاشده، minSdk 24)
+
+---
+Task ID: 22
+Agent: Super Z (main agent)
+Task: v21.3 — رفع باگ‌های اندروید (تمام‌صفحه/متن/کم‌رنگ) + تغییر نام به «سه طبقه تا مرگ» + آیکون کاربر + Play Protect
+
+Work Log:
+- فایل گوگل‌درایو کاربر دانلود شد (zip): آیکون ۱۲۵۴×۱۲۵۴ + دو اسکرین‌شات باگ (۲۳۴۰×۱۰۸۰)
+- تحلیل VLM + تحلیل پیکسلی PIL: بازی به‌صورت مستطیل کوچک وسط صفحه (نوار تیره ~۲۰٪ چپ/راست، محتوای منو از پایین بریده، DOM با px ثابت داخل قاب کوچک‌شده)
+- v3_part2: W از نسبت صفحه محاسبه شد (const H=560; W=clamp(960,1440,560*aspect)) — برج/زاده‌ها/افق خودکار تطبیق؛ DPR لمسی ۱٫۵→۲
+- v4_mobile fitWrap: حالت fill — wrap با W×H منطقی + transform:scale(s) → همه‌چیز (بوم+DOM) یک‌نوایت مقیاس می‌شود؛ window.__fitScale
+- v3_part1: متای color-scheme:dark + #wrap{width:100vw;height:100vh;flex:none} (رفع flex-shrink که قاب ۱۲۱۳px را به ۷80px می‌کرد) + تغییر نام همه‌جا
+- تولتیپ‌های positionTip/showBpkTip با تقسیم بر __fitScale اصلاح شدند
+- عناصر صحنه W-نسبی شدند: HILLS1/2 (تعداد از W)، CLOUDS/PUDDLES (کسری از W)، LAMPS=[W*0.245,W*0.755]
+- v4_shelter: DX=VX-480 — بلوک‌های translate برای آشپزخانه/خواب/ایستگاه پزشکی + قالیچه/بازمانده‌ها/بازیکن/چراغ‌ها +DX؛ بندرخت/بند لباس نسبت به VX؛ صحنه‌ی walk (خورشید/تپه/جاده/مسافران/ذرات) W-نسبی
+- v4_ride: مرکز قایق/اسنوموبیل 480→W/2
+- MainActivity: setForceDark(FORCE_DARK_OFF) برای SDK>=29 (ضد کم‌رنگ‌شدن WebViewهای OEM)؛ strings.xml: «سه طبقه تا مرگ»؛ Manifest: 213/2.1.3
+- make_apk_icon_213.py: آیکون کاربر → mipmapهای ۴۸-۱۹۲ + icon.png/icon-original.png
+- setup_sdk_213.sh: بازسازی محیط SDK گم‌شده (Temurin17 + cmdline-tools + platform-34 + build-tools 34)
+- build_apk.sh: نسخه ۲۱٫۳ + امضای صریح v1+v2+v3 (نتیجه: v2+v3 فعال — v1 برای minSdk24 لازم نیست و از لحاظ امنیتی بهتر است خاموش بماند)
+- تست‌ها: test_v213.sh تازه (۲۵: W=1213/996، قاب edge-to-edge در ۷۸۰×۳۶۰ و ۱۲۸۰×۷۲۰، flex:none، نام/نسخه، color-scheme، تولتیپ‌ها) + v212 (17) + v20 (70) + v204 (19) = ۱۳۱ سبز
+- VLM: منو ۹٫۵/۱۰، گیم‌پلی ۹٫۵/۱۰، پناهگاه ۱۰/۱۰ — «full-bleed edge-to-edge، بدون نوار سیاه، متن کامل»
+- گیت‌هاب: رپو به three-floors-to-death تغییر نام (redirect خودکار) + push کامل (HTML+APK+آیکون+READMEها)
+- درس فرارگرفت: MultiEdit اینجا «fail-fast» است نه اتمیک — ویرایش‌های قبل از خطا اعمال می‌شوند (سبب دوبار‌کاری DX شد)؛ متن فارسی با نویسه‌های صفر-عرض → لنگرهای ASCII برای Edit
+
+Stage Summary:
+- تحویل v21.3: تمام ۶ درخواست کاربر (پرکردن مستطیل کامل گوشی/متن کامل/رفع کم‌رنگ/نام تازه/آیکون/بهترین‌سازی Play Protect با امضای v2+v3 و همان keystore برای به‌روزرسانی درجا)
+- APK: download/three-floors-to-survival.apk (۱٫۵MB، versionCode 213، label «سه طبقه تا مرگ»، آیکون کاربر)
+- گیت‌هاب: https://github.com/sahandmarami/three-floors-to-death (خصوصی، توکن کاربر)
+- نکته‌ی Play Protect برای کاربر: هشدار «برنامه‌ی ناشناس» سمت گوگل است؛ با امضای v2+v3 و همان keystore ملایم می‌شود و با خاموش‌کردن «اسکن برنامه‌ها» در Play Protect بی‌صداست
