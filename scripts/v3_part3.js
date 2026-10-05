@@ -1153,7 +1153,7 @@ function drawTree(x, s, dead) {
 }
 
 /* تیرهای چراغ با مخروط نور چشمک‌زن (۳٫۰) — در روز کم‌نور (۵٫۰) */
-const LAMPS = [236, 724];
+const LAMPS = [Math.round(W * 0.245), Math.round(W * 0.755)];   // (۲۱٫۳) نسبت به عرض دنیا — متقارن روی صفحه‌های عریض
 function drawLamps() {
   const dim = 1 - state.dayness * 0.9;      // چراغ‌ها در روز تقریباً خاموش‌اند
   const warm = state.towerVariant === 1 ? '255,110,70' : '255,214,120';   // (۷٫۰) نور اضطراری در شهر سوخته

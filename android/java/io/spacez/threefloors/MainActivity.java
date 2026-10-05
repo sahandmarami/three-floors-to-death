@@ -15,13 +15,17 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 /**
- * «سه طبقه تا بقا» — پوسته‌ی اندرویدیِ WebView برای بازیِ تک‌فایلی.
+ * «سه طبقه تا مرگ» — پوسته‌ی اندرویدیِ WebView برای بازیِ تک‌فایلی.
  * (۲۱٫۲) بدون کپاسیتور/کوردوا — APK سبک و مستقل:
  *   • تمام‌صفحه‌ی ایمرسیو + افقی + ناچ (ShortEdges)
  *   • file:///android_asset/www/index.html
  *   • دکمه‌ی بازگشت → رویداد «backbutton» بازی (توقف/ادامه/بستن پنل)؛
  *     خروج از منوی اصلی از طریق ttbNative.exit()
  *   • بازی با نشانه‌ی «wv» در UA حالت درون‌اپ را خودش فعال می‌کند
+ * (۲۱٫۳) تازه‌ها:
+ *   • ForceDark خاموش — WebView سیستمِ تیره دیگر رنگ‌های بازی را
+ *     «کم‌رنگ/شسته» نمی‌کند (meta color-scheme در HTML هم کمک می‌کند)
+ *   • RGB گاما/شفافیت بوم: پس‌زمینه‌ی کاملاً مات + render پیش‌فرض
  * نکته‌ی فنی: هیچ رابطِ جنریک/کلاسِ بی‌نامی ندارد (سازگاری با d8 8.2)
  */
 public class MainActivity extends Activity {
@@ -58,6 +62,12 @@ public class MainActivity extends Activity {
         s.setUseWideViewPort(true);
         s.setMediaPlaybackRequiresUserGesture(true);   /* بازی خودش بعد از اولین ژست صدا را باز می‌کند */
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);      /* همیشه نسخه‌ی همراه‌شده */
+        /* (۲۱٫۳) حالت تیره‌ی سیستم روی WebView قدیمی/شرکتی رنگ‌ها را
+           کم‌رنگ می‌کرد — صریحاً خاموشش می‌کنیم (برای targetSdk 34
+           بی‌اثر و بی‌ضرر است؛ برای WebViewهای OEM حیاتی) */
+        try {
+            if (Build.VERSION.SDK_INT >= 29) s.setForceDark(WebSettings.FORCE_DARK_OFF);
+        } catch (Throwable ignored) {}
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         }

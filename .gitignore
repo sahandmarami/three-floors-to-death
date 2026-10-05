@@ -5,3 +5,4 @@ android/build/
 android/assets/
 webserve/
 *.log
+download/drive_assets/

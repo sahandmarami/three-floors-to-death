@@ -1,9 +1,11 @@
 #!/bin/bash
 # ============================================================
-# ساخت APK اندرویدی «سه طبقه تا بقا» — بدون گردل/کپاسیتور
+# ساخت APK اندرویدی «سه طبقه تا مرگ» — بدون گردل/کپاسیتور
 # زنجیره: aapt2 → javac → d8 → zip → zipalign → apksigner
 # خروجی: download/three-floors-to-survival.apk
-# پیش‌نیاز: .android-sdk (commandlinetools + platform-34 + build-tools 34)
+# (۲۱٫۳) امضا با هر سه طرح v1+v2+v3 → گوگل‌پلی‌پروتکت کم‌ترین
+#        هشدار را می‌دهد و روی نسخه‌های قبلی «به‌روزرسانی» می‌شود
+# پیش‌نیاز: .android-sdk (scripts/setup_sdk_213.sh یک‌بار می‌سازدش)
 # ============================================================
 set -e
 cd /home/z/my-project/android
@@ -12,7 +14,7 @@ BT=$SDK/build-tools/34.0.0
 JAR=$SDK/platforms/android-34/android.jar
 HTML=/home/z/my-project/download/three-floors-to-survival.html
 
-echo "[1/7] assets: www/index.html (v21.2)"
+echo "[1/7] assets: www/index.html (v21.3)"
 mkdir -p assets/www build
 cp "$HTML" assets/www/index.html
 
@@ -27,7 +29,7 @@ $BT/aapt2 link -o build/base.apk \
   --manifest AndroidManifest.xml \
   --java build/gen \
   --min-sdk-version 24 --target-sdk-version 34 \
-  --version-code 212 --version-name "2.1.2" \
+  --version-code 213 --version-name "2.1.3" \
   -A assets \
   build/compiled/res.zip
 
@@ -61,6 +63,7 @@ if [ ! -f "$KS" ]; then
     -dname "CN=Three Floors to Survival,O=SpaceZ,C=IR" >/dev/null 2>&1
 fi
 $BT/apksigner sign --ks "$KS" --ks-pass pass:threefloors --key-pass pass:threefloors \
+  --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
   --out /home/z/my-project/download/three-floors-to-survival.apk \
   build/aligned.apk
 $BT/apksigner verify --print-certs /home/z/my-project/download/three-floors-to-survival.apk | head -3

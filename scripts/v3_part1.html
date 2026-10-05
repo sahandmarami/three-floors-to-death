@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#04060d">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۲۱٫۱: بازی طولانی‌تر (۳۶ شب)، نگهبانِ سخت‌تر با مقاومت در برابر برجک‌ها، دستفروش مرموز با چهره‌ها و کالاهای تازه + برجک‌های ویژه (تسلا/موشک/شعله)، پیشرفت سلاح، مینی‌گیم‌های امتیازدار، داخلِ پناهگاهِ بازطراحی‌شده و آماده‌ی ساخت APK اندروید — بهینه برای موبایل">
-<title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
+<meta name="description" content="سه طبقه تا مرگ — نسخه‌ی ۲۱٫۳: تمام‌صفحه‌ی واقعی روی گوشی (بدون نوار سیاه)، نمایش شارپ با DPR بالا، ۳۶ شب، دستفروش مرموز، مینی‌گیم‌ها و پناهگاه — بهینه برای موبایل و اندروید">
+<title>سه طبقه تا مرگ — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
    سه طبقه تا بقا — نسخه‌ی ۱۹٫۰ — استایل‌های صفحه
@@ -36,10 +37,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e8ecf
 body{display:flex;align-items:center;justify-content:center;
   padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
 
-/* قاب بازی: (۱۴٫۰) اندازه‌ی نهایی را «کنترل‌کننده‌ی fitWrap» با JS می‌گذارد
-   (همیشه کل صحنه در صفحه جا می‌شود — حتی گوشی/مرورگر درون‌اپ)؛
-   مقدار CSS فقط پشتیبان مرورگرهای بدون JS است */
-#wrap{position:relative;width:min(97vw,calc(97vh*960/560));aspect-ratio:960/560;
+/* قاب بازی: (۲۱٫۳) اندازه‌ی نهایی را «کنترل‌کننده‌ی fitWrap» با JS می‌گذارد؛
+   روی صفحه‌های عریض، دنیای بازی خودش تا ۱۴۴۰px باز می‌شود تا «مستطیل کامل
+   گوشی» پر شود — بدون هیچ نوار سیاهی؛ مقدار CSS فقط پشتیبانِ بدون‌JS است */
+#wrap{position:relative;width:100vw;height:100vh;aspect-ratio:auto;
+  flex:none;min-width:0;
   border-radius:12px;overflow:hidden;
   box-shadow:0 12px 70px rgba(0,0,0,.75),0 0 0 1px #24345e,0 0 0 3px rgba(255,209,102,.12)}
 /* (۲۰٫۰) داخل APK/درون‌اپ: گوشه‌ها تخت و بی‌سایه — بازی تمام‌صفحه است */
@@ -647,7 +649,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 <body>
 <!-- (۲۰٫۵) اسپلش بارگذاری — قبل از همه‌ی عناصر تا فوری نقاشی شود؛ init() پاکش می‌کند -->
 <div id="bootSplash" aria-label="در حال بارگذاری بازی">
-  <div class="bs-title">سه طبقه تا بقا</div>
+  <div class="bs-title">سه طبقه تا مرگ</div>
   <div class="bs-divider"></div>
   <div class="bs-spin"></div>
   <div class="bs-text">در حال بارگذاری بازی…</div>
@@ -764,8 +766,8 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div class="overlay" id="startScreen">
     <div id="menuHero">
       <div class="menu-frame">
-        <div class="menu-ver">نسخه‌ی ۲۱٫۱</div>
-        <h1 class="game-title">سه طبقه تا <span class="t-red">بقا</span></h1>
+        <div class="menu-ver">نسخه‌ی ۲۱٫۳</div>
+        <h1 class="game-title">سه طبقه تا <span class="t-red">مرگ</span></h1>
         <div class="menu-tagline">شهر ساکت است... و شب‌ها تازه شروع شده‌اند</div>
         <div class="menu-divider"></div>
         <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
@@ -851,7 +853,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div class="overlay hidden" id="aboutScreen">
     <div class="panel" style="max-width:470px">
       <h2>ℹ️ درباره‌ی بازی</h2>
-      <p class="subtitle">سه طبقه تا بقا</p>
+      <p class="subtitle">سه طبقه تا مرگ</p>
       <div class="howto" style="text-align:right">
         <div>سکوت، از حاشیه‌ی شهر به راه افتاد.</div>
         <div>ویروسی ناشناخته، کوچه‌ها را یک‌به‌یک به خوابی بی‌پایان فرستاد؛ چند هفته بعد، شهری که روزی از هیاهو می‌لرزید، تنها با باد نفس می‌کشید.</div>

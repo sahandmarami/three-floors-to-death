@@ -197,10 +197,11 @@ function showTip(d, el) {
 }
 function positionTip(el) {
   const tip = $('bpTip');
+  const sc = window.__fitScale || 1;              /* (۲۱٫۳) rect ها مقیاس‌خورده‌اند → تقسیم بر مقیاس */
   const wrapR = $('wrap').getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  const left = r.left - wrapR.left - tip.offsetWidth - 10;
-  const top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6);
+  const left = (r.left - wrapR.left) / sc - tip.offsetWidth - 10;
+  const top = clamp((r.top - wrapR.top) / sc + (r.height / sc) / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6);
   tip.style.left = Math.max(4, left) + 'px';
   tip.style.top = top + 'px';
 }

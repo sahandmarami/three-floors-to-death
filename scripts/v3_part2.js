@@ -15,7 +15,14 @@
    ================================================================== */
 
 /* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
-const W = 960, H = 560;                    // ابعاد منطقی دنیای بازی
+/* (۲۱٫۳) عرض دنیا «تطبیقی» است: ارتفاع همیشه ۵۶۰ ولی عرض از نسبت
+   صفحه محاسبه می‌شود (۹۶۰ تا ۱۴۴۰). نتیجه: روی گوشی‌های عریض
+   (نسبت ~۲:۱) دنیا خودش بازتر می‌شود و بازی «مستطیل کامل گوشی»
+   را می‌پوشاند — بدون نوار سیاهِ چپ و راست. برج وسط (W/2) و
+   لبه‌ی زادگاه زامبی‌ها (-۴۰ / W+۴۰) خودکار با آن جابه‌جا می‌شوند. */
+const H = 560;
+const W = Math.max(960, Math.min(1440, Math.round(560 *
+  ((window.innerWidth || 960) / Math.max(1, window.innerHeight || 560)))));
 const GROUND_Y = 492;                      // خط زمین (پای زامبی‌ها)
 const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };
 const TOWER_TOP_Y = GROUND_Y - TOWER.floorH * TOWER.floors; // سقف برج = محل ایستادن بازیکن
@@ -147,16 +154,18 @@ const STARS = Array.from({ length: 80 }, () => ({
   x: srand() * W, y: srand() * (GROUND_Y - 90), r: 0.6 + srand() * 1.4,
   ph: srand() * 6.28, sp: 0.5 + srand() * 1.6,
 }));
-const HILLS1 = Array.from({ length: 18 }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
-const HILLS2 = Array.from({ length: 13 }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
+/* (۲۱٫۳) تپه/ابر/برکه/چراغ نسبت به W تعریف می‌شوند تا روی دنیای عریض‌تر
+   (گوشی‌های ~۲:۱) تا لبه‌ی صفحه کشیده و متقارن بیایند */
+const HILLS1 = Array.from({ length: Math.ceil((W + 90) / 60) }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
+const HILLS2 = Array.from({ length: Math.ceil((W + 125) / 85) }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
 const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
 /* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس — ۶٫۰: دو ابر دیگر) */
 const CLOUDS = [
-  { x: 140, y: 58,  s: 1.15, v: 6 },
-  { x: 520, y: 96,  s: 0.8,  v: 9 },
-  { x: 830, y: 44,  s: 1.35, v: 5 },
-  { x: 300, y: 128, s: 0.6,  v: 12 },
-  { x: 660, y: 30,  s: 0.75, v: 10 },
+  { x: W * 0.146, y: 58,  s: 1.15, v: 6 },
+  { x: W * 0.542, y: 96,  s: 0.8,  v: 9 },
+  { x: W * 0.865, y: 44,  s: 1.35, v: 5 },
+  { x: W * 0.313, y: 128, s: 0.6,  v: 12 },
+  { x: W * 0.688, y: 30,  s: 0.75, v: 10 },
 ];
 /* کرم‌های شب‌تاب (۳٫۰): نقاط نور کوچکی که آرام حول زمین شنا می‌شوند */
 const FIREFLIES = Array.from({ length: 14 }, () => ({
@@ -167,7 +176,7 @@ const FIREFLIES = Array.from({ length: 14 }, () => ({
 /* دسته‌های چمن کنار جاده (۳٫۰) */
 const GRASS = Array.from({ length: 40 }, () => ({ x: srand() * W, h: 4 + srand() * 8, ph: srand() * 6.28 }));
 /* برکه‌های کوچک بازتابنده‌ی نور ماه (۳٫۰) */
-const PUDDLES = [{ x: 150, w: 52 }, { x: 392, w: 66 }, { x: 636, w: 46 }];
+const PUDDLES = [{ x: W * 0.156, w: 52 }, { x: W * 0.408, w: 66 }, { x: W * 0.663, w: 46 }];
 /* افق شهر در دوردست: ساختمان‌های سیاه‌شکلی با پنجره‌های روشن (پیش‌محاسبه‌شده) */
 const SKYLINE = [];
 const SKYLINE_WINS = [];
@@ -485,8 +494,7 @@ let shootStar = null, shootStarT = rand(3, 7);   // شهابِ گاه‌به‌�
    بومِ مقصد را موقتاً عوض کنند و فرماندار کیفیت بتواند DPR را در اجرا کم کند */
 const canvas = $('game');
 let ctx = canvas.getContext('2d');
-let DPR = Math.min(window.devicePixelRatio || 1,
-  (('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches) ? 1.5 : 2); // (۱۱٫۰) موبایل: سقف ۱٫۵ برای سرعت
+let DPR = Math.min(window.devicePixelRatio || 1, 2);   // (۲۱٫۳) سقف ۲ — نمایش شارپ روی گوشی؛ فرماندار کیفیت خودش کم می‌کند
 const DPR0 = DPR;                              // (۱۸٫۱) مقدار اولیه — برای بازگشت فرماندار کیفیت
 function setDPR(v) {                           // (۱۸٫۱) تغییر رزولوشن بوم در اجرا (کاهش بار GPU)
   DPR = Math.min(Math.max(0.75, v), 2);

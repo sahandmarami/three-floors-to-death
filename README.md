@@ -1,8 +1,8 @@
-# سه طبقه تا بقا (Three Floors to Survival)
+# سه طبقه تا مرگ (Three Floors to Death)
 
 بازی ماجرایی-دفاعی فارسی برای مرورگر و اندروید — همه‌ی بازی در **یک فایل HTML** (بدون سرور، بدون وابستگی).
 
-![نسخه](https://img.shields.io/badge/نسخه-۲۱٫۲-ffd873) ![سکو](https://img.shields.io/badge/سکو-Web%20%2B%20Android-4a7cc9)
+![نسخه](https://img.shields.io/badge/نسخه-۲۱٫۳-ffd873) ![سکو](https://img.shields.io/badge/سکو-Web%20%2B%20Android-4a7cc9)
 
 ## اجرا
 
@@ -10,6 +10,10 @@
 |------|------|
 | مرورگر (کامپیوتر/گوشی) | `download/three-floors-to-survival.html` — بازش کنید، تمام |
 | اندروید (APK) | `download/three-floors-to-survival.apk` — نصب از منابع ناشناس |
+
+**نسخه‌ی ۲۱٫۳ (اندروید):** تمام‌صفحه‌ی واقعی روی هر گوشی (دنیای بازی از نسبت صفحه عرض می‌گیرد — بدون نوار سیاه)، نمایش شارپ (DPR تا ۲)، متن‌ها یک‌نواخت با صحنه بزرگ می‌شوند، رفع «کم‌رنگ» دیده‌شدن (ForceDark خاموش + متای color-scheme)، نام تازه‌ی بازی «سه طبقه تا مرگ» و آیکون اختصاصی.
+
+> **نکته‌ی Play Protect:** این APK با امضای کامل v2+v3 و همان keystore نسخه‌های قبلی امضا شده — روی نسخه‌ی قبلی «به‌روزرسانی» نصب می‌شود. اگر اندروید هشدار «برنامه‌ی ناشناس» Play Protect داد، «نصب در هر صورت» را بزنید؛ برای بی‌صداشدن کامل می‌توانید در Play Protect «اسکن برنامه‌ها» را خاموش کنید.
 
 ## داستان
 شب‌های آخرِ دنیا رسیده. با «آرشان» برج سه‌طبقه را نگه دارید: روز خرید کنید، برجک بسازید، و ۳۶ شب تا «نگهبانِ آخرین شب» دوام بیاورید. داستانِ کامل با صداگذاری فارسی (MP3 جاسازی‌شده)، گفتگوهای پرتره‌دار و پایان سینماییِ «ادامه دارد…».
@@ -21,17 +25,18 @@
 - 🎭 دستفروش مرموز: هر بازدید یک چهره، لباس، جمله و صدای متفاوت
 - 🗣 گفتگوهای صوتی فارسی + زیرنویس هم‌زمان
 - 🌙 ۳۶ شب، ۴ فصل، منوی آماری، سیو خودکار، حالت لمسی کامل
+- 📱 تمام‌صفحه‌ی تطبیقی روی گوشی (عرض دنیا از نسبت صفحه — ۹۶۰ تا ۱۴۴۰)
 
 ## ساخت از سورس
 ```bash
 # HTML تکه‌فایل:
-bash scripts/build_v212.sh          # → download/three-floors-to-survival.html
+bash scripts/build_v213.sh          # → download/three-floors-to-survival.html
 
-# APK اندروید (نیازمند یک‌بار: .android-sdk — راهنما در download/apk/README-APK.md):
+# APK اندروید (یک‌بار .android-sdk می‌سازد setup_sdk_213.sh — راهنما در download/apk/README-APK.md):
 bash scripts/build_apk.sh           # → download/three-floors-to-survival.apk
 
-# تست‌های خودکار (۱۶۵+ مورد):
-bash scripts/test_v20.sh && bash scripts/test_v204.sh && bash scripts/test_v212.sh
+# تست‌های خودکار (۱۹۰+ مورد):
+bash scripts/test_v213.sh && bash scripts/test_v212.sh && bash scripts/test_v20.sh && bash scripts/test_v204.sh
 ```
 
 سورس در `scripts/` به‌صورت ماژول‌های ترتیبی نگهداری می‌شود و اسکریپتِ ساخت، آن‌ها را به یک فایل می‌چسباند.
@@ -41,7 +46,7 @@ bash scripts/test_v20.sh && bash scripts/test_v204.sh && bash scripts/test_v212.
 scripts/          سورس ماژولار بازی (v3_part*, v4_*) + اسکریپت‌های ساخت/تست
 android/          پوسته‌ی اندرویدی WebView (بدون کپاسیتور — aapt2/d8 مستقیم)
 download/         خروجی‌ها: HTML + APK + پکیج کپاسیتور (apk/)
-download/README.md  تاریخچه‌ی کامل نسخه‌ها (v1 → v21.2)
+download/README.md  تاریخچه‌ی کامل نسخه‌ها (v1 → v21.3)
 ```
 
 سازنده: [sahandmarami](https://github.com/sahandmarami) · ساخته‌شده با ❤️ و بومِ Canvas

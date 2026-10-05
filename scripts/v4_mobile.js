@@ -13,30 +13,34 @@
 const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
                  (matchMedia && matchMedia('(pointer:coarse)').matches);
 
-/* ---------------------- ۱۱-۰) (۱۴٫۰) اندازه‌ی قاب بازی ----------------------
-   کل بازی (۹۶۰×۵۶۰) بدون برش در صفحه جا شود — با JS چون:
-   • 100vh در گوشی نوار آدرس را هم حساب می‌کند (پایین بریده می‌شد)
-   • مرورگرهای درون‌اپ گاهی vw/vh را اشتباه گزارش می‌کنند («صفحه نصفه»)
-   • تغییر جهت/چرخش/بازآمدن نوار آدرس → بازسازی فوری */
+/* ---------------------- ۱۱-۰) (۲۱٫۳) اندازه‌ی قاب بازی — تمام‌صفحه‌ی واقعی ----------------------
+   قدیم: قاب ۹۶۰×۵۶۰ با حفظ نسبت وسط صفحه می‌نشست → روی گوشی‌های
+   عریض، چپ و راست نوار سیاه می‌ماند و همه‌چیز ریز و «کم‌رنگ» به
+   نظر می‌رسید.
+   جدید: عرضِ دنیای بازی از همان نسبت صفحه محاسبه شده (W در
+   v3_part2)؛ قاب با ابعاد منطقی W×H ساخته و با transform:scale
+   دقیقاً تا لبه‌های صفحه کشیده می‌شود — بوم، HUD، منوها و متن‌ها
+   همه با هم و یک‌نواخت بزرگ می‌شوند (متن‌ها دیگر له/ریز نمی‌شوند).
+   • 100vh در گوشی نوار آدرس را هم حساب می‌کند → از visualViewport
+   • مرورگرهای درون‌اپ گاهی vw/vh را اشتباه گزارش می‌کنند
+   • تغییر جهت/چرخش/بازآمدن نوار آدرس → بازسازی فوری
+   • مقیاس جاری در window.__fitScale (برای تبدیل مختصات تولتیپ‌ها) */
 function fitWrap() {
   const el = document.getElementById('wrap');
   if (!el) return;
   const vv = window.visualViewport;
   let aw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 960;
   let ah = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 560;
-  /* حاشیه‌ی امن: حداقل ۶px از هر طرف */
-  aw = Math.max(200, aw - 12);
-  ah = Math.max(140, ah - 12);
-  const s = Math.min(aw / 960, ah / 560);
-  const w = Math.round(960 * s), h = Math.round(560 * s);
-  if (Math.abs(el.offsetWidth - w) > 1 || Math.abs(el.offsetHeight - h) > 1) {
-    el.style.width = w + 'px';
-    el.style.height = h + 'px';
-    el.style.aspectRatio = 'auto';
-  }
+  const s = Math.min(aw / W, ah / H);            /* (W خودش هم‌نسبت صفحه است → s ≈ هر دو) */
+  el.style.width = W + 'px';
+  el.style.height = H + 'px';
+  el.style.aspectRatio = 'auto';
+  el.style.transform = 'scale(' + s + ')';
+  el.style.transformOrigin = 'center center';
+  window.__fitScale = s;
   /* (۱۹٫۰) صفحه‌های کوچک: کلاس sui → کوله‌پشتی و متن‌های ریز باز هم
      جمع‌تر می‌شوند تا زمین بازی/زامبی‌های ورودی دیده بمانند */
-  el.classList.toggle('sui', w < 760);
+  el.classList.toggle('sui', W * s < 760);
 }
 window.addEventListener('resize', fitWrap, { passive: true });
 window.addEventListener('orientationchange', () => setTimeout(fitWrap, 250));

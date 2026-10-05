@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#04060d">
-<meta name="description" content="سه طبقه تا بقا — نسخه‌ی ۲۱٫۱: بازی طولانی‌تر (۳۶ شب)، نگهبانِ سخت‌تر با مقاومت در برابر برجک‌ها، دستفروش مرموز با چهره‌ها و کالاهای تازه + برجک‌های ویژه (تسلا/موشک/شعله)، پیشرفت سلاح، مینی‌گیم‌های امتیازدار، داخلِ پناهگاهِ بازطراحی‌شده و آماده‌ی ساخت APK اندروید — بهینه برای موبایل">
-<title>سه طبقه تا بقا — چهار فصل تا پناهگاه</title>
+<meta name="description" content="سه طبقه تا مرگ — نسخه‌ی ۲۱٫۳: تمام‌صفحه‌ی واقعی روی گوشی (بدون نوار سیاه)، نمایش شارپ با DPR بالا، ۳۶ شب، دستفروش مرموز، مینی‌گیم‌ها و پناهگاه — بهینه برای موبایل و اندروید">
+<title>سه طبقه تا مرگ — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
    سه طبقه تا بقا — نسخه‌ی ۱۹٫۰ — استایل‌های صفحه
@@ -36,10 +37,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e8ecf
 body{display:flex;align-items:center;justify-content:center;
   padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
 
-/* قاب بازی: (۱۴٫۰) اندازه‌ی نهایی را «کنترل‌کننده‌ی fitWrap» با JS می‌گذارد
-   (همیشه کل صحنه در صفحه جا می‌شود — حتی گوشی/مرورگر درون‌اپ)؛
-   مقدار CSS فقط پشتیبان مرورگرهای بدون JS است */
-#wrap{position:relative;width:min(97vw,calc(97vh*960/560));aspect-ratio:960/560;
+/* قاب بازی: (۲۱٫۳) اندازه‌ی نهایی را «کنترل‌کننده‌ی fitWrap» با JS می‌گذارد؛
+   روی صفحه‌های عریض، دنیای بازی خودش تا ۱۴۴۰px باز می‌شود تا «مستطیل کامل
+   گوشی» پر شود — بدون هیچ نوار سیاهی؛ مقدار CSS فقط پشتیبانِ بدون‌JS است */
+#wrap{position:relative;width:100vw;height:100vh;aspect-ratio:auto;
+  flex:none;min-width:0;
   border-radius:12px;overflow:hidden;
   box-shadow:0 12px 70px rgba(0,0,0,.75),0 0 0 1px #24345e,0 0 0 3px rgba(255,209,102,.12)}
 /* (۲۰٫۰) داخل APK/درون‌اپ: گوشه‌ها تخت و بی‌سایه — بازی تمام‌صفحه است */
@@ -647,7 +649,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 <body>
 <!-- (۲۰٫۵) اسپلش بارگذاری — قبل از همه‌ی عناصر تا فوری نقاشی شود؛ init() پاکش می‌کند -->
 <div id="bootSplash" aria-label="در حال بارگذاری بازی">
-  <div class="bs-title">سه طبقه تا بقا</div>
+  <div class="bs-title">سه طبقه تا مرگ</div>
   <div class="bs-divider"></div>
   <div class="bs-spin"></div>
   <div class="bs-text">در حال بارگذاری بازی…</div>
@@ -764,8 +766,8 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div class="overlay" id="startScreen">
     <div id="menuHero">
       <div class="menu-frame">
-        <div class="menu-ver">نسخه‌ی ۲۱٫۱</div>
-        <h1 class="game-title">سه طبقه تا <span class="t-red">بقا</span></h1>
+        <div class="menu-ver">نسخه‌ی ۲۱٫۳</div>
+        <h1 class="game-title">سه طبقه تا <span class="t-red">مرگ</span></h1>
         <div class="menu-tagline">شهر ساکت است... و شب‌ها تازه شروع شده‌اند</div>
         <div class="menu-divider"></div>
         <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
@@ -851,7 +853,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div class="overlay hidden" id="aboutScreen">
     <div class="panel" style="max-width:470px">
       <h2>ℹ️ درباره‌ی بازی</h2>
-      <p class="subtitle">سه طبقه تا بقا</p>
+      <p class="subtitle">سه طبقه تا مرگ</p>
       <div class="howto" style="text-align:right">
         <div>سکوت، از حاشیه‌ی شهر به راه افتاد.</div>
         <div>ویروسی ناشناخته، کوچه‌ها را یک‌به‌یک به خوابی بی‌پایان فرستاد؛ چند هفته بعد، شهری که روزی از هیاهو می‌لرزید، تنها با باد نفس می‌کشید.</div>
@@ -927,7 +929,14 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
    ================================================================== */
 
 /* ---------------------- ۱) ثابت‌ها و تنظیمات ---------------------- */
-const W = 960, H = 560;                    // ابعاد منطقی دنیای بازی
+/* (۲۱٫۳) عرض دنیا «تطبیقی» است: ارتفاع همیشه ۵۶۰ ولی عرض از نسبت
+   صفحه محاسبه می‌شود (۹۶۰ تا ۱۴۴۰). نتیجه: روی گوشی‌های عریض
+   (نسبت ~۲:۱) دنیا خودش بازتر می‌شود و بازی «مستطیل کامل گوشی»
+   را می‌پوشاند — بدون نوار سیاهِ چپ و راست. برج وسط (W/2) و
+   لبه‌ی زادگاه زامبی‌ها (-۴۰ / W+۴۰) خودکار با آن جابه‌جا می‌شوند. */
+const H = 560;
+const W = Math.max(960, Math.min(1440, Math.round(560 *
+  ((window.innerWidth || 960) / Math.max(1, window.innerHeight || 560)))));
 const GROUND_Y = 492;                      // خط زمین (پای زامبی‌ها)
 const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };
 const TOWER_TOP_Y = GROUND_Y - TOWER.floorH * TOWER.floors; // سقف برج = محل ایستادن بازیکن
@@ -1059,16 +1068,18 @@ const STARS = Array.from({ length: 80 }, () => ({
   x: srand() * W, y: srand() * (GROUND_Y - 90), r: 0.6 + srand() * 1.4,
   ph: srand() * 6.28, sp: 0.5 + srand() * 1.6,
 }));
-const HILLS1 = Array.from({ length: 18 }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
-const HILLS2 = Array.from({ length: 13 }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
+/* (۲۱٫۳) تپه/ابر/برکه/چراغ نسبت به W تعریف می‌شوند تا روی دنیای عریض‌تر
+   (گوشی‌های ~۲:۱) تا لبه‌ی صفحه کشیده و متقارن بیایند */
+const HILLS1 = Array.from({ length: Math.ceil((W + 90) / 60) }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
+const HILLS2 = Array.from({ length: Math.ceil((W + 125) / 85) }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
 const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
 /* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس — ۶٫۰: دو ابر دیگر) */
 const CLOUDS = [
-  { x: 140, y: 58,  s: 1.15, v: 6 },
-  { x: 520, y: 96,  s: 0.8,  v: 9 },
-  { x: 830, y: 44,  s: 1.35, v: 5 },
-  { x: 300, y: 128, s: 0.6,  v: 12 },
-  { x: 660, y: 30,  s: 0.75, v: 10 },
+  { x: W * 0.146, y: 58,  s: 1.15, v: 6 },
+  { x: W * 0.542, y: 96,  s: 0.8,  v: 9 },
+  { x: W * 0.865, y: 44,  s: 1.35, v: 5 },
+  { x: W * 0.313, y: 128, s: 0.6,  v: 12 },
+  { x: W * 0.688, y: 30,  s: 0.75, v: 10 },
 ];
 /* کرم‌های شب‌تاب (۳٫۰): نقاط نور کوچکی که آرام حول زمین شنا می‌شوند */
 const FIREFLIES = Array.from({ length: 14 }, () => ({
@@ -1079,7 +1090,7 @@ const FIREFLIES = Array.from({ length: 14 }, () => ({
 /* دسته‌های چمن کنار جاده (۳٫۰) */
 const GRASS = Array.from({ length: 40 }, () => ({ x: srand() * W, h: 4 + srand() * 8, ph: srand() * 6.28 }));
 /* برکه‌های کوچک بازتابنده‌ی نور ماه (۳٫۰) */
-const PUDDLES = [{ x: 150, w: 52 }, { x: 392, w: 66 }, { x: 636, w: 46 }];
+const PUDDLES = [{ x: W * 0.156, w: 52 }, { x: W * 0.408, w: 66 }, { x: W * 0.663, w: 46 }];
 /* افق شهر در دوردست: ساختمان‌های سیاه‌شکلی با پنجره‌های روشن (پیش‌محاسبه‌شده) */
 const SKYLINE = [];
 const SKYLINE_WINS = [];
@@ -1397,8 +1408,7 @@ let shootStar = null, shootStarT = rand(3, 7);   // شهابِ گاه‌به‌�
    بومِ مقصد را موقتاً عوض کنند و فرماندار کیفیت بتواند DPR را در اجرا کم کند */
 const canvas = $('game');
 let ctx = canvas.getContext('2d');
-let DPR = Math.min(window.devicePixelRatio || 1,
-  (('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches) ? 1.5 : 2); // (۱۱٫۰) موبایل: سقف ۱٫۵ برای سرعت
+let DPR = Math.min(window.devicePixelRatio || 1, 2);   // (۲۱٫۳) سقف ۲ — نمایش شارپ روی گوشی؛ فرماندار کیفیت خودش کم می‌کند
 const DPR0 = DPR;                              // (۱۸٫۱) مقدار اولیه — برای بازگشت فرماندار کیفیت
 function setDPR(v) {                           // (۱۸٫۱) تغییر رزولوشن بوم در اجرا (کاهش بار GPU)
   DPR = Math.min(Math.max(0.75, v), 2);
@@ -3738,7 +3748,7 @@ function drawTree(x, s, dead) {
 }
 
 /* تیرهای چراغ با مخروط نور چشمک‌زن (۳٫۰) — در روز کم‌نور (۵٫۰) */
-const LAMPS = [236, 724];
+const LAMPS = [Math.round(W * 0.245), Math.round(W * 0.755)];   // (۲۱٫۳) نسبت به عرض دنیا — متقارن روی صفحه‌های عریض
 function drawLamps() {
   const dim = 1 - state.dayness * 0.9;      // چراغ‌ها در روز تقریباً خاموش‌اند
   const warm = state.towerVariant === 1 ? '255,110,70' : '255,214,120';   // (۷٫۰) نور اضطراری در شهر سوخته
@@ -10786,7 +10796,7 @@ function drawRiverObs(o, z) {
 function drawRiverBoat() {
   const D = DRV;
   const lean = clamp(D.steer, -1, 1) * 20;
-  const cx = 480 + lean * 0.7;
+  const cx = W / 2 + lean * 0.7;   /* (21.3) world-adaptive */
   const cy = 552;
   const bob = Math.sin(animTime * 2.1) * 2.6 + Math.sin(animTime * 3.7) * 1.2;
   const braking = D.brake;
@@ -11209,7 +11219,7 @@ function drawSnowObs(o, z) {
 function drawSnowmobile() {
   const D = DRV;
   const lean = clamp(D.steer, -1, 1) * 26;
-  const cx = 480 + lean * 0.7;
+  const cx = W / 2 + lean * 0.7;   /* (21.3) world-adaptive */
   const cy = 554;
   const bob = Math.sin(animTime * 15) * 1.6;
   const braking = D.brake;
@@ -11982,10 +11992,11 @@ function showBpkTip(i, el) {
     '<span class="t-status">' + bpkStatus(s.id) + '</span>';
   tip.style.display = 'block';
   /* کوله سمت چپ صفحه است → تولتیپ سمت راستِ جاخالی باز شود */
+  const sc = window.__fitScale || 1;              /* (۲۱٫۳) rect ها مقیاس‌خورده‌اند → تقسیم بر مقیاس */
   const wrapR = $('wrap').getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  tip.style.left = Math.min(W - tip.offsetWidth - 6, r.right - wrapR.left + 8) + 'px';
-  tip.style.top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6) + 'px';
+  tip.style.left = Math.min(W - tip.offsetWidth - 6, (r.right - wrapR.left) / sc + 8) + 'px';
+  tip.style.top = clamp((r.top - wrapR.top) / sc + (r.height / sc) / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6) + 'px';
 }
 
 /* ---------------------- ۶-۴) آیکون‌های Canvas وسایل ---------------------- */
@@ -14636,9 +14647,9 @@ function updateShelterCine(dt) {
       SHEL.doorSfx = true;
       SFX.csEngine(); state.shake = 5;
     }
-    /* نورِ ریخته از در وقتی باز می‌شود */
+    /* نورِ ریخته از در وقتی باز می‌شود (۲۱٫۳: نسبت به W) */
     if (SHEL.t > 1.0 && Math.random() < dt * 14) {
-      spawnParticles(700 + rand(-60, 60), 330 + rand(-30, 30), 1, 'rgba(255,226,168,0.5)',
+      spawnParticles(W * 0.73 + rand(-60, 60), 330 + rand(-30, 30), 1, 'rgba(255,226,168,0.5)',
         { speed: 16, life: 1.6, size: 2.4, grav: -8 });
     }
     if (SHEL.t >= 4.0) { SHEL.phase = 'inside'; SHEL.t = 0; }
@@ -14650,7 +14661,7 @@ function updateShelterCine(dt) {
     }
     /* چراغ‌های سقفی سوسوزن + بخارِ تنفس سرد */
     if (Math.random() < dt * 3) {
-      spawnParticles(rand(80, 880), 300, 1, 'rgba(255,226,168,0.22)',
+      spawnParticles(rand(80, W - 80), 300, 1, 'rgba(255,226,168,0.22)',
         { speed: 6, life: 2.2, size: 2, grav: 6 });
     }
     if (SHEL.dlgDone && SHEL.t > 1.0 && !SHEL.alarmStarted) {
@@ -14664,7 +14675,7 @@ function updateShelterCine(dt) {
     /* آژیر: چراغ قرمز چرخان + لرزش + ریزش غبار */
     state.shake = Math.max(state.shake, 2.5);
     if (Math.random() < dt * 16) {
-      spawnParticles(rand(60, 900), 240, 1, 'rgba(160,140,110,0.4)',
+      spawnParticles(rand(60, W - 60), 240, 1, 'rgba(160,140,110,0.4)',
         { speed: 20, life: 1.4, size: 2, grav: 60 });
     }
     if (Math.sin(SHEL.t * 4.4) > 0.92 && !SHEL._al2) { SHEL._al2 = true; SFX.alarm(); }
@@ -14794,8 +14805,8 @@ function renderShelterWalk(t) {
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
   g.addColorStop(0, '#2c2440'); g.addColorStop(0.45, '#7a4a3a'); g.addColorStop(0.8, '#d88a4e'); g.addColorStop(1, '#f0c884');
   ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
-  /* خورشیدِ تازه‌درآمده */
-  const sx = 130, sy = 120;
+  /* خورشیدِ تازه‌درآمده (۲۱٫۳: نسبت به W) */
+  const sx = Math.round(W * 0.135), sy = 120;
   const sg = ctx.createRadialGradient(sx, sy, 8, sx, sy, 120);
   sg.addColorStop(0, 'rgba(255,220,150,0.8)'); sg.addColorStop(1, 'rgba(255,190,120,0)');
   ctx.fillStyle = sg; circle(sx, sy, 120);
@@ -14803,14 +14814,15 @@ function renderShelterWalk(t) {
   /* تپه‌های دور */
   ctx.fillStyle = '#3a2c34';
   ctx.beginPath(); ctx.moveTo(-20, GROUND_Y - 40);
-  for (let i = 0; i < 9; i++) {
+  const hn = Math.ceil((W + 60) / 130);        /* (۲۱٫۳) تعداد تپه‌ها نسبت به عرض */
+  for (let i = 0; i < hn; i++) {
     const x = i * 130 - 30;
     ctx.lineTo(x + 65, GROUND_Y - 96 - ((i * 53) % 70));
     ctx.lineTo(x + 130, GROUND_Y - 34);
   }
   ctx.lineTo(W + 20, GROUND_Y - 40); ctx.closePath(); ctx.fill();
-  /* تپه‌ی پناهگاه (راست) + درِ فولادی + چراغ‌هایش */
-  const hx = 770, hy = GROUND_Y;
+  /* تپه‌ی پناهگاه (راست) + درِ فولادی + چراغ‌هایش — (۲۱٫۳: نسبت به W) */
+  const hx = Math.round(W * 0.8), hy = GROUND_Y;
   ctx.fillStyle = '#2c2230';
   ctx.beginPath();
   ctx.moveTo(hx - 190, hy);
@@ -14846,15 +14858,15 @@ function renderShelterWalk(t) {
   ctx.fillStyle = gg; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
   ctx.fillStyle = 'rgba(255,200,130,0.12)';
   ctx.fillRect(-20, GROUND_Y, W + 40, 3);
-  /* جاده‌ی خاکی تا در */
+  /* جاده‌ی خاکی تا در (۲۱٫۳: نسبت به W) */
   ctx.fillStyle = 'rgba(96,74,56,0.6)';
   ctx.beginPath();
-  ctx.moveTo(300, H); ctx.lineTo(560, GROUND_Y - 6);
-  ctx.lineTo(680, GROUND_Y - 6); ctx.lineTo(880, H);
+  ctx.moveTo(W * 0.31, H); ctx.lineTo(W * 0.58, GROUND_Y - 6);
+  ctx.lineTo(W * 0.71, GROUND_Y - 6); ctx.lineTo(W * 0.92, H);
   ctx.closePath(); ctx.fill();
-  /* دو مسافر (بازیکن + ارشان) که نزدیک می‌شوند */
+  /* دو مسافر (بازیکن + ارشان) که نزدیک می‌شوند — (۲۱٫۳: نسبت به W) */
   const k = clamp(t / 6.2, 0, 1);
-  const bx = 300 + k * 330;
+  const bx = W * 0.31 + k * W * 0.34;
   const sc = 1.25 + k * 0.5;
   drawShelterWalker(bx, GROUND_Y - 2, sc, -0.9, false);
   drawShelterWalker(bx - 34 * sc, GROUND_Y + 2, sc * 0.96, -0.7, true);
@@ -15010,6 +15022,9 @@ function renderShelterInside(t, ph) {
   const BW = 300, BH = 262;                       /* پهنای دیوار عقب */
   const bx0 = VX - BW / 2, bx1 = VX + BW / 2;      /* 330..630 */
   const byT = VY - BH / 2 + 12, byB = VY + BH / 2 + 12;   /* ~123..385 */
+  /* (21.3) DX: furniture designed for 960-world; on wide screens the room
+     widens around VX so the whole layout shifts with it (zero at W=960) */
+  const DX = VX - 480;
 
   /* ===== پس‌زمینه‌ی کلی ===== */
   ctx.fillStyle = '#0d1018'; ctx.fillRect(-20, -20, W + 40, H + 40);
@@ -15164,6 +15179,7 @@ function renderShelterInside(t, ph) {
 
   /* ===== آشپزخانه چپ (۲۱٫۲: همه‌چیز به دیوار/کف چسبیده — چیدمان منطقی) ===== */
   /* قفسه‌ی کنسرو دوطبقه — روی دیوار جانبی */
+  ctx.save(); ctx.translate(DX, 0);            /* (21.3) kitchen block */
   for (let s = 0; s < 2; s++) {
     const sx = 88 + s * 8, sy = 288 + s * 66;
     const sw = 168 - s * 10;
@@ -15202,9 +15218,10 @@ function renderShelterInside(t, ph) {
   ctx.moveTo(stx + 14, sty - 50);
   ctx.quadraticCurveTo(stx + 44, sty - 92, stx + 58, sty - 140);
   ctx.stroke();
+  ctx.restore();                                /* (21.3) end kitchen block */
 
-  /* ===== منطقه‌ی خواب راست ===== */
   /* تخت دوطبقه */
+  ctx.save(); ctx.translate(DX, 0);            /* (21.3) sleeping-area block */
   const bx = 688, by = 300;
   ctx.strokeStyle = '#39424e'; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath();
@@ -15240,41 +15257,42 @@ function renderShelterInside(t, ph) {
   ctx.fillStyle = '#e8b54a';
   ctx.font = 'bold 13px Tahoma'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('⚡', 849, 462);
-  /* بند رخت با دو لباس */
+  ctx.restore();                                /* (21.3) end sleeping-area block */
+  /* بند رخت با دو لباس — (۲۱٫۳: نقاط نسبت به VX؛ سرِ بند به دیوار راست) */
   ctx.strokeStyle = 'rgba(200,205,215,0.35)'; ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.moveTo(W + 10, 250);
-  ctx.quadraticCurveTo(780, 300, 700, 286);
+  ctx.quadraticCurveTo(VX + 300, 300, VX + 220, 286);
   ctx.stroke();
   ctx.fillStyle = '#6a5a8a';
   ctx.beginPath();
-  ctx.moveTo(790, 280); ctx.lineTo(806, 280); ctx.lineTo(803, 318); ctx.lineTo(793, 318);
+  ctx.moveTo(VX + 310, 280); ctx.lineTo(VX + 326, 280); ctx.lineTo(VX + 323, 318); ctx.lineTo(VX + 313, 318);
   ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#5a6a4a';
   ctx.beginPath();
-  ctx.moveTo(748, 288); ctx.lineTo(760, 288); ctx.lineTo(758, 320); ctx.lineTo(750, 320);
+  ctx.moveTo(VX + 268, 288); ctx.lineTo(VX + 280, 288); ctx.lineTo(VX + 278, 320); ctx.lineTo(VX + 270, 320);
   ctx.closePath(); ctx.fill();
 
-  /* ===== قالیچه‌ی گفتگو — محدوده‌ی میز/گروه را مشخص می‌کند (۲۱٫۲) ===== */
+  /* ===== قالیچه‌ی گفتگو — محدوده‌ی میز/گروه را مشخص می‌کند (۲۱٫۲ — ۲۱٫۳: +DX) ===== */
   ctx.fillStyle = 'rgba(122,58,58,0.30)';
   ctx.beginPath();
-  ctx.moveTo(452, 396); ctx.lineTo(588, 396);
-  ctx.lineTo(640, 548); ctx.lineTo(396, 548);
+  ctx.moveTo(452 + DX, 396); ctx.lineTo(588 + DX, 396);
+  ctx.lineTo(640 + DX, 548); ctx.lineTo(396 + DX, 548);
   ctx.closePath(); ctx.fill();
   ctx.strokeStyle = 'rgba(201,162,78,0.22)'; ctx.lineWidth = 2.4;
   ctx.beginPath();
-  ctx.moveTo(458, 400); ctx.lineTo(582, 400);
-  ctx.lineTo(632, 543); ctx.lineTo(404, 543);
+  ctx.moveTo(458 + DX, 400); ctx.lineTo(582 + DX, 400);
+  ctx.lineTo(632 + DX, 543); ctx.lineTo(404 + DX, 543);
   ctx.closePath(); ctx.stroke();
 
-  /* ===== بازمانده‌ها (۲۱٫۲: هر کس سرِ جای منطقی خودش) ===== */
-  drawShelterSurvivorOld(296, 470, animTime);          /* پیرمردِ عصایی کنارِ بخاری */
-  drawShelterSurvivorKnit(258, 505, animTime);         /* زنِ بافتنی زیر چراغِ اول */
-  drawShelterSurvivor(612, 392, '#6a5a8a', 0);         /* پتوپیچ کنار تخت‌ها */
-  drawShelterGuard(bx1 - 40, byB - 10, animTime);      /* نگهبانِ کنارِ درِ فولادی */
+  /* ===== بازمانده‌ها (۲۱٫۲: هر کس سرِ جای منطقی خودش — ۲۱٫۳: +DX) ===== */
+  drawShelterSurvivorOld(296 + DX, 470, animTime);       /* پیرمردِ عصایی کنارِ بخاری */
+  drawShelterSurvivorKnit(258 + DX, 505, animTime);      /* زنِ بافتنی زیر چراغِ اول */
+  drawShelterSurvivor(612 + DX, 392, '#6a5a8a', 0);      /* پتوپیچ کنار تخت‌ها */
+  drawShelterGuard(bx1 - 40, byB - 10, animTime);      /* نگهبانِ کنارِ درِ فولادی (وابسته به دیوار) */
 
-  /* ===== میز رادیو وسط + ایستگاه دکتر ===== */
-  const rx = 468, ry = 512;
+  /* ===== میز رادیو وسط + ایستگاه دکتر (۲۱٫۳: rx با DX) ===== */
+  const rx = 468 + DX, ry = 512;
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(rx, ry + 4, 86, 12, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#3a2c1a'; rr(rx - 72, ry - 42, 144, 42, 6); ctx.fill();
@@ -15303,6 +15321,7 @@ function renderShelterInside(t, ph) {
   ctx.globalAlpha = 1;
   /* ایستگاه کمک‌های اولیه (۲۱٫۲: کابینت به دیوارِ چپ چسبیده، پشتِ دکتر —
      قبلاً صندوق و ستاند سرم وسطِ راهرو‌ی ورودی وسط هوا شناور بودند) */
+  ctx.save(); ctx.translate(DX, 0);            /* (21.3) med-station block */
   ctx.fillStyle = '#5a2220'; rr(216, 398, 46, 58, 4); ctx.fill();
   ctx.strokeStyle = '#7a3a34'; ctx.lineWidth = 2; rr(216, 398, 46, 58, 4); ctx.stroke();
   ctx.fillStyle = '#8a3a30'; rr(222, 406, 34, 22, 3); ctx.fill();      // صندوق قرمز روی کابینت
@@ -15319,11 +15338,12 @@ function renderShelterInside(t, ph) {
   ctx.fillStyle = 'rgba(140,190,255,0.5)'; rr(271, 404, 10, 16, 3); ctx.fill();
   ctx.strokeStyle = 'rgba(140,190,255,0.6)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(276, 420); ctx.quadraticCurveTo(276, 444, 284, 452); ctx.stroke();
+  ctx.restore();                                /* (21.3) end med-station block */
 
   /* دکتر مریم — جلوی ایستگاهش، رو به بازیکن */
   drawDoctorMary(rx - 128, ry - 8, animTime);
   /* بازیکن (۲۱٫۲: وسطِ جمعیت — کنارِ دکتر و میز؛ ایستاده و آرام) */
-  drawShelterWalker(392, 542, 2.5, 0.3, false, true);
+  drawShelterWalker(392 + DX, 542, 2.5, 0.3, false, true);
   /* ارشان — پشت میز، دست روی رادیو */
   {
     const ax = rx + 104, ay = ry - 6;
@@ -15347,7 +15367,7 @@ function renderShelterInside(t, ph) {
 
   /* ===== سه چراغ آویز + مخروط نور حجمی ===== */
   for (let i = 0; i < 3; i++) {
-    const lx = 208 + i * 272;
+    const lx = VX - 272 + i * 272;             /* (21.3) lamps follow room center */
     const flick = 0.8 + 0.2 * Math.sin(animTime * (3 + i) + i * 2);
     ctx.strokeStyle = '#0e1218'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(lx, 30); ctx.lineTo(lx, 118); ctx.stroke();
@@ -15759,30 +15779,34 @@ window.addEventListener('load', () => {
 const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
                  (matchMedia && matchMedia('(pointer:coarse)').matches);
 
-/* ---------------------- ۱۱-۰) (۱۴٫۰) اندازه‌ی قاب بازی ----------------------
-   کل بازی (۹۶۰×۵۶۰) بدون برش در صفحه جا شود — با JS چون:
-   • 100vh در گوشی نوار آدرس را هم حساب می‌کند (پایین بریده می‌شد)
-   • مرورگرهای درون‌اپ گاهی vw/vh را اشتباه گزارش می‌کنند («صفحه نصفه»)
-   • تغییر جهت/چرخش/بازآمدن نوار آدرس → بازسازی فوری */
+/* ---------------------- ۱۱-۰) (۲۱٫۳) اندازه‌ی قاب بازی — تمام‌صفحه‌ی واقعی ----------------------
+   قدیم: قاب ۹۶۰×۵۶۰ با حفظ نسبت وسط صفحه می‌نشست → روی گوشی‌های
+   عریض، چپ و راست نوار سیاه می‌ماند و همه‌چیز ریز و «کم‌رنگ» به
+   نظر می‌رسید.
+   جدید: عرضِ دنیای بازی از همان نسبت صفحه محاسبه شده (W در
+   v3_part2)؛ قاب با ابعاد منطقی W×H ساخته و با transform:scale
+   دقیقاً تا لبه‌های صفحه کشیده می‌شود — بوم، HUD، منوها و متن‌ها
+   همه با هم و یک‌نواخت بزرگ می‌شوند (متن‌ها دیگر له/ریز نمی‌شوند).
+   • 100vh در گوشی نوار آدرس را هم حساب می‌کند → از visualViewport
+   • مرورگرهای درون‌اپ گاهی vw/vh را اشتباه گزارش می‌کنند
+   • تغییر جهت/چرخش/بازآمدن نوار آدرس → بازسازی فوری
+   • مقیاس جاری در window.__fitScale (برای تبدیل مختصات تولتیپ‌ها) */
 function fitWrap() {
   const el = document.getElementById('wrap');
   if (!el) return;
   const vv = window.visualViewport;
   let aw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 960;
   let ah = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 560;
-  /* حاشیه‌ی امن: حداقل ۶px از هر طرف */
-  aw = Math.max(200, aw - 12);
-  ah = Math.max(140, ah - 12);
-  const s = Math.min(aw / 960, ah / 560);
-  const w = Math.round(960 * s), h = Math.round(560 * s);
-  if (Math.abs(el.offsetWidth - w) > 1 || Math.abs(el.offsetHeight - h) > 1) {
-    el.style.width = w + 'px';
-    el.style.height = h + 'px';
-    el.style.aspectRatio = 'auto';
-  }
+  const s = Math.min(aw / W, ah / H);            /* (W خودش هم‌نسبت صفحه است → s ≈ هر دو) */
+  el.style.width = W + 'px';
+  el.style.height = H + 'px';
+  el.style.aspectRatio = 'auto';
+  el.style.transform = 'scale(' + s + ')';
+  el.style.transformOrigin = 'center center';
+  window.__fitScale = s;
   /* (۱۹٫۰) صفحه‌های کوچک: کلاس sui → کوله‌پشتی و متن‌های ریز باز هم
      جمع‌تر می‌شوند تا زمین بازی/زامبی‌های ورودی دیده بمانند */
-  el.classList.toggle('sui', w < 760);
+  el.classList.toggle('sui', W * s < 760);
 }
 window.addEventListener('resize', fitWrap, { passive: true });
 window.addEventListener('orientationchange', () => setTimeout(fitWrap, 250));
@@ -16198,10 +16222,11 @@ function showTip(d, el) {
 }
 function positionTip(el) {
   const tip = $('bpTip');
+  const sc = window.__fitScale || 1;              /* (۲۱٫۳) rect ها مقیاس‌خورده‌اند → تقسیم بر مقیاس */
   const wrapR = $('wrap').getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  const left = r.left - wrapR.left - tip.offsetWidth - 10;
-  const top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6);
+  const left = (r.left - wrapR.left) / sc - tip.offsetWidth - 10;
+  const top = clamp((r.top - wrapR.top) / sc + (r.height / sc) / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6);
   tip.style.left = Math.max(4, left) + 'px';
   tip.style.top = top + 'px';
 }

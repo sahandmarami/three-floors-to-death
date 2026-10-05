@@ -127,9 +127,9 @@ function updateShelterCine(dt) {
       SHEL.doorSfx = true;
       SFX.csEngine(); state.shake = 5;
     }
-    /* نورِ ریخته از در وقتی باز می‌شود */
+    /* نورِ ریخته از در وقتی باز می‌شود (۲۱٫۳: نسبت به W) */
     if (SHEL.t > 1.0 && Math.random() < dt * 14) {
-      spawnParticles(700 + rand(-60, 60), 330 + rand(-30, 30), 1, 'rgba(255,226,168,0.5)',
+      spawnParticles(W * 0.73 + rand(-60, 60), 330 + rand(-30, 30), 1, 'rgba(255,226,168,0.5)',
         { speed: 16, life: 1.6, size: 2.4, grav: -8 });
     }
     if (SHEL.t >= 4.0) { SHEL.phase = 'inside'; SHEL.t = 0; }
@@ -141,7 +141,7 @@ function updateShelterCine(dt) {
     }
     /* چراغ‌های سقفی سوسوزن + بخارِ تنفس سرد */
     if (Math.random() < dt * 3) {
-      spawnParticles(rand(80, 880), 300, 1, 'rgba(255,226,168,0.22)',
+      spawnParticles(rand(80, W - 80), 300, 1, 'rgba(255,226,168,0.22)',
         { speed: 6, life: 2.2, size: 2, grav: 6 });
     }
     if (SHEL.dlgDone && SHEL.t > 1.0 && !SHEL.alarmStarted) {
@@ -155,7 +155,7 @@ function updateShelterCine(dt) {
     /* آژیر: چراغ قرمز چرخان + لرزش + ریزش غبار */
     state.shake = Math.max(state.shake, 2.5);
     if (Math.random() < dt * 16) {
-      spawnParticles(rand(60, 900), 240, 1, 'rgba(160,140,110,0.4)',
+      spawnParticles(rand(60, W - 60), 240, 1, 'rgba(160,140,110,0.4)',
         { speed: 20, life: 1.4, size: 2, grav: 60 });
     }
     if (Math.sin(SHEL.t * 4.4) > 0.92 && !SHEL._al2) { SHEL._al2 = true; SFX.alarm(); }
@@ -285,8 +285,8 @@ function renderShelterWalk(t) {
   const g = ctx.createLinearGradient(0, -20, 0, GROUND_Y);
   g.addColorStop(0, '#2c2440'); g.addColorStop(0.45, '#7a4a3a'); g.addColorStop(0.8, '#d88a4e'); g.addColorStop(1, '#f0c884');
   ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, GROUND_Y + 40);
-  /* خورشیدِ تازه‌درآمده */
-  const sx = 130, sy = 120;
+  /* خورشیدِ تازه‌درآمده (۲۱٫۳: نسبت به W) */
+  const sx = Math.round(W * 0.135), sy = 120;
   const sg = ctx.createRadialGradient(sx, sy, 8, sx, sy, 120);
   sg.addColorStop(0, 'rgba(255,220,150,0.8)'); sg.addColorStop(1, 'rgba(255,190,120,0)');
   ctx.fillStyle = sg; circle(sx, sy, 120);
@@ -294,14 +294,15 @@ function renderShelterWalk(t) {
   /* تپه‌های دور */
   ctx.fillStyle = '#3a2c34';
   ctx.beginPath(); ctx.moveTo(-20, GROUND_Y - 40);
-  for (let i = 0; i < 9; i++) {
+  const hn = Math.ceil((W + 60) / 130);        /* (۲۱٫۳) تعداد تپه‌ها نسبت به عرض */
+  for (let i = 0; i < hn; i++) {
     const x = i * 130 - 30;
     ctx.lineTo(x + 65, GROUND_Y - 96 - ((i * 53) % 70));
     ctx.lineTo(x + 130, GROUND_Y - 34);
   }
   ctx.lineTo(W + 20, GROUND_Y - 40); ctx.closePath(); ctx.fill();
-  /* تپه‌ی پناهگاه (راست) + درِ فولادی + چراغ‌هایش */
-  const hx = 770, hy = GROUND_Y;
+  /* تپه‌ی پناهگاه (راست) + درِ فولادی + چراغ‌هایش — (۲۱٫۳: نسبت به W) */
+  const hx = Math.round(W * 0.8), hy = GROUND_Y;
   ctx.fillStyle = '#2c2230';
   ctx.beginPath();
   ctx.moveTo(hx - 190, hy);
@@ -337,15 +338,15 @@ function renderShelterWalk(t) {
   ctx.fillStyle = gg; ctx.fillRect(-20, GROUND_Y, W + 40, H - GROUND_Y + 20);
   ctx.fillStyle = 'rgba(255,200,130,0.12)';
   ctx.fillRect(-20, GROUND_Y, W + 40, 3);
-  /* جاده‌ی خاکی تا در */
+  /* جاده‌ی خاکی تا در (۲۱٫۳: نسبت به W) */
   ctx.fillStyle = 'rgba(96,74,56,0.6)';
   ctx.beginPath();
-  ctx.moveTo(300, H); ctx.lineTo(560, GROUND_Y - 6);
-  ctx.lineTo(680, GROUND_Y - 6); ctx.lineTo(880, H);
+  ctx.moveTo(W * 0.31, H); ctx.lineTo(W * 0.58, GROUND_Y - 6);
+  ctx.lineTo(W * 0.71, GROUND_Y - 6); ctx.lineTo(W * 0.92, H);
   ctx.closePath(); ctx.fill();
-  /* دو مسافر (بازیکن + ارشان) که نزدیک می‌شوند */
+  /* دو مسافر (بازیکن + ارشان) که نزدیک می‌شوند — (۲۱٫۳: نسبت به W) */
   const k = clamp(t / 6.2, 0, 1);
-  const bx = 300 + k * 330;
+  const bx = W * 0.31 + k * W * 0.34;
   const sc = 1.25 + k * 0.5;
   drawShelterWalker(bx, GROUND_Y - 2, sc, -0.9, false);
   drawShelterWalker(bx - 34 * sc, GROUND_Y + 2, sc * 0.96, -0.7, true);
@@ -501,6 +502,9 @@ function renderShelterInside(t, ph) {
   const BW = 300, BH = 262;                       /* پهنای دیوار عقب */
   const bx0 = VX - BW / 2, bx1 = VX + BW / 2;      /* 330..630 */
   const byT = VY - BH / 2 + 12, byB = VY + BH / 2 + 12;   /* ~123..385 */
+  /* (21.3) DX: furniture designed for 960-world; on wide screens the room
+     widens around VX so the whole layout shifts with it (zero at W=960) */
+  const DX = VX - 480;
 
   /* ===== پس‌زمینه‌ی کلی ===== */
   ctx.fillStyle = '#0d1018'; ctx.fillRect(-20, -20, W + 40, H + 40);
@@ -655,6 +659,7 @@ function renderShelterInside(t, ph) {
 
   /* ===== آشپزخانه چپ (۲۱٫۲: همه‌چیز به دیوار/کف چسبیده — چیدمان منطقی) ===== */
   /* قفسه‌ی کنسرو دوطبقه — روی دیوار جانبی */
+  ctx.save(); ctx.translate(DX, 0);            /* (21.3) kitchen block */
   for (let s = 0; s < 2; s++) {
     const sx = 88 + s * 8, sy = 288 + s * 66;
     const sw = 168 - s * 10;
@@ -693,9 +698,10 @@ function renderShelterInside(t, ph) {
   ctx.moveTo(stx + 14, sty - 50);
   ctx.quadraticCurveTo(stx + 44, sty - 92, stx + 58, sty - 140);
   ctx.stroke();
+  ctx.restore();                                /* (21.3) end kitchen block */
 
-  /* ===== منطقه‌ی خواب راست ===== */
   /* تخت دوطبقه */
+  ctx.save(); ctx.translate(DX, 0);            /* (21.3) sleeping-area block */
   const bx = 688, by = 300;
   ctx.strokeStyle = '#39424e'; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath();
@@ -731,41 +737,42 @@ function renderShelterInside(t, ph) {
   ctx.fillStyle = '#e8b54a';
   ctx.font = 'bold 13px Tahoma'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('⚡', 849, 462);
-  /* بند رخت با دو لباس */
+  ctx.restore();                                /* (21.3) end sleeping-area block */
+  /* بند رخت با دو لباس — (۲۱٫۳: نقاط نسبت به VX؛ سرِ بند به دیوار راست) */
   ctx.strokeStyle = 'rgba(200,205,215,0.35)'; ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.moveTo(W + 10, 250);
-  ctx.quadraticCurveTo(780, 300, 700, 286);
+  ctx.quadraticCurveTo(VX + 300, 300, VX + 220, 286);
   ctx.stroke();
   ctx.fillStyle = '#6a5a8a';
   ctx.beginPath();
-  ctx.moveTo(790, 280); ctx.lineTo(806, 280); ctx.lineTo(803, 318); ctx.lineTo(793, 318);
+  ctx.moveTo(VX + 310, 280); ctx.lineTo(VX + 326, 280); ctx.lineTo(VX + 323, 318); ctx.lineTo(VX + 313, 318);
   ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#5a6a4a';
   ctx.beginPath();
-  ctx.moveTo(748, 288); ctx.lineTo(760, 288); ctx.lineTo(758, 320); ctx.lineTo(750, 320);
+  ctx.moveTo(VX + 268, 288); ctx.lineTo(VX + 280, 288); ctx.lineTo(VX + 278, 320); ctx.lineTo(VX + 270, 320);
   ctx.closePath(); ctx.fill();
 
-  /* ===== قالیچه‌ی گفتگو — محدوده‌ی میز/گروه را مشخص می‌کند (۲۱٫۲) ===== */
+  /* ===== قالیچه‌ی گفتگو — محدوده‌ی میز/گروه را مشخص می‌کند (۲۱٫۲ — ۲۱٫۳: +DX) ===== */
   ctx.fillStyle = 'rgba(122,58,58,0.30)';
   ctx.beginPath();
-  ctx.moveTo(452, 396); ctx.lineTo(588, 396);
-  ctx.lineTo(640, 548); ctx.lineTo(396, 548);
+  ctx.moveTo(452 + DX, 396); ctx.lineTo(588 + DX, 396);
+  ctx.lineTo(640 + DX, 548); ctx.lineTo(396 + DX, 548);
   ctx.closePath(); ctx.fill();
   ctx.strokeStyle = 'rgba(201,162,78,0.22)'; ctx.lineWidth = 2.4;
   ctx.beginPath();
-  ctx.moveTo(458, 400); ctx.lineTo(582, 400);
-  ctx.lineTo(632, 543); ctx.lineTo(404, 543);
+  ctx.moveTo(458 + DX, 400); ctx.lineTo(582 + DX, 400);
+  ctx.lineTo(632 + DX, 543); ctx.lineTo(404 + DX, 543);
   ctx.closePath(); ctx.stroke();
 
-  /* ===== بازمانده‌ها (۲۱٫۲: هر کس سرِ جای منطقی خودش) ===== */
-  drawShelterSurvivorOld(296, 470, animTime);          /* پیرمردِ عصایی کنارِ بخاری */
-  drawShelterSurvivorKnit(258, 505, animTime);         /* زنِ بافتنی زیر چراغِ اول */
-  drawShelterSurvivor(612, 392, '#6a5a8a', 0);         /* پتوپیچ کنار تخت‌ها */
-  drawShelterGuard(bx1 - 40, byB - 10, animTime);      /* نگهبانِ کنارِ درِ فولادی */
+  /* ===== بازمانده‌ها (۲۱٫۲: هر کس سرِ جای منطقی خودش — ۲۱٫۳: +DX) ===== */
+  drawShelterSurvivorOld(296 + DX, 470, animTime);       /* پیرمردِ عصایی کنارِ بخاری */
+  drawShelterSurvivorKnit(258 + DX, 505, animTime);      /* زنِ بافتنی زیر چراغِ اول */
+  drawShelterSurvivor(612 + DX, 392, '#6a5a8a', 0);      /* پتوپیچ کنار تخت‌ها */
+  drawShelterGuard(bx1 - 40, byB - 10, animTime);      /* نگهبانِ کنارِ درِ فولادی (وابسته به دیوار) */
 
-  /* ===== میز رادیو وسط + ایستگاه دکتر ===== */
-  const rx = 468, ry = 512;
+  /* ===== میز رادیو وسط + ایستگاه دکتر (۲۱٫۳: rx با DX) ===== */
+  const rx = 468 + DX, ry = 512;
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(rx, ry + 4, 86, 12, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#3a2c1a'; rr(rx - 72, ry - 42, 144, 42, 6); ctx.fill();
@@ -794,6 +801,7 @@ function renderShelterInside(t, ph) {
   ctx.globalAlpha = 1;
   /* ایستگاه کمک‌های اولیه (۲۱٫۲: کابینت به دیوارِ چپ چسبیده، پشتِ دکتر —
      قبلاً صندوق و ستاند سرم وسطِ راهرو‌ی ورودی وسط هوا شناور بودند) */
+  ctx.save(); ctx.translate(DX, 0);            /* (21.3) med-station block */
   ctx.fillStyle = '#5a2220'; rr(216, 398, 46, 58, 4); ctx.fill();
   ctx.strokeStyle = '#7a3a34'; ctx.lineWidth = 2; rr(216, 398, 46, 58, 4); ctx.stroke();
   ctx.fillStyle = '#8a3a30'; rr(222, 406, 34, 22, 3); ctx.fill();      // صندوق قرمز روی کابینت
@@ -810,11 +818,12 @@ function renderShelterInside(t, ph) {
   ctx.fillStyle = 'rgba(140,190,255,0.5)'; rr(271, 404, 10, 16, 3); ctx.fill();
   ctx.strokeStyle = 'rgba(140,190,255,0.6)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(276, 420); ctx.quadraticCurveTo(276, 444, 284, 452); ctx.stroke();
+  ctx.restore();                                /* (21.3) end med-station block */
 
   /* دکتر مریم — جلوی ایستگاهش، رو به بازیکن */
   drawDoctorMary(rx - 128, ry - 8, animTime);
   /* بازیکن (۲۱٫۲: وسطِ جمعیت — کنارِ دکتر و میز؛ ایستاده و آرام) */
-  drawShelterWalker(392, 542, 2.5, 0.3, false, true);
+  drawShelterWalker(392 + DX, 542, 2.5, 0.3, false, true);
   /* ارشان — پشت میز، دست روی رادیو */
   {
     const ax = rx + 104, ay = ry - 6;
@@ -838,7 +847,7 @@ function renderShelterInside(t, ph) {
 
   /* ===== سه چراغ آویز + مخروط نور حجمی ===== */
   for (let i = 0; i < 3; i++) {
-    const lx = 208 + i * 272;
+    const lx = VX - 272 + i * 272;             /* (21.3) lamps follow room center */
     const flick = 0.8 + 0.2 * Math.sin(animTime * (3 + i) + i * 2);
     ctx.strokeStyle = '#0e1218'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(lx, 30); ctx.lineTo(lx, 118); ctx.stroke();

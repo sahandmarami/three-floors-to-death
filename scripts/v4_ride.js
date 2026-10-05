@@ -412,7 +412,7 @@ function drawRiverObs(o, z) {
 function drawRiverBoat() {
   const D = DRV;
   const lean = clamp(D.steer, -1, 1) * 20;
-  const cx = 480 + lean * 0.7;
+  const cx = W / 2 + lean * 0.7;   /* (21.3) world-adaptive */
   const cy = 552;
   const bob = Math.sin(animTime * 2.1) * 2.6 + Math.sin(animTime * 3.7) * 1.2;
   const braking = D.brake;
@@ -835,7 +835,7 @@ function drawSnowObs(o, z) {
 function drawSnowmobile() {
   const D = DRV;
   const lean = clamp(D.steer, -1, 1) * 26;
-  const cx = 480 + lean * 0.7;
+  const cx = W / 2 + lean * 0.7;   /* (21.3) world-adaptive */
   const cy = 554;
   const bob = Math.sin(animTime * 15) * 1.6;
   const braking = D.brake;

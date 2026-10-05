@@ -312,10 +312,11 @@ function showBpkTip(i, el) {
     '<span class="t-status">' + bpkStatus(s.id) + '</span>';
   tip.style.display = 'block';
   /* کوله سمت چپ صفحه است → تولتیپ سمت راستِ جاخالی باز شود */
+  const sc = window.__fitScale || 1;              /* (۲۱٫۳) rect ها مقیاس‌خورده‌اند → تقسیم بر مقیاس */
   const wrapR = $('wrap').getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  tip.style.left = Math.min(W - tip.offsetWidth - 6, r.right - wrapR.left + 8) + 'px';
-  tip.style.top = clamp(r.top - wrapR.top + r.height / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6) + 'px';
+  tip.style.left = Math.min(W - tip.offsetWidth - 6, (r.right - wrapR.left) / sc + 8) + 'px';
+  tip.style.top = clamp((r.top - wrapR.top) / sc + (r.height / sc) / 2 - tip.offsetHeight / 2, 6, H - tip.offsetHeight - 6) + 'px';
 }
 
 /* ---------------------- ۶-۴) آیکون‌های Canvas وسایل ---------------------- */
