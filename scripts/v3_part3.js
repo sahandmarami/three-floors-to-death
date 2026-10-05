@@ -2072,8 +2072,10 @@ function drawZombie(z) {
     ctx.globalAlpha = 1;
   }
 
-  /* نوار جون بالای سر (وقتی آسیب دیده) */
-  if (!z.dead && z.hp < z.maxHp - 0.001) {
+  /* نوار جون بالای سر (وقتی آسیب دیده)
+     (۲۱٫۲) باس مستثنی است — نوارِ بزرگِ بالای صفحه دارد و نوارِ کوچک
+     روی تاجش می‌نشیند (درخواست کاربر: متن/نشانگر روی بدنش نیفتد) */
+  if (!z.dead && z.type !== 'boss' && z.hp < z.maxHp - 0.001) {
     const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
     const by = z.y - bodyH * s - 8;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -2461,6 +2463,10 @@ function drawZombieFx(z, flash) {
 /* بازیکن: نگهبان کوچک روی بام برج با اسلحه‌ی چرخانِ رو به ماوس
    (۷٫۰: حین کات‌سین، جای/چرخش/زاویه‌ی اسلحه را خود کات‌سین تعیین می‌کند —
    سقوط از بام یا ایستادن روی ماشینِ نجات) */
+/* (۲۱٫۲) بازیکن — بازطراحی کیفی: آناتومی دوبندی، سایه‌روشن چندلایه،
+   کوله‌پشتی، ریش‌وانگ و لبه‌ی تیره برای خوانایی در شب. مکانیک‌ها
+   (چرخش اسلحه به سمت ماوس، عقب‌راندگی، شعله‌ی دهانه، حلقه‌ی شلیک
+   سریع) دست‌نخورده مانده‌اند. */
 function drawPlayer() {
   const P = (CS && CS.draw && CS.draw.player) || null;
   const px = P ? P.x : TOWER.x;
@@ -2470,6 +2476,7 @@ function drawPlayer() {
   ctx.save();
   ctx.translate(px, py + bob * 0.4);
   if (P && P.rot) ctx.rotate(P.rot);          // چرخش حین سقوط/سوار شدن
+  const OUT = 'rgba(8,12,20,0.55)';           // لبه‌ی تیره‌ی خوانایی
 
   /* حلقه‌ی زردِ چرخان وقتی «شلیک سریع» فعال است (۳٫۰) */
   if (state.powerTimers.rapid > 0) {
@@ -2484,40 +2491,97 @@ function drawPlayer() {
     ctx.beginPath(); ctx.ellipse(0, 1, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
   }
 
-  /* پاها و بدن */
-  ctx.fillStyle = '#2c3550';
-  ctx.fillRect(-7, -6, 6, 6); ctx.fillRect(1, -6, 6, 6);
-  ctx.fillStyle = '#3d6db5'; rr(-9, -25, 18, 20, 5); ctx.fill();
-  ctx.fillStyle = '#26324d'; ctx.fillRect(-9, -9, 18, 3);
+  /* ---- پاها: شلوار سرمه‌ای با بوت ---- */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 6.6; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-4, -7); ctx.lineTo(-4.6, 0);
+  ctx.moveTo(4, -7); ctx.lineTo(4.6, 0);
+  ctx.stroke();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-4, -7); ctx.lineTo(-4.6, 0);
+  ctx.moveTo(4, -7); ctx.lineTo(4.6, 0);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';                  // بوت‌های تیره
+  rr(-7.6, -2.4, 6.4, 3, 1.2); ctx.fill();
+  rr(1.2, -2.4, 6.4, 3, 1.2); ctx.fill();
 
-  /* سر و مو */
+  /* ---- کوله‌پشتی پشت بدن ---- */
+  ctx.fillStyle = '#6a4a2c';
+  rr(-13, -24, 7, 12, 2.5); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1;
+  rr(-13, -24, 7, 12, 2.5); ctx.stroke();
+  ctx.fillStyle = '#4a3320';
+  ctx.fillRect(-13, -19.5, 7, 1.6);           // بند کوله
+
+  /* ---- بدن: کاپشن آبی با گرادیان + زیپ ---- */
+  const jg = ctx.createLinearGradient(-9, -25, 9, -6);
+  jg.addColorStop(0, '#4a7cc9'); jg.addColorStop(0.5, '#3d6db5'); jg.addColorStop(1, '#26324d');
+  ctx.fillStyle = jg;
+  rr(-9, -25, 18, 20, 5); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.1;
+  rr(-9, -25, 18, 20, 5); ctx.stroke();
+  ctx.fillStyle = '#26324d'; ctx.fillRect(-9, -9.5, 18, 3.4);     // کمربند
+  ctx.fillStyle = '#c9a24e'; ctx.fillRect(-2.2, -9.5, 4.4, 3.4);  // سگک
+  ctx.strokeStyle = '#d8e2f2'; ctx.lineWidth = 0.9;               // زیپ
+  ctx.beginPath(); ctx.moveTo(0, -23); ctx.lineTo(0, -10.5); ctx.stroke();
+  ctx.fillStyle = '#31558c'; rr(-7.4, -22, 4.6, 5, 1.5); ctx.fill();   // جیب سینه
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  rr(-7.6, -24.2, 6, 3, 1.5); ctx.fill();      // هایلایت شانه
+
+  /* ---- سر و صورت ---- */
   ctx.fillStyle = '#f0c49a'; circle(0, -30, 6.5);
   ctx.fillStyle = '#5a3d28';
-  ctx.beginPath(); ctx.arc(0, -30, 6.5, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -30, 6.7, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+  ctx.beginPath(); ctx.arc(-4.4, -30.5, 2.2, Math.PI * 0.4, Math.PI * 1.6); ctx.fill();  // گوش
+  ctx.fillStyle = 'rgba(90,61,40,0.65)';
+  rr(-4.6, -25.4, 9.2, 2, 1); ctx.fill();     // ریش‌وانگِ سه‌روزه
 
-  /* چشم‌ها رو به جهت هدف */
+  /* چشم‌ها رو به جهت هدف + ابرو */
   const look = Math.cos(state.aimAngle) >= 0 ? 1 : -1;
   ctx.fillStyle = '#1d2433';
   circle(look * 2.5 - 1.8, -31, 1.1); circle(look * 2.5 + 1.8, -31, 1.1);
+  ctx.strokeStyle = '#5a3d28'; ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(look * 2.5 - 3, -33.2); ctx.lineTo(look * 2.5 - 0.6, -33.6);
+  ctx.moveTo(look * 2.5 + 0.6, -33.6); ctx.lineTo(look * 2.5 + 3, -33.2);
+  ctx.stroke();
+
+  /* ---- بازوی پشتی (آویزان، سایه‌روشن) ---- */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.4;
+  ctx.beginPath(); ctx.moveTo(-5.6, -21); ctx.lineTo(-7.6, -14); ctx.stroke();
+  ctx.strokeStyle = '#31558c'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-5.6, -21); ctx.lineTo(-7.6, -14); ctx.stroke();
+  ctx.fillStyle = '#f0c49a'; circle(-7.6, -13.2, 2); ctx.fill();
 
   /* اسلحه: می‌چرخد رو به ماوس + عقب‌راندگی لحظه شلیک
-     (۷٫۰: حین کات‌سین زاویه‌ی نمایشی ثابت) */
+     (۷٫۰: حین کات‌سین زاویه‌ی نمایشی ثابت)
+     (۲۱٫۲) بازوی جلو همراه اسلحه می‌چرخد — دست روی گریپ */
   ctx.save();
   ctx.translate(0, -17);
   ctx.rotate(P && P.aim !== undefined ? P.aim : state.aimAngle);
   ctx.translate(-state.recoil * 3, 0);
+  /* بازوی جلو (شانه → گریپ) زیر اسلحه */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.2;
+  ctx.beginPath(); ctx.moveTo(-1, -4.6); ctx.lineTo(4.5, 1.2); ctx.stroke();
+  ctx.strokeStyle = '#3d6db5'; ctx.lineWidth = 3.8;
+  ctx.beginPath(); ctx.moveTo(-1, -4.6); ctx.lineTo(4.5, 1.2); ctx.stroke();
+  ctx.fillStyle = '#f0c49a'; circle(4.8, 1.4, 2); ctx.fill();
   if (state.weapon === 'pistol') {
     ctx.fillStyle = '#2b2f38'; ctx.fillRect(-4, -2.5, 9, 5);     // بدنه
     ctx.fillStyle = '#454b57'; ctx.fillRect(5, -2, 13, 4);       // لوله
+    ctx.fillStyle = '#c9a24e'; ctx.fillRect(-4.6, -0.8, 2.2, 2); // گلوبی
   } else if (state.weapon === 'shotgun') {
     ctx.fillStyle = '#4a3320'; ctx.fillRect(-8, -3, 12, 6);      // قنداق چوبی
     ctx.fillStyle = '#2b2f38'; ctx.fillRect(2, -3, 20, 5);       // لوله‌ی دوقلو
     ctx.fillStyle = '#6b4a2c'; ctx.fillRect(8, 2, 8, 4);         // پمپ
+    ctx.fillStyle = '#c9a24e'; ctx.fillRect(14.5, -3.4, 7.5, 1.4); // نعل نشانانه
   } else {                                                       // مسلسل
     ctx.fillStyle = '#2b2f38'; ctx.fillRect(-6, -3.5, 26, 6);    // بدنه
     ctx.fillStyle = '#454b57'; ctx.fillRect(20, -2.5, 12, 4);    // لوله
     ctx.fillStyle = '#31363f'; circle(6, 5, 5);                  // خشاب گرد
     ctx.fillRect(-6, 2.5, 4, 3);                                 // قنداق کوتاه
+    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(-6, -3.5, 26, 1.4); // هایلایت
   }
   /* شعله‌ی دهانه‌ی اسلحه (اندازه‌اش به سلاح بستگی دارد) */
   if (state.fireFlash > 0) {
@@ -2526,6 +2590,12 @@ function drawPlayer() {
     circle(w.barrel + 12, 0, w.flash * (0.6 + 0.4 * a));
   }
   ctx.restore();
+
+  /* rim light سردِ مهتاب روی تاجِ سر (۲۱٫۲) */
+  ctx.strokeStyle = 'rgba(190,220,255,0.28)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(0, -30, 6.7, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+  ctx.strokeStyle = 'rgba(190,220,255,0.16)';
+  ctx.beginPath(); ctx.moveTo(-8.6, -23); ctx.quadraticCurveTo(-9.6, -14, -8.4, -7); ctx.stroke();
   ctx.restore();
 }
 

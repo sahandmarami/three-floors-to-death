@@ -154,6 +154,12 @@ function apkBackButton() {
       pauseGame();
       return;
     }
+    /* (۲۱٫۲) منوی اصلی + APK بومیِ WebView → خروج تمیز از برنامه
+       (پلِ ttbNative فقط در پوسته‌ی اندرویدی ما وجود دارد) */
+    if (state.mode === 'start' && window.ttbNative && window.ttbNative.exit) {
+      try { window.ttbNative.exit(); } catch (e) {}
+      return;
+    }
     /* در حالت‌های سینمایی/انتقال، چیزی نکن — دکمه‌ی «رد کردن» خودش هست */
   } catch (e) {}
 }
@@ -161,9 +167,11 @@ document.addEventListener('backbutton', apkBackButton, false);          /* کو�
 window.addEventListener('popstate', () => {                            /* مرورگر/APK های وب‌محور */
   if (window.Capacitor || document.body.classList.contains('in-app')) apkBackButton();
 });
-/* تشخیص درون‌اپ: کپاسیتور/کوردوا → حالت تمام‌صفحه بدون سایه */
+/* تشخیص درون‌اپ: کپاسیتور/کوردوا → حالت تمام‌صفحه بدون سایه
+   (۲۱٫۲) WebView خالیِ APK سفارشی هم — با نشانه‌ی «wv» در UA — شناسایی می‌شود */
 (function detectInApp() {
-  const inApp = !!(window.Capacitor || window.cordova || (window.androidBridge));
+  const wvUA = /;\s*wv\)/.test(navigator.userAgent || '');
+  const inApp = !!(window.Capacitor || window.cordova || window.androidBridge || wvUA);
   if (inApp) document.body.classList.add('in-app');
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
     try { window.Capacitor.Plugins.App.addListener('backButton', apkBackButton); } catch (e) {}

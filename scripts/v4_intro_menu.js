@@ -334,21 +334,46 @@ function introScBuild(t) {
   ctx.moveTo(cx - 66 + walk, GROUND_Y - 26); ctx.lineTo(cx - 18 + walk, GROUND_Y - 26);
   ctx.stroke();
 }
+/* (۲۱٫۲) کارگرِ افتتاحیه — با سایه‌روشن، کلاه‌برد، جعبه‌ی ابزار */
 function drawIntroWorker(x, y, jacket) {
   ctx.save();
   ctx.translate(x, y);
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  /* پاها + بوت */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.4; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-3, -12); ctx.lineTo(-4, -1); ctx.moveTo(3, -12); ctx.lineTo(4, -1);
   ctx.stroke();
-  ctx.fillStyle = jacket; rr(-7, -25, 14, 14, 4); ctx.fill();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-3, -12); ctx.lineTo(-4, -1); ctx.moveTo(3, -12); ctx.lineTo(4, -1);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';
+  rr(-7, -1.8, 6, 2.2, 1); ctx.fill(); rr(1, -1.8, 6, 2.2, 1); ctx.fill();
+  /* بدن با گرادیان */
+  const jg = ctx.createLinearGradient(-7, -25, 7, -11);
+  jg.addColorStop(0, jacket); jg.addColorStop(1, 'rgba(20,26,40,0.9)');
+  ctx.fillStyle = jg; rr(-7, -25, 14, 14, 4); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.9; rr(-7, -25, 14, 14, 4); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.14)'; rr(-6.2, -24.2, 5, 2.2, 1); ctx.fill();
+  /* سر + کلاه‌برد + چهره */
   ctx.fillStyle = '#f0c49a'; circle(1, -30, 5);
   ctx.fillStyle = '#5a3d28';
   ctx.beginPath(); ctx.arc(1, -30, 5, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3a3128';
+  ctx.beginPath(); ctx.ellipse(1, -31.5, 6.4, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d2433'; circle(-0.6, -30, 0.8); circle(2.8, -30, 0.8);
+  /* بازوی جلو + جعبه‌ی ابزار در دست */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 4.2;
+  ctx.beginPath(); ctx.moveTo(3, -22); ctx.lineTo(9, -27); ctx.stroke();
   ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(3, -22); ctx.lineTo(9, -27); ctx.stroke();
+  ctx.fillStyle = '#8a6a3c'; rr(7, -32, 7, 6, 1.4); ctx.fill();
+  ctx.strokeStyle = '#5e4626'; ctx.lineWidth = 0.8; rr(7, -32, 7, 6, 1.4); ctx.stroke();
+  ctx.strokeStyle = '#c9a24e'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(8, -29.5); ctx.lineTo(13, -29.5); ctx.stroke();
   ctx.restore();
 }
 

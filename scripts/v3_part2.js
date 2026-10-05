@@ -1050,13 +1050,17 @@ function hitZombie(z, dmg, bx, by, dir, crit, knock, src) {
   z.hitFlash = 0.15;
   z.stagger = 0.15;                         // چند لحظه از می‌افتد
   z.x += dir * (knock || 0) * (crit ? 1.7 : 1);   // پس‌زنی فیزیکی
-  /* (۱۱٫۰) ضدشلوغی: عدد دمیج فقط برای کریت/باس — ضربات معمولی بی‌عدد */
+  /* (۱۱٫۰) ضدشلوغی: عدد دمیج فقط برای کریت/باس — ضربات معمولی بی‌عدد
+     (۲۱٫۲) ارتفاعِ متن وابسته به اندازه‌ی زامبی — برای باسِ غول‌آسا
+     بالای سرش می‌نشیند، نه وسطِ بدنش (درخواست کاربر) */
   hitZombie._n = (hitZombie._n || 0) + 1;
+  const _s = (z.radius || 15) / 15;
+  const _ty = z.y - (52 + (_s > 1.6 ? 14 : 0)) * _s - (z.type === 'boss' ? 16 : 0);
   if (crit) {
-    addText(z.x, z.y - 52, faNum(total), '#ffb347', 16);
+    addText(z.x, _ty, faNum(total), '#ffb347', 16);
     spawnParticles(bx, by, 4, '#ffd873', { speed: 150, life: 0.35, size: 2.2, grav: 300 });
   } else if (z.type === 'boss' || hitZombie._n % 4 === 0) {
-    addText(z.x, z.y - 46, faNum(total), 'rgba(255,255,255,0.85)', 11);
+    addText(z.x, _ty, faNum(total), 'rgba(255,255,255,0.85)', 11);
   }
   spawnParticles(bx, by, 2, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
   spawnParticles(bx, by, 2, '#7a2f2f', { speed: 90,  life: 0.35, size: 2, grav: 500 });

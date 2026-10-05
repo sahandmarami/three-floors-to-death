@@ -385,24 +385,58 @@ function renderVictoryCine() {
 function drawArshanWithRadio(x, y) {
   ctx.save();
   ctx.translate(x, y);
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  /* پاها + بوت (۲۱٫۲) */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 6.4; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-4, -13); ctx.lineTo(-5, -1);
   ctx.moveTo(4, -13); ctx.lineTo(5, -1);
   ctx.stroke();
-  ctx.fillStyle = '#4a7a4a'; rr(-9, -28, 18, 16, 5); ctx.fill();      // کاپشن سبز
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-4, -13); ctx.lineTo(-5, -1);
+  ctx.moveTo(4, -13); ctx.lineTo(5, -1);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';
+  rr(-8.4, -2.2, 6.4, 2.6, 1); ctx.fill(); rr(1.8, -2.2, 6.4, 2.6, 1); ctx.fill();
+  /* کاپشن سبز با گرادیان (۲۱٫۲) */
+  const ajG = ctx.createLinearGradient(-9, -28, 9, -12);
+  ajG.addColorStop(0, '#5b8f5b'); ajG.addColorStop(0.5, '#4a7a4a'); ajG.addColorStop(1, '#335233');
+  ctx.fillStyle = ajG;
+  rr(-9, -28, 18, 16, 5); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; rr(-9, -28, 18, 16, 5); ctx.stroke();
+  ctx.strokeStyle = '#d8e2f2'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(0, -26.5); ctx.lineTo(0, -14.5); ctx.stroke();   // زیپ
+  ctx.fillStyle = 'rgba(255,255,255,0.13)'; rr(-8.2, -27.2, 6.6, 2.6, 1.2); ctx.fill();
+  /* سر + کلاه قرمز با تا */
   ctx.fillStyle = '#f0c49a'; circle(2, -33, 6.4);
+  ctx.beginPath(); ctx.arc(-2.8, -33.4, 2.1, Math.PI * 0.4, Math.PI * 1.6); ctx.fill();   // گوش
   ctx.fillStyle = '#7a2a2a';
   ctx.beginPath(); ctx.arc(2, -33, 6.6, Math.PI, Math.PI * 2); ctx.fill();   // کلاه قرمز
   ctx.fillRect(-5, -34, 14, 3);
+  ctx.fillStyle = '#8f3838';                                                 // تا‌ی کلاه
+  ctx.beginPath(); ctx.moveTo(0.4, -39.4); ctx.lineTo(4.2, -39.8); ctx.lineTo(3.8, -36.2); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(2, -33, 6.6, Math.PI, Math.PI * 2); ctx.stroke();
   ctx.fillStyle = '#1d2433'; circle(4.6, -34, 1.1); circle(0.8, -34, 1.1);
+  ctx.strokeStyle = '#5a3d28'; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(3, -36.2); ctx.lineTo(5.8, -36.6);
+  ctx.moveTo(1.8, -36.6); ctx.lineTo(-0.4, -36.2);
+  ctx.stroke();                                                              // ابروها
   /* رادیو در دست + نورش */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.4;
+  ctx.beginPath(); ctx.moveTo(5, -25); ctx.lineTo(15, -30); ctx.stroke();
   ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.moveTo(5, -25); ctx.lineTo(15, -30); ctx.stroke();
   ctx.fillStyle = '#3a2c1a';
   rr(12, -38, 16, 12, 3); ctx.fill();
+  ctx.strokeStyle = '#241a10'; ctx.lineWidth = 1; rr(12, -38, 16, 12, 3); ctx.stroke();
+  ctx.fillStyle = '#c9a24e'; ctx.fillRect(14.5, -35.5, 11, 2.2);            // اسپیکر
+  ctx.strokeStyle = 'rgba(36,26,16,0.7)'; ctx.lineWidth = 0.8;
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(15, -34.8 + i * 0.9); ctx.lineTo(25, -34.8 + i * 0.9); ctx.stroke(); }
   const gl = ctx.createRadialGradient(20, -32, 2, 20, -32, 26);
   gl.addColorStop(0, 'rgba(255,210,130,0.35)');
   gl.addColorStop(1, 'rgba(255,210,130,0)');

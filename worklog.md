@@ -762,3 +762,31 @@ Work Log:
 Stage Summary:
 - v21.1 تحویل شد: هر ۴ درخواست کاربر برطرف (فارسی/هم‌پوشانی/تفنگ سوم/منو) — ۸۹ تست سبز
 - الگوی قابل‌استفاده: کلاس bp-tile.locked برای آیتم‌های قفل‌شده؛ drawMenuFX برای جوّ منو؛ چیپ آمار منو از سیو
+
+---
+Task ID: 29
+Agent: Super Z (main agent)
+Task: v21.2 — گرافیک شخصیت‌ها + ایستادن داخل پناهگاه + فضای منطقی + متن باس + دستفروش چندچهره/چندصدا + APK بومی + انتشار گیت‌هاب (۶ درخواست کاربر)
+
+Work Log:
+- تشخیص متنِ روی باس: hitZombie عدد دمیج را در z.y-46 ثابت می‌انداخت — باس ۱۷۳px قد دارد → متن وسط سینه‌اش؛ نوار جون کوچک هم روی تاج می‌نشید
+- hitZombie (v3_part2): ارتفاع متن وابسته به اندازه (_s = radius/15) — باس: بالای سر + نوار جون کوچک باس حذف شد (DOM bossBar هست)
+- drawPlayer (v3_part3) بازطراحی کامل: کوله‌پشتی، کاپشن گرادیانی+زیپ+سگک+جیب، ریش‌وانگ، گوش، ابرو، بازوی دوبندی (پشتی آویزان + جلو همراه چرخش اسلحه)، بوت، rim light مهتاب، لبه‌ی تیره — مکانیک‌ها دست‌نخورده
+- drawShelterWalker (v4_shelter): پارامتر idle (۶مین آرگومان) — پاها صاف، نفس‌کشیدن آرام؛ ارتقای رسم: گرادیان بدن، بوت، کوله، رادیوی شانه‌ای ارشان، لبه‌ی تیره
+- renderShelterInside چیدمان منطقی: بخاری→کنج دیوار (sty=428)، گلدان آب→روی قفسه دوم، ایستگاه پزشکی→کابینت چسبیده به دیوار چپ + سرم، نگهبان→کنار درِ فولادی (bx1-40, byB-10)، پیرمرد→کنار بخاری، پتوپیچ→کنار تخت‌ها، قالیچه‌ی گفتگو زیر میز، بازیکن→(392,542) وسط جمعیت + idle
+- دکتر مریم/پیرمرد/زن بافتنی/نگهبان/پتوپیچ: همه با گرادیان، لبه‌ی تیره، جزئیات (شناسه پزشکی/شاپو/سوزن/جلیقه تاکتیکی…) بازطراحی
+- ارشان: drawTowerArshan + drawArshanWithRadio گرادیان+زیپ+تای کلاه+گوش+ابرو؛ drawIntroWorker (v4_intro_menu) + جعبه ابزار
+- پرتره‌های گفتگو (v4_audio drawPortrait): p/a/m غنی‌تر + «d» وابسته به PED.look (۵ چهره)
+- دستفروش (v4_survival): PED_LOOKS با trim/trim2؛ PED_VOICES (rate/pitch پنج‌گانه)؛ PED.enter→VOICE.pedTweak؛ talk() پنج خط آغاز متفاوت؛ بدنه‌ها گرادیان+حاشیه طلایی+سگک الماسی؛ drawPeddlerFace پنج پرتره‌ی کاملاً متمایز (هود سایه‌دار/کلاه سنبادی+قترقم/ماسک گاز+فیلتر/بارانی+چراغ/کاسکت+دندان طلا+قفسه)
+- VOICE (v4_audio): pedTweak → _playClip playbackRate + speak() dur/rate + _speakFallback pitch/rate
+- APK بومی: android/ (Manifest v212 + MainActivity WebView بدون کلاس بی‌نام/رابط جنریک — باگ d8 8.2 با Signature جنریک و EnclosingMethod حل شد با JsBridge ایستا)؛ build_apk.sh: aapt2→javac(-g:none)→jar→d8→zip→zipalign→apksigner؛ keystore scripts/ttb.keystore؛ خروجی ۱٫۴MB
+- v4_mobile: detectInApp با UA «wv»؛ apkBackButton → خروج از منو با ttbNative.exit()
+- build_v212.sh → ۱۶۶۵۰ خط/۲٫۶MB؛ تست‌ها: test_v212.sh تازه (۱۷) + v20 (۷۰) + v204 (۱۹) = ۱۰۶ سبز
+- VLM: ایستادن ثابت بازیکن در دو فریم ✓، چیدمان منطقی بدون شیء شناور ✓، ۵ پرتره‌ی متمایز ۸/۱۰ ✓، کاراکترهای بام ۹/۱۰ ✓
+- گیت‌هاب: مخزن خصوصی sahandmarami/three-floors-to-survival ساخته شد (توکن کاربر) + push
+- README: بخش ۲۱٫۲ + README-APK راه سریع + README ریشه‌ی رپو
+
+Stage Summary:
+- تحویل v21.2: هر ۶ درخواست کاربر برطرف + APK بومی ۱٫۴MB + رپوی گیت‌هاب
+- الگوی d8 8.2: از رابط جنریک/کلاس بی‌نام پرهیز کن؛ ابزار: scripts/build_apk.sh قابل اجرای مجدد
+- APK: download/three-floors-to-survival.apk (امضاشده، minSdk 24)

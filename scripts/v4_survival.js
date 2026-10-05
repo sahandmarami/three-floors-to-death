@@ -876,11 +876,21 @@ UPDATE_HOOKS.push(function survivalUpdate(dt) {
      • شانس آمدن بیشتر شد (۴۰٪ → ۵۵٪) چون حالا ستونِ اصلی وسایل است
    ۳۰٪ کالای تقلبی هم‌طرح قبل باقی است (ریسکِ خرید از غریبه!) */
 const PED_LOOKS = [
-  { name: 'شنل‌پوش',    cloak: '#221839', hat: '#2e2348', eye: '#d8b0ff', eyeGlow: '#c08aff' },
-  { name: 'کلاه‌لبه‌گرد', cloak: '#4a2e2e', hat: '#7a3a2e', eye: '#9ff0b0', eyeGlow: '#54d07a' },
-  { name: 'ماسک‌دار',   cloak: '#26303a', hat: '#3a4a58', eye: '#ffc37f', eyeGlow: '#ff9a3d' },
-  { name: 'بارانی‌زرد',  cloak: '#8a6a22', hat: '#a8842e', eye: '#a8d8ff', eyeGlow: '#5aa8e8' },
-  { name: 'چرخ‌دسته',   cloak: '#3e3428', hat: '#54452e', eye: '#e8d8a0', eyeGlow: '#c9a24e' },
+  { name: 'شنل‌پوش',    cloak: '#2a1f45', hat: '#3a2c5e', eye: '#e2bcff', eyeGlow: '#c08aff', trim: '#c9a24e', trim2: '#8a6f3a' },
+  { name: 'کلاه‌لبه‌گرد', cloak: '#5e3434', hat: '#8f4636', eye: '#9ff0b0', eyeGlow: '#54d07a', trim: '#d8b455', trim2: '#6f5528' },
+  { name: 'ماسک‌دار',   cloak: '#2c3844', hat: '#42566a', eye: '#ffc37f', eyeGlow: '#ff9a3d', trim: '#9aa8b8', trim2: '#5d6a7a' },
+  { name: 'بارانی‌زرد',  cloak: '#a8821f', hat: '#c9a02f', eye: '#a8d8ff', eyeGlow: '#5aa8e8', trim: '#5a4a10', trim2: '#7a6518' },
+  { name: 'چرخ‌دسته',   cloak: '#4a3f2e', hat: '#68573a', eye: '#f0e0a8', eyeGlow: '#c9a24e', trim: '#b08a3a', trim2: '#6f5528' },
+];
+
+/* (۲۱٫۲) صدا/لحنِ هر چهره — فرقِ هر بازدید در صدا هم حس شود:
+   rate نرخ پخشِ کلیپ (زیر/بم‌شدن+سرعت)، pitch مخصوص صدای سیستم */
+const PED_VOICES = [
+  { rate: 1.0,  pitch: 1.0,  label: 'همان شنل‌پوشِ مرموز' },
+  { rate: 0.86, pitch: 0.7,  label: 'پیرمردِ خنده‌رو' },
+  { rate: 0.76, pitch: 0.5,  label: 'صدای پشتِ ماسکِ گاز' },
+  { rate: 1.18, pitch: 1.5,  label: 'جوانِ پرحرفِ بارانی‌زرد' },
+  { rate: 0.95, pitch: 0.85, label: 'دستفروشِ چرخ‌دسته' },
 ];
 
 const PED = {
@@ -899,17 +909,28 @@ const PED = {
     this.dir = this.dirFrom;
     this.t = 0; this.walkT = 0;
     state.peddler.here = true;
+    /* (۲۱٫۲) صدای این چهره — VOICE هنگام پخشِ خط‌های «d» اعمالش می‌کند */
+    try { if (typeof VOICE !== 'undefined') VOICE.pedTweak = PED_VOICES[this.look]; } catch (e) {}
     hidePeddlerPanel();
     SFX.peddler();
   },
-  /* رسید پایین برج → گفتگوی استوری (خطِ متنِ هر چهره فرق دارد) */
+  /* رسید پایین برج → گفتگوی استوری (۲۱٫۲: خطِ آغازِ هر چهره فرق دارد) */
   talk() {
     this.phase = 'talk';
     const L = PED_LOOKS[this.look];
+    const opens = [
+      'شب نزدیک است... و من کالایی کمیاب دارم؛ فقط برای تو.',
+      'الهی خیالت راحت! کالای دستِ اولِ قبل از فاجعه — نگاهی بنداز.',
+      'مممم... فیلترم تازه عوض شده. کالای تمیز و کمیاب داری؟ بگو ببینم.',
+      'عجله کن! باران که بگیرد، جاده بسته می‌شود — کالای کمیاب آورده‌ام!',
+      'زنگ زدی نیامدم، خودم آمدم! قفسه‌ی چرخ هم پُر است — ببین بخری.',
+    ];
     const lines = [
-      { who: 'd', v: 'pd1a', text: 'شب نزدیک است... و من کالایی کمیاب دارم؛ فقط برای تو.' },
+      { who: 'd', v: 'pd1a', text: opens[this.look % opens.length] },
       { who: 'p', v: 'pd1b', text: 'کالای کمیاب؟ از کجا معلوم تقلبی نباشد؟' },
-      { who: 'd', v: 'pd1c', text: 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
+      { who: 'd', v: 'pd1c', text: this.look === 2
+          ? 'هیچ‌چیز معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.'
+          : 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
     ];
     try {
       DLG.start(lines, () => { if (PED.phase === 'talk') PED.openShop(); });
@@ -1007,8 +1028,10 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     /* چرخ */
     ctx.fillStyle = '#2c2012'; circle(-26, -2, 5.5); circle(26, -2, 5.5);
     ctx.fillStyle = '#8a6f3a'; circle(-26, -2, 1.8); circle(26, -2, 1.8);
-    /* بدنِ خمیده روی چرخ */
-    ctx.fillStyle = L.cloak;
+    /* بدنِ خمیده روی چرخ — (۲۱٫۲) با گرادیان و حاشیه */
+    const cg4 = ctx.createLinearGradient(-14, -48, 14, -12);
+    cg4.addColorStop(0, L.trim2); cg4.addColorStop(0.45, L.cloak); cg4.addColorStop(1, '#14100a');
+    ctx.fillStyle = cg4;
     ctx.beginPath();
     ctx.moveTo(-14, -46);
     ctx.quadraticCurveTo(-18, -26, -14, -12);
@@ -1016,6 +1039,9 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     ctx.quadraticCurveTo(18, -26, 14, -46);
     ctx.quadraticCurveTo(0, -52, -14, -46);
     ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(8,12,20,0.55)'; ctx.lineWidth = 1.1; ctx.stroke();
+    ctx.strokeStyle = L.trim; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-11.5, -45.5); ctx.quadraticCurveTo(0, -49, 11.5, -45.5); ctx.stroke();
     /* کلاه لبه‌کوتاه + سر */
     ctx.fillStyle = '#f0c49a'; circle(2, -50, 7.4);
     ctx.fillStyle = L.hat;
@@ -1037,9 +1063,11 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     ctx.fillStyle = 'rgba(150,255,170,0.95)'; ctx.fillRect(-31.6, -36.4, 3.2, 5);
     ctx.restore();
   } else {
-    /* --- بدن‌های چهار چهره‌ی پیاده --- */
+    /* --- بدن‌های چهار چهره‌ی پیاده (۲۱٫۲: لباس‌های حاشیه‌دوزی‌شده و رنگ‌تراش) --- */
     const sway = Math.sin((moving ? walkT : t) * 2.2) * 3;
-    ctx.fillStyle = L.cloak;
+    const cg = ctx.createLinearGradient(-14, -50, 14, -12);
+    cg.addColorStop(0, L.trim2); cg.addColorStop(0.45, L.cloak); cg.addColorStop(1, '#0d0a14');
+    ctx.fillStyle = cg;
     ctx.beginPath();
     ctx.moveTo(-13, -46);
     ctx.quadraticCurveTo(-17 + sway, -26, -14, -12);
@@ -1047,8 +1075,24 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     ctx.quadraticCurveTo(17 + sway, -26, 13, -46);
     ctx.quadraticCurveTo(0, -52, -13, -46);
     ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(90,64,140,0.35)';
-    ctx.fillRect(-14, -18, 28, 3);                 /* کمربندِ براق */
+    ctx.strokeStyle = 'rgba(8,12,20,0.55)'; ctx.lineWidth = 1.1;
+    ctx.stroke();
+    /* حاشیه‌ی طلاییِ یقه + دوختِ لبه‌ی دامن (۲۱٫۲ — لباس فاخرتر) */
+    ctx.strokeStyle = L.trim; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-10.5, -45.5); ctx.quadraticCurveTo(0, -49.5, 10.5, -45.5);
+    ctx.stroke();
+    ctx.lineWidth = 0.9; ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.moveTo(-13.6, -18); ctx.lineTo(13.6, -18);
+    ctx.moveTo(-13.8, -13.5); ctx.lineTo(13.8, -13.5);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    /* سگکِ روشنِ وسطِ بدن */
+    ctx.fillStyle = L.trim;
+    ctx.beginPath(); ctx.moveTo(0, -43); ctx.lineTo(3.4, -40.5); ctx.lineTo(0, -38); ctx.lineTo(-3.4, -40.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillRect(-12.6, -44, 3.4, 24);                 /* بازتاب نورِ کنار */
 
     if (look === 1) {
       /* کلاه لبه‌گرد قرمز + شال گردن سبز + کوله‌پشتی پر از قترقم */
@@ -1221,7 +1265,10 @@ function pickRareStock() {
 
 function hidePeddlerPanel() { $('peddlerPanel').classList.add('hidden'); }
 
-/* پرتره‌ی دستفروش: با چهره‌ی این بازدید (۲۰٫۰) */
+/* پرتره‌ی دستفروش — (۲۱٫۲) پنج چهره‌ی کاملاً متفاوت: هر بازدید یک
+   شخصیت دیگر (کلاه/هود/ماسک/بارانی/کاسکت) + لباس حاشیه‌دارِ فاخر.
+   درخواست کاربر: «آیکونی که موقع حرف زدن ازش انداخته هر سری یکی
+   باید متفاوت باشه و لباس‌های فروشنده جذاب‌تر باشه» */
 function drawPeddlerFace() {
   const cv = $('pdFace');
   if (!cv) return;
@@ -1229,46 +1276,158 @@ function drawPeddlerFace() {
   c.clearRect(0, 0, 92, 92);
   const look = (PED && PED.active) ? PED.look : 0;
   const L = PED_LOOKS[look % PED_LOOKS.length];
-  const g = c.createRadialGradient(46, 34, 6, 46, 52, 62);
-  g.addColorStop(0, '#241a3e'); g.addColorStop(1, '#0a0714');
+  const BGS = ['#2a1f45', '#40222a', '#22303c', '#54400f', '#3a3222'];
+  /* پس‌زمینه‌ی هم‌رنگِ شخصیت + هاله */
+  const g = c.createRadialGradient(46, 36, 5, 46, 54, 64);
+  g.addColorStop(0, BGS[look % 5]); g.addColorStop(1, '#08060e');
   c.fillStyle = g; c.fillRect(0, 0, 92, 92);
-  /* شنل */
-  c.fillStyle = L.cloak;
+  c.strokeStyle = 'rgba(201,162,78,0.35)'; c.lineWidth = 2;
+  c.strokeRect(3, 3, 86, 86);                       /* قابِ طلاییِ کم‌رنگ */
+
+  /* شنل با گرادیان + یقه‌ی حاشیه‌دار (۲۱٫۲ — لباس فاخرتر) */
+  const cg = c.createLinearGradient(0, 40, 0, 92);
+  cg.addColorStop(0, L.trim2); cg.addColorStop(0.5, L.cloak); cg.addColorStop(1, '#0d0a14');
+  c.fillStyle = cg;
   c.beginPath();
-  c.moveTo(18, 90); c.quadraticCurveTo(22, 42, 46, 32);
-  c.quadraticCurveTo(70, 42, 74, 90); c.closePath(); c.fill();
-  /* کلاه/هود */
-  c.fillStyle = L.hat;
-  c.beginPath();
-  c.moveTo(27, 48); c.quadraticCurveTo(46, 12, 65, 48);
-  c.quadraticCurveTo(46, 57, 27, 48); c.closePath(); c.fill();
-  /* چشم‌های درخشانِ هم‌رنگِ چهره */
-  c.save();
-  c.shadowColor = L.eyeGlow; c.shadowBlur = 7;
-  c.fillStyle = L.eye;
-  circle2(c, 39, 45, 3); circle2(c, 53, 45, 3);
-  c.restore();
-  if (look === 2) {
-    /* ماسک گاز: عدسی‌های دور چشم */
-    c.strokeStyle = '#39424e'; c.lineWidth = 2;
-    circle2b(c, 39, 45, 6); circle2b(c, 53, 45, 6);
-  }
-  if (look === 1) {
-    /* لبه‌ی کلاه لبه‌گرد */
+  c.moveTo(16, 90); c.quadraticCurveTo(20, 40, 46, 30);
+  c.quadraticCurveTo(72, 40, 76, 90); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(8,12,20,0.6)'; c.lineWidth = 1.4; c.stroke();
+  c.strokeStyle = L.trim; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(24, 62); c.quadraticCurveTo(46, 54, 68, 62); c.stroke();
+  /* سگکِ الماسی */
+  c.fillStyle = L.trim;
+  c.beginPath(); c.moveTo(46, 58); c.lineTo(51, 63); c.lineTo(46, 68); c.lineTo(41, 63); c.closePath(); c.fill();
+
+  if (look === 0) {
+    /* ===== ۰) شنل‌پوش کلاسیک: هودِ سایه‌دار + چشم بنفش ===== */
     c.fillStyle = L.hat;
-    c.beginPath(); c.ellipse(46, 50, 24, 5, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath();
+    c.moveTo(24, 52); c.quadraticCurveTo(46, 8, 68, 52);
+    c.quadraticCurveTo(46, 62, 24, 52); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(8,6,14,0.55)';
+    c.beginPath(); c.ellipse(46, 47, 20, 13, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 9;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 46, 3.2); circle2(c, 53, 46, 3.2);
+    c.restore();
+    /* فانوسِ گوشه */
+    c.strokeStyle = '#7a5a20'; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(72, 54); c.lineTo(72, 58); c.stroke();
+    c.fillStyle = '#c9a24e'; c.fillRect(66, 58, 12, 16);
+    c.save(); c.shadowColor = '#ffd873'; c.shadowBlur = 10;
+    c.fillStyle = 'rgba(255,216,115,0.92)'; c.fillRect(68.6, 60, 6.8, 12); c.restore();
+    c.strokeStyle = '#4a3a18'; c.lineWidth = 1.4;
+    c.beginPath(); c.moveTo(72, 54); c.lineTo(72, 50); c.stroke();
+  } else if (look === 1) {
+    /* ===== ۱) کلاه‌لبه‌گرد: کلاه سنبادی + شال سبز + قترقم‌ها ===== */
+    c.fillStyle = '#3e5a3a';                     /* شال گردن */
+    c.beginPath();
+    c.moveTo(30, 54); c.quadraticCurveTo(46, 48, 62, 54);
+    c.quadraticCurveTo(46, 68, 30, 54); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(8,6,14,0.5)';
+    c.beginPath(); c.ellipse(46, 48, 17, 11, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 8;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 47, 3); circle2(c, 53, 47, 3);
+    c.restore();
+    c.fillStyle = L.hat;                        /* کلاه سنبادی با لبه‌ی پهن */
+    c.beginPath(); c.ellipse(46, 40, 26, 5.5, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(34, 40); c.quadraticCurveTo(46, 12, 58, 40); c.closePath(); c.fill();
+    c.strokeStyle = L.trim; c.lineWidth = 1.6;
+    c.beginPath(); c.ellipse(46, 40, 26, 5.5, 0, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = L.trim; c.fillRect(33, 36, 26, 2.4);   /* نوارِ کلاه */
+    /* قترقم‌های آویزان از کلاه */
+    c.strokeStyle = '#c9a24e'; c.lineWidth = 1.2;
+    for (let i = 0; i < 3; i++) {
+      const cx = 28 + i * 18;
+      c.beginPath(); c.moveTo(cx, 43); c.lineTo(cx - 2, 50); c.stroke();
+      c.fillStyle = ['#ffd873', '#8fd6ff', '#ff8a5a'][i];
+      circle2(c, cx - 2, 52, 2.4);
+    }
+  } else if (look === 2) {
+    /* ===== ۲) ماسک‌دار: هود + ماسک گاز با عدسی‌های درخشان ===== */
+    c.fillStyle = L.hat;
+    c.beginPath();
+    c.moveTo(22, 56); c.quadraticCurveTo(46, 10, 70, 56);
+    c.quadraticCurveTo(46, 66, 22, 56); c.closePath(); c.fill();
+    c.fillStyle = '#39424e';                    /* بدنه‌ی ماسک */
+    c.beginPath(); c.ellipse(46, 47, 21, 15, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#5d6a7a'; c.lineWidth = 2; c.stroke();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 11;
+    c.fillStyle = '#1a1410';
+    circle2(c, 38.6, 45, 6.4); circle2(c, 53.4, 45, 6.4);
+    c.fillStyle = L.eye;
+    circle2(c, 38.6, 45, 3.6); circle2(c, 53.4, 45, 3.6);
+    c.restore();
+    c.strokeStyle = '#8a97a8'; c.lineWidth = 1.4;
+    circle2b(c, 38.6, 45, 6.4); circle2b(c, 53.4, 45, 6.4);
+    /* فیلترِ پایینِ ماسک + شلنگ */
+    c.fillStyle = '#4a5664';
+    circle2(c, 46, 59, 5.6);
+    c.fillStyle = '#5d6a7a'; circle2(c, 46, 59, 2.6);
+    c.strokeStyle = '#39424e'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(51, 56); c.quadraticCurveTo(62, 60, 64, 70); c.stroke();
+  } else if (look === 3) {
+    /* ===== ۳) بارانی‌زرد: هودِ زرد + قطره‌های باران + چراغ‌قوه ===== */
+    c.fillStyle = L.hat;
+    c.beginPath();
+    c.moveTo(24, 54); c.quadraticCurveTo(46, 10, 68, 54);
+    c.quadraticCurveTo(46, 64, 24, 54); c.closePath(); c.fill();
+    c.strokeStyle = L.trim; c.lineWidth = 1.6; c.stroke();
+    c.fillStyle = 'rgba(8,6,14,0.5)';
+    c.beginPath(); c.ellipse(46, 47, 18, 12, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 8;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 46, 3); circle2(c, 53, 46, 3);
+    c.restore();
+    /* قطره‌های باران روی شانه */
+    c.fillStyle = 'rgba(168,216,255,0.55)';
+    c.beginPath(); c.ellipse(30, 72, 2, 3.2, 0.4, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(63, 66, 1.7, 2.8, -0.4, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(56, 78, 1.9, 3.1, 0.2, 0, Math.PI * 2); c.fill();
+    /* چراغ‌قوه با مخروط نور */
+    const beam = c.createLinearGradient(74, 60, 74, 84);
+    beam.addColorStop(0, 'rgba(255,238,170,0.5)'); beam.addColorStop(1, 'rgba(255,238,170,0)');
+    c.fillStyle = beam;
+    c.beginPath(); c.moveTo(70, 58); c.lineTo(78, 58); c.lineTo(84, 84); c.lineTo(64, 84);
+    c.closePath(); c.fill();
+    c.fillStyle = '#3a4250'; c.fillRect(66, 56, 16, 7);
+    c.save(); c.shadowColor = '#ffe9a0'; c.shadowBlur = 8;
+    c.fillStyle = '#fff3c9'; c.fillRect(80, 57, 3, 5); c.restore();
+  } else {
+    /* ===== ۴) چرخ‌دسته: کاسکت + پیشانی‌نوار + قفسه‌ی کالا ===== */
+    c.fillStyle = 'rgba(8,6,14,0.5)';
+    c.beginPath(); c.ellipse(46, 48, 18, 12, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 8;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 47, 3); circle2(c, 53, 47, 3);
+    c.restore();
+    /* ریش کوتاه + لبخند خصول */
+    c.fillStyle = 'rgba(30,24,18,0.8)';
+    c.beginPath(); c.ellipse(46, 58, 11, 6, 0, 0, Math.PI); c.fill();
+    c.fillStyle = '#e8d8a0';                     /* دندان‌های طلایی! */
+    c.fillRect(41, 58, 3, 2.4); c.fillRect(45, 58, 3, 2.4); c.fillRect(49, 58, 3, 2.4);
+    /* کاسکت با سنبله */
+    c.fillStyle = L.hat;
+    c.beginPath(); c.ellipse(46, 42, 22, 5, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(32, 42); c.quadraticCurveTo(46, 18, 60, 42); c.closePath(); c.fill();
+    c.strokeStyle = L.trim; c.lineWidth = 1.6;
+    c.beginPath(); c.ellipse(46, 42, 22, 5, 0, 0, Math.PI * 2); c.stroke();
+    /* قفسه‌ی کوچکِ کالا در گوشه */
+    c.fillStyle = '#4a3a22'; c.fillRect(62, 60, 22, 20);
+    c.strokeStyle = '#2c2012'; c.lineWidth = 1.6; c.strokeRect(62, 60, 22, 20);
+    const goods = ['#8fd6ff', '#ffd873', '#ff8a5a'];
+    for (let i = 0; i < 3; i++) {
+      c.fillStyle = goods[i];
+      c.fillRect(65 + i * 6.4, 63, 5, 5);
+      c.fillRect(65 + i * 6.4, 71, 5, 5);
+    }
   }
-  /* فانوس گوشه */
-  c.strokeStyle = '#7a5a20'; c.lineWidth = 1.6;
-  c.strokeRect(64, 58, 10, 14);
-  c.fillStyle = '#c9a24e'; c.fillRect(64, 58, 10, 14);
-  c.save();
-  c.shadowColor = '#ffd873'; c.shadowBlur = 9;
-  c.fillStyle = 'rgba(255,216,115,0.92)';
-  c.fillRect(66, 60, 6, 10);
-  c.restore();
-  c.strokeStyle = '#4a3a18'; c.lineWidth = 1.4;
-  c.beginPath(); c.moveTo(69, 58); c.lineTo(69, 50); c.stroke();
 }
 function circle2b(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.stroke(); }
 

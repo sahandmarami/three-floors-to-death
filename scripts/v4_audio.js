@@ -26,6 +26,7 @@ const VOICE = {
   mode: 'off',        // 'clip' | 'tts' | 'blip' | 'off'  (وضعیت خطِ فعلی)
   speaking: false,    // همین الان دارد حرف می‌زند؟
   dur: 0,             // مدت خط (ثانیه) — با کلیپ = مدت واقعی
+  pedTweak: null,     // (۲۱٫۲) لحنِ چهره‌ی فعلیِ دستفروش — {rate, pitch}
   _safety: null,      // تایمر مهلت ایمنی (رویدادهای onend کروم گاهی نمی‌آیند)
   _blipT: 0,          // گیت زمانی بلیپ‌ها
   _bufs: {},          // کش بوم‌های دیکد‌شده‌ی کلیپ‌ها
@@ -79,6 +80,10 @@ const VOICE = {
     try {
       const src = Snd.ctx.createBufferSource();
       src.buffer = buf;
+      /* (۲۱٫۲) صدای چهره‌ی فعلیِ دستفروش — نرخ پخش، بم/زیر و سرعت را عوض می‌کند */
+      if (who === 'd' && this.pedTweak && this.pedTweak.rate && this.pedTweak.rate !== 1) {
+        src.playbackRate.value = this.pedTweak.rate;
+      }
       const g = Snd.ctx.createGain();
       const vol = (typeof SETT !== 'undefined' ? SETT.vol / 100 : 0.55) * (this.profile(who).g || 1);
       g.gain.value = Math.max(0.02, vol);
@@ -134,9 +139,12 @@ const VOICE = {
     if (!text) return 0;
     const pr = this.profile(who);
     const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
-    /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده */
+    /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده
+       (۲۱٫۲) مدتِ خطِ دستفروش با نرخِ لحن تنظیم می‌شود تا زیرنویس
+       دقیقاً هم‌زمان با صدای بم/تند تمام شود */
     if (!muted && v && (typeof VOICES17 !== 'undefined') && VOICES17[v]) {
-      this.dur = VOICES17[v].d;
+      const _pr = (who === 'd' && this.pedTweak && this.pedTweak.rate) ? this.pedTweak.rate : 1;
+      this.dur = VOICES17[v].d / _pr;
       if (this._playClip(v, who)) {
         this.mode = 'clip';
         this.speaking = true;
@@ -152,17 +160,23 @@ const VOICE = {
     return this._speakFallback(text, who, pr, muted);
   },
 
-  /* مسیر جایگزین (Web Speech / بلیپ) — هم از speak هم از poll */
+  /* مسیر جایگزین (Web Speech / بلیپ) — هم از speak هم از poll
+     (۲۱٫۲) لحنِ دستفروش روی pitch/rate سیستم هم اعمال می‌شود */
   _speakFallback(text, who, pr, muted) {
     const words = String(text).trim().split(/\s+/).length;
-    this.dur = clamp(0.65 + words * (0.46 / pr.r), 1.1, 7.5);
+    let _r = pr.r, _p = pr.p;
+    if (who === 'd' && this.pedTweak) {
+      _r = clamp(pr.r * (this.pedTweak.rate || 1), 0.5, 2);
+      _p = clamp(pr.p * (this.pedTweak.pitch || 1), 0.4, 2);
+    }
+    this.dur = clamp(0.65 + words * (0.46 / _r), 1.1, 7.5);
     /* صدای فارسی سیستم */
     if (!muted && this.initVoices() && window.speechSynthesis) {
       try {
         const u = new SpeechSynthesisUtterance(text);
         u.voice = this.faVoice;
         u.lang = this.faVoice.lang || 'fa-IR';
-        u.rate = pr.r; u.pitch = pr.p;
+        u.rate = _r; u.pitch = _p;
         u.volume = clamp((typeof SETT !== 'undefined' ? SETT.vol : 55) / 100, 0, 1);
         const fin = () => { this.speaking = false; clearTimeout(this._safety); };
         u.onend = fin; u.onerror = fin;
@@ -640,24 +654,44 @@ function drawPortrait(cv, who, talking, t) {
     c.fillStyle = '#1a1f2c';
     circle2(c, x1 + 0.7, y, r * 0.5); circle2(c, x2 + 0.7, y, r * 0.5);
   }
-  if (who === 'a') {                                    // ارشان: کلاه قرمز + خال خال
-    c.fillStyle = '#4a7a4a'; rr2(c, -17, -8, 34, 26, 9); c.fill();     // کاپشن
+  if (who === 'a') {                                    // ارشان: کلاه قرمز + خال خال (۲۱٫۲ غنی‌تر)
+    const ajG = c.createLinearGradient(-17, -8, 17, 18);
+    ajG.addColorStop(0, '#5b8f5b'); ajG.addColorStop(0.5, '#4a7a4a'); ajG.addColorStop(1, '#335233');
+    c.fillStyle = ajG; rr2(c, -17, -8, 34, 26, 9); c.fill();            // کاپشن با گرادیان
+    c.strokeStyle = 'rgba(8,12,20,0.45)'; c.lineWidth = 1.2; rr2(c, -17, -8, 34, 26, 9); c.stroke();
+    c.strokeStyle = '#d8e2f2'; c.lineWidth = 0.9;                        // زیپ
+    c.beginPath(); c.moveTo(0, -6); c.lineTo(0, 16); c.stroke();
+    c.fillStyle = '#c9a24e'; c.fillRect(-3, 12, 6, 3);                  // سگک
     c.fillStyle = F; circle2(c, 0, -2, 15);
     c.fillStyle = '#7a2a2a';                                           // کلاه
     c.beginPath(); c.arc(0, -2, 15.6, Math.PI * 0.98, Math.PI * 2.02); c.fill();
     c.fillRect(-16, -5, 32, 5);
+    c.fillStyle = '#8f3838';                                           // تا‌ی کلاه
+    c.beginPath(); c.moveTo(-4, -17.4); c.lineTo(2, -17.8); c.lineTo(1, -13.4); c.closePath(); c.fill();
     c.fillStyle = '#7a2a2a'; circle2(c, -15, -4, 2.4);                 // دکمه کلاه
+    c.strokeStyle = '#5a3d28'; c.lineWidth = 1.1;                        // ابروها
+    c.beginPath(); c.moveTo(-8.6, -6.4); c.lineTo(-3, -7); c.moveTo(3, -7); c.lineTo(8.6, -6.4); c.stroke();
     eyes(-5.5, 5.5, -3, 3, '#fff');
     c.fillStyle = 'rgba(180,110,70,0.55)';                              // خال
     circle2(c, -8, 4, 0.9); circle2(c, 8, 4, 0.9); circle2(c, -6, 6, 0.9);
     mouth(0.5 + bob * 0.5);
-  } else if (who === 'p') {                             // بازیکن: کلاه‌کاپیشنی آبی
-    c.fillStyle = '#3a5a8a'; rr2(c, -17, -8, 34, 26, 9); c.fill();
+  } else if (who === 'p') {                             // بازیکن: کلاه‌کاپیشنی آبی (۲۱٫۲ غنی‌تر)
+    const pjG = c.createLinearGradient(-17, -8, 17, 18);
+    pjG.addColorStop(0, '#4a7cc9'); pjG.addColorStop(0.5, '#3a5a8a'); pjG.addColorStop(1, '#26324d');
+    c.fillStyle = pjG; rr2(c, -17, -8, 34, 26, 9); c.fill();
+    c.strokeStyle = 'rgba(8,12,20,0.45)'; c.lineWidth = 1.2; rr2(c, -17, -8, 34, 26, 9); c.stroke();
+    c.strokeStyle = '#d8e2f2'; c.lineWidth = 0.9;
+    c.beginPath(); c.moveTo(0, -6); c.lineTo(0, 16); c.stroke();        // زیپ
+    c.fillStyle = '#31558c'; rr2(c, -14, -6, 9, 7, 2.4); c.fill();      // جیب سینه
     c.fillStyle = F; circle2(c, 0, -2, 14);
+    c.fillStyle = 'rgba(90,61,40,0.6)';                                  // ریش‌وانگ سه‌روزه
+    rr2(c, -9, 4, 18, 5, 2.5); c.fill();
     c.fillStyle = '#2c3e5c';                                           // کلاه‌کاپ
     c.beginPath(); c.arc(0, -3, 14.8, Math.PI * 0.95, Math.PI * 2.05); c.fill();
     c.fillStyle = '#1d2433'; circle2(c, 7.5, -13, 4.6);                 // سوراخ کلاه
     c.fillStyle = '#8fd6ff'; circle2(c, 8.6, -13.4, 2.2);
+    c.strokeStyle = '#5a3d28'; c.lineWidth = 1.1;                        // ابروها
+    c.beginPath(); c.moveTo(-8.4, -6.6); c.lineTo(-3.2, -7.2); c.moveTo(3.2, -7.2); c.lineTo(8.4, -6.6); c.stroke();
     eyes(-5.5, 5.5, -3, 2.8, '#e8f2ff');
     mouth(0.4 + bob * 0.45);
   } else if (who === 'r') {                             // رادیوی قدیمی
@@ -684,33 +718,75 @@ function drawPortrait(cv, who, talking, t) {
     c.fillStyle = '#0d060a'; mouth(0.6 + bob * 0.4);
     c.fillStyle = '#3f151d'; rr2(c, -18, 8, 36, 10, 4); c.fill();       // شانه‌ها
   } else if (who === 'd') {                             // دستفروش: هودی + فانوس
-    c.fillStyle = '#2a2036';                                            // هودی
+    /* (۲۱٫۲) پرتره‌ی گفتگو هم با چهره‌ی این بازدید عوض می‌شود —
+       دقیقاً همان شخصیتی که پایین برج ایستاده */
+    const _look = (typeof PED !== 'undefined' && PED && PED.active) ? (PED.look % 5) : 0;
+    const _PL = (typeof PED_LOOKS !== 'undefined') ? PED_LOOKS[_look] : null;
+    const cloak = _PL ? _PL.cloak : '#2a2036';
+    const hat = _PL ? _PL.hat : '#3a2c50';
+    const eyeC = _PL ? _PL.eye : '#ffd873';
+    const glow = _PL ? _PL.eyeGlow : '#c08aff';
+    const trim = _PL ? _PL.trim : '#c9a24e';
+    c.fillStyle = cloak;                                            // هودی/شنل
     c.beginPath(); c.arc(0, 0, 18, Math.PI * 0.9, Math.PI * 2.1); c.fill();
     c.fillRect(-18, 0, 36, 18);
+    c.strokeStyle = trim; c.lineWidth = 1.6;                        // حاشیه‌ی یقه
+    c.beginPath(); c.moveTo(-11, 2.4); c.quadraticCurveTo(0, 6, 11, 2.4); c.stroke();
+    c.fillStyle = hat;                                             // تاجِ کلاه/هود مشترک (اول)
+    c.beginPath(); c.arc(0, -1, 17, Math.PI * 1.05, Math.PI * 1.95); c.fill();
     c.fillStyle = '#120d18'; c.beginPath(); c.ellipse(0, 2, 11, 13, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#ffd873';                                            // چشم‌های فانوسی
-    c.shadowColor = '#ffd873'; c.shadowBlur = 6;
+    c.save();
+    c.shadowColor = glow; c.shadowBlur = 6;
+    c.fillStyle = eyeC;                                            // چشم‌های فانوسی
     circle2(c, -4, 0, 1.8); circle2(c, 4, 0, 1.8);
-    c.shadowBlur = 0;
-    c.fillStyle = '#8a7a4a'; circle2(c, 16, 10, 6);                     // فانوس
+    c.restore();
+    if (_look === 2) {                                             // ماسک گاز: عدسی‌ها
+      c.strokeStyle = '#39424e'; c.lineWidth = 2;
+      circle2b(c, -4, 0, 4.6); circle2b(c, 4, 0, 4.6);
+    } else if (_look === 1) {                                      // کلاه لبه‌گرد
+      c.fillStyle = hat;
+      c.beginPath(); c.ellipse(0, -6, 16, 3.6, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = trim; c.fillRect(-11, -8.4, 22, 2);              // نوارِ کلاه
+    } else if (_look === 3) {                                      // بارانی زرد: لبه‌ی هود
+      c.fillStyle = hat;
+      c.beginPath(); c.ellipse(0, -8, 13, 4, 0, 0, Math.PI * 2); c.fill();
+    } else if (_look === 4) {                                      // کاسکت
+      c.fillStyle = hat;
+      c.beginPath(); c.ellipse(0, -7, 14, 3.4, 0, 0, Math.PI * 2); c.fill();
+      c.fillRect(-8, -13, 16, 6);
+    }
+    c.fillStyle = '#8a7a4a'; circle2(c, 16, 10, 6);                 // فانوس
     c.fillStyle = '#ffe9a0'; circle2(c, 16, 10, 3.4);
     c.strokeStyle = '#5a4a2a'; c.lineWidth = 1.4;
     c.beginPath(); c.moveTo(16, 2); c.lineTo(16, 4); c.stroke();
-  } else if (who === 'm') {                             // (۱۹٫۰) دکتر مریم: روسری فیروزه‌ای + گوشی پزشکی
-    c.fillStyle = '#cfd6e4'; rr2(c, -17, -6, 34, 26, 9); c.fill();     // روپوش
+  } else if (who === 'm') {                             // (۱۹٫۰) دکتر مریم — (۲۱٫۲ غنی‌تر)
+    const mG = c.createLinearGradient(-17, -6, 17, 20);
+    mG.addColorStop(0, '#eef2f8'); mG.addColorStop(0.55, '#cfd6e4'); mG.addColorStop(1, '#a8b2c6');
+    c.fillStyle = mG; rr2(c, -17, -6, 34, 26, 9); c.fill();     // روپوش با گرادیان
+    c.strokeStyle = 'rgba(8,12,20,0.4)'; c.lineWidth = 1.2; rr2(c, -17, -6, 34, 26, 9); c.stroke();
+    c.strokeStyle = '#8a97a8'; c.lineWidth = 0.9;               // درز روپوش + دکمه‌ها
+    c.beginPath(); c.moveTo(0, -4); c.lineTo(0, 18); c.stroke();
+    c.fillStyle = '#8a97a8'; circle2(c, -3, 2, 1); circle2(c, -3, 8, 1);
+    c.fillStyle = '#2e8a7a'; rr2(c, 4, 0, 8, 10, 1.6); c.fill(); // شناسه‌ی پزشکی
+    c.fillStyle = '#e8ecf5'; c.fillRect(5.6, 2.4, 4.8, 1.6); c.fillRect(5.6, 5.2, 4.8, 1.6);
     c.strokeStyle = '#8a97a8'; c.lineWidth = 2;
     c.beginPath(); c.moveTo(-2, -2); c.quadraticCurveTo(6, 2, 8, 8); c.stroke();   // گوشی پزشکی
     c.fillStyle = '#39424e'; circle2(c, 8.6, 8, 3);
+    c.fillStyle = '#c9a24e'; circle2(c, 8.6, 8, 1.1);
     c.fillStyle = F; circle2(c, 0, -2, 14.4);
     c.fillStyle = '#2e8a7a';                                           // روسری
     c.beginPath(); c.arc(0, -3, 15, Math.PI * 0.9, Math.PI * 2.1); c.fill();
     c.beginPath();
     c.moveTo(-13, -3); c.quadraticCurveTo(-17, 10, -9, 18);
     c.lineTo(0, 16); c.quadraticCurveTo(-7, 4, -8, -3); c.closePath(); c.fill();
-    c.fillStyle = '#2e8a7a'; circle2(c, 0, -13, 3.4);                  // سنجاق روسری
+    c.strokeStyle = '#236a5e'; c.lineWidth = 1.1;                     // چینِ روسری
+    c.beginPath(); c.moveTo(-11.4, 0); c.quadraticCurveTo(-13.6, 8, -9, 14); c.stroke();
+    c.fillStyle = '#c9a24e'; circle2(c, 0, -13, 3.4);                  // سنجاق روسری
     eyes(-5.4, 5.4, -3, 3, '#eef6f4');
     c.strokeStyle = '#2e5a50'; c.lineWidth = 1.4;                      // ابروهای آرام
     c.beginPath(); c.moveTo(-8, -7); c.lineTo(-3, -7.6); c.moveTo(3, -7.6); c.lineTo(8, -7); c.stroke();
+    c.strokeStyle = 'rgba(90,50,40,0.85)'; c.lineWidth = 1.3;          // لبخند ملایم
+    c.beginPath(); c.arc(0, 10.5, 3.6, 0.3, Math.PI - 0.3); c.stroke();
     mouth(0.3 + bob * 0.3);
   } else {                                              // راوی: کتابِ داستانِ باز
     c.save();

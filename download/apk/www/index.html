@@ -1962,13 +1962,17 @@ function hitZombie(z, dmg, bx, by, dir, crit, knock, src) {
   z.hitFlash = 0.15;
   z.stagger = 0.15;                         // چند لحظه از می‌افتد
   z.x += dir * (knock || 0) * (crit ? 1.7 : 1);   // پس‌زنی فیزیکی
-  /* (۱۱٫۰) ضدشلوغی: عدد دمیج فقط برای کریت/باس — ضربات معمولی بی‌عدد */
+  /* (۱۱٫۰) ضدشلوغی: عدد دمیج فقط برای کریت/باس — ضربات معمولی بی‌عدد
+     (۲۱٫۲) ارتفاعِ متن وابسته به اندازه‌ی زامبی — برای باسِ غول‌آسا
+     بالای سرش می‌نشیند، نه وسطِ بدنش (درخواست کاربر) */
   hitZombie._n = (hitZombie._n || 0) + 1;
+  const _s = (z.radius || 15) / 15;
+  const _ty = z.y - (52 + (_s > 1.6 ? 14 : 0)) * _s - (z.type === 'boss' ? 16 : 0);
   if (crit) {
-    addText(z.x, z.y - 52, faNum(total), '#ffb347', 16);
+    addText(z.x, _ty, faNum(total), '#ffb347', 16);
     spawnParticles(bx, by, 4, '#ffd873', { speed: 150, life: 0.35, size: 2.2, grav: 300 });
   } else if (z.type === 'boss' || hitZombie._n % 4 === 0) {
-    addText(z.x, z.y - 46, faNum(total), 'rgba(255,255,255,0.85)', 11);
+    addText(z.x, _ty, faNum(total), 'rgba(255,255,255,0.85)', 11);
   }
   spawnParticles(bx, by, 2, '#8fd06a', { speed: 110, life: 0.3, size: 2, grav: 400 });
   spawnParticles(bx, by, 2, '#7a2f2f', { speed: 90,  life: 0.35, size: 2, grav: 500 });
@@ -4653,8 +4657,10 @@ function drawZombie(z) {
     ctx.globalAlpha = 1;
   }
 
-  /* نوار جون بالای سر (وقتی آسیب دیده) */
-  if (!z.dead && z.hp < z.maxHp - 0.001) {
+  /* نوار جون بالای سر (وقتی آسیب دیده)
+     (۲۱٫۲) باس مستثنی است — نوارِ بزرگِ بالای صفحه دارد و نوارِ کوچک
+     روی تاجش می‌نشیند (درخواست کاربر: متن/نشانگر روی بدنش نیفتد) */
+  if (!z.dead && z.type !== 'boss' && z.hp < z.maxHp - 0.001) {
     const w2 = Math.max(26, 30 * s), ratio2 = clamp(z.hp / z.maxHp, 0, 1);
     const by = z.y - bodyH * s - 8;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -5042,6 +5048,10 @@ function drawZombieFx(z, flash) {
 /* بازیکن: نگهبان کوچک روی بام برج با اسلحه‌ی چرخانِ رو به ماوس
    (۷٫۰: حین کات‌سین، جای/چرخش/زاویه‌ی اسلحه را خود کات‌سین تعیین می‌کند —
    سقوط از بام یا ایستادن روی ماشینِ نجات) */
+/* (۲۱٫۲) بازیکن — بازطراحی کیفی: آناتومی دوبندی، سایه‌روشن چندلایه،
+   کوله‌پشتی، ریش‌وانگ و لبه‌ی تیره برای خوانایی در شب. مکانیک‌ها
+   (چرخش اسلحه به سمت ماوس، عقب‌راندگی، شعله‌ی دهانه، حلقه‌ی شلیک
+   سریع) دست‌نخورده مانده‌اند. */
 function drawPlayer() {
   const P = (CS && CS.draw && CS.draw.player) || null;
   const px = P ? P.x : TOWER.x;
@@ -5051,6 +5061,7 @@ function drawPlayer() {
   ctx.save();
   ctx.translate(px, py + bob * 0.4);
   if (P && P.rot) ctx.rotate(P.rot);          // چرخش حین سقوط/سوار شدن
+  const OUT = 'rgba(8,12,20,0.55)';           // لبه‌ی تیره‌ی خوانایی
 
   /* حلقه‌ی زردِ چرخان وقتی «شلیک سریع» فعال است (۳٫۰) */
   if (state.powerTimers.rapid > 0) {
@@ -5065,40 +5076,97 @@ function drawPlayer() {
     ctx.beginPath(); ctx.ellipse(0, 1, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
   }
 
-  /* پاها و بدن */
-  ctx.fillStyle = '#2c3550';
-  ctx.fillRect(-7, -6, 6, 6); ctx.fillRect(1, -6, 6, 6);
-  ctx.fillStyle = '#3d6db5'; rr(-9, -25, 18, 20, 5); ctx.fill();
-  ctx.fillStyle = '#26324d'; ctx.fillRect(-9, -9, 18, 3);
+  /* ---- پاها: شلوار سرمه‌ای با بوت ---- */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 6.6; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-4, -7); ctx.lineTo(-4.6, 0);
+  ctx.moveTo(4, -7); ctx.lineTo(4.6, 0);
+  ctx.stroke();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-4, -7); ctx.lineTo(-4.6, 0);
+  ctx.moveTo(4, -7); ctx.lineTo(4.6, 0);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';                  // بوت‌های تیره
+  rr(-7.6, -2.4, 6.4, 3, 1.2); ctx.fill();
+  rr(1.2, -2.4, 6.4, 3, 1.2); ctx.fill();
 
-  /* سر و مو */
+  /* ---- کوله‌پشتی پشت بدن ---- */
+  ctx.fillStyle = '#6a4a2c';
+  rr(-13, -24, 7, 12, 2.5); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1;
+  rr(-13, -24, 7, 12, 2.5); ctx.stroke();
+  ctx.fillStyle = '#4a3320';
+  ctx.fillRect(-13, -19.5, 7, 1.6);           // بند کوله
+
+  /* ---- بدن: کاپشن آبی با گرادیان + زیپ ---- */
+  const jg = ctx.createLinearGradient(-9, -25, 9, -6);
+  jg.addColorStop(0, '#4a7cc9'); jg.addColorStop(0.5, '#3d6db5'); jg.addColorStop(1, '#26324d');
+  ctx.fillStyle = jg;
+  rr(-9, -25, 18, 20, 5); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.1;
+  rr(-9, -25, 18, 20, 5); ctx.stroke();
+  ctx.fillStyle = '#26324d'; ctx.fillRect(-9, -9.5, 18, 3.4);     // کمربند
+  ctx.fillStyle = '#c9a24e'; ctx.fillRect(-2.2, -9.5, 4.4, 3.4);  // سگک
+  ctx.strokeStyle = '#d8e2f2'; ctx.lineWidth = 0.9;               // زیپ
+  ctx.beginPath(); ctx.moveTo(0, -23); ctx.lineTo(0, -10.5); ctx.stroke();
+  ctx.fillStyle = '#31558c'; rr(-7.4, -22, 4.6, 5, 1.5); ctx.fill();   // جیب سینه
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  rr(-7.6, -24.2, 6, 3, 1.5); ctx.fill();      // هایلایت شانه
+
+  /* ---- سر و صورت ---- */
   ctx.fillStyle = '#f0c49a'; circle(0, -30, 6.5);
   ctx.fillStyle = '#5a3d28';
-  ctx.beginPath(); ctx.arc(0, -30, 6.5, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -30, 6.7, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+  ctx.beginPath(); ctx.arc(-4.4, -30.5, 2.2, Math.PI * 0.4, Math.PI * 1.6); ctx.fill();  // گوش
+  ctx.fillStyle = 'rgba(90,61,40,0.65)';
+  rr(-4.6, -25.4, 9.2, 2, 1); ctx.fill();     // ریش‌وانگِ سه‌روزه
 
-  /* چشم‌ها رو به جهت هدف */
+  /* چشم‌ها رو به جهت هدف + ابرو */
   const look = Math.cos(state.aimAngle) >= 0 ? 1 : -1;
   ctx.fillStyle = '#1d2433';
   circle(look * 2.5 - 1.8, -31, 1.1); circle(look * 2.5 + 1.8, -31, 1.1);
+  ctx.strokeStyle = '#5a3d28'; ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(look * 2.5 - 3, -33.2); ctx.lineTo(look * 2.5 - 0.6, -33.6);
+  ctx.moveTo(look * 2.5 + 0.6, -33.6); ctx.lineTo(look * 2.5 + 3, -33.2);
+  ctx.stroke();
+
+  /* ---- بازوی پشتی (آویزان، سایه‌روشن) ---- */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.4;
+  ctx.beginPath(); ctx.moveTo(-5.6, -21); ctx.lineTo(-7.6, -14); ctx.stroke();
+  ctx.strokeStyle = '#31558c'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-5.6, -21); ctx.lineTo(-7.6, -14); ctx.stroke();
+  ctx.fillStyle = '#f0c49a'; circle(-7.6, -13.2, 2); ctx.fill();
 
   /* اسلحه: می‌چرخد رو به ماوس + عقب‌راندگی لحظه شلیک
-     (۷٫۰: حین کات‌سین زاویه‌ی نمایشی ثابت) */
+     (۷٫۰: حین کات‌سین زاویه‌ی نمایشی ثابت)
+     (۲۱٫۲) بازوی جلو همراه اسلحه می‌چرخد — دست روی گریپ */
   ctx.save();
   ctx.translate(0, -17);
   ctx.rotate(P && P.aim !== undefined ? P.aim : state.aimAngle);
   ctx.translate(-state.recoil * 3, 0);
+  /* بازوی جلو (شانه → گریپ) زیر اسلحه */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.2;
+  ctx.beginPath(); ctx.moveTo(-1, -4.6); ctx.lineTo(4.5, 1.2); ctx.stroke();
+  ctx.strokeStyle = '#3d6db5'; ctx.lineWidth = 3.8;
+  ctx.beginPath(); ctx.moveTo(-1, -4.6); ctx.lineTo(4.5, 1.2); ctx.stroke();
+  ctx.fillStyle = '#f0c49a'; circle(4.8, 1.4, 2); ctx.fill();
   if (state.weapon === 'pistol') {
     ctx.fillStyle = '#2b2f38'; ctx.fillRect(-4, -2.5, 9, 5);     // بدنه
     ctx.fillStyle = '#454b57'; ctx.fillRect(5, -2, 13, 4);       // لوله
+    ctx.fillStyle = '#c9a24e'; ctx.fillRect(-4.6, -0.8, 2.2, 2); // گلوبی
   } else if (state.weapon === 'shotgun') {
     ctx.fillStyle = '#4a3320'; ctx.fillRect(-8, -3, 12, 6);      // قنداق چوبی
     ctx.fillStyle = '#2b2f38'; ctx.fillRect(2, -3, 20, 5);       // لوله‌ی دوقلو
     ctx.fillStyle = '#6b4a2c'; ctx.fillRect(8, 2, 8, 4);         // پمپ
+    ctx.fillStyle = '#c9a24e'; ctx.fillRect(14.5, -3.4, 7.5, 1.4); // نعل نشانانه
   } else {                                                       // مسلسل
     ctx.fillStyle = '#2b2f38'; ctx.fillRect(-6, -3.5, 26, 6);    // بدنه
     ctx.fillStyle = '#454b57'; ctx.fillRect(20, -2.5, 12, 4);    // لوله
     ctx.fillStyle = '#31363f'; circle(6, 5, 5);                  // خشاب گرد
     ctx.fillRect(-6, 2.5, 4, 3);                                 // قنداق کوتاه
+    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(-6, -3.5, 26, 1.4); // هایلایت
   }
   /* شعله‌ی دهانه‌ی اسلحه (اندازه‌اش به سلاح بستگی دارد) */
   if (state.fireFlash > 0) {
@@ -5107,6 +5175,12 @@ function drawPlayer() {
     circle(w.barrel + 12, 0, w.flash * (0.6 + 0.4 * a));
   }
   ctx.restore();
+
+  /* rim light سردِ مهتاب روی تاجِ سر (۲۱٫۲) */
+  ctx.strokeStyle = 'rgba(190,220,255,0.28)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(0, -30, 6.7, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+  ctx.strokeStyle = 'rgba(190,220,255,0.16)';
+  ctx.beginPath(); ctx.moveTo(-8.6, -23); ctx.quadraticCurveTo(-9.6, -14, -8.4, -7); ctx.stroke();
   ctx.restore();
 }
 
@@ -8032,6 +8106,7 @@ const VOICE = {
   mode: 'off',        // 'clip' | 'tts' | 'blip' | 'off'  (وضعیت خطِ فعلی)
   speaking: false,    // همین الان دارد حرف می‌زند؟
   dur: 0,             // مدت خط (ثانیه) — با کلیپ = مدت واقعی
+  pedTweak: null,     // (۲۱٫۲) لحنِ چهره‌ی فعلیِ دستفروش — {rate, pitch}
   _safety: null,      // تایمر مهلت ایمنی (رویدادهای onend کروم گاهی نمی‌آیند)
   _blipT: 0,          // گیت زمانی بلیپ‌ها
   _bufs: {},          // کش بوم‌های دیکد‌شده‌ی کلیپ‌ها
@@ -8085,6 +8160,10 @@ const VOICE = {
     try {
       const src = Snd.ctx.createBufferSource();
       src.buffer = buf;
+      /* (۲۱٫۲) صدای چهره‌ی فعلیِ دستفروش — نرخ پخش، بم/زیر و سرعت را عوض می‌کند */
+      if (who === 'd' && this.pedTweak && this.pedTweak.rate && this.pedTweak.rate !== 1) {
+        src.playbackRate.value = this.pedTweak.rate;
+      }
       const g = Snd.ctx.createGain();
       const vol = (typeof SETT !== 'undefined' ? SETT.vol / 100 : 0.55) * (this.profile(who).g || 1);
       g.gain.value = Math.max(0.02, vol);
@@ -8140,9 +8219,12 @@ const VOICE = {
     if (!text) return 0;
     const pr = this.profile(who);
     const muted = (typeof SETT !== 'undefined' && !SETT.sfx);
-    /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده */
+    /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده
+       (۲۱٫۲) مدتِ خطِ دستفروش با نرخِ لحن تنظیم می‌شود تا زیرنویس
+       دقیقاً هم‌زمان با صدای بم/تند تمام شود */
     if (!muted && v && (typeof VOICES17 !== 'undefined') && VOICES17[v]) {
-      this.dur = VOICES17[v].d;
+      const _pr = (who === 'd' && this.pedTweak && this.pedTweak.rate) ? this.pedTweak.rate : 1;
+      this.dur = VOICES17[v].d / _pr;
       if (this._playClip(v, who)) {
         this.mode = 'clip';
         this.speaking = true;
@@ -8158,17 +8240,23 @@ const VOICE = {
     return this._speakFallback(text, who, pr, muted);
   },
 
-  /* مسیر جایگزین (Web Speech / بلیپ) — هم از speak هم از poll */
+  /* مسیر جایگزین (Web Speech / بلیپ) — هم از speak هم از poll
+     (۲۱٫۲) لحنِ دستفروش روی pitch/rate سیستم هم اعمال می‌شود */
   _speakFallback(text, who, pr, muted) {
     const words = String(text).trim().split(/\s+/).length;
-    this.dur = clamp(0.65 + words * (0.46 / pr.r), 1.1, 7.5);
+    let _r = pr.r, _p = pr.p;
+    if (who === 'd' && this.pedTweak) {
+      _r = clamp(pr.r * (this.pedTweak.rate || 1), 0.5, 2);
+      _p = clamp(pr.p * (this.pedTweak.pitch || 1), 0.4, 2);
+    }
+    this.dur = clamp(0.65 + words * (0.46 / _r), 1.1, 7.5);
     /* صدای فارسی سیستم */
     if (!muted && this.initVoices() && window.speechSynthesis) {
       try {
         const u = new SpeechSynthesisUtterance(text);
         u.voice = this.faVoice;
         u.lang = this.faVoice.lang || 'fa-IR';
-        u.rate = pr.r; u.pitch = pr.p;
+        u.rate = _r; u.pitch = _p;
         u.volume = clamp((typeof SETT !== 'undefined' ? SETT.vol : 55) / 100, 0, 1);
         const fin = () => { this.speaking = false; clearTimeout(this._safety); };
         u.onend = fin; u.onerror = fin;
@@ -8646,24 +8734,44 @@ function drawPortrait(cv, who, talking, t) {
     c.fillStyle = '#1a1f2c';
     circle2(c, x1 + 0.7, y, r * 0.5); circle2(c, x2 + 0.7, y, r * 0.5);
   }
-  if (who === 'a') {                                    // ارشان: کلاه قرمز + خال خال
-    c.fillStyle = '#4a7a4a'; rr2(c, -17, -8, 34, 26, 9); c.fill();     // کاپشن
+  if (who === 'a') {                                    // ارشان: کلاه قرمز + خال خال (۲۱٫۲ غنی‌تر)
+    const ajG = c.createLinearGradient(-17, -8, 17, 18);
+    ajG.addColorStop(0, '#5b8f5b'); ajG.addColorStop(0.5, '#4a7a4a'); ajG.addColorStop(1, '#335233');
+    c.fillStyle = ajG; rr2(c, -17, -8, 34, 26, 9); c.fill();            // کاپشن با گرادیان
+    c.strokeStyle = 'rgba(8,12,20,0.45)'; c.lineWidth = 1.2; rr2(c, -17, -8, 34, 26, 9); c.stroke();
+    c.strokeStyle = '#d8e2f2'; c.lineWidth = 0.9;                        // زیپ
+    c.beginPath(); c.moveTo(0, -6); c.lineTo(0, 16); c.stroke();
+    c.fillStyle = '#c9a24e'; c.fillRect(-3, 12, 6, 3);                  // سگک
     c.fillStyle = F; circle2(c, 0, -2, 15);
     c.fillStyle = '#7a2a2a';                                           // کلاه
     c.beginPath(); c.arc(0, -2, 15.6, Math.PI * 0.98, Math.PI * 2.02); c.fill();
     c.fillRect(-16, -5, 32, 5);
+    c.fillStyle = '#8f3838';                                           // تا‌ی کلاه
+    c.beginPath(); c.moveTo(-4, -17.4); c.lineTo(2, -17.8); c.lineTo(1, -13.4); c.closePath(); c.fill();
     c.fillStyle = '#7a2a2a'; circle2(c, -15, -4, 2.4);                 // دکمه کلاه
+    c.strokeStyle = '#5a3d28'; c.lineWidth = 1.1;                        // ابروها
+    c.beginPath(); c.moveTo(-8.6, -6.4); c.lineTo(-3, -7); c.moveTo(3, -7); c.lineTo(8.6, -6.4); c.stroke();
     eyes(-5.5, 5.5, -3, 3, '#fff');
     c.fillStyle = 'rgba(180,110,70,0.55)';                              // خال
     circle2(c, -8, 4, 0.9); circle2(c, 8, 4, 0.9); circle2(c, -6, 6, 0.9);
     mouth(0.5 + bob * 0.5);
-  } else if (who === 'p') {                             // بازیکن: کلاه‌کاپیشنی آبی
-    c.fillStyle = '#3a5a8a'; rr2(c, -17, -8, 34, 26, 9); c.fill();
+  } else if (who === 'p') {                             // بازیکن: کلاه‌کاپیشنی آبی (۲۱٫۲ غنی‌تر)
+    const pjG = c.createLinearGradient(-17, -8, 17, 18);
+    pjG.addColorStop(0, '#4a7cc9'); pjG.addColorStop(0.5, '#3a5a8a'); pjG.addColorStop(1, '#26324d');
+    c.fillStyle = pjG; rr2(c, -17, -8, 34, 26, 9); c.fill();
+    c.strokeStyle = 'rgba(8,12,20,0.45)'; c.lineWidth = 1.2; rr2(c, -17, -8, 34, 26, 9); c.stroke();
+    c.strokeStyle = '#d8e2f2'; c.lineWidth = 0.9;
+    c.beginPath(); c.moveTo(0, -6); c.lineTo(0, 16); c.stroke();        // زیپ
+    c.fillStyle = '#31558c'; rr2(c, -14, -6, 9, 7, 2.4); c.fill();      // جیب سینه
     c.fillStyle = F; circle2(c, 0, -2, 14);
+    c.fillStyle = 'rgba(90,61,40,0.6)';                                  // ریش‌وانگ سه‌روزه
+    rr2(c, -9, 4, 18, 5, 2.5); c.fill();
     c.fillStyle = '#2c3e5c';                                           // کلاه‌کاپ
     c.beginPath(); c.arc(0, -3, 14.8, Math.PI * 0.95, Math.PI * 2.05); c.fill();
     c.fillStyle = '#1d2433'; circle2(c, 7.5, -13, 4.6);                 // سوراخ کلاه
     c.fillStyle = '#8fd6ff'; circle2(c, 8.6, -13.4, 2.2);
+    c.strokeStyle = '#5a3d28'; c.lineWidth = 1.1;                        // ابروها
+    c.beginPath(); c.moveTo(-8.4, -6.6); c.lineTo(-3.2, -7.2); c.moveTo(3.2, -7.2); c.lineTo(8.4, -6.6); c.stroke();
     eyes(-5.5, 5.5, -3, 2.8, '#e8f2ff');
     mouth(0.4 + bob * 0.45);
   } else if (who === 'r') {                             // رادیوی قدیمی
@@ -8690,33 +8798,75 @@ function drawPortrait(cv, who, talking, t) {
     c.fillStyle = '#0d060a'; mouth(0.6 + bob * 0.4);
     c.fillStyle = '#3f151d'; rr2(c, -18, 8, 36, 10, 4); c.fill();       // شانه‌ها
   } else if (who === 'd') {                             // دستفروش: هودی + فانوس
-    c.fillStyle = '#2a2036';                                            // هودی
+    /* (۲۱٫۲) پرتره‌ی گفتگو هم با چهره‌ی این بازدید عوض می‌شود —
+       دقیقاً همان شخصیتی که پایین برج ایستاده */
+    const _look = (typeof PED !== 'undefined' && PED && PED.active) ? (PED.look % 5) : 0;
+    const _PL = (typeof PED_LOOKS !== 'undefined') ? PED_LOOKS[_look] : null;
+    const cloak = _PL ? _PL.cloak : '#2a2036';
+    const hat = _PL ? _PL.hat : '#3a2c50';
+    const eyeC = _PL ? _PL.eye : '#ffd873';
+    const glow = _PL ? _PL.eyeGlow : '#c08aff';
+    const trim = _PL ? _PL.trim : '#c9a24e';
+    c.fillStyle = cloak;                                            // هودی/شنل
     c.beginPath(); c.arc(0, 0, 18, Math.PI * 0.9, Math.PI * 2.1); c.fill();
     c.fillRect(-18, 0, 36, 18);
+    c.strokeStyle = trim; c.lineWidth = 1.6;                        // حاشیه‌ی یقه
+    c.beginPath(); c.moveTo(-11, 2.4); c.quadraticCurveTo(0, 6, 11, 2.4); c.stroke();
+    c.fillStyle = hat;                                             // تاجِ کلاه/هود مشترک (اول)
+    c.beginPath(); c.arc(0, -1, 17, Math.PI * 1.05, Math.PI * 1.95); c.fill();
     c.fillStyle = '#120d18'; c.beginPath(); c.ellipse(0, 2, 11, 13, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#ffd873';                                            // چشم‌های فانوسی
-    c.shadowColor = '#ffd873'; c.shadowBlur = 6;
+    c.save();
+    c.shadowColor = glow; c.shadowBlur = 6;
+    c.fillStyle = eyeC;                                            // چشم‌های فانوسی
     circle2(c, -4, 0, 1.8); circle2(c, 4, 0, 1.8);
-    c.shadowBlur = 0;
-    c.fillStyle = '#8a7a4a'; circle2(c, 16, 10, 6);                     // فانوس
+    c.restore();
+    if (_look === 2) {                                             // ماسک گاز: عدسی‌ها
+      c.strokeStyle = '#39424e'; c.lineWidth = 2;
+      circle2b(c, -4, 0, 4.6); circle2b(c, 4, 0, 4.6);
+    } else if (_look === 1) {                                      // کلاه لبه‌گرد
+      c.fillStyle = hat;
+      c.beginPath(); c.ellipse(0, -6, 16, 3.6, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = trim; c.fillRect(-11, -8.4, 22, 2);              // نوارِ کلاه
+    } else if (_look === 3) {                                      // بارانی زرد: لبه‌ی هود
+      c.fillStyle = hat;
+      c.beginPath(); c.ellipse(0, -8, 13, 4, 0, 0, Math.PI * 2); c.fill();
+    } else if (_look === 4) {                                      // کاسکت
+      c.fillStyle = hat;
+      c.beginPath(); c.ellipse(0, -7, 14, 3.4, 0, 0, Math.PI * 2); c.fill();
+      c.fillRect(-8, -13, 16, 6);
+    }
+    c.fillStyle = '#8a7a4a'; circle2(c, 16, 10, 6);                 // فانوس
     c.fillStyle = '#ffe9a0'; circle2(c, 16, 10, 3.4);
     c.strokeStyle = '#5a4a2a'; c.lineWidth = 1.4;
     c.beginPath(); c.moveTo(16, 2); c.lineTo(16, 4); c.stroke();
-  } else if (who === 'm') {                             // (۱۹٫۰) دکتر مریم: روسری فیروزه‌ای + گوشی پزشکی
-    c.fillStyle = '#cfd6e4'; rr2(c, -17, -6, 34, 26, 9); c.fill();     // روپوش
+  } else if (who === 'm') {                             // (۱۹٫۰) دکتر مریم — (۲۱٫۲ غنی‌تر)
+    const mG = c.createLinearGradient(-17, -6, 17, 20);
+    mG.addColorStop(0, '#eef2f8'); mG.addColorStop(0.55, '#cfd6e4'); mG.addColorStop(1, '#a8b2c6');
+    c.fillStyle = mG; rr2(c, -17, -6, 34, 26, 9); c.fill();     // روپوش با گرادیان
+    c.strokeStyle = 'rgba(8,12,20,0.4)'; c.lineWidth = 1.2; rr2(c, -17, -6, 34, 26, 9); c.stroke();
+    c.strokeStyle = '#8a97a8'; c.lineWidth = 0.9;               // درز روپوش + دکمه‌ها
+    c.beginPath(); c.moveTo(0, -4); c.lineTo(0, 18); c.stroke();
+    c.fillStyle = '#8a97a8'; circle2(c, -3, 2, 1); circle2(c, -3, 8, 1);
+    c.fillStyle = '#2e8a7a'; rr2(c, 4, 0, 8, 10, 1.6); c.fill(); // شناسه‌ی پزشکی
+    c.fillStyle = '#e8ecf5'; c.fillRect(5.6, 2.4, 4.8, 1.6); c.fillRect(5.6, 5.2, 4.8, 1.6);
     c.strokeStyle = '#8a97a8'; c.lineWidth = 2;
     c.beginPath(); c.moveTo(-2, -2); c.quadraticCurveTo(6, 2, 8, 8); c.stroke();   // گوشی پزشکی
     c.fillStyle = '#39424e'; circle2(c, 8.6, 8, 3);
+    c.fillStyle = '#c9a24e'; circle2(c, 8.6, 8, 1.1);
     c.fillStyle = F; circle2(c, 0, -2, 14.4);
     c.fillStyle = '#2e8a7a';                                           // روسری
     c.beginPath(); c.arc(0, -3, 15, Math.PI * 0.9, Math.PI * 2.1); c.fill();
     c.beginPath();
     c.moveTo(-13, -3); c.quadraticCurveTo(-17, 10, -9, 18);
     c.lineTo(0, 16); c.quadraticCurveTo(-7, 4, -8, -3); c.closePath(); c.fill();
-    c.fillStyle = '#2e8a7a'; circle2(c, 0, -13, 3.4);                  // سنجاق روسری
+    c.strokeStyle = '#236a5e'; c.lineWidth = 1.1;                     // چینِ روسری
+    c.beginPath(); c.moveTo(-11.4, 0); c.quadraticCurveTo(-13.6, 8, -9, 14); c.stroke();
+    c.fillStyle = '#c9a24e'; circle2(c, 0, -13, 3.4);                  // سنجاق روسری
     eyes(-5.4, 5.4, -3, 3, '#eef6f4');
     c.strokeStyle = '#2e5a50'; c.lineWidth = 1.4;                      // ابروهای آرام
     c.beginPath(); c.moveTo(-8, -7); c.lineTo(-3, -7.6); c.moveTo(3, -7.6); c.lineTo(8, -7); c.stroke();
+    c.strokeStyle = 'rgba(90,50,40,0.85)'; c.lineWidth = 1.3;          // لبخند ملایم
+    c.beginPath(); c.arc(0, 10.5, 3.6, 0.3, Math.PI - 0.3); c.stroke();
     mouth(0.3 + bob * 0.3);
   } else {                                              // راوی: کتابِ داستانِ باز
     c.save();
@@ -11394,20 +11544,51 @@ function drawTowerArshan() {
   ctx.translate(ax, ay + bob);
   if (binoc) ctx.translate(0, -1.5);
 
-  /* پاها */
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4.2; ctx.lineCap = 'round';
+  /* پاها — (۲۱٫۲) سایه‌روشن + بوت */
+  ctx.strokeStyle = 'rgba(8,12,20,0.5)'; ctx.lineWidth = 5.6; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-3.2, -12); ctx.lineTo(-4.4 + look * 1.4, 0);
   ctx.moveTo(3.2, -12); ctx.lineTo(4.4 + look * 1.4, 0);
   ctx.stroke();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4.2;
+  ctx.beginPath();
+  ctx.moveTo(-3.2, -12); ctx.lineTo(-4.4 + look * 1.4, 0);
+  ctx.moveTo(3.2, -12); ctx.lineTo(4.4 + look * 1.4, 0);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';
+  rr(-7.4 + look * 1.4, -2.2, 6, 2.6, 1); ctx.fill();
+  rr(1.4 + look * 1.4, -2.2, 6, 2.6, 1); ctx.fill();
 
-  /* بدن — کاپشن سبز ارشان */
-  ctx.fillStyle = '#4a7a4a';
+  /* بدن — کاپشن سبز ارشان (۲۱٫۲: گرادیان + زیپ + یقه) */
+  const ajG = ctx.createLinearGradient(-7.6, -26, 7.6, -11);
+  ajG.addColorStop(0, '#5b8f5b'); ajG.addColorStop(0.5, '#4a7a4a'); ajG.addColorStop(1, '#335233');
+  ctx.fillStyle = ajG;
   rr(-7.6, -26, 15.2, 15, 5); ctx.fill();
+  ctx.strokeStyle = 'rgba(8,12,20,0.5)'; ctx.lineWidth = 1;
+  rr(-7.6, -26, 15.2, 15, 5); ctx.stroke();
   ctx.fillStyle = '#3a6238';
   ctx.fillRect(-7.6, -12.5, 15.2, 3);
+  ctx.strokeStyle = '#d8e2f2'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(0, -24.5); ctx.lineTo(0, -13.5); ctx.stroke();   // زیپ
+  ctx.fillStyle = 'rgba(255,255,255,0.13)'; rr(-6.8, -25.2, 5.6, 2.6, 1.2); ctx.fill();  // هایلایت شانه
+  ctx.fillStyle = '#c9a24e'; ctx.fillRect(-1.8, -12.5, 3.6, 3);              // سگک کمربند
 
-  /* بازوها */
+  /* بازوها — (۲۱٫۲) با لبه‌ی تیره */
+  ctx.strokeStyle = 'rgba(8,12,20,0.5)'; ctx.lineWidth = 4.6;
+  ctx.beginPath();
+  if (binoc) {
+    ctx.moveTo(-4, -22); ctx.lineTo(-1, -30);
+    ctx.moveTo(4, -22); ctx.lineTo(1, -30);
+  } else if (ammo) {
+    const push = Math.sin(animTime * 6) * 1.4;
+    ctx.moveTo(-4, -22); ctx.lineTo(-9 - push, -18);
+    ctx.moveTo(4, -22); ctx.lineTo(9 + push, -18);
+  } else {
+    const sway = Math.sin(animTime * 2.2) * 1.6;
+    ctx.moveTo(-4, -22); ctx.lineTo(-7, -14 + sway);
+    ctx.moveTo(4, -22); ctx.lineTo(7, -14 - sway);
+  }
+  ctx.stroke();
   ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.4;
   ctx.beginPath();
   if (binoc) {
@@ -11426,11 +11607,16 @@ function drawTowerArshan() {
   }
   ctx.stroke();
 
-  /* سر + کلاه قرمز ارشان */
+  /* سر + کلاه قرمز ارشان — (۲۱٫۲) باک‌اسکی با تا + چین + گوش */
   ctx.fillStyle = '#f0c49a'; circle(look * 1.2, -31, 6);
+  ctx.beginPath(); ctx.arc(look * 1.2 - 4.8, -31.4, 2, Math.PI * 0.4, Math.PI * 1.6); ctx.fill();  // گوش
   ctx.fillStyle = '#7a2a2a';
   ctx.beginPath(); ctx.arc(look * 1.2, -31.6, 6.4, Math.PI, Math.PI * 2); ctx.fill();
   ctx.fillRect(look * 1.2 - 6.8, -32.4, 13.6, 2.5);
+  ctx.fillStyle = '#8f3838';                                              // تا‌ی کلاه
+  ctx.beginPath(); ctx.moveTo(look * 1.2 - 3.6, -37.2); ctx.lineTo(look * 1.2 + 0.6, -37.6); ctx.lineTo(look * 1.2 + 0.2, -34.2); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(8,12,20,0.45)'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(look * 1.2, -31.6, 6.4, Math.PI, Math.PI * 2); ctx.stroke();
 
   /* دوربین دوچشمی هنگام دیده‌بانی */
   if (binoc) {
@@ -12360,11 +12546,21 @@ UPDATE_HOOKS.push(function survivalUpdate(dt) {
      • شانس آمدن بیشتر شد (۴۰٪ → ۵۵٪) چون حالا ستونِ اصلی وسایل است
    ۳۰٪ کالای تقلبی هم‌طرح قبل باقی است (ریسکِ خرید از غریبه!) */
 const PED_LOOKS = [
-  { name: 'شنل‌پوش',    cloak: '#221839', hat: '#2e2348', eye: '#d8b0ff', eyeGlow: '#c08aff' },
-  { name: 'کلاه‌لبه‌گرد', cloak: '#4a2e2e', hat: '#7a3a2e', eye: '#9ff0b0', eyeGlow: '#54d07a' },
-  { name: 'ماسک‌دار',   cloak: '#26303a', hat: '#3a4a58', eye: '#ffc37f', eyeGlow: '#ff9a3d' },
-  { name: 'بارانی‌زرد',  cloak: '#8a6a22', hat: '#a8842e', eye: '#a8d8ff', eyeGlow: '#5aa8e8' },
-  { name: 'چرخ‌دسته',   cloak: '#3e3428', hat: '#54452e', eye: '#e8d8a0', eyeGlow: '#c9a24e' },
+  { name: 'شنل‌پوش',    cloak: '#2a1f45', hat: '#3a2c5e', eye: '#e2bcff', eyeGlow: '#c08aff', trim: '#c9a24e', trim2: '#8a6f3a' },
+  { name: 'کلاه‌لبه‌گرد', cloak: '#5e3434', hat: '#8f4636', eye: '#9ff0b0', eyeGlow: '#54d07a', trim: '#d8b455', trim2: '#6f5528' },
+  { name: 'ماسک‌دار',   cloak: '#2c3844', hat: '#42566a', eye: '#ffc37f', eyeGlow: '#ff9a3d', trim: '#9aa8b8', trim2: '#5d6a7a' },
+  { name: 'بارانی‌زرد',  cloak: '#a8821f', hat: '#c9a02f', eye: '#a8d8ff', eyeGlow: '#5aa8e8', trim: '#5a4a10', trim2: '#7a6518' },
+  { name: 'چرخ‌دسته',   cloak: '#4a3f2e', hat: '#68573a', eye: '#f0e0a8', eyeGlow: '#c9a24e', trim: '#b08a3a', trim2: '#6f5528' },
+];
+
+/* (۲۱٫۲) صدا/لحنِ هر چهره — فرقِ هر بازدید در صدا هم حس شود:
+   rate نرخ پخشِ کلیپ (زیر/بم‌شدن+سرعت)، pitch مخصوص صدای سیستم */
+const PED_VOICES = [
+  { rate: 1.0,  pitch: 1.0,  label: 'همان شنل‌پوشِ مرموز' },
+  { rate: 0.86, pitch: 0.7,  label: 'پیرمردِ خنده‌رو' },
+  { rate: 0.76, pitch: 0.5,  label: 'صدای پشتِ ماسکِ گاز' },
+  { rate: 1.18, pitch: 1.5,  label: 'جوانِ پرحرفِ بارانی‌زرد' },
+  { rate: 0.95, pitch: 0.85, label: 'دستفروشِ چرخ‌دسته' },
 ];
 
 const PED = {
@@ -12383,17 +12579,28 @@ const PED = {
     this.dir = this.dirFrom;
     this.t = 0; this.walkT = 0;
     state.peddler.here = true;
+    /* (۲۱٫۲) صدای این چهره — VOICE هنگام پخشِ خط‌های «d» اعمالش می‌کند */
+    try { if (typeof VOICE !== 'undefined') VOICE.pedTweak = PED_VOICES[this.look]; } catch (e) {}
     hidePeddlerPanel();
     SFX.peddler();
   },
-  /* رسید پایین برج → گفتگوی استوری (خطِ متنِ هر چهره فرق دارد) */
+  /* رسید پایین برج → گفتگوی استوری (۲۱٫۲: خطِ آغازِ هر چهره فرق دارد) */
   talk() {
     this.phase = 'talk';
     const L = PED_LOOKS[this.look];
+    const opens = [
+      'شب نزدیک است... و من کالایی کمیاب دارم؛ فقط برای تو.',
+      'الهی خیالت راحت! کالای دستِ اولِ قبل از فاجعه — نگاهی بنداز.',
+      'مممم... فیلترم تازه عوض شده. کالای تمیز و کمیاب داری؟ بگو ببینم.',
+      'عجله کن! باران که بگیرد، جاده بسته می‌شود — کالای کمیاب آورده‌ام!',
+      'زنگ زدی نیامدم، خودم آمدم! قفسه‌ی چرخ هم پُر است — ببین بخری.',
+    ];
     const lines = [
-      { who: 'd', v: 'pd1a', text: 'شب نزدیک است... و من کالایی کمیاب دارم؛ فقط برای تو.' },
+      { who: 'd', v: 'pd1a', text: opens[this.look % opens.length] },
       { who: 'p', v: 'pd1b', text: 'کالای کمیاب؟ از کجا معلوم تقلبی نباشد؟' },
-      { who: 'd', v: 'pd1c', text: 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
+      { who: 'd', v: 'pd1c', text: this.look === 2
+          ? 'هیچ‌چیز معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.'
+          : 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
     ];
     try {
       DLG.start(lines, () => { if (PED.phase === 'talk') PED.openShop(); });
@@ -12491,8 +12698,10 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     /* چرخ */
     ctx.fillStyle = '#2c2012'; circle(-26, -2, 5.5); circle(26, -2, 5.5);
     ctx.fillStyle = '#8a6f3a'; circle(-26, -2, 1.8); circle(26, -2, 1.8);
-    /* بدنِ خمیده روی چرخ */
-    ctx.fillStyle = L.cloak;
+    /* بدنِ خمیده روی چرخ — (۲۱٫۲) با گرادیان و حاشیه */
+    const cg4 = ctx.createLinearGradient(-14, -48, 14, -12);
+    cg4.addColorStop(0, L.trim2); cg4.addColorStop(0.45, L.cloak); cg4.addColorStop(1, '#14100a');
+    ctx.fillStyle = cg4;
     ctx.beginPath();
     ctx.moveTo(-14, -46);
     ctx.quadraticCurveTo(-18, -26, -14, -12);
@@ -12500,6 +12709,9 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     ctx.quadraticCurveTo(18, -26, 14, -46);
     ctx.quadraticCurveTo(0, -52, -14, -46);
     ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(8,12,20,0.55)'; ctx.lineWidth = 1.1; ctx.stroke();
+    ctx.strokeStyle = L.trim; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-11.5, -45.5); ctx.quadraticCurveTo(0, -49, 11.5, -45.5); ctx.stroke();
     /* کلاه لبه‌کوتاه + سر */
     ctx.fillStyle = '#f0c49a'; circle(2, -50, 7.4);
     ctx.fillStyle = L.hat;
@@ -12521,9 +12733,11 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     ctx.fillStyle = 'rgba(150,255,170,0.95)'; ctx.fillRect(-31.6, -36.4, 3.2, 5);
     ctx.restore();
   } else {
-    /* --- بدن‌های چهار چهره‌ی پیاده --- */
+    /* --- بدن‌های چهار چهره‌ی پیاده (۲۱٫۲: لباس‌های حاشیه‌دوزی‌شده و رنگ‌تراش) --- */
     const sway = Math.sin((moving ? walkT : t) * 2.2) * 3;
-    ctx.fillStyle = L.cloak;
+    const cg = ctx.createLinearGradient(-14, -50, 14, -12);
+    cg.addColorStop(0, L.trim2); cg.addColorStop(0.45, L.cloak); cg.addColorStop(1, '#0d0a14');
+    ctx.fillStyle = cg;
     ctx.beginPath();
     ctx.moveTo(-13, -46);
     ctx.quadraticCurveTo(-17 + sway, -26, -14, -12);
@@ -12531,8 +12745,24 @@ function drawPeddlerFig(x, y, phase, walkT, t, look, face) {
     ctx.quadraticCurveTo(17 + sway, -26, 13, -46);
     ctx.quadraticCurveTo(0, -52, -13, -46);
     ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(90,64,140,0.35)';
-    ctx.fillRect(-14, -18, 28, 3);                 /* کمربندِ براق */
+    ctx.strokeStyle = 'rgba(8,12,20,0.55)'; ctx.lineWidth = 1.1;
+    ctx.stroke();
+    /* حاشیه‌ی طلاییِ یقه + دوختِ لبه‌ی دامن (۲۱٫۲ — لباس فاخرتر) */
+    ctx.strokeStyle = L.trim; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-10.5, -45.5); ctx.quadraticCurveTo(0, -49.5, 10.5, -45.5);
+    ctx.stroke();
+    ctx.lineWidth = 0.9; ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.moveTo(-13.6, -18); ctx.lineTo(13.6, -18);
+    ctx.moveTo(-13.8, -13.5); ctx.lineTo(13.8, -13.5);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    /* سگکِ روشنِ وسطِ بدن */
+    ctx.fillStyle = L.trim;
+    ctx.beginPath(); ctx.moveTo(0, -43); ctx.lineTo(3.4, -40.5); ctx.lineTo(0, -38); ctx.lineTo(-3.4, -40.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillRect(-12.6, -44, 3.4, 24);                 /* بازتاب نورِ کنار */
 
     if (look === 1) {
       /* کلاه لبه‌گرد قرمز + شال گردن سبز + کوله‌پشتی پر از قترقم */
@@ -12705,7 +12935,10 @@ function pickRareStock() {
 
 function hidePeddlerPanel() { $('peddlerPanel').classList.add('hidden'); }
 
-/* پرتره‌ی دستفروش: با چهره‌ی این بازدید (۲۰٫۰) */
+/* پرتره‌ی دستفروش — (۲۱٫۲) پنج چهره‌ی کاملاً متفاوت: هر بازدید یک
+   شخصیت دیگر (کلاه/هود/ماسک/بارانی/کاسکت) + لباس حاشیه‌دارِ فاخر.
+   درخواست کاربر: «آیکونی که موقع حرف زدن ازش انداخته هر سری یکی
+   باید متفاوت باشه و لباس‌های فروشنده جذاب‌تر باشه» */
 function drawPeddlerFace() {
   const cv = $('pdFace');
   if (!cv) return;
@@ -12713,46 +12946,158 @@ function drawPeddlerFace() {
   c.clearRect(0, 0, 92, 92);
   const look = (PED && PED.active) ? PED.look : 0;
   const L = PED_LOOKS[look % PED_LOOKS.length];
-  const g = c.createRadialGradient(46, 34, 6, 46, 52, 62);
-  g.addColorStop(0, '#241a3e'); g.addColorStop(1, '#0a0714');
+  const BGS = ['#2a1f45', '#40222a', '#22303c', '#54400f', '#3a3222'];
+  /* پس‌زمینه‌ی هم‌رنگِ شخصیت + هاله */
+  const g = c.createRadialGradient(46, 36, 5, 46, 54, 64);
+  g.addColorStop(0, BGS[look % 5]); g.addColorStop(1, '#08060e');
   c.fillStyle = g; c.fillRect(0, 0, 92, 92);
-  /* شنل */
-  c.fillStyle = L.cloak;
+  c.strokeStyle = 'rgba(201,162,78,0.35)'; c.lineWidth = 2;
+  c.strokeRect(3, 3, 86, 86);                       /* قابِ طلاییِ کم‌رنگ */
+
+  /* شنل با گرادیان + یقه‌ی حاشیه‌دار (۲۱٫۲ — لباس فاخرتر) */
+  const cg = c.createLinearGradient(0, 40, 0, 92);
+  cg.addColorStop(0, L.trim2); cg.addColorStop(0.5, L.cloak); cg.addColorStop(1, '#0d0a14');
+  c.fillStyle = cg;
   c.beginPath();
-  c.moveTo(18, 90); c.quadraticCurveTo(22, 42, 46, 32);
-  c.quadraticCurveTo(70, 42, 74, 90); c.closePath(); c.fill();
-  /* کلاه/هود */
-  c.fillStyle = L.hat;
-  c.beginPath();
-  c.moveTo(27, 48); c.quadraticCurveTo(46, 12, 65, 48);
-  c.quadraticCurveTo(46, 57, 27, 48); c.closePath(); c.fill();
-  /* چشم‌های درخشانِ هم‌رنگِ چهره */
-  c.save();
-  c.shadowColor = L.eyeGlow; c.shadowBlur = 7;
-  c.fillStyle = L.eye;
-  circle2(c, 39, 45, 3); circle2(c, 53, 45, 3);
-  c.restore();
-  if (look === 2) {
-    /* ماسک گاز: عدسی‌های دور چشم */
-    c.strokeStyle = '#39424e'; c.lineWidth = 2;
-    circle2b(c, 39, 45, 6); circle2b(c, 53, 45, 6);
-  }
-  if (look === 1) {
-    /* لبه‌ی کلاه لبه‌گرد */
+  c.moveTo(16, 90); c.quadraticCurveTo(20, 40, 46, 30);
+  c.quadraticCurveTo(72, 40, 76, 90); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(8,12,20,0.6)'; c.lineWidth = 1.4; c.stroke();
+  c.strokeStyle = L.trim; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(24, 62); c.quadraticCurveTo(46, 54, 68, 62); c.stroke();
+  /* سگکِ الماسی */
+  c.fillStyle = L.trim;
+  c.beginPath(); c.moveTo(46, 58); c.lineTo(51, 63); c.lineTo(46, 68); c.lineTo(41, 63); c.closePath(); c.fill();
+
+  if (look === 0) {
+    /* ===== ۰) شنل‌پوش کلاسیک: هودِ سایه‌دار + چشم بنفش ===== */
     c.fillStyle = L.hat;
-    c.beginPath(); c.ellipse(46, 50, 24, 5, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath();
+    c.moveTo(24, 52); c.quadraticCurveTo(46, 8, 68, 52);
+    c.quadraticCurveTo(46, 62, 24, 52); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(8,6,14,0.55)';
+    c.beginPath(); c.ellipse(46, 47, 20, 13, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 9;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 46, 3.2); circle2(c, 53, 46, 3.2);
+    c.restore();
+    /* فانوسِ گوشه */
+    c.strokeStyle = '#7a5a20'; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(72, 54); c.lineTo(72, 58); c.stroke();
+    c.fillStyle = '#c9a24e'; c.fillRect(66, 58, 12, 16);
+    c.save(); c.shadowColor = '#ffd873'; c.shadowBlur = 10;
+    c.fillStyle = 'rgba(255,216,115,0.92)'; c.fillRect(68.6, 60, 6.8, 12); c.restore();
+    c.strokeStyle = '#4a3a18'; c.lineWidth = 1.4;
+    c.beginPath(); c.moveTo(72, 54); c.lineTo(72, 50); c.stroke();
+  } else if (look === 1) {
+    /* ===== ۱) کلاه‌لبه‌گرد: کلاه سنبادی + شال سبز + قترقم‌ها ===== */
+    c.fillStyle = '#3e5a3a';                     /* شال گردن */
+    c.beginPath();
+    c.moveTo(30, 54); c.quadraticCurveTo(46, 48, 62, 54);
+    c.quadraticCurveTo(46, 68, 30, 54); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(8,6,14,0.5)';
+    c.beginPath(); c.ellipse(46, 48, 17, 11, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 8;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 47, 3); circle2(c, 53, 47, 3);
+    c.restore();
+    c.fillStyle = L.hat;                        /* کلاه سنبادی با لبه‌ی پهن */
+    c.beginPath(); c.ellipse(46, 40, 26, 5.5, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(34, 40); c.quadraticCurveTo(46, 12, 58, 40); c.closePath(); c.fill();
+    c.strokeStyle = L.trim; c.lineWidth = 1.6;
+    c.beginPath(); c.ellipse(46, 40, 26, 5.5, 0, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = L.trim; c.fillRect(33, 36, 26, 2.4);   /* نوارِ کلاه */
+    /* قترقم‌های آویزان از کلاه */
+    c.strokeStyle = '#c9a24e'; c.lineWidth = 1.2;
+    for (let i = 0; i < 3; i++) {
+      const cx = 28 + i * 18;
+      c.beginPath(); c.moveTo(cx, 43); c.lineTo(cx - 2, 50); c.stroke();
+      c.fillStyle = ['#ffd873', '#8fd6ff', '#ff8a5a'][i];
+      circle2(c, cx - 2, 52, 2.4);
+    }
+  } else if (look === 2) {
+    /* ===== ۲) ماسک‌دار: هود + ماسک گاز با عدسی‌های درخشان ===== */
+    c.fillStyle = L.hat;
+    c.beginPath();
+    c.moveTo(22, 56); c.quadraticCurveTo(46, 10, 70, 56);
+    c.quadraticCurveTo(46, 66, 22, 56); c.closePath(); c.fill();
+    c.fillStyle = '#39424e';                    /* بدنه‌ی ماسک */
+    c.beginPath(); c.ellipse(46, 47, 21, 15, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#5d6a7a'; c.lineWidth = 2; c.stroke();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 11;
+    c.fillStyle = '#1a1410';
+    circle2(c, 38.6, 45, 6.4); circle2(c, 53.4, 45, 6.4);
+    c.fillStyle = L.eye;
+    circle2(c, 38.6, 45, 3.6); circle2(c, 53.4, 45, 3.6);
+    c.restore();
+    c.strokeStyle = '#8a97a8'; c.lineWidth = 1.4;
+    circle2b(c, 38.6, 45, 6.4); circle2b(c, 53.4, 45, 6.4);
+    /* فیلترِ پایینِ ماسک + شلنگ */
+    c.fillStyle = '#4a5664';
+    circle2(c, 46, 59, 5.6);
+    c.fillStyle = '#5d6a7a'; circle2(c, 46, 59, 2.6);
+    c.strokeStyle = '#39424e'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(51, 56); c.quadraticCurveTo(62, 60, 64, 70); c.stroke();
+  } else if (look === 3) {
+    /* ===== ۳) بارانی‌زرد: هودِ زرد + قطره‌های باران + چراغ‌قوه ===== */
+    c.fillStyle = L.hat;
+    c.beginPath();
+    c.moveTo(24, 54); c.quadraticCurveTo(46, 10, 68, 54);
+    c.quadraticCurveTo(46, 64, 24, 54); c.closePath(); c.fill();
+    c.strokeStyle = L.trim; c.lineWidth = 1.6; c.stroke();
+    c.fillStyle = 'rgba(8,6,14,0.5)';
+    c.beginPath(); c.ellipse(46, 47, 18, 12, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 8;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 46, 3); circle2(c, 53, 46, 3);
+    c.restore();
+    /* قطره‌های باران روی شانه */
+    c.fillStyle = 'rgba(168,216,255,0.55)';
+    c.beginPath(); c.ellipse(30, 72, 2, 3.2, 0.4, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(63, 66, 1.7, 2.8, -0.4, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(56, 78, 1.9, 3.1, 0.2, 0, Math.PI * 2); c.fill();
+    /* چراغ‌قوه با مخروط نور */
+    const beam = c.createLinearGradient(74, 60, 74, 84);
+    beam.addColorStop(0, 'rgba(255,238,170,0.5)'); beam.addColorStop(1, 'rgba(255,238,170,0)');
+    c.fillStyle = beam;
+    c.beginPath(); c.moveTo(70, 58); c.lineTo(78, 58); c.lineTo(84, 84); c.lineTo(64, 84);
+    c.closePath(); c.fill();
+    c.fillStyle = '#3a4250'; c.fillRect(66, 56, 16, 7);
+    c.save(); c.shadowColor = '#ffe9a0'; c.shadowBlur = 8;
+    c.fillStyle = '#fff3c9'; c.fillRect(80, 57, 3, 5); c.restore();
+  } else {
+    /* ===== ۴) چرخ‌دسته: کاسکت + پیشانی‌نوار + قفسه‌ی کالا ===== */
+    c.fillStyle = 'rgba(8,6,14,0.5)';
+    c.beginPath(); c.ellipse(46, 48, 18, 12, 0, 0, Math.PI * 2); c.fill();
+    c.save();
+    c.shadowColor = L.eyeGlow; c.shadowBlur = 8;
+    c.fillStyle = L.eye;
+    circle2(c, 39, 47, 3); circle2(c, 53, 47, 3);
+    c.restore();
+    /* ریش کوتاه + لبخند خصول */
+    c.fillStyle = 'rgba(30,24,18,0.8)';
+    c.beginPath(); c.ellipse(46, 58, 11, 6, 0, 0, Math.PI); c.fill();
+    c.fillStyle = '#e8d8a0';                     /* دندان‌های طلایی! */
+    c.fillRect(41, 58, 3, 2.4); c.fillRect(45, 58, 3, 2.4); c.fillRect(49, 58, 3, 2.4);
+    /* کاسکت با سنبله */
+    c.fillStyle = L.hat;
+    c.beginPath(); c.ellipse(46, 42, 22, 5, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.moveTo(32, 42); c.quadraticCurveTo(46, 18, 60, 42); c.closePath(); c.fill();
+    c.strokeStyle = L.trim; c.lineWidth = 1.6;
+    c.beginPath(); c.ellipse(46, 42, 22, 5, 0, 0, Math.PI * 2); c.stroke();
+    /* قفسه‌ی کوچکِ کالا در گوشه */
+    c.fillStyle = '#4a3a22'; c.fillRect(62, 60, 22, 20);
+    c.strokeStyle = '#2c2012'; c.lineWidth = 1.6; c.strokeRect(62, 60, 22, 20);
+    const goods = ['#8fd6ff', '#ffd873', '#ff8a5a'];
+    for (let i = 0; i < 3; i++) {
+      c.fillStyle = goods[i];
+      c.fillRect(65 + i * 6.4, 63, 5, 5);
+      c.fillRect(65 + i * 6.4, 71, 5, 5);
+    }
   }
-  /* فانوس گوشه */
-  c.strokeStyle = '#7a5a20'; c.lineWidth = 1.6;
-  c.strokeRect(64, 58, 10, 14);
-  c.fillStyle = '#c9a24e'; c.fillRect(64, 58, 10, 14);
-  c.save();
-  c.shadowColor = '#ffd873'; c.shadowBlur = 9;
-  c.fillStyle = 'rgba(255,216,115,0.92)';
-  c.fillRect(66, 60, 6, 10);
-  c.restore();
-  c.strokeStyle = '#4a3a18'; c.lineWidth = 1.4;
-  c.beginPath(); c.moveTo(69, 58); c.lineTo(69, 50); c.stroke();
 }
 function circle2b(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.stroke(); }
 
@@ -13170,21 +13515,46 @@ function introScBuild(t) {
   ctx.moveTo(cx - 66 + walk, GROUND_Y - 26); ctx.lineTo(cx - 18 + walk, GROUND_Y - 26);
   ctx.stroke();
 }
+/* (۲۱٫۲) کارگرِ افتتاحیه — با سایه‌روشن، کلاه‌برد، جعبه‌ی ابزار */
 function drawIntroWorker(x, y, jacket) {
   ctx.save();
   ctx.translate(x, y);
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  /* پاها + بوت */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.4; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-3, -12); ctx.lineTo(-4, -1); ctx.moveTo(3, -12); ctx.lineTo(4, -1);
   ctx.stroke();
-  ctx.fillStyle = jacket; rr(-7, -25, 14, 14, 4); ctx.fill();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-3, -12); ctx.lineTo(-4, -1); ctx.moveTo(3, -12); ctx.lineTo(4, -1);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';
+  rr(-7, -1.8, 6, 2.2, 1); ctx.fill(); rr(1, -1.8, 6, 2.2, 1); ctx.fill();
+  /* بدن با گرادیان */
+  const jg = ctx.createLinearGradient(-7, -25, 7, -11);
+  jg.addColorStop(0, jacket); jg.addColorStop(1, 'rgba(20,26,40,0.9)');
+  ctx.fillStyle = jg; rr(-7, -25, 14, 14, 4); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.9; rr(-7, -25, 14, 14, 4); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.14)'; rr(-6.2, -24.2, 5, 2.2, 1); ctx.fill();
+  /* سر + کلاه‌برد + چهره */
   ctx.fillStyle = '#f0c49a'; circle(1, -30, 5);
   ctx.fillStyle = '#5a3d28';
   ctx.beginPath(); ctx.arc(1, -30, 5, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3a3128';
+  ctx.beginPath(); ctx.ellipse(1, -31.5, 6.4, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d2433'; circle(-0.6, -30, 0.8); circle(2.8, -30, 0.8);
+  /* بازوی جلو + جعبه‌ی ابزار در دست */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 4.2;
+  ctx.beginPath(); ctx.moveTo(3, -22); ctx.lineTo(9, -27); ctx.stroke();
   ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(3, -22); ctx.lineTo(9, -27); ctx.stroke();
+  ctx.fillStyle = '#8a6a3c'; rr(7, -32, 7, 6, 1.4); ctx.fill();
+  ctx.strokeStyle = '#5e4626'; ctx.lineWidth = 0.8; rr(7, -32, 7, 6, 1.4); ctx.stroke();
+  ctx.strokeStyle = '#c9a24e'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(8, -29.5); ctx.lineTo(13, -29.5); ctx.stroke();
   ctx.restore();
 }
 
@@ -13777,24 +14147,58 @@ function renderVictoryCine() {
 function drawArshanWithRadio(x, y) {
   ctx.save();
   ctx.translate(x, y);
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 11, 3.4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  /* پاها + بوت (۲۱٫۲) */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 6.4; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-4, -13); ctx.lineTo(-5, -1);
   ctx.moveTo(4, -13); ctx.lineTo(5, -1);
   ctx.stroke();
-  ctx.fillStyle = '#4a7a4a'; rr(-9, -28, 18, 16, 5); ctx.fill();      // کاپشن سبز
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-4, -13); ctx.lineTo(-5, -1);
+  ctx.moveTo(4, -13); ctx.lineTo(5, -1);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';
+  rr(-8.4, -2.2, 6.4, 2.6, 1); ctx.fill(); rr(1.8, -2.2, 6.4, 2.6, 1); ctx.fill();
+  /* کاپشن سبز با گرادیان (۲۱٫۲) */
+  const ajG = ctx.createLinearGradient(-9, -28, 9, -12);
+  ajG.addColorStop(0, '#5b8f5b'); ajG.addColorStop(0.5, '#4a7a4a'); ajG.addColorStop(1, '#335233');
+  ctx.fillStyle = ajG;
+  rr(-9, -28, 18, 16, 5); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; rr(-9, -28, 18, 16, 5); ctx.stroke();
+  ctx.strokeStyle = '#d8e2f2'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(0, -26.5); ctx.lineTo(0, -14.5); ctx.stroke();   // زیپ
+  ctx.fillStyle = 'rgba(255,255,255,0.13)'; rr(-8.2, -27.2, 6.6, 2.6, 1.2); ctx.fill();
+  /* سر + کلاه قرمز با تا */
   ctx.fillStyle = '#f0c49a'; circle(2, -33, 6.4);
+  ctx.beginPath(); ctx.arc(-2.8, -33.4, 2.1, Math.PI * 0.4, Math.PI * 1.6); ctx.fill();   // گوش
   ctx.fillStyle = '#7a2a2a';
   ctx.beginPath(); ctx.arc(2, -33, 6.6, Math.PI, Math.PI * 2); ctx.fill();   // کلاه قرمز
   ctx.fillRect(-5, -34, 14, 3);
+  ctx.fillStyle = '#8f3838';                                                 // تا‌ی کلاه
+  ctx.beginPath(); ctx.moveTo(0.4, -39.4); ctx.lineTo(4.2, -39.8); ctx.lineTo(3.8, -36.2); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(2, -33, 6.6, Math.PI, Math.PI * 2); ctx.stroke();
   ctx.fillStyle = '#1d2433'; circle(4.6, -34, 1.1); circle(0.8, -34, 1.1);
+  ctx.strokeStyle = '#5a3d28'; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(3, -36.2); ctx.lineTo(5.8, -36.6);
+  ctx.moveTo(1.8, -36.6); ctx.lineTo(-0.4, -36.2);
+  ctx.stroke();                                                              // ابروها
   /* رادیو در دست + نورش */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.4;
+  ctx.beginPath(); ctx.moveTo(5, -25); ctx.lineTo(15, -30); ctx.stroke();
   ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.moveTo(5, -25); ctx.lineTo(15, -30); ctx.stroke();
   ctx.fillStyle = '#3a2c1a';
   rr(12, -38, 16, 12, 3); ctx.fill();
+  ctx.strokeStyle = '#241a10'; ctx.lineWidth = 1; rr(12, -38, 16, 12, 3); ctx.stroke();
+  ctx.fillStyle = '#c9a24e'; ctx.fillRect(14.5, -35.5, 11, 2.2);            // اسپیکر
+  ctx.strokeStyle = 'rgba(36,26,16,0.7)'; ctx.lineWidth = 0.8;
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(15, -34.8 + i * 0.9); ctx.lineTo(25, -34.8 + i * 0.9); ctx.stroke(); }
   const gl = ctx.createRadialGradient(20, -32, 2, 20, -32, 26);
   gl.addColorStop(0, 'rgba(255,210,130,0.35)');
   gl.addColorStop(1, 'rgba(255,210,130,0)');
@@ -14456,34 +14860,79 @@ function renderShelterWalk(t) {
   drawShelterWalker(bx - 34 * sc, GROUND_Y + 2, sc * 0.96, -0.7, true);
 }
 
-/* مسافرِ سحرگاهی — ارشان=true: کلاه قرمز + رادیو روی شانه */
-function drawShelterWalker(x, y, sc, aim, arshan) {
+/* مسافرِ سحرگاهی — ارشان=true: کلاه قرمز + رادیو روی شانه
+   (۲۱٫۲) پارامتر idle: ایستادنِ آرام با نفس‌کشیدن — قبلاً پاها حتی
+   وقتی شخصیت ساکن ایستاده بود هم قدم می‌زدند (درخواست کاربر).
+   کیفیت رسم هم بالا رفت: اندام دوبندی، سایه‌روشن، جزئیات لباس. */
+function drawShelterWalker(x, y, sc, aim, arshan, idle) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(sc, sc);
-  const step = animTime * 7 + (arshan ? 1.4 : 0);
-  const legA = Math.sin(step) * 12;
+  const OUT = 'rgba(8,12,20,0.5)';
+  const breathe = Math.sin(animTime * 1.7) * 0.8;
+  const step = idle ? 0 : animTime * 7 + (arshan ? 1.4 : 0);
+  const legA = idle ? 0 : Math.sin(step) * 12;
+  const bob = idle ? breathe * 0.6 : Math.abs(Math.sin(step)) * 0.9;
+  ctx.translate(0, -bob);
+  /* سایه */
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(0, 2, 13, 4, 0, 0, Math.PI * 2); ctx.fill();
-  /* پاها */
-  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  /* پاها (در حالت idle صاف و کنار هم) */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 6.4; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-3, -13); ctx.lineTo(-3 + legA, -1);
   ctx.moveTo(3, -13); ctx.lineTo(3 - legA, -1);
   ctx.stroke();
-  /* بدن (بازیکن: آبی؛ ارشان: سبز) + کوله */
-  ctx.fillStyle = arshan ? '#4a7a4a' : '#3d6db5';
+  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(-3, -13); ctx.lineTo(-3 + legA, -1);
+  ctx.moveTo(3, -13); ctx.lineTo(3 - legA, -1);
+  ctx.stroke();
+  /* بوت‌ها */
+  ctx.fillStyle = '#1a2033';
+  rr(-6.4 + legA, -1.8, 6, 2.6, 1); ctx.fill();
+  rr(0.4 - legA, -1.8, 6, 2.6, 1); ctx.fill();
+  /* کوله‌پشتی */
+  ctx.fillStyle = '#6a4a2c'; rr(-14.6, -27, 6.4, 12, 2.5); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.9; rr(-14.6, -27, 6.4, 12, 2.5); ctx.stroke();
+  ctx.fillStyle = '#4a3320'; ctx.fillRect(-14.6, -22, 6.4, 1.4);
+  /* بدن (بازیکن: آبی؛ ارشان: سبز) + سایه‌روشن */
+  const bodyG = ctx.createLinearGradient(-8, -28, 8, -11);
+  if (arshan) { bodyG.addColorStop(0, '#5b8f5b'); bodyG.addColorStop(0.5, '#4a7a4a'); bodyG.addColorStop(1, '#315231'); }
+  else { bodyG.addColorStop(0, '#4a7cc9'); bodyG.addColorStop(0.5, '#3d6db5'); bodyG.addColorStop(1, '#26324d'); }
+  ctx.fillStyle = bodyG;
   rr(-8, -27, 16, 16, 5); ctx.fill();
-  ctx.fillStyle = '#6a4a2c'; rr(-14, -26, 6, 11, 2); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; rr(-8, -27, 16, 16, 5); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.14)'; rr(-7.2, -26.2, 6, 3, 1.5); ctx.fill();
+  ctx.strokeStyle = '#d8e2f2'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(0, -25.5); ctx.lineTo(0, -13); ctx.stroke();   // زیپ
   /* سر */
   ctx.fillStyle = '#f0c49a'; circle(2, -32, 6);
   ctx.fillStyle = arshan ? '#7a2a2a' : '#2c3550';
   ctx.beginPath(); ctx.arc(2, -32, 6.2, Math.PI, Math.PI * 2); ctx.fill();
-  /* بازوها (راه‌رفتن) */
-  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 4;
+  if (arshan) ctx.fillRect(-4.4, -33, 13, 3.4);   // لبه‌ی کلاه باک‌اسکی
+  ctx.fillStyle = '#1d2433';
+  circle(0.4, -33, 0.95); circle(4.6, -33, 0.95); // چشم‌ها
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(2, -32, 6.2, Math.PI, Math.PI * 2); ctx.stroke();
+  /* رادیوی روی شانه‌ی ارشان */
+  if (arshan) {
+    ctx.fillStyle = '#3a2c1a'; rr(-6.4, -38.5, 8, 5.6, 1.6); ctx.fill();
+    ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0.4, -38.5); ctx.lineTo(2.4, -43); ctx.stroke();
+    ctx.fillStyle = '#c9a24e'; ctx.fillRect(-5, -37.4, 5, 2.4);
+  }
+  /* بازوها: راه‌رفتن (تقابل با پاها) / ایستادن (آرام کنار بدن) */
+  const armA = idle ? 0.5 : legA * 0.7;
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.moveTo(-3, -24); ctx.lineTo(-3 - legA * 0.7, -16);
-  ctx.moveTo(4, -24); ctx.lineTo(4 + legA * 0.7, -16);
+  ctx.moveTo(-3, -24); ctx.lineTo(-3 - armA, -16);
+  ctx.moveTo(4, -24); ctx.lineTo(4 + armA, -16);
+  ctx.stroke();
+  ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.8;
+  ctx.beginPath();
+  ctx.moveTo(-3, -24); ctx.lineTo(-3 - armA, -16);
+  ctx.moveTo(4, -24); ctx.lineTo(4 + armA, -16);
   ctx.stroke();
   ctx.restore();
 }
@@ -14713,8 +15162,8 @@ function renderShelterInside(t, ph) {
   }
   ctx.restore();
 
-  /* ===== آشپزخانه چپ (روی دیوار جانبی، مقیاس کم‌عمق) ===== */
-  /* قفسه‌ی کنسرو دوطبقه */
+  /* ===== آشپزخانه چپ (۲۱٫۲: همه‌چیز به دیوار/کف چسبیده — چیدمان منطقی) ===== */
+  /* قفسه‌ی کنسرو دوطبقه — روی دیوار جانبی */
   for (let s = 0; s < 2; s++) {
     const sx = 88 + s * 8, sy = 288 + s * 66;
     const sw = 168 - s * 10;
@@ -14730,8 +15179,15 @@ function renderShelterInside(t, ph) {
       ctx.fillRect(sx + 8 + j * (sw - 16) / 6, sy - 19, 15, 4);
     }
   }
-  /* بخاری ذغالی + لوله تا سقف */
-  const stx = 252, sty = 470;
+  /* گلدان آب روی قفسه‌ی دوم — دیگر وسط هوا شناور نیست */
+  ctx.fillStyle = '#7fb3c9'; rr(146, 324, 22, 30, 4); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(146, 324, 22, 6);
+  ctx.strokeStyle = '#5d8ba3'; ctx.lineWidth = 1.4; rr(146, 324, 22, 30, 4); ctx.stroke();
+  ctx.fillStyle = '#8fc9dd'; rr(150, 318, 14, 7, 2); ctx.fill();
+  /* بخاری ذغالی — کنجِ دیوار (پایه‌ش روی خط دیوار/کف) + لوله در امتداد دیوار */
+  const stx = 252, sty = 428;
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(stx, sty, 26, 6, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#2c2622'; rr(stx - 22, sty - 54, 44, 54, 6); ctx.fill();
   ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 2; rr(stx - 22, sty - 54, 44, 54, 6); ctx.stroke();
   const fireA = 0.65 + 0.35 * Math.sin(t * 7.3);
@@ -14744,11 +15200,8 @@ function renderShelterInside(t, ph) {
   ctx.strokeStyle = '#39424e'; ctx.lineWidth = 7;
   ctx.beginPath();
   ctx.moveTo(stx + 14, sty - 50);
-  ctx.quadraticCurveTo(stx + 38, sty - 88, stx + 20, sty - 122);
+  ctx.quadraticCurveTo(stx + 44, sty - 92, stx + 58, sty - 140);
   ctx.stroke();
-  /* گلدان آب روی شلف کوچک */
-  ctx.fillStyle = '#7fb3c9'; rr(60, 430, 22, 30, 4); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(60, 430, 22, 6);
 
   /* ===== منطقه‌ی خواب راست ===== */
   /* تخت دوطبقه */
@@ -14802,11 +15255,23 @@ function renderShelterInside(t, ph) {
   ctx.moveTo(748, 288); ctx.lineTo(760, 288); ctx.lineTo(758, 320); ctx.lineTo(750, 320);
   ctx.closePath(); ctx.fill();
 
-  /* ===== بازمانده‌ها ===== */
-  drawShelterSurvivorOld(370, 470, animTime);          /* پیرمردِ عصایی روی جعبه */
-  drawShelterSurvivorKnit(258, 505, animTime);         /* زنِ بافتنی روی صندلی */
-  drawShelterSurvivor(560, 372, '#6a5a8a', 0);         /* پتوپیچِ دورِ میز عقب */
-  drawShelterGuard(bx1 - 44, byB + 26, animTime);      /* نگهبانِ در با تفنگ */
+  /* ===== قالیچه‌ی گفتگو — محدوده‌ی میز/گروه را مشخص می‌کند (۲۱٫۲) ===== */
+  ctx.fillStyle = 'rgba(122,58,58,0.30)';
+  ctx.beginPath();
+  ctx.moveTo(452, 396); ctx.lineTo(588, 396);
+  ctx.lineTo(640, 548); ctx.lineTo(396, 548);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(201,162,78,0.22)'; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(458, 400); ctx.lineTo(582, 400);
+  ctx.lineTo(632, 543); ctx.lineTo(404, 543);
+  ctx.closePath(); ctx.stroke();
+
+  /* ===== بازمانده‌ها (۲۱٫۲: هر کس سرِ جای منطقی خودش) ===== */
+  drawShelterSurvivorOld(296, 470, animTime);          /* پیرمردِ عصایی کنارِ بخاری */
+  drawShelterSurvivorKnit(258, 505, animTime);         /* زنِ بافتنی زیر چراغِ اول */
+  drawShelterSurvivor(612, 392, '#6a5a8a', 0);         /* پتوپیچ کنار تخت‌ها */
+  drawShelterGuard(bx1 - 40, byB - 10, animTime);      /* نگهبانِ کنارِ درِ فولادی */
 
   /* ===== میز رادیو وسط + ایستگاه دکتر ===== */
   const rx = 468, ry = 512;
@@ -14836,20 +15301,29 @@ function renderShelterInside(t, ph) {
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  /* ایستگاه کمک‌های اولیه (پشتِ دکتر): صندوق قرمز + ستاند سرم */
-  ctx.fillStyle = '#8a3a30'; rr(392, 452, 34, 26, 4); ctx.fill();
+  /* ایستگاه کمک‌های اولیه (۲۱٫۲: کابینت به دیوارِ چپ چسبیده، پشتِ دکتر —
+     قبلاً صندوق و ستاند سرم وسطِ راهرو‌ی ورودی وسط هوا شناور بودند) */
+  ctx.fillStyle = '#5a2220'; rr(216, 398, 46, 58, 4); ctx.fill();
+  ctx.strokeStyle = '#7a3a34'; ctx.lineWidth = 2; rr(216, 398, 46, 58, 4); ctx.stroke();
+  ctx.fillStyle = '#8a3a30'; rr(222, 406, 34, 22, 3); ctx.fill();      // صندوق قرمز روی کابینت
   ctx.fillStyle = '#e8ecf5';
-  ctx.fillRect(404, 458, 10, 3.6); ctx.fillRect(404, 466, 10, 3.6);
+  ctx.fillRect(230, 412, 10, 3.6); ctx.fillRect(230, 419, 10, 3.6);   // علامت صلیب
+  ctx.fillStyle = 'rgba(232,236,245,0.75)';
+  ctx.fillRect(224, 440, 30, 1.8); ctx.fillRect(224, 448, 30, 1.8);   // درزهای کابینت
   ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(430, 478); ctx.lineTo(430, 414); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(276, 460); ctx.lineTo(276, 396); ctx.stroke();
   ctx.fillStyle = 'rgba(140,190,255,0.3)';
-  ctx.beginPath(); ctx.moveTo(430, 414); ctx.lineTo(424, 426); ctx.lineTo(436, 426);
+  ctx.beginPath(); ctx.moveTo(276, 396); ctx.lineTo(270, 408); ctx.lineTo(282, 408);
   ctx.closePath(); ctx.fill();
+  /* کیسه‌ی سرمِ آویزان از ستاند */
+  ctx.fillStyle = 'rgba(140,190,255,0.5)'; rr(271, 404, 10, 16, 3); ctx.fill();
+  ctx.strokeStyle = 'rgba(140,190,255,0.6)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(276, 420); ctx.quadraticCurveTo(276, 444, 284, 452); ctx.stroke();
 
-  /* دکتر مریم — کنار میز، رو به بازیکن */
+  /* دکتر مریم — جلوی ایستگاهش، رو به بازیکن */
   drawDoctorMary(rx - 128, ry - 8, animTime);
-  /* بازیکن (چپِ صحنه، تازه‌وارد، بزرگ‌تر = نزدیک‌تر) */
-  drawShelterWalker(178, 532, 2.5, 0.3, false);
+  /* بازیکن (۲۱٫۲: وسطِ جمعیت — کنارِ دکتر و میز؛ ایستاده و آرام) */
+  drawShelterWalker(392, 542, 2.5, 0.3, false, true);
   /* ارشان — پشت میز، دست روی رادیو */
   {
     const ax = rx + 104, ay = ry - 6;
@@ -14930,117 +15404,254 @@ function renderShelterInside(t, ph) {
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 }
 
-/* بازمانده‌ی پتوپیچ (دورِ میز عقب) */
+/* بازمانده‌ی پتوپیچ (کنار تخت‌ها) — (۲۱٫۲) پتوی پشمی با بافت */
 function drawShelterSurvivor(x, y, col, seed) {
   ctx.save();
   ctx.translate(x, y);
   const breathe = Math.sin(animTime * 1.6 + seed * 2) * 1.4;
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 17, 5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = col;
+  const blankG = ctx.createLinearGradient(-14, -34, 14, 0);
+  blankG.addColorStop(0, col); blankG.addColorStop(1, 'rgba(30,24,40,0.9)');
+  ctx.fillStyle = blankG;
   rr(-14, -34 + breathe, 28, 34, 8); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; rr(-14, -34 + breathe, 28, 34, 8); ctx.stroke();
+  ctx.strokeStyle = 'rgba(232,226,212,0.22)'; ctx.lineWidth = 1.2;   // بافت پتو
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    ctx.moveTo(-12, -28 + breathe + i * 8); ctx.lineTo(12, -28 + breathe + i * 8);
+  }
+  ctx.stroke();
   ctx.fillStyle = '#c9a084';
   circle(0, -40 + breathe, 7);
   ctx.fillStyle = 'rgba(30,24,40,0.85)';
   ctx.beginPath(); ctx.arc(0, -40 + breathe, 7.4, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+  ctx.fillStyle = '#1d2433'; circle(-2.6, -40 + breathe, 0.9); circle(2.6, -40 + breathe, 0.9);
   ctx.restore();
 }
 
-/* پیرمردِ عصایی — روی جعبه نشسته، دست‌ش روی عصا می‌لرزد */
+/* پیرمردِ عصایی — روی جعبه‌ی چوبی نشسته کنار بخاری، دست‌ش روی عصا می‌لرزد
+   (۲۱٫۲) جعبه‌ی نشیمن + کلاهِ شاپو + سایه‌روشن */
 function drawShelterSurvivorOld(x, y, t2) {
   ctx.save();
   ctx.translate(x, y);
   const tremble = Math.sin(t2 * 5.2) * 0.9;
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 19, 5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#54423a'; rr(-15, -30, 30, 32, 9); ctx.fill();       /* پالتوی کهنه */
+  /* جعبه‌ی چوبی نشیمن */
+  ctx.fillStyle = '#4a3a22'; rr(-16, -14, 32, 14, 2); ctx.fill();
+  ctx.strokeStyle = '#2c2012'; ctx.lineWidth = 1.6; rr(-16, -14, 32, 14, 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(44,32,18,0.7)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-16, -9); ctx.lineTo(16, -9); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(-14, -13, 28, 2);
+  /* پالتوی کهنه با گرادیان */
+  const coatG = ctx.createLinearGradient(-15, -32, 15, 0);
+  coatG.addColorStop(0, '#6a564c'); coatG.addColorStop(0.5, '#54423a'); coatG.addColorStop(1, '#3a2e28');
+  ctx.fillStyle = coatG;
+  rr(-15, -30, 30, 24, 9); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; rr(-15, -30, 30, 24, 9); ctx.stroke();
+  ctx.strokeStyle = '#3a2e28'; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(0, -28); ctx.lineTo(0, -8); ctx.stroke();   // درز پالتو
+  ctx.fillStyle = '#8a97a8'; circle(-2, -24, 0.9); circle(-2, -18, 0.9); // دکمه‌ها
+  /* سر + شاپو + موی سفید */
   ctx.fillStyle = '#c9a084'; circle(0, -36, 7);
   ctx.fillStyle = '#d8d2c4';
-  ctx.beginPath(); ctx.arc(0, -36, 7.4, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();  /* موی سفید */
-  ctx.strokeStyle = '#6a543a'; ctx.lineWidth = 2.4;
-  ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(20, -26); ctx.stroke();            /* عصا */
+  ctx.beginPath(); ctx.arc(0, -36, 7.4, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+  ctx.beginPath(); ctx.arc(-6.6, -35, 2.6, Math.PI * 0.3, Math.PI * 1.7); ctx.fill();  // ژولای پشت
+  ctx.fillStyle = '#4a4038';                                            // شاپو
+  ctx.beginPath(); ctx.ellipse(0, -42, 7.6, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+  rr(-5, -46, 10, 5, 2); ctx.fill();
+  ctx.fillStyle = '#5a4d44'; ctx.fillRect(-5, -43.4, 10, 1.6);          // نوار شاپو
+  ctx.fillStyle = '#1d2433'; circle(-2.6, -36, 0.9); circle(2.6, -36, 0.9);
+  ctx.strokeStyle = 'rgba(90,60,50,0.8)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(0, -32.4, 1.8, 0.3, Math.PI - 0.3); ctx.stroke();  // لبخند آرام
+  /* عصا + دست لرزان روی آن */
+  ctx.strokeStyle = '#6a543a'; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(20, -26); ctx.stroke();
+  ctx.strokeStyle = '#8a7455'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(14.6, -6); ctx.lineTo(19.4, -24); ctx.stroke();  // هایلایت عصا
+  ctx.fillStyle = '#8a6f3a'; rr(17.6, -28.4, 5, 4, 1.6); ctx.fill();    // دسته‌ی خمیده
+  ctx.strokeStyle = OUT; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-8, -22); ctx.lineTo(6 + tremble, -14); ctx.stroke();
   ctx.strokeStyle = '#c9a084'; ctx.lineWidth = 3.2;
-  ctx.beginPath(); ctx.moveTo(-8, -22); ctx.lineTo(6 + tremble, -14); ctx.stroke();  /* دست روی عصا */
+  ctx.beginPath(); ctx.moveTo(-8, -22); ctx.lineTo(6 + tremble, -14); ctx.stroke();
   ctx.restore();
 }
 
-/* زنِ بافتنی — روی صندلی، سوزن‌ها حرکت آرام */
+/* زنِ بافتنی — روی صندلی، سوزن‌ها حرکت آرام
+   (۲۱٫۲) شالِ راه‌راه + صندلی با پشتی + گلوله‌های پشم رنگی */
 function drawShelterSurvivorKnit(x, y, t2) {
   ctx.save();
   ctx.translate(x, y);
   const knit = Math.sin(t2 * 3.1) * 2.4;
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 17, 4.6, 0, 0, Math.PI * 2); ctx.fill();
+  /* صندلی چوبی با پشتی */
   ctx.strokeStyle = '#4a3b28'; ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(-10, 0); ctx.lineTo(-10, -22); ctx.moveTo(10, 0); ctx.lineTo(10, -22);
   ctx.stroke();
-  ctx.fillStyle = '#6a4a5a'; rr(-12, -46, 24, 26, 8); ctx.fill();       /* شال */
+  ctx.strokeStyle = '#5a4832'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(-10, -50); ctx.lineTo(-10, -22); ctx.moveTo(10, -50); ctx.lineTo(10, -22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-10, -48); ctx.quadraticCurveTo(0, -53, 10, -48); ctx.stroke();
+  /* شالِ راه‌راه با گرادیان */
+  const shG = ctx.createLinearGradient(-12, -46, 12, -20);
+  shG.addColorStop(0, '#7a5a6a'); shG.addColorStop(0.5, '#6a4a5a'); shG.addColorStop(1, '#4d3644');
+  ctx.fillStyle = shG;
+  rr(-12, -46, 24, 26, 8); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; rr(-12, -46, 24, 26, 8); ctx.stroke();
+  ctx.strokeStyle = 'rgba(201,162,78,0.5)'; ctx.lineWidth = 1.4;   // راه‌راه شال
+  ctx.beginPath();
+  ctx.moveTo(-8, -44); ctx.lineTo(-8, -22); ctx.moveTo(0, -44); ctx.lineTo(0, -22); ctx.moveTo(8, -44); ctx.lineTo(8, -22);
+  ctx.stroke();
+  /* سر + مو + چهره */
   ctx.fillStyle = '#c9a084'; circle(0, -52, 6.6);
   ctx.fillStyle = '#3a2d22';
   ctx.beginPath(); ctx.arc(0, -52, 7, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
-  ctx.strokeStyle = '#c9a084'; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.arc(-6.2, -51, 2.2, Math.PI * 0.3, Math.PI * 1.7); ctx.fill();  // گوجه‌ی مو
+  ctx.fillStyle = '#1d2433'; circle(-2.4, -52, 0.9); circle(2.4, -52, 0.9);
+  ctx.strokeStyle = 'rgba(90,60,50,0.8)'; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.arc(0, -48.6, 1.7, 0.3, Math.PI - 0.3); ctx.stroke();  // لبخند
+  /* دست‌ها + سوزن‌ها */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 4.6;
   ctx.beginPath(); ctx.moveTo(-6, -32); ctx.lineTo(-6 + knit, -24); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(6, -32); ctx.lineTo(6 - knit, -24); ctx.stroke();
-  ctx.fillStyle = '#b0533f'; circle(0, -22, 3);                        /* گلوله پشم */
+  ctx.strokeStyle = '#c9a084'; ctx.lineWidth = 3.4;
+  ctx.beginPath(); ctx.moveTo(-6, -32); ctx.lineTo(-6 + knit, -24); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(6, -32); ctx.lineTo(6 - knit, -24); ctx.stroke();
+  ctx.strokeStyle = '#d8d2c4'; ctx.lineWidth = 1;                  // سوزن‌های بافت
+  ctx.beginPath();
+  ctx.moveTo(-6 + knit, -24); ctx.lineTo(-8 + knit, -18);
+  ctx.moveTo(6 - knit, -24); ctx.lineTo(8 - knit, -18);
+  ctx.stroke();
+  /* دو گلوله پشم رنگی + کارِ در جریان */
+  ctx.fillStyle = '#b0533f'; circle(0, -22, 3);
+  ctx.fillStyle = '#5a7a9a'; circle(6, -20, 2.4);
+  ctx.fillStyle = '#b0533f';
+  ctx.beginPath(); ctx.moveTo(-4 + knit * 0.4, -20); ctx.lineTo(4 + knit * 0.4, -20);
+  ctx.lineTo(3 + knit * 0.4, -16.5); ctx.lineTo(-3 + knit * 0.4, -16.5); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 
-/* نگهبانِ در — به دیوار تکیه داده، تفنگ بغل */
+/* نگهبانِ در — کنارِ درِ فولادی، تفنگ بغل
+   (۲۱٫۲) جلیقه‌ی تاکتیکی + کلاه‌برد + سایه‌روشن */
 function drawShelterGuard(x, y, t2) {
   ctx.save();
   ctx.translate(x, y);
   const breathe = Math.sin(t2 * 1.5) * 1.1;
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0, 2, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 4.4; ctx.lineCap = 'round';
+  /* پاها */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.8; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-3, -14); ctx.lineTo(-6, -1); ctx.moveTo(3, -14); ctx.lineTo(6, -1);
   ctx.stroke();
-  ctx.fillStyle = '#4a4436'; rr(-9, -34 + breathe, 18, 22, 6); ctx.fill();
+  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 4.4;
+  ctx.beginPath();
+  ctx.moveTo(-3, -14); ctx.lineTo(-6, -1); ctx.moveTo(3, -14); ctx.lineTo(6, -1);
+  ctx.stroke();
+  /* جلیقه‌ی تاکتیکی با گرادیان + جیب‌ها */
+  const vestG = ctx.createLinearGradient(-9, -34, 9, -12);
+  vestG.addColorStop(0, '#5d5546'); vestG.addColorStop(0.5, '#4a4436'); vestG.addColorStop(1, '#332f26');
+  ctx.fillStyle = vestG;
+  rr(-9, -34 + breathe, 18, 22, 6); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; rr(-9, -34 + breathe, 18, 22, 6); ctx.stroke();
+  ctx.fillStyle = '#3a352b';                                    // جیب‌های سینه
+  rr(-7, -30 + breathe, 6, 7, 1.5); ctx.fill(); rr(1, -30 + breathe, 6, 7, 1.5); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  rr(-8, -33 + breathe, 7, 2.4, 1); ctx.fill();                 // هایلایت شانه
+  ctx.fillStyle = '#c9a24e'; ctx.fillRect(-2.6, -24 + breathe, 5.2, 2);  // نوارِ شناسه
+  /* سر + کلاه‌برد + چهره (نگران، رو به در) */
   ctx.fillStyle = '#c9a084'; circle(1, -40 + breathe, 6.6);
   ctx.fillStyle = '#2c2620';
   ctx.beginPath(); ctx.arc(1, -40 + breathe, 6.9, Math.PI, Math.PI * 2); ctx.fill();
-  /* تفنگِ بغل */
+  ctx.fillStyle = '#3a3128';
+  ctx.beginPath(); ctx.ellipse(1, -41.5 + breathe, 8.4, 2, 0, 0, Math.PI * 2); ctx.fill();  // لبه‌ی کلاه
+  ctx.fillStyle = '#1d2433'; circle(-1.4, -40 + breathe, 0.95); circle(3.6, -40 + breathe, 0.95);
+  ctx.strokeStyle = '#3a2d22'; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(-3.4, -42.4 + breathe); ctx.lineTo(0.2, -42.8 + breathe);
+  ctx.moveTo(1.8, -42.8 + breathe); ctx.lineTo(5.4, -42.4 + breathe); ctx.stroke();
+  /* تفنگِ بغل با بند */
   ctx.strokeStyle = '#33302a'; ctx.lineWidth = 2.8;
   ctx.beginPath(); ctx.moveTo(-14, -8); ctx.lineTo(12, -20); ctx.stroke();
   ctx.strokeStyle = '#5a5040'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(-8, -11); ctx.lineTo(-2, -13.4); ctx.stroke();
+  ctx.strokeStyle = 'rgba(180,160,120,0.7)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-12, -10.6); ctx.lineTo(4, -18.4); ctx.stroke();   // هایلایت لوله
+  ctx.strokeStyle = 'rgba(90,80,60,0.9)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(-10, -16); ctx.quadraticCurveTo(-2, -26, 6, -28 + breathe); ctx.stroke();  // بند
   ctx.restore();
 }
 
-/* دکتر مریم — روسریِ فیروزه‌ای + روپوش + گوشیِ پزشکی */
+/* دکتر مریم — روسریِ فیروزه‌ای + روپوش + گوشیِ پزشکی
+   (۲۱٫۲) بازطراحی کیفی: سایه‌روشنِ روپوش، چین‌های روسری، شناسه‌ی پزشکی،
+   لبخند و ابروهای آرام — چهره‌ای که اعتماد می‌دهد */
 function drawDoctorMary(x, y, t2) {
   ctx.save();
   ctx.translate(x, y);
   const breathe = Math.sin(t2 * 1.8) * 1.2;
+  const OUT = 'rgba(8,12,20,0.5)';
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(0, 2, 15, 4.4, 0, 0, Math.PI * 2); ctx.fill();
-  /* پاها */
-  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  /* پاها + کفش */
+  ctx.strokeStyle = OUT; ctx.lineWidth = 7; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-4, -18); ctx.lineTo(-5, -1); ctx.moveTo(4, -18); ctx.lineTo(5, -1); ctx.stroke();
-  /* روپوش سفید-نقره‌ای */
-  ctx.fillStyle = '#cfd6e4';
+  ctx.strokeStyle = '#2c3040'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(-4, -18); ctx.lineTo(-5, -1); ctx.moveTo(4, -18); ctx.lineTo(5, -1); ctx.stroke();
+  ctx.fillStyle = '#e8ecf5';
+  rr(-8, -2.6, 7, 2.8, 1.2); ctx.fill(); rr(1, -2.6, 7, 2.8, 1.2); ctx.fill();
+  /* روپوش سفید-نقره‌ای با گرادیان + یقه و دکمه */
+  const coatG = ctx.createLinearGradient(-12, -44, 12, -16);
+  coatG.addColorStop(0, '#eef2f8'); coatG.addColorStop(0.55, '#cfd6e4'); coatG.addColorStop(1, '#a8b2c6');
+  ctx.fillStyle = coatG;
   rr(-12, -44 + breathe, 24, 28, 8); ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1;
+  rr(-12, -44 + breathe, 24, 28, 8); ctx.stroke();
   ctx.fillStyle = '#a8b2c6';
   rr(-12, -26 + breathe, 24, 8, 4); ctx.fill();
-  /* سر + روسری فیروزه‌ای */
-  ctx.fillStyle = '#e8c49a';
-  circle(1, -50 + breathe, 8.4);
+  ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(0, -38 + breathe); ctx.lineTo(0, -20 + breathe); ctx.stroke();  // درز روپوش
+  ctx.fillStyle = '#8a97a8';
+  circle(-3, -34 + breathe, 1); circle(-3, -29 + breathe, 1); circle(-3, -24 + breathe, 1);  // دکمه‌ها
+  /* شناسه‌ی پزشکی روی سینه */
+  ctx.fillStyle = '#2e8a7a'; rr(5, -38 + breathe, 7, 9, 1.6); ctx.fill();
+  ctx.fillStyle = '#e8ecf5'; ctx.fillRect(6.6, -36 + breathe, 3.8, 1.4); ctx.fillRect(6.6, -33.6 + breathe, 3.8, 1.4);
+  /* سر + روسری فیروزه‌ای با چین */
+  ctx.fillStyle = '#e8c49a'; circle(1, -50 + breathe, 8.4);
   ctx.fillStyle = '#2e8a7a';
   ctx.beginPath(); ctx.arc(1, -51 + breathe, 9, Math.PI * 0.92, Math.PI * 2.08); ctx.fill();
   ctx.beginPath();
   ctx.moveTo(-8, -50 + breathe); ctx.quadraticCurveTo(-12, -36 + breathe, -6, -26 + breathe);
   ctx.lineTo(2, -28 + breathe); ctx.quadraticCurveTo(-4, -40 + breathe, -6, -50 + breathe);
   ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#236a5e'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-7, -46 + breathe); ctx.quadraticCurveTo(-9, -38 + breathe, -5, -30 + breathe); ctx.stroke();
+  ctx.fillStyle = '#c9a24e'; circle(1, -59 + breathe, 2.2);                 // سنجاق روسری
+  /* چهره: چشم‌ها + ابروهای آرام + لبخند */
+  ctx.fillStyle = '#1d2433';
+  circle(-2.4, -51 + breathe, 1.15); circle(4.4, -51 + breathe, 1.15);
+  ctx.strokeStyle = '#5a4436'; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-4.6, -53.4 + breathe); ctx.lineTo(-1, -53.8 + breathe);
+  ctx.moveTo(2.6, -53.8 + breathe); ctx.lineTo(6.2, -53.4 + breathe);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(90,50,40,0.8)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(1, -46.4 + breathe, 2.4, 0.25, Math.PI - 0.25); ctx.stroke();
   /* گوشی پزشکی روی سینه */
   ctx.strokeStyle = '#8a97a8'; ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(-2, -40 + breathe); ctx.quadraticCurveTo(6, -36 + breathe, 8, -30 + breathe);
   ctx.stroke();
   ctx.fillStyle = '#39424e'; circle(8.6, -30 + breathe, 3);
+  ctx.fillStyle = '#c9a24e'; circle(8.6, -30 + breathe, 1.2);
   /* دست‌ها آرام روی هم */
-  ctx.strokeStyle = '#e8c49a'; ctx.lineWidth = 4.6;
+  ctx.strokeStyle = OUT; ctx.lineWidth = 5.6;
+  ctx.beginPath(); ctx.moveTo(-8, -34 + breathe); ctx.lineTo(8, -32 + breathe); ctx.stroke();
+  ctx.strokeStyle = '#e8c49a'; ctx.lineWidth = 4.4;
   ctx.beginPath(); ctx.moveTo(-8, -34 + breathe); ctx.lineTo(8, -32 + breathe); ctx.stroke();
   ctx.restore();
 }
@@ -15289,6 +15900,12 @@ function apkBackButton() {
       pauseGame();
       return;
     }
+    /* (۲۱٫۲) منوی اصلی + APK بومیِ WebView → خروج تمیز از برنامه
+       (پلِ ttbNative فقط در پوسته‌ی اندرویدی ما وجود دارد) */
+    if (state.mode === 'start' && window.ttbNative && window.ttbNative.exit) {
+      try { window.ttbNative.exit(); } catch (e) {}
+      return;
+    }
     /* در حالت‌های سینمایی/انتقال، چیزی نکن — دکمه‌ی «رد کردن» خودش هست */
   } catch (e) {}
 }
@@ -15296,9 +15913,11 @@ document.addEventListener('backbutton', apkBackButton, false);          /* کو�
 window.addEventListener('popstate', () => {                            /* مرورگر/APK های وب‌محور */
   if (window.Capacitor || document.body.classList.contains('in-app')) apkBackButton();
 });
-/* تشخیص درون‌اپ: کپاسیتور/کوردوا → حالت تمام‌صفحه بدون سایه */
+/* تشخیص درون‌اپ: کپاسیتور/کوردوا → حالت تمام‌صفحه بدون سایه
+   (۲۱٫۲) WebView خالیِ APK سفارشی هم — با نشانه‌ی «wv» در UA — شناسایی می‌شود */
 (function detectInApp() {
-  const inApp = !!(window.Capacitor || window.cordova || (window.androidBridge));
+  const wvUA = /;\s*wv\)/.test(navigator.userAgent || '');
+  const inApp = !!(window.Capacitor || window.cordova || window.androidBridge || wvUA);
   if (inApp) document.body.classList.add('in-app');
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
     try { window.Capacitor.Plugins.App.addListener('backButton', apkBackButton); } catch (e) {}

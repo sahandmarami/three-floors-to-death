@@ -211,20 +211,51 @@ function drawTowerArshan() {
   ctx.translate(ax, ay + bob);
   if (binoc) ctx.translate(0, -1.5);
 
-  /* پاها */
-  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4.2; ctx.lineCap = 'round';
+  /* پاها — (۲۱٫۲) سایه‌روشن + بوت */
+  ctx.strokeStyle = 'rgba(8,12,20,0.5)'; ctx.lineWidth = 5.6; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-3.2, -12); ctx.lineTo(-4.4 + look * 1.4, 0);
   ctx.moveTo(3.2, -12); ctx.lineTo(4.4 + look * 1.4, 0);
   ctx.stroke();
+  ctx.strokeStyle = '#2c3550'; ctx.lineWidth = 4.2;
+  ctx.beginPath();
+  ctx.moveTo(-3.2, -12); ctx.lineTo(-4.4 + look * 1.4, 0);
+  ctx.moveTo(3.2, -12); ctx.lineTo(4.4 + look * 1.4, 0);
+  ctx.stroke();
+  ctx.fillStyle = '#1a2033';
+  rr(-7.4 + look * 1.4, -2.2, 6, 2.6, 1); ctx.fill();
+  rr(1.4 + look * 1.4, -2.2, 6, 2.6, 1); ctx.fill();
 
-  /* بدن — کاپشن سبز ارشان */
-  ctx.fillStyle = '#4a7a4a';
+  /* بدن — کاپشن سبز ارشان (۲۱٫۲: گرادیان + زیپ + یقه) */
+  const ajG = ctx.createLinearGradient(-7.6, -26, 7.6, -11);
+  ajG.addColorStop(0, '#5b8f5b'); ajG.addColorStop(0.5, '#4a7a4a'); ajG.addColorStop(1, '#335233');
+  ctx.fillStyle = ajG;
   rr(-7.6, -26, 15.2, 15, 5); ctx.fill();
+  ctx.strokeStyle = 'rgba(8,12,20,0.5)'; ctx.lineWidth = 1;
+  rr(-7.6, -26, 15.2, 15, 5); ctx.stroke();
   ctx.fillStyle = '#3a6238';
   ctx.fillRect(-7.6, -12.5, 15.2, 3);
+  ctx.strokeStyle = '#d8e2f2'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(0, -24.5); ctx.lineTo(0, -13.5); ctx.stroke();   // زیپ
+  ctx.fillStyle = 'rgba(255,255,255,0.13)'; rr(-6.8, -25.2, 5.6, 2.6, 1.2); ctx.fill();  // هایلایت شانه
+  ctx.fillStyle = '#c9a24e'; ctx.fillRect(-1.8, -12.5, 3.6, 3);              // سگک کمربند
 
-  /* بازوها */
+  /* بازوها — (۲۱٫۲) با لبه‌ی تیره */
+  ctx.strokeStyle = 'rgba(8,12,20,0.5)'; ctx.lineWidth = 4.6;
+  ctx.beginPath();
+  if (binoc) {
+    ctx.moveTo(-4, -22); ctx.lineTo(-1, -30);
+    ctx.moveTo(4, -22); ctx.lineTo(1, -30);
+  } else if (ammo) {
+    const push = Math.sin(animTime * 6) * 1.4;
+    ctx.moveTo(-4, -22); ctx.lineTo(-9 - push, -18);
+    ctx.moveTo(4, -22); ctx.lineTo(9 + push, -18);
+  } else {
+    const sway = Math.sin(animTime * 2.2) * 1.6;
+    ctx.moveTo(-4, -22); ctx.lineTo(-7, -14 + sway);
+    ctx.moveTo(4, -22); ctx.lineTo(7, -14 - sway);
+  }
+  ctx.stroke();
   ctx.strokeStyle = '#f0c49a'; ctx.lineWidth = 3.4;
   ctx.beginPath();
   if (binoc) {
@@ -243,11 +274,16 @@ function drawTowerArshan() {
   }
   ctx.stroke();
 
-  /* سر + کلاه قرمز ارشان */
+  /* سر + کلاه قرمز ارشان — (۲۱٫۲) باک‌اسکی با تا + چین + گوش */
   ctx.fillStyle = '#f0c49a'; circle(look * 1.2, -31, 6);
+  ctx.beginPath(); ctx.arc(look * 1.2 - 4.8, -31.4, 2, Math.PI * 0.4, Math.PI * 1.6); ctx.fill();  // گوش
   ctx.fillStyle = '#7a2a2a';
   ctx.beginPath(); ctx.arc(look * 1.2, -31.6, 6.4, Math.PI, Math.PI * 2); ctx.fill();
   ctx.fillRect(look * 1.2 - 6.8, -32.4, 13.6, 2.5);
+  ctx.fillStyle = '#8f3838';                                              // تا‌ی کلاه
+  ctx.beginPath(); ctx.moveTo(look * 1.2 - 3.6, -37.2); ctx.lineTo(look * 1.2 + 0.6, -37.6); ctx.lineTo(look * 1.2 + 0.2, -34.2); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(8,12,20,0.45)'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(look * 1.2, -31.6, 6.4, Math.PI, Math.PI * 2); ctx.stroke();
 
   /* دوربین دوچشمی هنگام دیده‌بانی */
   if (binoc) {
