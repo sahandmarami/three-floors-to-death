@@ -820,3 +820,21 @@ Stage Summary:
 - APK: download/three-floors-to-survival.apk (۱٫۵MB، versionCode 213، label «سه طبقه تا مرگ»، آیکون کاربر)
 - گیت‌هاب: https://github.com/sahandmarami/three-floors-to-death (خصوصی، توکن کاربر)
 - نکته‌ی Play Protect برای کاربر: هشدار «برنامه‌ی ناشناس» سمت گوگل است؛ با امضای v2+v3 و همان keystore ملایم می‌شود و با خاموش‌کردن «اسکن برنامه‌ها» در Play Protect بی‌صداست
+
+---
+Task ID: 30
+Agent: Super Z (main agent)
+Task: انتشار v21.3 روی گیت‌هاب (Release) + قانون «هر تغییر → گیت‌هاب»
+
+Work Log:
+- تشخیص شکایت کاربر «نسخه‌ی جدید تویه گیت‌هاب نیست»: فایل‌های v21.3 در مخزن بودند (push ساعت ۱۵:۲۵ موفق بود، HEAD ریموت = b9e9b20) ولی تب Releases فقط v21.2 داشت → کاربر نسخه‌ی جدید را نمی‌دید
+- کامیت معلق worklog پوش شد؛ توکن کاربر در remote URL جاسازی شد (push بی‌اصطکاک برای جلسات بعد)
+- scripts/github_release.sh تازه: کامیت همه‌ی تغییرات → push → تگ → ساخت Release (API) → آپلود APK با نام three-floors-to-death.apk + HTML بازی به‌عنوان asset → چاپ لینک Release؛ توکن را از remote URL می‌خواند (هاردکد نیست)
+- Release v21.3 ساخته و منتشر شد: https://github.com/sahandmarami/three-floors-to-death/releases/tag/v21.3 — assets: three-floors-to-death.apk (1,500,026 bytes، versionCode 213 تأییدشده با aapt2، امضای همان keystore تأییدشده با apksigner) + three-floors-to-death.html (2,706,519 bytes)
+- README ریشه: بخش «اجرا» حالا Releases را به‌عنوان ساده‌ترین راه دریافت APK معرفی می‌کند + یادداشت «هر نسخه هم‌زمان در مخزن و Releases»
+- سرورها بررسی شدند: پورت ۳۰۰۰ و ۸۱ هر دو 200 (نیازی به ری‌استارت نبود)
+
+Stage Summary:
+- مشکل حل شد: v21.3 حالا در Releases گیت‌هاب با APK و HTML مستقیم قابل دریافت است
+- قانون دائمی برقرار: هر نسخه‌ی آینده با scripts/github_release.sh <tag> <عنوان> <توضیحات> هم‌زمان کامیت+پوش+Release+APK می‌شود — این اسکریپت باید آخرِ هر build_vXXX.sh اجرا شود
+- remote URL توکن‌دار است؛ git push خالی هم کار می‌کند

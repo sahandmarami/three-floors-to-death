@@ -8,8 +8,10 @@
 
 | روش | فایل |
 |------|------|
+| اندروید (APK) — **ساده‌ترین راه** | [صفحه‌ی Releases](https://github.com/sahandmarami/three-floors-to-death/releases) → آخرین نسخه → `three-floors-to-death.apk` |
 | مرورگر (کامپیوتر/گوشی) | `download/three-floors-to-survival.html` — بازش کنید، تمام |
-| اندروید (APK) | `download/three-floors-to-survival.apk` — نصب از منابع ناشناس |
+
+> هر نسخه‌ی تازه هم‌زمان در مخزن (پوشه‌ی `download/`) و در [Releases](https://github.com/sahandmarami/three-floors-to-death/releases) با APK و HTML مستقیم منتشر می‌شود.
 
 **نسخه‌ی ۲۱٫۳ (اندروید):** تمام‌صفحه‌ی واقعی روی هر گوشی (دنیای بازی از نسبت صفحه عرض می‌گیرد — بدون نوار سیاه)، نمایش شارپ (DPR تا ۲)، متن‌ها یک‌نواخت با صحنه بزرگ می‌شوند، رفع «کم‌رنگ» دیده‌شدن (ForceDark خاموش + متای color-scheme)، نام تازه‌ی بازی «سه طبقه تا مرگ» و آیکون اختصاصی.
 
