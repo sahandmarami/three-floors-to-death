@@ -187,7 +187,7 @@ function update(dt) {
           state.spawn.bossDelay = true;
           state.spawn.timer = 2.4;
           if (state.wave >= FINAL_WAVE) {
-            try { bark('fbw2', 'a', 'نگهبانِ آخرین شب داره میاد!', '🌑 زمین می‌لرزه...', 'نگهبانِ آخرین شب داره میاد!', 2.6); } catch (e) {
+            try { bark('fbw2', 'a', 'نگهبان آخرین شب میاد!', '🌑 زمین می‌لرزه...', 'نگهبان آخرین شب میاد!', 2.6); } catch (e) {
               setAnnounce('🌑 زمین می‌لرزه...', 'نگهبانِ آخرین شب داره میاد!', 2.2);
             }
           } else setAnnounce('زمین می‌لرزه... 👑', 'پادشاه زامبی‌ها داره میاد!', 2.2);
@@ -268,6 +268,7 @@ function makeMenuZombie(type, x) {
     biteInt: 1, biteTimer: 1, dmg: 0,
   };
 }
+function menuEnter23() { try { menu23Enter(); } catch (e) {} }
 function initMenuZ() {
   menuZ.length = 0;
   /* (۲۱٫۱) منوی پرجون‌تر: ۴ زامبی با تنوع (معمولی/سریع/تانک) که از دو
@@ -287,7 +288,8 @@ function updateMenuScene(dt) {
       Object.assign(z, makeMenuZombie(type, TOWER.x + side * (W / 2 + rand(40, 260))));
     }
   }
-  menuFxT += dt;                                 /* (۲۱٫۱) زمانِ جوّ منو (نور پنجره‌ها/مه) */
+  menuFxT += dt;                                 /* (۲۱٫۱) زمانِ جوّ منو */
+  try { M23.update(dt); } catch (e) {}            /* (۲۳٫۰) صحنه‌ی منوی جدید */
   updateParticles(dt); updateTexts(dt);   // ذراتِ شلیک آزمایشی/پوکه در منو هم تمام شوند
 }
 
@@ -3009,6 +3011,9 @@ function render() {
     drawClouds();
     drawDriveScene();
     drawPlayer();                              // بازیکن روی سقف ماشین (۸٫۰)
+  } else if (state.mode === 'start') {
+    /* (۲۳٫۰) منوی اصلی جدید: صحنه‌ی سینمایی اختصاصی — به‌جای دنیای بازی */
+    drawMenuScene23();
   } else {
   /* (۱۸٫۱) پس‌زمینه‌ی پخته: ۴ لایه‌ی ایستا فقط blit می‌شوند — به‌جای
      ~۱۰۰۰ دستور مسیر و چند fill تمام‌صفحه با گرادیانِ تازه در هر فریم */
@@ -3091,9 +3096,12 @@ function render() {
   ctx.restore();
   /* (۲۱٫۱) جوّ سینمایی منو: هاله‌ی گرم پنجره‌های برج + مهِ زمین +
      تاریکی لبه‌ها — برج قهرمانِ قاب می‌شود و منو عمق می‌گیرد */
-  if (state.mode === 'start') drawMenuFX();
+  /* (۲۳٫۰) منوی جدید همه‌چیز را خودش رسم می‌کند */
   /* گریدینگ رنگی سینمایی (۶٫۰): تینت سرمای شب + گرمای روز + وینیت نرم */
   drawColorGrade();
+  /* (۲۳٫۰) عمق ۲.۵بعدی + لایه‌ی معما: نور/مه/AO/باران + نشانگرهای شنود */
+  try { DEPTH23.post(); } catch (e) {}
+  try { MYST.render(); } catch (e) {}
   /* لایه‌ی UI: بدون لرزش */
   drawOffscreenArrows();
   drawReticle();

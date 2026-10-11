@@ -447,9 +447,38 @@ const SFX = {
 };
 
 /* فعال‌سازی صدا با اولین تعامل کاربر (سیاست autoplay مرورگرها) */
-const armAudio = () => { Snd.init(); Snd.resume(); try { VOICE.warmup(); } catch (e) {} };
+const armAudio = () => {
+  Snd.init(); Snd.resume();
+  try { VOICE.warmup(); } catch (e) {}
+  /* (۲۳٫۰) اگر موسیقی منتظرِ آماده‌شدن صدا مانده باشد، همین‌جا شروع شود */
+  try { if (typeof MUSIC !== 'undefined' && MUSIC.track && !MUSIC.timer) MUSIC._start(MUSIC.track); } catch (e) {}
+};
 window.addEventListener('pointerdown', armAudio, { passive: true });
 window.addEventListener('keydown', armAudio);
+/* (۲۳٫۰) شروعِ خودکار موسیقی منو:
+   - اندروید WebView: autoplay فعال است → بلافاصله پخش می‌شود
+   - مرورگر: با اولین هرگونه لمس/کلیک (نه فقط دکمه) شروع می‌شود */
+(function autoMusic23() {
+  const tryStart = () => {
+    try {
+      if (typeof MUSIC !== 'undefined' && Snd.ready && MUSIC.track && !MUSIC.timer) MUSIC._start(MUSIC.track);
+    } catch (e) {}
+  };
+  window.addEventListener('pointerdown', tryStart, { passive: true });
+  window.addEventListener('touchstart', tryStart, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { try { Snd.resume(); } catch (e) {} tryStart(); }
+  });
+  setTimeout(() => {
+    try {
+      Snd.init();
+      if (Snd.ctx) {
+        if (Snd.ctx.state === 'running') tryStart();
+        else Snd.ctx.onstatechange = () => { if (Snd.ctx && Snd.ctx.state === 'running') tryStart(); };
+      }
+    } catch (e) {}
+  }, 300);
+})();
 
 /* ---------------------- ۴) وضعیت بازی ---------------------- */
 /* mode (وضعیت‌های بازی):

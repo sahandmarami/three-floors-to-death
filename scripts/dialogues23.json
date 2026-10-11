@@ -1,0 +1,597 @@
+{
+ "i1n": {
+  "who": "n",
+  "fa": "یه ویروس، شهر رو بی‌صدا کشت.",
+  "fing": "ye virus, shahr ro be seda kosht."
+ },
+ "i2n": {
+  "who": "n",
+  "fa": "خیابون‌ها خالی موند.",
+  "fing": "khiyaboonha khaali moond."
+ },
+ "i3a": {
+  "who": "a",
+  "fa": "چقدر دیگه؟ آب تمومه.",
+  "fing": "cheghadr dige? ab temoome."
+ },
+ "i4p": {
+  "who": "p",
+  "fa": "تا جای امن پیدا نکنیم، وایسیم نمی‌شه.",
+  "fing": "ta jaye amn peyda nakonim, vaysim nemishe."
+ },
+ "i7a": {
+  "who": "a",
+  "fa": "صداش رو شنیدی؟ نزدیکه!",
+  "fing": "sedash ro shenidi? nazdike!"
+ },
+ "i8p": {
+  "who": "p",
+  "fa": "آره. از خیابون اصلی دور بشیم.",
+  "fing": "are. az khiyaboon asli door beshim."
+ },
+ "i9a": {
+  "who": "a",
+  "fa": "اون ساختمون رو ببین! سه طبقه‌ست!",
+  "fing": "oon sakhtemoon ro bebin! se tabagheh!"
+ },
+ "i10p": {
+  "who": "p",
+  "fa": "متروکه‌ست. معلوم نیست داخلش چی هست.",
+  "fing": "metrookeh. maloom nist toojash chi hast."
+ },
+ "i13a": {
+  "who": "a",
+  "fa": "اول بررسی می‌کنیم.",
+  "fing": "aval barresi mikonim."
+ },
+ "i14p": {
+  "who": "p",
+  "fa": "باشه. ورودی‌ها رو محکم می‌کنیم.",
+  "fing": "bashe. voroodiha ro mohkam mikonim."
+ },
+ "i15a": {
+  "who": "a",
+  "fa": "تخته‌ها به درد پنجره‌ها می‌خورن.",
+  "fing": "takhteha be dard panjereha mikhoran."
+ },
+ "i16p": {
+  "who": "p",
+  "fa": "ورق فلزی رو بذار جلوی در.",
+  "fing": "varragh felez ro bezar jolo ye dar."
+ },
+ "i19a": {
+  "who": "a",
+  "fa": "یه ساختمون نیمه‌کاره، شد خونه‌ی ما!",
+  "fing": "ye sakhtemoon nimekaare, shod khoone maa!"
+ },
+ "i20p": {
+  "who": "p",
+  "fa": "پناهگاهه. مراقبش باشیم.",
+  "fing": "panahgaheh. moraqebash bashim."
+ },
+ "w1a": {
+  "who": "a",
+  "fa": "آماده‌ست! امیدوارم تخته‌ها دوام بیارن!",
+  "fing": "aadast! omidvaram takhteha dovam biyaran!"
+ },
+ "w1b": {
+  "who": "p",
+  "fa": "در رو نگه دار. حواست به پنجره‌ها باشه.",
+  "fing": "dar ro negah dar. hoozat be panjereha bashe."
+ },
+ "w1d": {
+  "who": "p",
+  "fa": "نمی‌دونم. برای بدترین حالت آماده باش.",
+  "fing": "nemidoonam. baraye badtarin halet aadeh bash."
+ },
+ "c1w1a": {
+  "who": "a",
+  "fa": "رفتن؟ واقعاً رفتن؟",
+  "fing": "raftan? vaghean raftan?"
+ },
+ "c1w1b": {
+  "who": "p",
+  "fa": "عقب‌نشینی کردن. هنوز امن نیست.",
+  "fing": "aqabneshini kardan. hanooz amn nist."
+ },
+ "c1w2a": {
+  "who": "a",
+  "fa": "چند تا تخته شکست!",
+  "fing": "chand ta takhteh shekast!"
+ },
+ "c1w2b": {
+  "who": "p",
+  "fa": "ورودی رو اول تعمیر می‌کنم.",
+  "fing": "voroodi ro aval taamir mikonam."
+ },
+ "c1w3a": {
+  "who": "a",
+  "fa": "جعبه ابزار پیدا کردم!",
+  "fing": "jaaqe abzar peyda kardam!"
+ },
+ "c1w3b": {
+  "who": "p",
+  "fa": "نگهش دار. به کار میاد.",
+  "fing": "negahesh dar. be kaar miyad."
+ },
+ "c1w4a": {
+  "who": "a",
+  "fa": "صبر کن... این صدا از کجاست؟",
+  "fing": "sabr kon... in seda az kojast?"
+ },
+ "c1w4b": {
+  "who": "p",
+  "fa": "بی‌سیمه. هنوز کار می‌کنه.",
+  "fing": "bisimeh. hanooz kaar mikoneh."
+ },
+ "c1w4r": {
+  "who": "r",
+  "fa": "توجه... ایستگاه شمال... مسیر اصلی مسدود...",
+  "fing": "tavajjoh... istgaah shomaal... masir asli masdood..."
+ },
+ "c1w4c": {
+  "who": "a",
+  "fa": "شنیدی؟ ممکنه آدم‌های دیگه‌ای باشن!",
+  "fing": "shenidi? momkene aadamhaye digari bashan!"
+ },
+ "c1w4d": {
+  "who": "p",
+  "fa": "پیام ناقص بود. فعلاً زنده بمونیم.",
+  "fing": "peyaam naaqes bood. felaan zende bemoonim."
+ },
+ "c1w5a": {
+  "who": "a",
+  "fa": "این دفعه تعدادشون بیشتر بود.",
+  "fing": "in dafe tedadashoon bishtar bood."
+ },
+ "c1w5b": {
+  "who": "p",
+  "fa": "منابع رو بی‌خودی هدر ندیم.",
+  "fing": "manaabes ro bikhoodi hadar nadim."
+ },
+ "c1e1a": {
+  "who": "a",
+  "fa": "ساختمون دیگه مثل روز اول نیست.",
+  "fing": "sakhtemoon dige mesl rooz aval nist."
+ },
+ "c1e1b": {
+  "who": "p",
+  "fa": "ما هم مثل روز اول نیستیم.",
+  "fing": "maa ham mesl rooz aval nistim."
+ },
+ "c1e1d": {
+  "who": "p",
+  "fa": "اون روز باید راه خروج داشته باشیم.",
+  "fing": "oon rooz bayad raah khoroj dashte bashim."
+ },
+ "c1er": {
+  "who": "r",
+  "fa": "مسیر کانال هنوز بازه... تکرار می‌کنم...",
+  "fing": "masir kanaal hanooz baaze... tekrar mikonam..."
+ },
+ "c1ea": {
+  "who": "a",
+  "fa": "واضح‌تر شنیدم! از کانال رد می‌شیم!",
+  "fing": "vaazhtar shenidam! az kanaal rad mishim!"
+ },
+ "c1eb": {
+  "who": "p",
+  "fa": "اگه ترکش کنیم، برگشتی نیست.",
+  "fing": "age tarkish konim, bargashti nist."
+ },
+ "c1ed": {
+  "who": "p",
+  "fa": "وسایل ضروری رو جمع کن. حرکت می‌کنیم.",
+  "fing": "vasayel zaroori ro jam kon. harakat mikonim."
+ },
+ "t1a1": {
+  "who": "a",
+  "fa": "برج داره فرو می‌ریزه! بپر! سریع!",
+  "fing": "borj daare foo mirize! bepar! sari!"
+ },
+ "t1n1": {
+  "who": "n",
+  "fa": "ارشان پایین رفت و ماشین رو گرم کرد.",
+  "fing": "aarshaan paayin raft o mashin ro garm kard."
+ },
+ "tb1c": {
+  "who": "a",
+  "fa": "گرفتمت! محکم خودت رو بگیر!",
+  "fing": "gereftamat! mohkam khodet ro begir!"
+ },
+ "tb1s": {
+  "who": "a",
+  "fa": "فرمان با توئه! گاز بده!",
+  "fing": "farmaan baa tooeh! gaaz bedeh!"
+ },
+ "tb1o": {
+  "who": "n",
+  "fa": "جاده شمالی رسیدید. کانال منتظرته.",
+  "fing": "jaade shomaali residid. kanaal montazarteh."
+ },
+ "t2n1": {
+  "who": "n",
+  "fa": "رفتند؛ بی‌آنکه بدانند آن‌سوی کانال چیست.",
+  "fing": "raftand; biaanke daanand ansoo kanaal chist."
+ },
+ "t2a1": {
+  "who": "a",
+  "fa": "باورم نمی‌شه ترکش کردیم.",
+  "fing": "baavaram nemishe tarkish kardim."
+ },
+ "t2p1": {
+  "who": "p",
+  "fa": "اونجا رو برای زندگی آماده کردیم، نه زندان.",
+  "fing": "oonjaa ro baraye zendegi aadeh kardim, na zendaan."
+ },
+ "t2p2": {
+  "who": "p",
+  "fa": "تا خودمون نبینیم، اعتماد نمی‌کنیم.",
+  "fing": "ta khodemoon bebinim, eteqaad nemikonim."
+ },
+ "c2ea": {
+  "who": "a",
+  "fa": "اونجا رو ببین! یه قایقه!",
+  "fing": "oonjaa ro bebin! ye ghaayegheh!"
+ },
+ "c2eb": {
+  "who": "p",
+  "fa": "اول بدنه‌ش رو بررسی می‌کنیم.",
+  "fing": "aval badanash ro barresi mikonim."
+ },
+ "c2ed": {
+  "who": "p",
+  "fa": "وسط راه خراب شه، برگشتی نداریم.",
+  "fing": "vasat raah kharaab she, bargashti nadarim."
+ },
+ "c2em": {
+  "who": "p",
+  "fa": "ممکنه همون ایستگاه باشه. مسیر فرعی می‌ریم.",
+  "fing": "momkene hamoon istgaah bashe. masir fareyi mirim."
+ },
+ "c2eo": {
+  "who": "p",
+  "fa": "به آمادگی تکیه کنیم، نه به امید.",
+  "fing": "be aadehgi takye konim, na be omid."
+ },
+ "tb2p1": {
+  "who": "a",
+  "fa": "قایق قدیمیه، ولی حرکت می‌کنه.",
+  "fing": "ghaayegh ghadimie, vali harakat mikoneh."
+ },
+ "tb2p4": {
+  "who": "p",
+  "fa": "نه. ولی وقت نداریم. حرکت کن.",
+  "fing": "na. vali vaght nadarim. harakat kon."
+ },
+ "tb2s": {
+  "who": "a",
+  "fa": "فرمان قایق با توئه! گاز بده!",
+  "fing": "farmaan ghaayegh baa tooeh! gaaz bedeh!"
+ },
+ "tb2o1": {
+  "who": "a",
+  "fa": "رسیدیم! از اینجا ادامه می‌دیم.",
+  "fing": "residim! az inja edaame midim."
+ },
+ "tb2o2": {
+  "who": "p",
+  "fa": "تموم نشده. ایستگاه رو پیدا کنیم.",
+  "fing": "temoo nashode. istgaah ro peyda konim."
+ },
+ "tb2o4": {
+  "who": "p",
+  "fa": "و هر قدم، یه خطر تازه داره.",
+  "fing": "o har ghadam, ye khatar taaze dareh."
+ },
+ "b1a1": {
+  "who": "a",
+  "fa": "گاز بده! تنها راه همینه!",
+  "fing": "gaaz bedeh! tanaa raah hamine!"
+ },
+ "b1a2": {
+  "who": "a",
+  "fa": "آخر کانال یه چراغ چشمک می‌زنه!",
+  "fing": "aakher kanaal ye cheragh chashmak mizaneh!"
+ },
+ "d1a1": {
+  "who": "a",
+  "fa": "مواظب باش! یه راه باقی مونده!",
+  "fing": "moozab bash! ye raah baaghi moondeh!"
+ },
+ "d1a2": {
+  "who": "a",
+  "fa": "اون طرف یه جعبه‌ست! بگیرش!",
+  "fing": "oon taraf ye jaaqeh! begiresh!"
+ },
+ "c3n1": {
+  "who": "n",
+  "fa": "آن‌سوی کانال، ایستگاهی متروک بود؛ نشانه‌هایی از زندگی، بی‌کسی.",
+  "fing": "ansoo kanaal, istgaahi matrook bood; nishaanihaa az zendegi, bikasi."
+ },
+ "c3a1": {
+  "who": "a",
+  "fa": "انگار یه گروهی اینجا زندگی می‌کرده.",
+  "fing": "angar ye groohi inja zendegi mikardeh."
+ },
+ "c3p1": {
+  "who": "p",
+  "fa": "آثارش هست. ولی کجا رفتن؟",
+  "fing": "aasaresh hast. vali kojaa raftan?"
+ },
+ "c3ca": {
+  "who": "a",
+  "fa": "اینجا نوشته برج مخابراتی تو کوهستانه.",
+  "fing": "inja neveshte borj mokhaaberati too kohestaane."
+ },
+ "c3cb": {
+  "who": "p",
+  "fa": "اگه کار کنه، پیام کامل‌تری می‌گیریم.",
+  "fing": "age kaar kone, peyaam kaameltari migirim."
+ },
+ "c3cd": {
+  "who": "p",
+  "fa": "زوده. اول باید برسیم.",
+  "fing": "zooreh. aval bayad beresim."
+ },
+ "c3ea": {
+  "who": "a",
+  "fa": "فکر می‌کنی اونجا واقعاً آدم زنده باشه؟",
+  "fing": "fekr mikoni oonjaa vaghean aadam zende bashe?"
+ },
+ "c3eb": {
+  "who": "p",
+  "fa": "پیام می‌گه پناهگاه فعاله.",
+  "fing": "peyaam mige panahgaah faaaleh."
+ },
+ "c3ed": {
+  "who": "p",
+  "fa": "پس حرکت کنیم و خودمون ببینیم.",
+  "fing": "pas harakat konim o khodemoon bebinim."
+ },
+ "t3h1": {
+  "who": "a",
+  "fa": "هوا سردتر شد. دستام یخ زده.",
+  "fing": "havva sardtar shod. dastam yakh zadeh."
+ },
+ "t3h4": {
+  "who": "p",
+  "fa": "اگه نباشه، پیام اضطراری می‌فرستیم.",
+  "fing": "age nabaashe, peyaam ezteraari mifrestim."
+ },
+ "tb3s": {
+  "who": "a",
+  "fa": "گاز بده! از برف رد شو!",
+  "fing": "gaaz bedeh! az barf rad shoo!"
+ },
+ "t3r1": {
+  "who": "a",
+  "fa": "رسیدیم! تجهیزات هنوز اینجا هستن!",
+  "fing": "residim! tajhizaat hanooz injaa hastan!"
+ },
+ "t3r2": {
+  "who": "p",
+  "fa": "ارتباط رو چک می‌کنم. دست به چیزی نزن.",
+  "fing": "ertaabaat ro chek mikonam. dast be chizi nazan."
+ },
+ "t3rr": {
+  "who": "r",
+  "fa": "اگر این را می‌شنوید، پناهگاه جنوبی فعال است. مسیر دره شرقی.",
+  "fing": "agar in ra mishnavid, panahgaah jonoobi faaal ast. masir darre sharghi."
+ },
+ "t3r4": {
+  "who": "p",
+  "fa": "مسیر داریم. قبل از بدتر شدن هوا بریم.",
+  "fing": "masir daarim. ghabl az badtar shodan havva berim."
+ },
+ "s1a1": {
+  "who": "a",
+  "fa": "توفان میاد! تو رگبار گاز نده!",
+  "fing": "toofaan miaad! too ragbaar gaaz nadeh!"
+ },
+ "s1a2": {
+  "who": "a",
+  "fa": "بالا یه جعبه‌ست! نزدیک شو!",
+  "fing": "baalaa ye jaaqeh! nazdik shoo!"
+ },
+ "sbo1": {
+  "who": "p",
+  "fa": "وای... برق رفت! چراغ‌قوه رو روشن کن!",
+  "fing": "vaay... barq raft! cheragh ghooove ro rooshan kon!"
+ },
+ "c4n1": {
+  "who": "n",
+  "fa": "پس از روزها مبارزه، به پناهگاهی رسیدند با نشانه‌های زندگی.",
+  "fing": "pas az roozhaa mobaareze, be panahgaahi residan baa nishaanhaaye zendegi."
+ },
+ "c4a1": {
+  "who": "a",
+  "fa": "آدم‌ها! بالاخره آدم‌های واقعی!",
+  "fing": "aadamhaa! baalaakhare aadamhaye vaghe!"
+ },
+ "c4p1": {
+  "who": "p",
+  "fa": "آروم باش. اول بفهمیم چه خبره.",
+  "fing": "aaroom bash. aval befahim che khabare."
+ },
+ "c4m1": {
+  "who": "m",
+  "fa": "پیام برج مخابراتی رو گرفتید؟",
+  "fing": "peyaam borj mokhaaberati ro gereftid?"
+ },
+ "c4m2": {
+  "who": "m",
+  "fa": "اینجا هنوز امنه. ولی دیوارهای شمالی آسیب دیدن.",
+  "fing": "inja hanooz amneh. vali divarhaaye shomaali aasib didan."
+ },
+ "c4p3": {
+  "who": "p",
+  "fa": "ما دفاع از ساختمون رو بلدیم.",
+  "fing": "maa defaa az sakhtemoon ro baladim."
+ },
+ "c4a3": {
+  "who": "a",
+  "fa": "این بار تنها نیستیم.",
+  "fing": "in dafe tanaa nistim."
+ },
+ "c4f1": {
+  "who": "a",
+  "fa": "همه آماده‌ان. ولی این سکوت عادی نیست.",
+  "fing": "hame aadaan. vali in sokoot aadi nist."
+ },
+ "c4f2": {
+  "who": "p",
+  "fa": "همین فکر رو منم می‌کنم.",
+  "fing": "hamin fekr ro manam mikonam."
+ },
+ "c4f3": {
+  "who": "m",
+  "fa": "از برج خبر رسید. حرکتی در دره شمالیه.",
+  "fing": "az borj khabar resid. harakati dar darre shomaalieh."
+ },
+ "c4f7": {
+  "who": "p",
+  "fa": "هرچی باشه، آماده‌ایم.",
+  "fing": "har chi bashe, aadaim."
+ },
+ "c4v1": {
+  "who": "a",
+  "fa": "تموم شد؟ واقعاً تموم شد؟",
+  "fing": "temoom shod? vaghean temoom shod?"
+ },
+ "c4v2": {
+  "who": "p",
+  "fa": "فعلاً ساکته. جشن نمی‌گیریم.",
+  "fing": "felaan saaketeh. jashn nemigirim."
+ },
+ "c4v3": {
+  "who": "m",
+  "fa": "بی‌سیم روشن بمونه. منتظر گزارشم.",
+  "fing": "bisim rooshan bemooneh. montazer gozaaram."
+ },
+ "c4vr": {
+  "who": "r",
+  "fa": "هشدار! حرکت گسترده در دره شمالی. همه به مواضع دفاعی!",
+  "fing": "heshdaar! harakat gosat darre shomaali. hame be mavaghe defaa!"
+ },
+ "c4v4": {
+  "who": "a",
+  "fa": "نه... بعد از همه این‌ها؟",
+  "fing": "na... baad az hame inhaa?"
+ },
+ "c4v5": {
+  "who": "m",
+  "fa": "دیوارها زیاد دووم نمیارن.",
+  "fing": "divarhaa ziyaad dovam nemiyaran."
+ },
+ "c4v6": {
+  "who": "p",
+  "fa": "همه رو به داخل منتقل کن. آماده تخلیه باشیم.",
+  "fing": "hame ro be daakhel montaqel kon. aadeh takhlie bashim."
+ },
+ "c4v8": {
+  "who": "p",
+  "fa": "تا یه راه مونده، تسلیم نمی‌شیم.",
+  "fing": "taa ye raah moonde, taslim nemishim."
+ },
+ "e1n": {
+  "who": "n",
+  "fa": "گمان می‌کردند کابوس تمام شده؛ اما این آغاز نبردی بزرگ‌تر بود.",
+  "fing": "gomaan mikardan kaaboos tamaam shode; ammaa in aaghaaz nabaradi bozorgtar bood."
+ },
+ "e2a": {
+  "who": "a",
+  "fa": "سهند... این بارم جون سالم می‌بریم؟",
+  "fing": "sahand... in daafam joon saalem miyaaarim?"
+ },
+ "e3p": {
+  "who": "p",
+  "fa": "نمی‌دونم. ولی تسلیم نمی‌شیم.",
+  "fing": "nemidoonam. vali taslim nemishim."
+ },
+ "e4n": {
+  "who": "n",
+  "fa": "نبرد هنوز تمام نشده است.",
+  "fing": "nabarad hanooz tamaam nashodeh ast."
+ },
+ "tbc1n": {
+  "who": "n",
+  "fa": "این داستان ادامه دارد...",
+  "fing": "in daastaan edaameh daaraad..."
+ },
+ "aw1": {
+  "who": "a",
+  "fa": "من همین‌جام! تو فقط شلیک کن!",
+  "fing": "man haminjaam! to faghat shiligh kon!"
+ },
+ "aw2": {
+  "who": "a",
+  "fa": "حواست باشه! گروه بزرگ میاد!",
+  "fing": "hoozat bashe! grooh bozorg miaad!"
+ },
+ "aw4": {
+  "who": "a",
+  "fa": "باتری چراغ‌قوه تموم می‌شه!",
+  "fing": "baatari cheragh ghooove temoom mishe!"
+ },
+ "aw5": {
+  "who": "a",
+  "fa": "برج ترک خورده! می‌رم پایین!",
+  "fing": "borj tarak khord! miram paayin!"
+ },
+ "fbw1": {
+  "who": "a",
+  "fa": "آوارها رو بترکون!",
+  "fing": "aavaarha ro betarkoon!"
+ },
+ "fbw2": {
+  "who": "a",
+  "fa": "نگهبان آخرین شب میاد!",
+  "fing": "negahbaan aakhari shab miaad!"
+ },
+ "fbz1": {
+  "who": "a",
+  "fa": "برجک‌ها روی زره‌ش اثر ندارن! خودت بزن!",
+  "fing": "borjhaa roo zereash asar nadaaran! khodet bezan!"
+ },
+ "fbz2": {
+  "who": "a",
+  "fa": "مواظب باش! شارژ می‌کنه! بزن!",
+  "fing": "moozab bash! shaarzh mikoneh! bezan!"
+ },
+ "fb1b1": {
+  "who": "b",
+  "fa": "زره... سنگین... کن!",
+  "fing": "zereh... sangin... kon!"
+ },
+ "fb1b2": {
+  "who": "b",
+  "fa": "خشم... من!",
+  "fing": "khoshm... man!"
+ },
+ "fbd1": {
+  "who": "b",
+  "fa": "تمومش... نکردی... هنوز...",
+  "fing": "temoosh... nakardi... hanooz..."
+ },
+ "pd1a1": {
+  "who": "d",
+  "fa": "کالای دست اول! ببین بخری.",
+  "fing": "kaalaa dast aval! bebin bekhari."
+ },
+ "pd1b": {
+  "who": "p",
+  "fa": "کالای کمیاب؟ تقلبی نیست؟",
+  "fing": "kaalaa kamyaaab? taqlabi nist?"
+ },
+ "pd1c": {
+  "who": "d",
+  "fa": "تا غروب اینجام. زود انتخاب کن.",
+  "fing": "taa ghooroob injam. zood entekhaab kon."
+ },
+ "pd1l": {
+  "who": "d",
+  "fa": "غروب شد... باید رفت.",
+  "fing": "ghoroob shod... bayad raft."
+ }
+}

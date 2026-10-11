@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(true);
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
-        s.setMediaPlaybackRequiresUserGesture(true);   /* بازی خودش بعد از اولین ژست صدا را باز می‌کند */
+        s.setMediaPlaybackRequiresUserGesture(false);  /* (۲۳٫۰) موسیقی منو همان لحظه‌ی ورود پخش می‌شود */
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);      /* همیشه نسخه‌ی همراه‌شده */
         /* (۲۱٫۳) حالت تیره‌ی سیستم روی WebView قدیمی/شرکتی رنگ‌ها را
            کم‌رنگ می‌کرد — صریحاً خاموشش می‌کنیم (برای targetSdk 34

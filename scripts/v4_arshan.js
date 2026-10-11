@@ -123,7 +123,7 @@ UPDATE_HOOKS.push(function arshanUpdate(dt) {
         const right = alive.length - left;
         if (Math.max(left, right) >= 8 && alive.length >= 12) key = 'aw2';
       }
-      if (!key && !ARSHAN.flags.kills && state.stats.kills - ARSHAN.killsMark >= 15) key = 'aw3';
+      /* (۲۳٫۰) aw3 حذف شد — صدای متناظر بازنویسی/حذف شد */
       if (!key && !ARSHAN.flags.start && alive.length > 0) key = 'aw1';
       if (key) {
         ARSHAN.flags[key === 'aw5' ? 'tower' : key === 'aw4' ? 'batt' : key === 'aw2' ? 'group' : key === 'aw3' ? 'kills' : 'start'] = true;

@@ -619,9 +619,13 @@ function refreshMenuContinue() {
   if (!btn) return;
   const d = loadSaveData();
   btn.disabled = !d;
-  btn.textContent = d
-    ? '▶ ادامه — فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave))
-    : '▶ ادامه‌ی بازی (سیوی نیست)';
+  /* (۲۳٫۰) برچسب داخل دکمه‌ی جدید منو */
+  const _c = $('m23c');
+  if (_c) {
+    _c.textContent = d
+      ? 'فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave)) + ' از ۳۶'
+      : 'هنوز سیوی نداری';
+  }
   /* (۲۱٫۱) چیپ‌های آمارِ منو: پیشرفت سیو + زامبی‌های کشته‌شده —
      انگیزه‌ی «ادامه بده» و حس زنده‌بودن منو */
   const ms = $('menuStats');

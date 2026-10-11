@@ -1,6 +1,6 @@
 #!/bin/bash
 # تست نسخه‌ی ۲۱٫۳ — تمام‌صفحه/عرض تطبیقی/تغییر نام/رفع flex-shrink
-URL="http://localhost:3000/three-floors-to-survival.html"
+URL="http://localhost:3002/three-floors-to-survival.html"
 P=0; F=0
 ck() { if [ "$2" = "1" ]; then P=$((P+1)); echo "  OK  $1"; else F=$((F+1)); echo "  FAIL  $1"; fi }
 
@@ -27,9 +27,9 @@ agent-browser screenshot /home/z/my-project/scripts/shots213/phone_menu.png >/de
 
 echo "===== ۲) تغییر نام: «سه طبقه تا مرگ» ====="
 R=$(agent-browser eval "document.title.includes('$MARG')?1:0" | tail -1); ck "عنوان تب «سه طبقه تا مرگ»" "$R"
-R=$(agent-browser eval "document.querySelector('.game-title').textContent.includes('$MARG')?1:0" | tail -1); ck "تیتر منو «سه طبقه تا مرگ»" "$R"
-R=$(agent-browser eval "document.body.innerText.includes('$BAQA')?0:1" | tail -1); ck "اثری از نام قدیم «بقا» نیست" "$R"
-R=$(agent-browser eval "document.querySelector('.menu-ver').textContent.includes('\u06F2\u06F1')?1:0" | tail -1); ck "پلاک نسخه ۲۱٫۳" "$R"
+R=$(agent-browser eval "document.querySelector('.m23-title').textContent.includes('$MARG')?1:0" | tail -1); ck "تیتر منو «سه طبقه تا مرگ»" "$R"
+R=$(agent-browser eval "document.body.innerText.includes('\u0633\u0647 \u0637\u0628\u0642\u0647 \u062a\u0627 '+'$BAQA')?0:1" | tail -1); ck "اثری از نام قدیمی «سه طبقه تا بقا» نیست (تب کوله «بقا» مجاز)" "$R"
+R=$(agent-browser eval "document.body.innerText.includes('\u06F2\u06F3')?1:0" | tail -1); ck "پلاک نسخه ۲۳٫۰ (۲۳٫۱ منو)" "$R"
 
 echo "===== ۳) صحنه‌ی بازی روی گوشی عریض ====="
 fresh
