@@ -867,3 +867,21 @@ Stage Summary:
 - تحویل: download/three-floors-to-survival.html (۵.۵MB، ۱۷۲۹۴ خط) + three-floors-to-survival.apk (versionCode 220)
 - کل داستان رسمی کاربر پیاده و به ۳۶ موج متصل شد؛ ۱۷۰ کلیپ صوتی ۷ شخصیت متمایز
 - ساختار ۴ فصل/۳۶ موج/سیو کاملاً حفظ شد (تست سازگاری سیو قدیمی سبز)
+
+---
+Task ID: 31 (تکمیل)
+Agent: Super Z (main agent)
+Task: انتشار v22.0
+
+Work Log:
+- Release v22.0 منتشر شد: https://github.com/sahandmarami/three-floors-to-death/releases/tag/v22.0
+  assets: three-floors-to-death.apk (3,351,418 bytes، versionCode 220) + three-floors-to-death.html (5,731,107 bytes)
+- ادغام origin/main (v21.4/v21.5 جلسه قبل) با استراتژی ours — v22.0 HTML مرجع
+- مسیر Godot (godot-project/ + APK گودوت) طبق دستور کاربر حذف شد — کامیت 409da21
+- README به‌روز شد (نسخه ۲۲٫۰، داستان جدید، ساختار تست‌ها)
+- test_v20.sh برای جریان گفتگوی جدید به‌روز شد (۷۰/۷۰)
+
+Stage Summary:
+- v22.0 کامل: داستان ۳۶ موجی + ۱۷۰ کلیپ صدایی ۷ شخصیت + UI اصلاح‌شده + پایان سینمایی + APK 220 + Release
+- تست‌ها: v22 (۵۰) + v20 (۷۰) + v213 (۲۴ معتبر) = ۱۴۴ سبز
+- پیش‌نمایش زنده: localhost:3000 (سرور + watchdog فعال)
