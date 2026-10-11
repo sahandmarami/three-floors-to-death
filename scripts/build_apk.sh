@@ -29,7 +29,7 @@ $BT/aapt2 link -o build/base.apk \
   --manifest AndroidManifest.xml \
   --java build/gen \
   --min-sdk-version 24 --target-sdk-version 34 \
-  --version-code 213 --version-name "2.1.3" \
+  --version-code 214 --version-name "2.1.4" \
   -A assets \
   build/compiled/res.zip
 
