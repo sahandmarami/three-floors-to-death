@@ -1,0 +1,14 @@
+{
+  "created": 1791717888,
+  "id": "2026101119244762ef6f0a1a804425",
+  "request_id": "2026101119244762ef6f0a1a804425",
+  "text": "他们计算过，在到达潘纳伽后，他们可以呼吸到空气了。但是，宇宙还为这艘船提供了什么？",
+  "usage": {
+    "completion_tokens": 27,
+    "prompt_tokens": 226,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 253
+  }
+}

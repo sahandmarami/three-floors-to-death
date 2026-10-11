@@ -927,9 +927,9 @@ const PED = {
       'زنگ زدی نیامدم، خودم آمدم! قفسه‌ی چرخ هم پُر است — ببین بخری.',
     ];
     const lines = [
-      { who: 'd', v: 'pd1a', text: opens[this.look % opens.length] },
+      { who: 'd', v: 'pd1a' + (this.look % 5), text: opens[this.look % opens.length] },
       { who: 'p', v: 'pd1b', text: 'کالای کمیاب؟ از کجا معلوم تقلبی نباشد؟' },
-      { who: 'd', v: 'pd1c', text: this.look === 2
+      { who: 'd', v: this.look === 2 ? 'pd1c2' : 'pd1c', text: this.look === 2
           ? 'هیچ‌چیز معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.'
           : 'هیچ‌چیز در این روزها معلوم نیست... اما تا غروب، این‌جا هستم. زود انتخاب کن.' },
     ];

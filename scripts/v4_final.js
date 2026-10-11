@@ -106,7 +106,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
     if (rage && !ai.rage) {
       ai.rage = true;
       boss.speed = ai.baseSpd * 1.55;
-      try { bark('fb1b1', 'b', 'خشم... من!', '🔥 نگهبان خشمگین شد!', 'سریع‌تر شد و بیشتر می‌کوبد — مراقب بام باش!', 2.6); } catch (e) {}
+      try { bark('fb1b2', 'b', 'خشم... من!', '🔥 نگهبان خشمگین شد!', 'سریع‌تر شد و بیشتر می‌کوبد — مراقب بام باش!', 2.6); } catch (e) {}
       SFX.roar();
       state.shake = 12;
     }
@@ -158,7 +158,7 @@ UPDATE_HOOKS.push(function bossUpdate(dt) {
         ai.charge = 1.0;
         ai.breakAcc = 0;
         setAnnounce('⚡ نگهبان یورش می‌آورد!', 'آتش متمرکز = قطع یورش!', 1.4);
-        try { bark('fbz1', 'a', 'مواظب باش! داره شارژ می‌کنه! بزن بهش!', '⚡ [ارشان]: یورش می‌کنه!', 'با آتش متمرکز یورشش را قطع کن — وگرنه برج را می‌کوبد!', 2.2); } catch (e) {}
+        try { bark('fbz2', 'a', 'مواظب باش! داره شارژ می‌کنه! بزن بهش!', '⚡ [ارشان]: یورش می‌کنه!', 'با آتش متمرکز یورشش را قطع کن — وگرنه برج را می‌کوبد!', 2.2); } catch (e) {}
         SFX.roar();
       }
     }
@@ -293,7 +293,7 @@ function drawDebris() {
 /* بعد از مرگ نگهبان: اسلوموشن + بارش طلایی + طلوع + آمدن ارشان با رادیو */
 function startVictoryCine() {
   if (state.mode === 'victorycine') return;
-  VC = { t: 0, radio: false };
+  VC = { t: 0, phase: 'dawn', radio: false };
   state.mode = 'victorycine';
   state.mouse.down = false;
   state.placing = null;
@@ -309,39 +309,48 @@ function startVictoryCine() {
 function updateVictoryCine(dt) {
   if (!VC) return;
   VC.t += dt;
-  DLG.update(dt);                                  // (۱۱٫۰) گفتگوی سحر پیروزی
-  state.dayness = Math.min(1, state.dayness + dt * 0.55);   // (۱۱٫۰) سحرِ سریع و سینمایی
+  DLG.update(dt);
+  state.dayness = Math.min(1, state.dayness + dt * 0.55);
   state.shake = Math.max(0, state.shake - dt * 22);
   state.flash = Math.max(0, state.flash - dt * 2.2);
   state.comboPop = Math.max(0, state.comboPop - dt);
   updateParticles(dt);
   updateTexts(dt);
-  /* بارش طلایی اولِ صحنه */
   if (VC.t < 2.4 && Math.random() < dt * 20) {
     spawnParticles(rand(0, W), -8, 1, '#ffd873',
       { speed: 26, life: 2.4, size: 2.4, grav: 110 });
   }
-  /* (۱۲٫۰) راوی: «سحر رسیده...» + گفتگوی پایانی — صحنه بلندتر شد */
-  if (!VC.spoken && VC.t > 1.3) {
-    VC.spoken = true;
-    DLG.start([
-      { who: 'n', v: 'v1n1', text: 'سحر رسیده... و تو هنوز ایستاده‌ای.' },
-      { who: 'a', v: 'v2a1', text: 'شنیدی؟! پناهگاه هنوز بازه... فقط چند کیلومتر مونده. بریم!' },
-    ], () => { if (VC) VC.done = true; });
-  }
-  /* صدای رادیو در سحر */
-  if (!VC.radio && VC.t > 3.2) {
-    VC.radio = true;
-    SFX.peddler();
-  }
-  if ((VC.done || VC.t > 16) && VC.t > 6) {
-    VOICE.stop();
-    DLG.skip();
-    VC = null;
-    /* (۱۹٫۰) سحر تمام شد → کات‌سین «رسیدن به پناهگاه» (v4_shelter):
-       ورود، گفتگو با بازمانده‌ها، اتفاقِ بد، «این داستان ادامه دارد»
-       و بعد صفحه‌ی بردِ سینمایی */
-    startShelterCine();
+  if (VC.phase === 'dawn') {
+    /* (22.0) گفتگوی پس از موج نهایی — «تموم شد؟ واقعاً تموم شد؟» */
+    if (!VC.spoken && VC.t > 1.3) {
+      VC.spoken = true;
+      const dl = (typeof STORY22 !== 'undefined') ? STORY22.afterFinal : [];
+      DLG.start(dl, () => { if (VC) VC.done = true; });
+    }
+    if (!VC.radio && VC.t > 3.2) { VC.radio = true; SFX.peddler(); }
+    if ((VC.done || VC.t > 26) && VC.t > 8) {
+      /* بی‌سیم ناگهان با صدای هشدار روشن می‌شود */
+      VC.phase = 'alarm';
+      VC.t = 0;
+      SFX.alarm();
+      state.shake = 8;
+    }
+  } else if (VC.phase === 'alarm') {
+    /* آژیر قرمز + هشدار بی‌سیم + آمادگی تخلیه */
+    state.shake = Math.max(state.shake, 2.5);
+    if (Math.sin(VC.t * 4.4) > 0.92 && !VC._al2) { VC._al2 = true; SFX.alarm(); }
+    if (Math.sin(VC.t * 4.4) < -0.92) VC._al2 = false;
+    if (!VC.spoken2 && VC.t > 0.8) {
+      VC.spoken2 = true;
+      const dl = (typeof STORY22 !== 'undefined') ? STORY22.radioAlarm : [];
+      DLG.start(dl, () => { if (VC) VC.done2 = true; });
+    }
+    if ((VC.done2 || VC.t > 44) && VC.t > 6) {
+      VOICE.stop();
+      DLG.skip();
+      VC = null;
+      startEndingCine();                        /* (22.0) پایان سینمایی */
+    }
   }
 }
 
@@ -373,10 +382,15 @@ function renderVictoryCine() {
   drawParticles();
   drawTexts();
   /* (۱۱٫۰) زیرنویس ارشان حذف شد — گفتگوی صوتی DLG جایگزین است */
-  /* محو به سفیدیِ سحر */
-  const a = clamp((VC.t - 6.8) / 0.8, 0, 1);
-  if (a > 0) {
-    ctx.fillStyle = 'rgba(255,250,240,' + a.toFixed(2) + ')';
+  /* (22.0) پوشش قرمزِ آژیر در فاز هشدار */
+  if (VC.phase === 'alarm') {
+    const red = 0.5 + 0.5 * Math.sin(VC.t * 4.4);
+    ctx.fillStyle = 'rgba(170,20,10,' + (0.08 + red * 0.09).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.75);
+    vg.addColorStop(0, 'rgba(120,0,0,0)');
+    vg.addColorStop(1, 'rgba(120,0,0,' + (0.22 + red * 0.14).toFixed(3) + ')');
+    ctx.fillStyle = vg;
     ctx.fillRect(0, 0, W, H);
   }
 }

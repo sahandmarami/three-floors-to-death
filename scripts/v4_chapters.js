@@ -59,7 +59,7 @@ function chance(p) { return Math.random() < p; }
    (۱۵٫۰) همه‌ی ضرایب سختی ~۱۵٪ ملایم‌تر شدند — بازخورد «سخت است» */
 const CHAPTERS = [
   { /* ---- فصل ۱: محله‌ی قدیمی — شب‌های آجری ---- */
-    name: 'محله‌ی قدیمی', sub: 'شب‌های آجری',
+    name: 'پناهگاه سه‌طبقه', sub: 'شب‌های آجری',
     waves: WAVES_CH[0],
     mulHp: 1.10, mulSpd: 1.00, mulCount: 1.16,
     unlock: { fast: 3, tank: 5 },
@@ -79,7 +79,7 @@ const CHAPTERS = [
     },
   },
   { /* ---- فصل ۲: منطقه‌ی انبارها — مهِ صنعتی ---- */
-    name: 'منطقه‌ی انبارها', sub: 'مهِ صنعتی',
+    name: 'مسیر مه‌آلود', sub: 'مهِ صنعتی',
     waves: WAVES_CH[1],
     mulHp: 1.44, mulSpd: 1.08, mulCount: 1.28,
     unlock: { fast: 1, tank: 3 },
@@ -100,7 +100,7 @@ const CHAPTERS = [
     },
   },
   { /* ---- فصل ۳: پاسگاه نظامی — خرابه‌ها (شهر سوخته‌ی ۷٫۰/۸٫۰) ---- */
-    name: 'پاسگاه نظامی', sub: 'خرابه‌ها',
+    name: 'ایستگاه متروکه', sub: 'خرابه‌ها',
     waves: WAVES_CH[2],
     mulHp: 1.74, mulSpd: 1.14, mulCount: 1.40,
     unlock: { fast: 1, tank: 1 },
@@ -122,7 +122,7 @@ const CHAPTERS = [
     },
   },
   { /* ---- فصل ۴: برج مخابراتی — بارانی/برفی ---- */
-    name: 'برج مخابراتی', sub: 'آخرین قله',
+    name: 'آخرین پناهگاه', sub: 'پشتِ دیوارها',
     waves: WAVES_CH[3],
     mulHp: 2.10, mulSpd: 1.20, mulCount: 1.50,
     unlock: { fast: 1, tank: 1 },
@@ -296,18 +296,20 @@ function waveComplete() {
   state.zombies = []; state.bullets = []; state.projectiles = [];
   state.blackout.on = false;              // برق برمی‌گردد
   $('lockBadge').classList.add('hidden');
-  /* آخرین موجِ فصل → انتقال سینمایی-قابل‌بازی به فصل بعد (۱۰٫۰) */
+  /* آخرین موجِ فصل → گفتگوی پایان فصل (۲۲٫۰) بعد از آن انتقال سینمایی */
   const ch = waveChapter(state.wave), wv = waveInChapter(state.wave);
   if (wv === wavesInChapter(ch) && ch < 4) {
-    startTransition(ch);
+    storyChapterEnd(ch, () => startTransition(ch));
     return;
   }
   enterDay();
+  storyAfterWave();                            /* (۲۲٫۰) گفتگوی داستانی پس از موج */
 }
 
 /* ورود به روز: پنل فروشگاه + دستفروش + سیو خودکار */
 function enterDay() {
   state.mode = 'day';
+  state.chapterEnding = false;
   state.dayTarget = 1;
   state.goingNight = false;
   state.slowmo = Math.max(state.slowmo, 0.45);
@@ -337,10 +339,14 @@ function startNight() {
   hidePeddlerPanel();
   state.dayTarget = 0;
   if (state.wave + 1 >= FINAL_WAVE) {
-    showBossWarn();
+    /* (۲۲٫۰) گفتگوی پیش از موج پایانی — در روزِ آخر، پیش از هشدار */
+    if (!storyPreNight()) showBossWarn();
+    else setTimeout(showBossWarn, 900);
     SFX.dusk();
     SFX.roar();
   } else {
+    /* (۲۲٫۰) گفتگوی تنشِ پیش از آخرین موجِ فصل (۶/۱۴/۲۴) */
+    storyPreNight();
     setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
     SFX.dusk();
   }
@@ -393,6 +399,7 @@ const CH_ORD = ['اول', 'دوم', 'سوم', 'چهارم'];
    برجک‌ها/تله‌های فیزیکی مکان قبلی هستند؛ ارتقاها و وسایل می‌آیند */
 function startChapter(ch) {
   ch = clamp(ch, 1, 4);
+  state.chapterEnding = false;
   state.chapter = ch;
   state.towerVariant = ch - 1;                 // پوسته‌ی برج فصل
   state.wave = WAVES_CH.slice(0, ch - 1).reduce((a, b) => a + b, 0);   // (۱۸٫۰) موج بعدی = این + ۱
@@ -405,10 +412,16 @@ function startChapter(ch) {
   state.goingNight = false;
   saveGame();                                  // سیو شروع فصل
   state.mode = 'day';
-  enterDay();
+  /* (۲۲٫۰) فصل ۴: کات‌سینِ «رسیدن به پناهگاه» (دکتر مریم) قبل از گیم‌پلی */
+  if (ch === 4 && typeof startShelterArrival === 'function') {
+    startShelterArrival();
+  } else {
+    enterDay();
+  }
   setAnnounce('🗺 فصل ' + CH_ORD[ch - 1] + ': ' + curCh().name,
     curCh().sub + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(ch)) + ' در راه است', 3.2);
   showChapterCard(ch);
+  storyChapterStart(ch);                       /* (۲۲٫۰) گفتگوی شروع فصل */
 }
 
 /* کارت تمام‌صفحه‌ی فصل جدید */

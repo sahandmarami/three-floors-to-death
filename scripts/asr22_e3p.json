@@ -1,0 +1,14 @@
+{
+  "created": 1791717870,
+  "id": "202610111924297e07e3c3530b47ec",
+  "request_id": "202610111924297e07e3c3530b47ec",
+  "text": "نمی دونم ولی تا وقتی راه باقی مونه تسلیم نمی شیم",
+  "usage": {
+    "completion_tokens": 22,
+    "prompt_tokens": 132,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 154
+  }
+}

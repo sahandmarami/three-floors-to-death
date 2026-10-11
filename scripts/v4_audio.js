@@ -60,8 +60,9 @@ const VOICE = {
   },
   /* دیکد تنبل + کش؛ بوم آماده یا null */
   _buf(key) {
-    const meta = (typeof VOICES17 !== 'undefined') && VOICES17[key];   /* (۱۷٫۰) */
+    const meta = (typeof VOICES22 !== 'undefined') && VOICES22[key];   /* (۱۷٫۰) */
     if (!meta) return null;
+    if (this._lru && this._lru.has(key)) { const b = this._lru.get(key); this._lru.delete(key); this._lru.set(key, b); }   /* (۲۲٫۰) LRU: تازه‌ترین استفاده */
     if (this._bufs[key] !== undefined) return this._bufs[key];   // ممکن است nullِ درصف دیکد باشد
     if (!Snd.ready || !Snd.ctx || !window.fetch) return null;
     this._bufs[key] = null;                                     // «در صف» — دوباره دیکد نکن
@@ -69,7 +70,16 @@ const VOICE = {
       if (!Snd.ctx) return;
       return Snd.ctx.decodeAudioData(ab);
     }).then(buf => {
-      if (buf) this._bufs[key] = buf;
+      if (buf) {
+        this._bufs[key] = buf;
+        if (!this._lru) this._lru = new Map();
+        this._lru.set(key, buf);
+        while (this._lru.size > 48) {                       /* (22.0) اخراج قدیمی‌ترین */
+          const old = this._lru.keys().next().value;
+          this._lru.delete(old);
+          delete this._bufs[old];
+        }
+      }
     }).catch(() => {});
     return null;                                                // این بار هنوز آماده نیست
   },
@@ -97,9 +107,11 @@ const VOICE = {
   /* (۱۴٫۰) پیش‌بارگیری همه‌ی کلیپ‌ها — پله‌پله (هر ~۱۲۰ms یکی) تا لگ نیفتد؛
      بعد از اولین ژست کاربر صدا زده می‌شود؛ نتیجه: هیچ خطی بار اول بی‌صدا نیست */
   warmup() {
-    if (this._warmAll || !(typeof VOICES17 !== 'undefined')) return;
+    /* (22.0) با ۱۷۰ کلیپ، پیش‌بارگیریِ کامل = ~۷۰MB رم؛ فقط افتتاحیه
+       گرم می‌شود و بقیه با حالت clipwait در لحظه‌ی خود دیکد می‌شوند */
+    if (this._warmAll || !(typeof VOICES22 !== 'undefined')) return;
     this._warmAll = true;
-    const keys = Object.keys(VOICES17);
+    const keys = ['i1n', 'i2n', 'i3a', 'i4p', 'i5a', 'i6p', 'i7a', 'i8p'].filter(k => VOICES22[k]);
     let i = 0;
     const step = () => {
       if (i >= keys.length) return;
@@ -142,9 +154,9 @@ const VOICE = {
     /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده
        (۲۱٫۲) مدتِ خطِ دستفروش با نرخِ لحن تنظیم می‌شود تا زیرنویس
        دقیقاً هم‌زمان با صدای بم/تند تمام شود */
-    if (!muted && v && (typeof VOICES17 !== 'undefined') && VOICES17[v]) {
+    if (!muted && v && (typeof VOICES22 !== 'undefined') && VOICES22[v]) {
       const _pr = (who === 'd' && this.pedTweak && this.pedTweak.rate) ? this.pedTweak.rate : 1;
-      this.dur = VOICES17[v].d / _pr;
+      this.dur = VOICES22[v].d / _pr;
       if (this._playClip(v, who)) {
         this.mode = 'clip';
         this.speaking = true;
@@ -526,8 +538,8 @@ const MUSIC = {
 const DLG_WHO = {
   n: { name: 'راوی',        color: '#ffd9a0' },
   a: { name: 'ارشان',       color: '#ffb03c' },
-  p: { name: 'تو',          color: '#8fd6ff' },
-  r: { name: '📻 رادیو',    color: '#a8e4a0' },
+  p: { name: 'سهند',        color: '#8fd6ff' },
+  r: { name: '📻 بی‌سیم',    color: '#a8e4a0' },
   b: { name: 'نگهبان',      color: '#c44dff' },
   d: { name: 'دستفروش',     color: '#d8a3ff' },
   m: { name: 'دکتر مریم',    color: '#7be3c8' },   /* (۱۹٫۰) پناهگاه */

@@ -95,9 +95,11 @@ echo "===== ۶) مینی‌گیم: امتیاز + کمبوی «نزدک بود!�
 fresh
 agent-browser eval "GAME.skipToWave(6);'ok'" >/dev/null; sleep 2.2
 R=$(agent-browser eval "state.mode==='playing'?1:0" | tail -1); ck "موج ۶ (آخرِ فصل ۱) شروع شد" "$R"
-agent-browser eval "GAME.endWave();'ok'" >/dev/null; sleep 1
-R=$(agent-browser eval "GAME.v10.TR&&GAME.v10.TR.ch===1&&GAME.v10.TR.phase===1?1:0" | tail -1); ck "پایان موج ۶ → انتقال فصل ۱" "$R"
+agent-browser eval "GAME.endWave();'ok'" >/dev/null; sleep 1.2
+agent-browser eval "DLG.skip();'ok'" >/dev/null; sleep 1.5
+R=$(agent-browser eval "GAME.v10.TR&&GAME.v10.TR.ch===1&&GAME.v10.TR.phase===1?1:0" | tail -1); ck "پایان موج ۶ → گفتگو → انتقال فصل ۱ (۲۲٫۰)" "$R"
 agent-browser eval "GAME.v10.trGoto(8.5);'ok'" >/dev/null; sleep 1
+agent-browser eval "DLG.skip();'ok'" >/dev/null; sleep 0.5
 R=$(agent-browser eval "MG.cfg.theme==='drive'&&DRV.score>=0?1:0" | tail -1); ck "مینی‌گیم رانندگی فعال" "$R"
 agent-browser eval "GAME.v10.trResume();'ok'" >/dev/null; sleep 2.5
 R=$(agent-browser eval "DRV.score>50?1:0" | tail -1); ck "امتیازِ مسافت جمع می‌شود (>۵۰)" "$R"
@@ -105,7 +107,8 @@ agent-browser eval "(()=>{window.__sc0=DRV.score;drvNearMiss({k:1,wx:DRV.px+430,
 R=$(agent-browser eval "(()=>{return (DRV.combo>=1&&DRV.boost>0&&DRV.score>window.__sc0+20)?1:0})()" | tail -1); ck "«نزدک بود!» → کمبو + بوست + امتیاز" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots20/04_mg_score.png >/dev/null
 agent-browser eval "GAME.v10.trResume();DRV.T=DRV.goalT-40;DRV.px=roadCXf(DRV.T);'ok'" >/dev/null; sleep 4.5
-R=$(agent-browser eval "state.chapter===2?1:0" | tail -1); ck "پایان انتقال → فصل ۲" "$R"
+agent-browser eval "DLG.skip();if(TR){TR.outroDurEff=0.1;TR.outroDlgDone=true;}'ok'" >/dev/null; sleep 2.5
+R=$(agent-browser eval "state.chapter===2?1:0" | tail -1); ck "پایان انتقال → گفتگو → فصل ۲ (۲۲٫۰)" "$R"
 
 echo "===== ۷) باس ۲۰٫۰: جون + زره ضدِّبرجک ====="
 fresh

@@ -133,7 +133,7 @@ function update(dt) {
     state.dayness += (state.dayTarget - state.dayness) * Math.min(1, dt * 1.15);
   }
   /* پایان گذار به شب بعد از کلیک «شب شود»: موج بعد شروع می‌شود */
-  if (state.mode === 'day' && state.goingNight && state.dayness <= 0.08) {
+  if (state.mode === 'day' && state.goingNight && state.dayness <= 0.08 && !DLG.active) {
     state.goingNight = false;
     state.dayness = 0;
     startWave(state.wave + 1);
@@ -199,8 +199,8 @@ function update(dt) {
           state.spawn.timer = state.spawn.interval * rand(0.7, 1.3) * burst;
         }
       }
-    } else if (!state.zombies.some(z => !z.dead)) {
-      waveComplete();                      // همه‌ی زامبی‌های موج از بین رفتند
+    } else if (!state.zombies.some(z => !z.dead) && !state.chapterEnding) {
+      waveComplete();                      // (۲۲٫۰) حین گفتگوی پایان فصل دوباره کامل نشود                      // همه‌ی زامبی‌های موج از بین رفتند
     }
     updateTrap(dt);                        // تله پایه برج
     updateBossBar();                       // نوار جون پادشاه (اگر حاضر باشد)

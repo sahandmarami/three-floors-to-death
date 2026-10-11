@@ -1,0 +1,14 @@
+{
+  "created": 1791717871,
+  "id": "20261011192431ffcd85f9bfb345b2",
+  "request_id": "20261011192431ffcd85f9bfb345b2",
+  "text": "所有事情从一个未知的病症开始，起初有几处隔离区，后来城市关闭了。很快，那些曾经充满活力的居民被转移到其他地方工作。",
+  "usage": {
+    "completion_tokens": 35,
+    "prompt_tokens": 267,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 302
+  }
+}

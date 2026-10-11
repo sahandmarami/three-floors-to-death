@@ -1,0 +1,14 @@
+{
+  "created": 1791717887,
+  "id": "2026101119244724e48c514bd64028",
+  "request_id": "2026101119244724e48c514bd64028",
+  "text": "دیگر کسی نمی دانست که دام شهر هنوز زنده است تنها چیز که باقی مانده بود تلاش برای زند مداوم بود",
+  "usage": {
+    "completion_tokens": 39,
+    "prompt_tokens": 178,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 217
+  }
+}
