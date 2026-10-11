@@ -862,3 +862,28 @@ Stage Summary:
 - v21.4 منتشر شد: https://github.com/sahandmarami/three-floors-to-death/releases/tag/v21.4
 - الگوی صداسازی: eleven_v3 + کست ASR-اثبات‌شده + گیت concat برای کلیپ‌های کوتاه
 - Godot 4.7.2 + قالب‌ها آماده‌ی پورت
+
+---
+Task ID: 32
+Agent: Super Z (main agent)
+Task: Godot 4 — شروع پورت بومی (زیرساخت + هسته‌ی گیم‌پلی + اکسپورت APK)
+
+Work Log:
+- زیرساخت: Godot 4.7.2 headless + قالب‌های اکسپورت (1.2GB) نصب شد؛ SDK اندروید بازسازی (platform-tools جدید) + editor_settings مسیر SDK/JDK
+- فهرست کامل قابلیت‌ها برای پورت (inventory_features.py): ۴ فصل ۶/۸/۱۰/۱۲=۳۶ موج، ۳ سلاح، ۶ برجک، ۱۰ آیتم بقا+۳ نقشه، ۴ زامبی+باس، ۶۳ گفتار، مینی‌گیم‌ها
+- godot-project/: project.godot (mobile renderer, landscape, RTL) + Vazirmatn (OFL) + ۶۳ MP3 الون‌لبز + آیکون کاربر
+- gen_sfx_wavs.py: ۳۹ جلوه‌ی صوتی با همان پارامترهای Snd.tone/noise سنتز شد (numpy → WAV)
+- autoload/G.gd (وضعیت/اقتصاد/سیو user://) + autoload/Snd.gd (SFX+گفتار+بوس‌ها+گِیت‌ها)
+- scripts/data.gd: ZTYPES/WEAPONS/TURRETS/ITEMS/UPGRADES با همان اعداد اصلی + fa_num
+- scripts/ctx.gd: لایه‌ی سازگار Canvas2D روی _draw() (begin_path/quad_to/rr/_clean ضد-تقاطع)
+- scripts/zombie_draw.gd: پورت وفادار drawZombieBody — ۴ نوع با همه‌ی جزئیات (شنل باس/کلاه‌خود تانک/تاج/چنگک/پارگی/دنده)
+  درس: بلوک‌های {} خام در GDScript مجاز نیستند؛ پالی‌گون خود-متقاطع (لبه‌ی پاره دامن) در Godot مثل Canvas2D تحمل نمی‌شود → نقاط نسبی
+- scripts/game.gd: هسته‌ی گیم‌پلی — اسپاون/حمله/گلوله/سکه/ذرات/HUD/روز-شب/موج ۳۶=باس
+- scripts/menu.gd + main.gd: منوی فارسی RTL (طراحی ۲۱٫۴) + زامبی‌های تزئینی منو
+- تست خودکار headless: ۸/۸ سبز (نمونه‌سازی/اینترمیشن/موج/گلوله/زامبی/کشتار+سکه/HUD/سیو)
+- اکسپورت APK موفق: three-floors-godot.apk (۵۶MB، arm64+v7a، io.spacez.threefloors، همان keystore — versionCode=1 عمداً برای محافظت از downgrade روی نسخه‌ی کامل ۲۱۴)
+
+Stage Summary:
+- پایپ‌لاین کامل Godot→APK کار می‌کند؛ هسته‌ی گیم‌پلی + صداها + رندر زامبی آماده
+- باقی‌مانده تا برابری کامل: فروشگاه/برجک‌ها/دستفروش/کات‌سین‌ها/پناهگاه/مینی‌گیم‌ها/کوله — جلسات بعدی
+- الگوی Ctx (سازگاری Canvas2D) مسیر پورت رسم‌های باقی‌مانده را هموار می‌کند
