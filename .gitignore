@@ -6,3 +6,15 @@ android/assets/
 webserve/
 *.log
 download/drive_assets/
+download/drive_assets2/
+godot/
+godot_dl/
+three-floors-to-survival.html
+jdk/
+scripts/shots*/
+scripts/scripts/
+scripts/voice*/
+scripts/wav_*.wav
+scripts/voice_test_*.mp3
+tool-results/
+upload/

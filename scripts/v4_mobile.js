@@ -31,6 +31,15 @@ function fitWrap() {
   const vv = window.visualViewport;
   let aw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 960;
   let ah = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 560;
+  /* (۲۱٫۴) منو + نسبتِ تازه: اگر صفحه هنوز جا نیفتاده و W غلط محاسبه شده،
+     دنیا بازسازی می‌شود (تا مستطیلِ کامل گوشی پر شود). وسط بازی نمی‌کنیم —
+     لترباکس امن‌تر از جابه‌جایی ناگهانی صحنه است. */
+  try {
+    if (typeof W !== 'undefined' && typeof refitWorld === 'function' &&
+        typeof state !== 'undefined' && state.mode === 'start') {
+      refitWorld(aw, ah);
+    }
+  } catch (e) {}
   const s = Math.min(aw / W, ah / H);            /* (W خودش هم‌نسبت صفحه است → s ≈ هر دو) */
   el.style.width = W + 'px';
   el.style.height = H + 'px';
@@ -50,6 +59,9 @@ if (window.visualViewport) {
 }
 window.addEventListener('load', fitWrap);
 fitWrap();
+/* (۲۱٫۴) جاافتادنِ ابعاد در وب‌ویوهای اندروید چند فریم طول می‌کشد — چند
+   فراخوانی دیرهنگام، W غلطِ لحظه‌ی بارگذاری را در منو اصلاح می‌کند. */
+[60, 250, 700, 1600].forEach(ms => setTimeout(fitWrap, ms));
 
 /* ---------------------- ۱۱-۱) کیفیت خودکار — (۱۸٫۱) فرماندار سه‌پله‌ای ----------------------
    قبلاً فقط «شهاب/کرم شب‌تاب» خاموش می‌شد و فقط در حالت playing سنجش می‌شد.

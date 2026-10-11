@@ -21,10 +21,15 @@
    را می‌پوشاند — بدون نوار سیاهِ چپ و راست. برج وسط (W/2) و
    لبه‌ی زادگاه زامبی‌ها (-۴۰ / W+۴۰) خودکار با آن جابه‌جا می‌شوند. */
 const H = 560;
-const W = Math.max(960, Math.min(1440, Math.round(560 *
+/* (۲۱٫۴) W واکنش‌گرا شد: در لحظه‌ی بارگذاری، مرورگر/وب‌ویو گاهی ابعادِ
+   گذرایی (نابالغ) گزارش می‌کند و W برای همیشه غلطِ ۹۶۰ می‌ماند → نوار
+   سیاه و ریزشدن صفحه. حالا W با refitWorld() هر بار که هنوز در منو
+   هستیم و نسبت صفحه جا افتاده، بازسازی می‌شود (دستیابی به واقعی‌ترین
+   نسبت صفحه). در گیم‌پلی برای ایمنی همان W قدیمی با لترباکس می‌ماند. */
+let W = Math.max(960, Math.min(1440, Math.round(560 *
   ((window.innerWidth || 960) / Math.max(1, window.innerHeight || 560)))));
 const GROUND_Y = 492;                      // خط زمین (پای زامبی‌ها)
-const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };
+const TOWER = { x: W / 2, baseHalf: 68, floorH: 66, floors: 3 };   /* x با refitWorld به‌رو‌ می‌شود */
 const TOWER_TOP_Y = GROUND_Y - TOWER.floorH * TOWER.floors; // سقف برج = محل ایستادن بازیکن
 
 const TOTAL_WAVES = 10;                    // تعداد کل موج‌ها
@@ -149,18 +154,22 @@ function hexA(hex, a) {
   return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
+let STARS, HILLS1, HILLS2, PEBBLES, CLOUDS, FIREFLIES, GRASS, PUDDLES, SKYLINE, SKYLINE_WINS, BIGSTARS, ANTENNAS, FLOWERS, GRASS_EDGE, GROUND_STREAKS;   /* (۲۱٫۴) همه با buildScenery() ساخته می‌شوند تا بعد از جاافتادنِ نسبتِ
+   صفحه (منو) بازسازی شوند — بذرِ ثابت ۱۳۷۹ یعنی منظره‌ی همیشگی تغییر نمی‌کند */
+function buildScenery() {
+  _seed = 1379;
 /* عناصر ثابت صحنه: ستاره‌ها، تپه‌ها، سنگ‌ریزه‌ها، ابرها و افق شهر یک بار ساخته می‌شوند */
-const STARS = Array.from({ length: 80 }, () => ({
+STARS = Array.from({ length: 80 }, () => ({
   x: srand() * W, y: srand() * (GROUND_Y - 90), r: 0.6 + srand() * 1.4,
   ph: srand() * 6.28, sp: 0.5 + srand() * 1.6,
 }));
 /* (۲۱٫۳) تپه/ابر/برکه/چراغ نسبت به W تعریف می‌شوند تا روی دنیای عریض‌تر
    (گوشی‌های ~۲:۱) تا لبه‌ی صفحه کشیده و متقارن بیایند */
-const HILLS1 = Array.from({ length: Math.ceil((W + 90) / 60) }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
-const HILLS2 = Array.from({ length: Math.ceil((W + 125) / 85) }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
-const PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
+HILLS1 = Array.from({ length: Math.ceil((W + 90) / 60) }, (_, i) => ({ x: -30 + i * 60, h: 22 + srand() * 36 }));
+HILLS2 = Array.from({ length: Math.ceil((W + 125) / 85) }, (_, i) => ({ x: -40 + i * 85, h: 10 + srand() * 18 }));
+PEBBLES = Array.from({ length: 26 }, () => ({ x: srand() * W, dy: 2 + srand() * 12, r: 0.8 + srand() * 1.6 }));
 /* ابرهای شناور (با سرعت‌های متفاوت برای حس پارالاکس — ۶٫۰: دو ابر دیگر) */
-const CLOUDS = [
+CLOUDS = [
   { x: W * 0.146, y: 58,  s: 1.15, v: 6 },
   { x: W * 0.542, y: 96,  s: 0.8,  v: 9 },
   { x: W * 0.865, y: 44,  s: 1.35, v: 5 },
@@ -168,18 +177,18 @@ const CLOUDS = [
   { x: W * 0.688, y: 30,  s: 0.75, v: 10 },
 ];
 /* کرم‌های شب‌تاب (۳٫۰): نقاط نور کوچکی که آرام حول زمین شنا می‌شوند */
-const FIREFLIES = Array.from({ length: 14 }, () => ({
+FIREFLIES = Array.from({ length: 14 }, () => ({
   cx: srand() * W, cy: GROUND_Y - 8 - srand() * 66,
   rx: 18 + srand() * 40, ry: 6 + srand() * 22,
   ph: srand() * 6.28, sp: 0.35 + srand() * 0.6,
 }));
 /* دسته‌های چمن کنار جاده (۳٫۰) */
-const GRASS = Array.from({ length: 40 }, () => ({ x: srand() * W, h: 4 + srand() * 8, ph: srand() * 6.28 }));
+GRASS = Array.from({ length: 40 }, () => ({ x: srand() * W, h: 4 + srand() * 8, ph: srand() * 6.28 }));
 /* برکه‌های کوچک بازتابنده‌ی نور ماه (۳٫۰) */
-const PUDDLES = [{ x: W * 0.156, w: 52 }, { x: W * 0.408, w: 66 }, { x: W * 0.663, w: 46 }];
+PUDDLES = [{ x: W * 0.156, w: 52 }, { x: W * 0.408, w: 66 }, { x: W * 0.663, w: 46 }];
 /* افق شهر در دوردست: ساختمان‌های سیاه‌شکلی با پنجره‌های روشن (پیش‌محاسبه‌شده) */
-const SKYLINE = [];
-const SKYLINE_WINS = [];
+SKYLINE = [];
+SKYLINE_WINS = [];
 {
   let x = -12, i = 0;
   while (x < W + 12) {
@@ -200,28 +209,45 @@ const SKYLINE_WINS = [];
 }
 /* ---------- عناصر تازه‌ی صحنه (۶٫۰: ارتقای گرافیک) ---------- */
 /* ستاره‌های درشت با برقِ چهارپر — روی ستاره‌های ریز قبلی */
-const BIGSTARS = Array.from({ length: 6 }, () => ({
+BIGSTARS = Array.from({ length: 6 }, () => ({
   x: 30 + srand() * (W - 60), y: 16 + srand() * (GROUND_Y - 210),
   r: 1.5 + srand() * 1.1, ph: srand() * 6.28, sp: 0.6 + srand() * 1.1,
 }));
 /* دکل‌های آنتن روی بلندترین ساختمان‌ها + چراغ قرمز چشمک‌زنِ هشدار (شب) */
-const ANTENNAS = [];
+ANTENNAS = [];
 for (const b of SKYLINE) {
   if (b.h > 82 && ANTENNAS.length < 7 && srand() > 0.3) {
     ANTENNAS.push({ x: b.x + b.w / 2, top: GROUND_Y - b.h, h: 13 + srand() * 17, ph: srand() * 6.28 });
   }
 }
 /* گل‌های کوچک کنار زمین: روز باز و رنگی، شب بسته و کم‌رنگ */
-const FLOWERS = Array.from({ length: 14 }, () => ({
+FLOWERS = Array.from({ length: 14 }, () => ({
   x: 20 + srand() * (W - 40), dy: 4 + srand() * 12,
   hue: Math.floor(srand() * 360), s: 0.75 + srand() * 0.5, ph: srand() * 6.28,
 }));
 /* لبه‌ی ناهموار چمنِ خط زمین (تیغه‌های ریز) */
-const GRASS_EDGE = Array.from({ length: 70 }, () => ({ x: srand() * W, h: 2 + srand() * 4.5, ph: srand() * 6.28 }));
+GRASS_EDGE = Array.from({ length: 70 }, () => ({ x: srand() * W, h: 2 + srand() * 4.5, ph: srand() * 6.28 }));
 /* رگه‌های افقی بافت خاک (عمق متفاوت برای حجم دادن به زمین) */
-const GROUND_STREAKS = Array.from({ length: 12 }, () => ({
+GROUND_STREAKS = Array.from({ length: 12 }, () => ({
   x: srand() * W, w: 46 + srand() * 110, dy: 7 + srand() * 36, a: 0.05 + srand() * 0.06,
 }));
+}
+buildScenery();                        /* (۲۱٫۴) ساختِ اولیه — همان مقادیر همیشگی (بذر ۱۳۷۹) */
+
+/* ---------------------- (۲۱٫۴) بازسازی دنیا برای نسبتِ تازه‌ی صفحه ----------------------
+   فقط در منو (mode==='start') صدا زده می‌شود — وسط بازی لترباکسِ امن ترجیح داده
+   می‌شود. بوم/کش‌ها با setDPR تازه می‌شوند و زامبی‌های منو دوباره چیده می‌شوند. */
+function refitWorld(aw, ah) {
+  const want = Math.max(960, Math.min(1440, Math.round(560 * (aw / Math.max(1, ah)))));
+  if (want === W) return false;
+  W = want;
+  TOWER.x = W / 2;
+  buildScenery();
+  try { LAMPS.length = 2; LAMPS[0] = Math.round(W * 0.245); LAMPS[1] = Math.round(W * 0.755); } catch (e) {}
+  setDPR(DPR);                       /* بومِ تازه + بی‌اعتبارسازی کش‌های پخته */
+  try { if (typeof initMenuZ === 'function' && state.mode === 'start') initMenuZ(); } catch (e) {}
+  return true;
+}
 
 /* ---------------------- ۳) موتور صدا (Web Audio) ---------------------- */
 /* همه‌ی صداها همین‌جا سینتز می‌شوند — هیچ فایل صوتی خارجی وجود ندارد.
