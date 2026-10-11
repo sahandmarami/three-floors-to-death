@@ -1,6 +1,7 @@
 /* ==================================================================
    سه طبقه تا بقا — نسخه‌ی ۱۴٫۰ — بخش ۱۰: صدای گفتار، موسیقی و گفتگو
    ==================================================================
+   - (۲۳٫۰) صداهای ElevenLabs v3 — ۷ صدای متمایز شخصیت‌ها (voices23_data.js)
    - VOICE (۱۴٫۰ بازطراحی — متن دقیقاً هم‌زمان با صدا):
      · ۳۶ کلیپ MP3 با «صدای نورال فارسی» داخل همین فایل (VOICES14) —
        روی هر گوشی/مرورگری پخش می‌شود؛ نه رباتیک، نه وابسته به صدای سیستم.
@@ -60,7 +61,7 @@ const VOICE = {
   },
   /* دیکد تنبل + کش؛ بوم آماده یا null */
   _buf(key) {
-    const meta = (typeof VOICES22 !== 'undefined') && VOICES22[key];   /* (۱۷٫۰) */
+    const meta = (typeof VOICES23 !== 'undefined') && VOICES23[key];   /* (۱۷٫۰) */
     if (!meta) return null;
     if (this._lru && this._lru.has(key)) { const b = this._lru.get(key); this._lru.delete(key); this._lru.set(key, b); }   /* (۲۲٫۰) LRU: تازه‌ترین استفاده */
     if (this._bufs[key] !== undefined) return this._bufs[key];   // ممکن است nullِ درصف دیکد باشد
@@ -109,9 +110,9 @@ const VOICE = {
   warmup() {
     /* (22.0) با ۱۷۰ کلیپ، پیش‌بارگیریِ کامل = ~۷۰MB رم؛ فقط افتتاحیه
        گرم می‌شود و بقیه با حالت clipwait در لحظه‌ی خود دیکد می‌شوند */
-    if (this._warmAll || !(typeof VOICES22 !== 'undefined')) return;
+    if (this._warmAll || !(typeof VOICES23 !== 'undefined')) return;
     this._warmAll = true;
-    const keys = ['i1n', 'i2n', 'i3a', 'i4p', 'i5a', 'i6p', 'i7a', 'i8p'].filter(k => VOICES22[k]);
+    const keys = ['i1n', 'i2n', 'i3a', 'i4p', 'i5a', 'i6p', 'i7a', 'i8p'].filter(k => VOICES23[k]);
     let i = 0;
     const step = () => {
       if (i >= keys.length) return;
@@ -154,9 +155,9 @@ const VOICE = {
     /* ۱) کلیپ نورالِ جاسازی‌شده — مدتِ واقعی از داده
        (۲۱٫۲) مدتِ خطِ دستفروش با نرخِ لحن تنظیم می‌شود تا زیرنویس
        دقیقاً هم‌زمان با صدای بم/تند تمام شود */
-    if (!muted && v && (typeof VOICES22 !== 'undefined') && VOICES22[v]) {
+    if (!muted && v && (typeof VOICES23 !== 'undefined') && VOICES23[v]) {
       const _pr = (who === 'd' && this.pedTweak && this.pedTweak.rate) ? this.pedTweak.rate : 1;
-      this.dur = VOICES22[v].d / _pr;
+      this.dur = VOICES23[v].d / _pr;
       if (this._playClip(v, who)) {
         this.mode = 'clip';
         this.speaking = true;

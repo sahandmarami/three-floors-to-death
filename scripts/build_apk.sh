@@ -14,7 +14,7 @@ BT=$SDK/build-tools/34.0.0
 JAR=$SDK/platforms/android-34/android.jar
 HTML=/home/z/my-project/download/three-floors-to-survival.html
 
-echo "[1/7] assets: www/index.html (v22.0)"
+echo "[1/7] assets: www/index.html (v23.0)"
 mkdir -p assets/www build
 cp "$HTML" assets/www/index.html
 
@@ -29,7 +29,7 @@ $BT/aapt2 link -o build/base.apk \
   --manifest AndroidManifest.xml \
   --java build/gen \
   --min-sdk-version 24 --target-sdk-version 34 \
-  --version-code 220 --version-name "2.2.0" \
+  --version-code 230 --version-name "2.3.0" \
   -A assets \
   build/compiled/res.zip
 
