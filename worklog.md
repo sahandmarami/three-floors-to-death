@@ -838,3 +838,27 @@ Stage Summary:
 - مشکل حل شد: v21.3 حالا در Releases گیت‌هاب با APK و HTML مستقیم قابل دریافت است
 - قانون دائمی برقرار: هر نسخه‌ی آینده با scripts/github_release.sh <tag> <عنوان> <توضیحات> هم‌زمان کامیت+پوش+Release+APK می‌شود — این اسکریپت باید آخرِ هر build_vXXX.sh اجرا شود
 - remote URL توکن‌دار است؛ git push خالی هم کار می‌کند
+
+---
+Task ID: 31
+Agent: Super Z (main agent)
+Task: v21.4 — تحلیل اسکرین‌شات‌های کاربر + صداهای ElevenLabs + رفع W/منو/HUD + شروع زیرساخت Godot
+
+Work Log:
+- اسکرین‌شات‌های تازه‌ی کاربر (۳ عدد ۲۳۴۰×۱۰۸۰) دانلود و با VLM + تحلیل پیکسلی بررسی شد: منو «بد ریخته» (تیتر گرادیانی قدیمی از CSS نسخه‌ی ۵٫۰ که هنوز text-fill:transparent داشت!)، متن HUD «باقی‌م...» (له‌شدگی flex)، دکمه‌ی «رد کردن» چسبیده به لبه
+- ریشه‌یابی اصلی: W (عرض دنیا) در لحظه‌ی بارگذاری از ابعاد گذرایی محاسبه می‌شد و const می‌ماند → در وب‌ویو اندروید W غلط = نوار سیاه/ریزی. بازتولید شد در مرورگر (W=960 در 1170×540)
+- v3_part2: const W → let W + buildScenery() (۱۵ آرایه‌ی منظره با بذر ثابت ۱۳۷۹) + refitWorld() (بازسازی W/برج/منظره/بوم/LAMPS/زامبی‌های منو) — فقط در حالت منو؛ وسط بازی لترباکس امن
+- v4_mobile fitWrap: فراخوانی refitWorld در منو + ۴ تایمر جاافتادن (60-1600ms)
+- v3_part1: منوی ۲۱٫۴ بازطراحی (تیتر سفید+قرمز بدون پالس/شاین، دکمه‌های هم‌عرض 272px، فاصله‌های یکنواخت، mini-btn≥118px، فوتر با فاصله) + حذف گرادیان قدیمی game-title + hud-item flex:none + skipCs bottom:16px + نسخه‌ی ۲۱٫۴
+- درس: ویرایش اول buildScenery فراموش شد → آرایه‌ها undefined → تست‌ها همه قرمز؛ اضافه شد buildScenery() اولیه
+- ElevenLabs: توکن کاربر (free tier 10k chars). مدل eleven_multilingual_v2 فارسی را خراب می‌گوید؛ eleven_v3 عالی (ASR تأیید). کست اثبات‌شده: n=Adam a=Liam p=Eric r=Daniel b=Roger d=Charlie m=Sarah (River/Harry/Callum/Lily/George مردود — ASR چینی)
+- gen_voices21.py: هر ۶۳ کلیپ از نو (فیلتر رادیو نرم‌تر برای sh9r)؛ ASR گیت: نمونه‌ها ۴۷-۹۵٪ (تفکیک واژه‌های ASR)؛ کلیپ‌های کوتاه با ترفند concat تأیید شدند؛ از ~۵۲۰۰ از ۱۰۰۰۰ کاراکتر سهمیه
+- embed_voices21.py: وصله‌ی درجای voices17_data.js (b64+dur) — ۱۸۰۰KB→۱۳۴۵KB
+- build_v214.sh → ۱۶۷۱۲ خط/۲٫۲MB؛ تست‌ها: v214(۱۸)+v213(۲۵)+v20(۷۰)+v204(۱۹)+v212(۱۷)=۱۴۹ سبز؛ decode صدا در مرورگر تأیید
+- APK 214 (2.1.4) با همان keystore؛ گیت‌هاب: کامیت پاک (godot/godot_dl ۱٫۳GB از کامیت حذف شد — .gitignore تازه) + Release v21.4 با APK+HTML
+- Godot 4.7.2: ادیتور headless + قالب‌های اکسپورت (1.2GB tpz معتبر) دانلود شد؛ ادیتور --version کار می‌کند
+
+Stage Summary:
+- v21.4 منتشر شد: https://github.com/sahandmarami/three-floors-to-death/releases/tag/v21.4
+- الگوی صداسازی: eleven_v3 + کست ASR-اثبات‌شده + گیت concat برای کلیپ‌های کوتاه
+- Godot 4.7.2 + قالب‌ها آماده‌ی پورت
