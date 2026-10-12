@@ -50,7 +50,8 @@ const MYST = {
     if (this._btn && document.body.contains(this._btn)) return;
     const b = document.createElement('button');
     b.id = 'mystBtn';
-    b.innerHTML = '🔍 <span>سرنخ</span>';
+    /* (۲۶٫۰) آیکن SVG متریال به‌جای ایموجی — روی همه‌ی اندرویدها یک‌شکل */
+    b.innerHTML = (typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('clue') + '</i>' : '') + '<span>سرنخ</span>';
     b.addEventListener('click', () => { SFX.click(); this.openArchive(); });
     $('wrap').appendChild(b);
     this._btn = b;
@@ -59,7 +60,7 @@ const MYST = {
     if (this._listenBtn && document.body.contains(this._listenBtn)) return;
     const b = document.createElement('button');
     b.id = 'listenBtn';
-    b.innerHTML = '👂';
+    b.innerHTML = '<i class="ic">' + (typeof ICO !== 'undefined' ? ICO.ico('ear') : '👂') + '</i>';
     b.title = 'گوش بسپار — ضربان دشمن‌ها را حس کن';
     b.addEventListener('pointerdown', () => this.startListen());
     $('wrap').appendChild(b);
@@ -68,12 +69,26 @@ const MYST = {
     if (!this._molotovBtn || !document.body.contains(this._molotovBtn)) {
       const m = document.createElement('button');
       m.id = 'molotovBtn';
-      m.innerHTML = '🔥';
+      m.innerHTML = '<i class="ic">' + (typeof ICO !== 'undefined' ? ICO.ico('molotov') : '🔥') + '</i>';
       m.title = 'پرتاب کوکتل مولوتوف (F)';
       m.addEventListener('pointerdown', (e) => { e.preventDefault(); this.throwMolotov(); });
       $('wrap').appendChild(m);
       this._molotovBtn = m;
     }
+  },
+
+  /* (۲۶٫۰) پیل بازگشایی خرید دستفروش — مستقل ساخته می‌شود (روزها) */
+  ensurePedBtn() {
+    if (this._pedBtn && document.body.contains(this._pedBtn)) return;
+    const pb = document.createElement('button');
+    pb.id = 'pedReopenBtn';
+    pb.innerHTML = (typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('cart') + '</i>' : '') + '<span>خرید از دستفروش</span>';
+    pb.title = 'قفسه‌ی کالای دستفروش مرموز';
+    pb.addEventListener('click', () => {
+      try { SFX.click(); PED.openShop(); } catch (e) {}
+    });
+    $('wrap').appendChild(pb);
+    this._pedBtn = pb;
   },
 
   /* چه معمایی/امکانی الان در دسترس است؟ */
@@ -97,6 +112,14 @@ const MYST = {
       this._btn.style.display = has ? 'flex' : 'none';
       if (has) this._btn.classList.toggle('glow', this.avail().length > 0 && !this._panel);
     } else if (this._btn) this._btn.style.display = 'none';
+    /* (۲۶٫۰) پیل خرید دستفروش — روز، دستفروش حاضر، پنل بسته */
+    if (day) {
+      this.ensurePedBtn();
+      const box = $('peddlerBox');
+      const showPed = typeof PED !== 'undefined' && PED.active && PED.phase === 'stay' &&
+        box && box.classList.contains('hidden');
+      this._pedBtn.style.display = showPed ? 'flex' : 'none';
+    } else if (this._pedBtn) this._pedBtn.style.display = 'none';
     /* دکمه‌ی شنود — فقط شب‌ها */
     if (playing) {
       this.ensureListenBtn();

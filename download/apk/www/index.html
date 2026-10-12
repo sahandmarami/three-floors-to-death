@@ -44,6 +44,9 @@
    ================================================================== */
 
 /* ---------- ۱) ریست و قاب کلی ---------- */
+/* (۲۶٫۰) ناحیه‌های امن به‌صورت متغیر — fitWrap می‌خواندشان (سامسونگ/One UI) */
+:root{--sat-t:env(safe-area-inset-top,0px);--sat-b:env(safe-area-inset-bottom,0px);
+  --sat-l:env(safe-area-inset-left,0px);--sat-r:env(safe-area-inset-right,0px)}
 *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e8ecf5;
   font-family:'Vazirmatn',Tahoma,'Segoe UI',Arial,sans-serif;
@@ -93,7 +96,8 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #wrap.dlg-on #announce,
 #wrap.dlg-on #backpackBar,
 #wrap.dlg-on #saveToast,
-#wrap.dlg-on #peddlerPanel,
+#wrap.dlg-on #peddlerBox,
+#wrap.dlg-on #pedReopenBtn,
 #wrap.dlg-on #lockBadge{display:none!important}
 
 /* ---------- (۱۱٫۰) چرخاندن گوشی در حالت عمودی (۱۴٫۰: تمام‌صفحه) ---------- */
@@ -109,7 +113,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #wrap.touch #buildPanel{width:calc(210px * var(--uiz2,1));top:calc(72px * var(--uiz2,1));right:calc(10px * var(--uiz2,1));max-height:calc(100% - 84px);display:flex;flex-direction:column}
 #wrap.touch #bpList{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 #wrap.touch .bp-tab{min-height:calc(46px * var(--uiz2,1));font-size:calc(12px * var(--uiz2,1))}
-#wrap.touch .bp-tab .bp-tab-ic{font-size:calc(16px * var(--uiz2,1))}
+#wrap.touch .bp-tab .bp-tab-ic{font-size:calc(19px * var(--uiz2,1))}
 #wrap.touch .bp-ic{width:calc(48px * var(--uiz2,1));height:calc(48px * var(--uiz2,1))}
 #wrap.touch .bp-tile .bp-price{font-size:calc(11.5px * var(--uiz2,1))}
 #wrap.touch .bp-key{display:none!important}
@@ -177,9 +181,47 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 .hud-pause{width:calc(54px * var(--uiz,1));height:calc(54px * var(--uiz,1));font-size:calc(25px * var(--uiz,1));border-radius:calc(17px * var(--uiz,1));border:calc(2px * var(--uiz,1)) solid #e8b54a;
   background:linear-gradient(180deg,rgba(52,60,86,.97),rgba(26,30,48,.97))}
 .hud-mini{width:calc(48px * var(--uiz,1));height:calc(48px * var(--uiz,1));font-size:calc(21px * var(--uiz,1));border-radius:calc(15px * var(--uiz,1))}
-/* چراغ‌قوه: دکمه‌ی گرد خوشه‌ی پایین-چپ (کنار شنود) — لمس‌پذیر در همه‌ی مقیاس‌ها */
-#ctlFlash{position:absolute;left:calc(84px * var(--uiz,1));bottom:calc(62px * var(--uiz,1));z-index:7;
-  width:calc(58px * var(--uiz,1));height:calc(58px * var(--uiz,1));border-radius:50%;font-size:calc(24px * var(--uiz,1));gap:3px}
+/* ---------- (۲۶٫۰) آیکن‌های SVG یکدست — به‌جای ایموجی‌های متفاوت روی هر گوشی ---------- */
+.ic,.hud-ic,.rh-ic{display:inline-flex;align-items:center;justify-content:center;flex:none;line-height:1}
+.ic svg,.hud-ic svg,.rh-ic svg{width:1em;height:1em;display:block}
+.hud-ic{font-size:calc(17px * var(--uiz2,1));color:#ff8d7a}
+.hud-ic.heart{color:#ff6d61}
+.bname .hud-ic{font-size:15px;color:#c9d4f5;vertical-align:-2px;margin-inline-end:6px}
+.rh-ic{font-size:64px;color:#ffd873;margin-bottom:4px}
+button .ic,.btn-main .ic,.btn-sec .ic{font-size:calc(1.2em);color:inherit;vertical-align:-0.18em;margin-inline-start:0;margin-inline-end:7px}
+button[data-ico]{display:inline-flex;align-items:center;justify-content:center;gap:0}
+button[data-ico] span{display:inline}
+h2 .ic{font-size:1.15em;color:#ffd873;vertical-align:-0.22em;margin-inline-end:8px}
+h1 .ic.big{font-size:1.3em;color:#ff8d7a;vertical-align:-0.25em;margin-inline-end:8px}
+.vic-medal .ic.big{font-size:56px;color:#ffd873}
+.set-row .ic{font-size:1.1em;color:#ffd873;vertical-align:-0.2em;margin-inline-end:7px}
+.vic-next .ic{font-size:1.05em;color:#ffd873;vertical-align:-0.2em;margin-inline-end:5px}
+.tbc-tease .ic{font-size:1.2em;color:#8fd487;vertical-align:-0.25em;margin-inline-end:7px}
+.bpk-cap .ic{font-size:12px;color:#ffd873;vertical-align:-1px;margin-inline-end:4px}
+#saveToast{display:flex;align-items:center;gap:6px}
+#saveToast .ic{font-size:15px}
+#lockBadge{display:flex;align-items:center;gap:6px}
+#lockBadge .ic{font-size:14px;color:#ffb45e}
+
+/* ---------- (۲۶٫۰) ستون لبه‌ی چپ: دکمه‌های عملیاتی بیرون از مسیر حمله‌ی زامبی‌ها ----------
+   زامبی‌ها در نوار y≈۳۴۰-۵۰۰ (منطقی) راه می‌روند؛ خوشه‌ی قبلی پایین-چپ دقیقاً
+   روی مسیرشان بود و دیدشان را می‌گرفت. حالا: ستون عمودی در آسمانِ لبه‌ی چپ،
+   زیر نوار HUD (slot1: شنود/سرنخ · slot2: چراغ‌قوه/خرید دستفروش · slot3: مولوتوف) */
+.ctl-col{position:absolute;left:calc(12px * var(--uiz,1));z-index:7;display:flex;flex-direction:column;gap:calc(12px * var(--uiz,1))}
+#listenBtn{position:absolute;top:calc(78px * var(--uiz,1));left:calc(12px * var(--uiz,1));z-index:7;display:none;align-items:center;justify-content:center;
+  width:calc(58px * var(--uiz,1));height:calc(58px * var(--uiz,1));font-size:calc(26px * var(--uiz,1));cursor:pointer;font-family:inherit;color:#bcd0ff;
+  background:linear-gradient(180deg,#23355e,#131e38);border:2px solid #4a629c;border-radius:50%;
+  box-shadow:0 8px 20px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#listenBtn:active{transform:scale(.93)}
+#listenBtn.cd{opacity:.4;filter:grayscale(.7)}
+#molotovBtn{position:absolute;top:calc(222px * var(--uiz,1));left:calc(12px * var(--uiz,1));z-index:7;display:none;align-items:center;justify-content:center;
+  width:calc(58px * var(--uiz,1));height:calc(58px * var(--uiz,1));font-size:calc(24px * var(--uiz,1));cursor:pointer;font-family:inherit;color:#ffd9a0;
+  background:linear-gradient(180deg,#7c3312,#481e08);border:2px solid #ff9a3c;border-radius:50%;
+  box-shadow:0 8px 20px rgba(0,0,0,.5),0 0 14px rgba(255,120,40,.3);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#molotovBtn:active{transform:scale(.93)}
+/* (۲۶٫۰) چراغ‌قوه — شیار ۲ ستون چپ، هم‌تراز شنود */
+#ctlFlash{position:absolute;top:calc(148px * var(--uiz,1));left:calc(12px * var(--uiz,1));z-index:7;
+  width:calc(58px * var(--uiz,1));height:calc(58px * var(--uiz,1));border-radius:50%;font-size:calc(24px * var(--uiz,1));gap:3px;color:#ffe9b0}
 /* باتری چراغ‌قوه: نوار کوچک زیر آیکون */
 .ctl-batt{display:block;width:calc(30px * var(--uiz,1));height:calc(5px * var(--uiz,1));background:#101a2e;border:1px solid #33477c;
   border-radius:3px;overflow:hidden}
@@ -243,7 +285,8 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   cursor:pointer;pointer-events:auto;font-size:calc(9.5px * var(--uiz2,1));font-weight:bold;color:#9fb2dd;
   padding:3px 1px;transition:background .15s,color .15s,border-color .15s,transform .1s;
   text-shadow:0 1px 2px rgba(0,0,0,.6)}
-.bp-tab .bp-tab-ic{font-size:calc(13px * var(--uiz2,1));line-height:1.2}
+.bp-tab .bp-tab-ic{display:inline-flex;align-items:center;justify-content:center;font-size:calc(17px * var(--uiz2,1));line-height:1.2;color:#ffd873}
+.bp-tab .bp-tab-ic svg{width:1em;height:1em;display:block}
 .bp-tab:hover{border-color:#4d6aa8;color:#dbe5fa}
 .bp-tab.on{background:linear-gradient(180deg,#ffd873,#eda93c);border-color:#ffd873;color:#1a1206;
   text-shadow:none;box-shadow:0 0 12px rgba(255,216,115,.35)}
@@ -505,28 +548,42 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #wrap.sui.touch .bpk-slot{width:44px;height:44px}
 #wrap.sui.touch .bpk-slot canvas{width:40px;height:40px}
 
-/* --- پنل دستفروش مرموز (۱۵٫۰: بالاتر و کمی راست‌تر — گوشه‌اش دیگر
-   روی دکمه‌ی توقفِ ریل چپ نمی‌نشیند؛ فقط روزها) --- */
-#peddlerPanel{position:absolute;top:48px;left:66px;width:228px;z-index:6;background:rgba(13,10,26,.95);
-  border:1px solid #4a3a6a;border-radius:12px;padding:9px;
-  box-shadow:0 10px 34px rgba(0,0,0,.5);animation:pdIn .4s ease}
-#wrap.touch #peddlerPanel{left:72px}
-@keyframes pdIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-#peddlerPanel .pd-head{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:bold;color:#d8c9ff}
-#peddlerPanel .pd-face{width:46px;height:46px;border-radius:9px;background:#0a0818;border:1px solid #4a3a6a;flex:none}
-#peddlerPanel .pd-note{font-size:10px;color:#9f8fd0;margin:6px 2px 1px;font-style:italic}
+/* --- (۲۶٫۰) دستفروش مرموز — دیالوگ مرکزی اندرویدی + پس‌زمینه‌ی مات
+   بازخورد کاربر: کادر خرید روی دکمه‌های دیگر می‌افتاد. حالا کارت متریال
+   وسط صفحه با بک‌دراپ — هیچ دکمه‌ای زیرش گیر نمی‌کند؛ دکمه‌ی X می‌بندد
+   و پیل «خرید از دستفروش» (شیار ۲ ستون چپ) دوباره بازش می‌کند. --- */
+#peddlerBox{position:absolute;inset:0;z-index:18;display:flex;align-items:center;justify-content:center;
+  background:rgba(4,7,16,.45);animation:pdIn .25s ease}
+#peddlerPanel{position:relative;width:min(calc(340px * var(--uiz,1)),calc(88vw / var(--uiz,1)));
+  max-height:calc(76% );overflow:hidden;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(22,16,42,.98),rgba(12,9,24,.98));
+  border:1.5px solid #6a52a0;border-radius:calc(18px * var(--uiz2,1));padding:calc(10px * var(--uiz,1));
+  box-shadow:0 24px 70px rgba(0,0,0,.75),0 0 0 1px rgba(106,82,160,.35),inset 0 1px 0 rgba(255,255,255,.09);
+  animation:pdPop .3s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pdPop{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+@keyframes pdIn{from{opacity:0}to{opacity:1}}
+#peddlerPanel .pd-head{display:flex;align-items:center;gap:calc(8px * var(--uiz,1));font-size:calc(13.5px * var(--uiz,1));font-weight:bold;color:#d8c9ff}
+#peddlerPanel .pd-face{width:calc(52px * var(--uiz,1));height:calc(52px * var(--uiz,1));border-radius:calc(11px * var(--uiz,1));background:#0a0818;border:1px solid #4a3a6a;flex:none}
+#peddlerPanel .pd-head > span{flex:1;line-height:1.5}
+#pdClose{width:calc(38px * var(--uiz,1));height:calc(38px * var(--uiz,1));border-radius:calc(11px * var(--uiz,1));
+  background:rgba(0,0,0,.35);border:1px solid #4a3a6a;color:#d8c9ff;cursor:pointer;font-size:calc(15px * var(--uiz,1));
+  font-family:inherit;display:flex;align-items:center;justify-content:center;flex:none}
+#pdClose:active{transform:scale(.92);border-color:#ffd873}
+#peddlerPanel .pd-note{font-size:calc(10.5px * var(--uiz,1));color:#9f8fd0;margin:calc(6px * var(--uiz,1)) calc(2px * var(--uiz,1)) 0;font-style:italic}
+#pdStock{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin-top:calc(4px * var(--uiz,1));padding-inline-end:2px}
 /* (۲۱٫۱) کالای دستفروش: چیدمان ستونی خوانا — آیکون کنار، نام + توضیح +
    قیمت (قرص طلایی) زیر هم؛ دیگر اسم و توضیح و قیمت روی هم نمی‌افتند */
-.pd-item{display:flex;align-items:flex-start;gap:9px;background:rgba(30,22,52,.85);border:1px solid #56427c;
-  border-radius:10px;padding:7px 9px;margin-top:7px;cursor:pointer;transition:border-color .15s,transform .15s}
+.pd-item{display:flex;align-items:flex-start;gap:calc(9px * var(--uiz,1));background:rgba(30,22,52,.85);border:1px solid #56427c;
+  border-radius:calc(10px * var(--uiz,1));padding:calc(7px * var(--uiz,1)) calc(9px * var(--uiz,1));margin-top:calc(7px * var(--uiz,1));cursor:pointer;transition:border-color .15s,transform .15s}
 .pd-item:hover{border-color:#ffd873;transform:translateY(-1px)}
-.pd-item canvas{width:42px;height:42px;flex:none}
+.pd-item canvas{width:calc(46px * var(--uiz,1));height:calc(46px * var(--uiz,1));flex:none}
 .pd-item .pd-info{flex:1;min-width:0}
-.pd-item .pd-name{display:block;font-size:11.5px;font-weight:bold;color:#eef1fa;line-height:1.55}
-.pd-item .pd-sub{display:block;font-size:9.5px;color:#bcb1e0;line-height:1.7;margin-top:1px}
-.pd-item .pd-price{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:10.5px;
+.pd-item .pd-name{display:block;font-size:calc(12.5px * var(--uiz,1));font-weight:bold;color:#eef1fa;line-height:1.55}
+.pd-item .pd-sub{display:block;font-size:calc(10.5px * var(--uiz,1));color:#bcb1e0;line-height:1.7;margin-top:1px}
+.pd-item .pd-price{display:inline-flex;align-items:center;gap:4px;margin-top:calc(6px * var(--uiz,1));font-size:calc(11.5px * var(--uiz,1));
   font-weight:bold;color:#ffd873;white-space:nowrap;background:rgba(4,8,18,.85);
   border:1px solid #4a3d1e;border-radius:999px;padding:2px 10px}
+.pd-item .pd-price .coin-ic{width:calc(13px * var(--uiz,1));height:calc(13px * var(--uiz,1))}
 .pd-item.poor{opacity:.6}.pd-item.poor .pd-price{color:#e06a5a}
 /* (۲۰٫۰) نقشه‌ی ساخت برجک ویژه — قاب طلایی برجسته + برچسب «تازه!» */
 .pd-item.pd-bp{background:rgba(48,34,18,.9);border-color:#c9954a;box-shadow:0 0 10px rgba(232,181,74,.25)}
@@ -535,6 +592,15 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   border-radius:5px;padding:0 4px;margin-inline-start:4px}
 /* دکمه‌ی کارنامه در «ادامه دارد» — کوچک‌تر از دکمه‌ی اصلی */
 .btn-tbc-stats{font-size:12.5px;padding:7px 14px}
+/* (۲۶٫۰) پیل بازگشایی خرید دستفروش — شیار ۲ ستون چپ، فقط روزها وقتی پنل بسته است */
+#pedReopenBtn{position:absolute;top:calc(148px * var(--uiz,1));left:calc(12px * var(--uiz,1));z-index:7;
+  display:none;align-items:center;gap:calc(7px * var(--uiz,1));
+  font-family:inherit;font-size:calc(14px * var(--uiz,1));font-weight:900;color:#ffe9b3;cursor:pointer;
+  background:linear-gradient(180deg,#6a4a9e,#3d2a63);border:2px solid #a98ae0;border-radius:calc(14px * var(--uiz,1));
+  padding:calc(11px * var(--uiz,1)) calc(13px * var(--uiz,1));box-shadow:0 8px 22px rgba(0,0,0,.5),0 0 14px rgba(150,110,220,.25);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;animation:mystIn .3s ease}
+#pedReopenBtn:active{transform:scale(.94)}
+#pedReopenBtn .ic{font-size:calc(19px * var(--uiz,1));color:#cdb2f5}
 #peddlerPanel.scammed{animation:pdScam .7s}
 @keyframes pdScam{0%,100%{transform:translateX(0);border-color:#4a3a6a}
   20%,60%{transform:translateX(-6px);border-color:#e04b3a}
@@ -575,10 +641,10 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 
 /* --- حالت سینمایی کامل (افتتاحیه/انتقال‌ها): همه‌ی UI مخفی --- */
 #wrap.cine-mode #hud, #wrap.cine-mode #buildPanel,
-#wrap.cine-mode #backpackBar, #wrap.cine-mode #peddlerPanel,
+#wrap.cine-mode #backpackBar, #wrap.cine-mode #peddlerBox, #wrap.cine-mode #pedReopenBtn,
 #wrap.cine-mode #bossBar, #wrap.cine-mode #lockBadge {display:none!important}
 /* در منو هم کوله/دستفروش/قفل مخفی باشند */
-#wrap.menu-mode #backpackBar, #wrap.menu-mode #peddlerPanel, #wrap.menu-mode #lockBadge,
+#wrap.menu-mode #backpackBar, #wrap.menu-mode #peddlerBox, #wrap.menu-mode #pedReopenBtn, #wrap.menu-mode #lockBadge,
 #wrap.menu-mode #bossWarn, #wrap.menu-mode #chapterCard {display:none!important}
 
 /* --- تنظیمات: ردیف‌ها و کلیدهای روشن/خاموش --- */
@@ -838,26 +904,17 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 /* ==================================================================
    (۲۳٫۰) لایه‌ی معما — دکمه/پنل/شنود/مولوتوف
    ================================================================== */
-#mystBtn{position:absolute;bottom:64px;right:14px;z-index:7;display:none;align-items:center;gap:8px;
-  font-family:inherit;font-size:15px;font-weight:900;color:#fff3d6;cursor:pointer;
+#mystBtn{position:absolute;top:calc(78px * var(--uiz,1));left:calc(12px * var(--uiz,1));z-index:7;display:none;align-items:center;gap:8px;
+  font-family:inherit;font-size:calc(15px * var(--uiz,1));font-weight:900;color:#fff3d6;cursor:pointer;
   background:linear-gradient(180deg,#8a5a17,#5c3a0c);border:2px solid #e8b54a;border-radius:14px;
-  padding:11px 18px;box-shadow:0 8px 22px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2);
+  padding:calc(11px * var(--uiz,1)) calc(14px * var(--uiz,1));box-shadow:0 8px 22px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2);
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;animation:mystIn .3s ease}
+#mystBtn .ic{font-size:calc(20px * var(--uiz,1));color:#ffd873}
 #mystBtn:active{transform:scale(.95)}
 #mystBtn.glow{animation:mystGlow 1.4s infinite}
 @keyframes mystIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes mystGlow{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.5),0 0 6px rgba(255,190,80,.3)}50%{box-shadow:0 8px 22px rgba(0,0,0,.5),0 0 20px rgba(255,190,80,.75)}}
-#listenBtn{position:absolute;bottom:64px;left:14px;z-index:7;display:none;align-items:center;justify-content:center;
-  width:58px;height:58px;font-size:26px;cursor:pointer;font-family:inherit;
-  background:linear-gradient(180deg,#23355e,#131e38);border:2px solid #4a629c;border-radius:50%;
-  box-shadow:0 8px 20px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-#listenBtn:active{transform:scale(.93)}
-#listenBtn.cd{opacity:.4;filter:grayscale(.7)}
-#molotovBtn{position:absolute;bottom:128px;left:14px;z-index:7;display:none;align-items:center;justify-content:center;
-  width:58px;height:58px;font-size:24px;cursor:pointer;font-family:inherit;color:#ffd9a0;
-  background:linear-gradient(180deg,#7c3312,#481e08);border:2px solid #ff9a3c;border-radius:50%;
-  box-shadow:0 8px 20px rgba(0,0,0,.5),0 0 14px rgba(255,120,40,.3);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-#molotovBtn:active{transform:scale(.93)}
+/* (۲۶٫۰) موقعیت‌های قدیمی حذف — همه در ستون چپ بالای تعریف اصلی‌اند */
 .myst-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;
   width:min(460px,92%);max-height:84%;overflow:auto;background:rgba(10,14,28,.97);
   border:2px solid #c9954a;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.7);
@@ -921,12 +978,8 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 .fuse-wire.used{opacity:.35;border-style:dashed}
 .fuse-log{font-size:14px;color:#aeb9d8;text-align:center;min-height:24px}
 /* (۲۴٫۰) باگ رفع شد: روی لمس width:auto دکمه‌ها را جمع می‌کرد — اندازه با --uiz */
-#wrap.touch #mystBtn{min-height:calc(54px * var(--uiz,1));font-size:calc(16px * var(--uiz,1));padding:calc(11px * var(--uiz,1)) calc(18px * var(--uiz,1))}
-#wrap.touch #listenBtn,#wrap.touch #molotovBtn{width:calc(58px * var(--uiz,1));height:calc(58px * var(--uiz,1));font-size:calc(26px * var(--uiz,1))}
+#wrap.touch #mystBtn{min-height:calc(54px * var(--uiz,1));font-size:calc(15px * var(--uiz,1));padding:calc(11px * var(--uiz,1)) calc(14px * var(--uiz,1))}
 #wrap.touch #ctlFlash{width:calc(58px * var(--uiz,1));height:calc(58px * var(--uiz,1));font-size:calc(24px * var(--uiz,1))}
-#listenBtn{left:calc(14px * var(--uiz,1));bottom:calc(64px * var(--uiz,1))}
-#molotovBtn{left:calc(14px * var(--uiz,1));bottom:calc(128px * var(--uiz,1))}
-#wrap.sui #molotovBtn{bottom:calc(120px * var(--uiz,1))}
 </style>
 <style>
 /* ---------- (۲۰٫۵) اسپلش بوتِ فوری ----------
@@ -966,24 +1019,24 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div id="hud">
     <div class="hud-group">
       <div class="hud-item" id="coinItem" title="سکه‌ها"><i class="coin-ic"></i><span id="coinText">۰</span></div>
-      <div class="hud-item" title="جون برج">❤️
+      <div class="hud-item" title="جون برج"><i class="hud-ic" data-ico="heart"></i>
         <div id="healthBar"><div id="healthFill"></div></div>
         <span id="healthText">۱۰۰/۱۰۰</span>
       </div>
-      <div class="hud-item" title="مرحله">💀 <span id="waveText">مرحله ۱</span></div>
+      <div class="hud-item" title="مرحله"><i class="hud-ic" data-ico="skull"></i><span id="waveText">مرحله ۱</span></div>
     </div>
     <div class="hud-group hud-ctl">
-      <button class="ctl-btn hud-pause" id="ctlPause" title="توقف / ادامه (P)">⏸</button>
-      <button class="ctl-btn hud-mini" id="ctlMute" title="قطع/وصل صدا (M)">🔊</button>
+      <button class="ctl-btn hud-pause" id="ctlPause" title="توقف / ادامه (P)" data-ico="pause"></button>
+      <button class="ctl-btn hud-mini" id="ctlMute" title="قطع/وصل صدا (M)" data-ico="sound"></button>
     </div>
   </div>
 
-  <!-- ============ (۲۴٫۰) چراغ‌قوه: دکمه‌ی گرد خوشه‌ی پایین‌چپ (کنار شنود) ============ -->
-  <button class="ctl-btn" id="ctlFlash" title="چراغ‌قوه (L)">🔦<span class="ctl-batt"><i id="ctlBattFill"></i></span></button>
+  <!-- ============ (۲۶٫۰) چراغ‌قوه: ستون لبه‌ی چپ — بیرون از مسیر حمله‌ی زامبی‌ها ============ -->
+  <button class="ctl-btn" id="ctlFlash" title="چراغ‌قوه (L)"><i class="ic" data-ico="torch"></i><span class="ctl-batt"><i id="ctlBattFill"></i></span></button>
 
   <!-- ============ نوار جون باس (فقط موقع حضور پادشاه زامبی‌ها) ============ -->
   <div id="bossBar">
-    <div class="bname">🌑 نگهبانِ آخرین شب</div>
+    <div class="bname"><i class="hud-ic" data-ico="moon"></i> نگهبانِ آخرین شب</div>
     <div class="btrack"><div class="bfill" id="bossFill"></div></div>
   </div>
 
@@ -1001,9 +1054,9 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
        جای دکمه‌ی شناورِ گوشه‌ی راست را گرفت. -->
   <div id="buildPanel">
     <div class="bp-head" id="bpHead" title="خرید وسط بازی هم مجاز است — کلید B جمع/باز">
-      🛠 ساخت‌وساز <span class="bp-chev" id="bpChev">▾</span>
+      <i class="ic" data-ico="tools"></i> ساخت‌وساز <span class="bp-chev" id="bpChev">▾</span>
     </div>
-    <button id="bpNight" class="hidden">🌙 شب شود</button>
+    <button id="bpNight" class="hidden" data-ico="moon"></button>
     <div class="bp-tabs" id="bpTabs"></div>
     <div id="bpList"></div>
   </div>
@@ -1011,32 +1064,37 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 
   <!-- (۱۶٫۰) پنل روزِ شناور حذف شد — «شب شود» داخل پنل ساخت‌وساز است -->
 
-  <!-- ============ (۱۰٫۰) پنل دستفروش مرموز — کنار فروشگاه، فقط بعضی روزها ============ -->
-  <div id="peddlerPanel" class="hidden">
-    <div class="pd-head"><canvas class="pd-face" id="pdFace" width="92" height="92"></canvas>
-      <span>دستفروشِ<br>مرموز</span></div>
-    <div class="pd-note">«فقط امروز اینجام...»</div>
-    <div id="pdStock"></div>
+  <!-- ============ (۱۰٫۰/۲۶٫۰) پنل دستفروش مرموز — دیالوگ مرکزی اندرویدی ============ -->
+  <div id="peddlerBox" class="hidden">
+    <div id="peddlerPanel">
+      <div class="pd-head"><canvas class="pd-face" id="pdFace" width="92" height="92"></canvas>
+        <span>دستفروشِ<br>مرموز</span>
+        <button id="pdClose" title="بستن" data-ico="x"></button>
+      </div>
+      <div class="pd-note">«فقط امروز اینجام...»</div>
+      <div id="pdStock"></div>
+    </div>
   </div>
+  <!-- (۲۶٫۰) بازگشایی خرید دستفروش — با JS ساخته می‌شود (MYST.ensurePedBtn) -->
 
   <!-- ============ (۱۲٫۰) کوله‌پشتی: ۶ جا برای وسایل بقا (کلیک یا Q..U) ============
        وقتی خالی است فقط یک قرص کوچک نشان داده می‌شود (ضدشلوغی) -->
   <div id="backpackBar">
-    <span class="bpk-cap" id="bpkCap">🎒 کوله خالی — خرید از تب «بقا»</span>
+    <span class="bpk-cap" id="bpkCap"><i class="ic" data-ico="backpack"></i> کوله خالی — خرید از تب «بقا»</span>
     <div id="bpkSlots"></div>
   </div>
 
   <!-- ============ (۱۳٫۰) اعلان کوچک «ذخیره شد» — پایین‌راست ============ -->
-  <div id="saveToast">💾 ذخیره شد</div>
+  <div id="saveToast" data-ico="save"><span>ذخیره شد</span></div>
 
   <!-- ============ (۱۰٫۰) نشان قفل فروشگاه در «آخرین شب» ============ -->
-  <div id="lockBadge" class="hidden">🔒 آخرین شب — فروشگاه قفل است</div>
+  <div id="lockBadge" class="hidden"><i class="ic" data-ico="lock"></i> آخرین شب — فروشگاه قفل است</div>
 
   <!-- ============ (۱۰٫۰) هشدار ورود به آخرین شب ============ -->
   <div id="bossWarn">
     <div class="bw-big">آخرین شب</div>
     <div class="bw-sub">فروشگاه قفل شد — فقط خودت، برجت و کوله‌پشتیت</div>
-    <div class="bw-sub2">... و برق هم قطع است 🔦</div>
+    <div class="bw-sub2">... و برق هم قطع است — چراغ‌قوه یادت نره</div>
   </div>
 
   <!-- ============ (۱۰٫۰) کارت فصل جدید ============ -->
@@ -1057,9 +1115,9 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   </div>
 
   <!-- ============ (۱۱٫۰/۱۴٫۰) راهنمای چرخاندن گوشی — تمام‌صفحه در حالت عمودی ============ -->
-  <div id="rotateHint" class="hidden">🔄<div>برای بازی، گوشی را <b>افقی</b> بگیر</div><div class="rh2">صحنه‌ی بازی کامل و بزرگ‌تر دیده می‌شود</div></div>
+  <div id="rotateHint" class="hidden"><i class="rh-ic" data-ico="rotate"></i><div>برای بازی، گوشی را <b>افقی</b> بگیر</div><div class="rh2">صحنه‌ی بازی کامل و بزرگ‌تر دیده می‌شود</div></div>
   <!-- ============ دکمه‌ی «رد کردن» کات‌سین داستانی (۷٫۰) — ۱۰٫۰: افتتاحیه/انتقال‌ها هم ============ -->
-  <button id="skipCs" class="hidden">⏭ رد کردن</button>
+  <button id="skipCs" class="hidden" data-ico="skip"><span>رد کردن</span></button>
 
   <!-- ============ (۱۰٫۰) پوشش محو نرم بین حالت‌ها ============ -->
   <div id="fadeDiv"></div>
@@ -1088,7 +1146,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
         </div>
       </div>
     </div>
-    <div class="m23-foot">نسخه‌ی ۲۵٫۰</div>
+    <div class="m23-foot">نسخه‌ی ۲۶٫۰</div>
   </div>
 
   <!-- ============ (۲۰٫۱) صفحه‌ی راهنما حذف شد — درخواست کاربر ============ -->
@@ -1096,11 +1154,11 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <!-- ============ صفحه توقف (۱۴٫۰: فقط دکمه‌ها — بدون متن اضافه) ============ -->
   <div class="overlay hidden" id="pauseScreen">
     <div class="panel">
-      <h2>⏸ توقف</h2>
+      <h2><i class="ic" data-ico="pause"></i> توقف</h2>
       <div class="btn-row">
-        <button class="btn-main" id="btnResume">▶ ادامه بازی</button>
-        <button class="btn-sec" id="btnSaveExit">💾 ذخیره و خروج</button>
-        <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
+        <button class="btn-main" id="btnResume" data-ico="play"><span>ادامه بازی</span></button>
+        <button class="btn-sec" id="btnSaveExit" data-ico="save"><span>ذخیره و خروج</span></button>
+        <button class="btn-sec" id="btnRestart0" data-ico="restart"><span>شروع دوباره</span></button>
       </div>
     </div>
   </div>
@@ -1109,12 +1167,12 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
         دیالوگ، بدون دکمه‌ی «رد کردن» و بدون آمارِ طولانی) ============ -->
   <div class="overlay hidden" id="gameoverScreen">
     <div class="panel" style="max-width:400px">
-      <h1>💀 باختی!</h1>
+      <h1><i class="ic big" data-ico="skull"></i> باختی!</h1>
       <p class="subtitle" id="goSubtitle">تا مرحله ۱ دوام آوردی</p>
       <p class="stat-line" id="goStats"></p>
       <div class="btn-row">
-        <button class="btn-main" id="btnRetryDay">🌅 تلاش دوباره</button>
-        <button class="btn-sec" id="btnRestart1">🏠 منوی اصلی</button>
+        <button class="btn-main" id="btnRetryDay" data-ico="dawn"><span>تلاش دوباره</span></button>
+        <button class="btn-sec" id="btnRestart1" data-ico="home"><span>منوی اصلی</span></button>
       </div>
     </div>
   </div>
@@ -1122,19 +1180,19 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <!-- ============ (۱۰٫۰) صفحه تنظیمات — ۱۳٫۰: کد سیو + ذخیره‌سازی اطمینانی ============ -->
   <div class="overlay hidden" id="settingsScreen">
     <div class="panel" style="max-width:430px">
-      <h2>⚙️ تنظیمات</h2>
-      <div class="set-row"><span>🔊 جلوه‌های صوتی</span>
+      <h2><i class="ic" data-ico="gear"></i> تنظیمات</h2>
+      <div class="set-row"><span><i class="ic" data-ico="sound"></i> جلوه‌های صوتی</span>
         <label class="switch"><input type="checkbox" id="setSfx" checked><span></span></label></div>
-      <div class="set-row"><span>🎵 موسیقی محیطی</span>
+      <div class="set-row"><span><i class="ic" data-ico="music"></i> موسیقی محیطی</span>
         <label class="switch"><input type="checkbox" id="setMusic" checked><span></span></label></div>
-      <div class="set-row"><span>📳 لرزش صفحه</span>
+      <div class="set-row"><span><i class="ic" data-ico="vibrate"></i> لرزش صفحه</span>
         <label class="switch"><input type="checkbox" id="setShake" checked><span></span></label></div>
-      <div class="set-row"><span>🔈 بلندی صدا</span>
+      <div class="set-row"><span><i class="ic" data-ico="volume"></i> بلندی صدا</span>
         <input type="range" id="setVol" min="0" max="100" value="50" class="vol"></div>
       <div class="btn-row">
-        <button class="btn-sec" id="btnSaveCode">📤 کد سیو</button>
-        <button class="btn-sec" id="btnLoadCode">📥 بارگذاری کد</button>
-        <button class="btn-sec" id="btnWipe">🗑 پاک‌کردن سیو</button>
+        <button class="btn-sec" id="btnSaveCode" data-ico="upload"><span>کد سیو</span></button>
+        <button class="btn-sec" id="btnLoadCode" data-ico="download"><span>بارگذاری کد</span></button>
+        <button class="btn-sec" id="btnWipe" data-ico="trash"><span>پاک‌کردن سیو</span></button>
       </div>
       <div class="btn-row">
         <button class="btn-main" id="closeSettings">برگرد</button>
@@ -1145,11 +1203,11 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <!-- ============ (۱۳٫۰/۱۴٫۰) صفحه‌ی کد سیو: گرفتن / بارگذاری ============ -->
   <div class="overlay hidden" id="saveCodeScreen">
     <div class="panel" style="max-width:460px">
-      <h2 id="scTitle">📤 کد سیو</h2>
+      <h2 id="scTitle"><i class="ic" data-ico="upload"></i> کد سیو</h2>
       <p class="subtitle" id="scHint">این کد پیشرفت توست — جایی امن ذخیره‌اش کن</p>
       <textarea id="scText" placeholder="کد سیو را این‌جا بچسبان..."></textarea>
       <div class="btn-row">
-        <button class="btn-sec" id="scCopy">📋 کپی</button>
+        <button class="btn-sec" id="scCopy"><i class="ic" data-ico="upload"></i><span>کپی</span></button>
         <button class="btn-main" id="scDone">تأیید و برگشت</button>
       </div>
     </div>
@@ -1158,7 +1216,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <!-- ============ (۱۰٫۰) صفحه درباره‌ی بازی (۲۰٫۱: فقط داستان + سازنده) ============ -->
   <div class="overlay hidden" id="aboutScreen">
     <div class="panel" style="max-width:470px">
-      <h2>ℹ️ درباره‌ی بازی</h2>
+      <h2><i class="ic" data-ico="info"></i> درباره‌ی بازی</h2>
       <p class="subtitle">سه طبقه تا مرگ</p>
       <div class="howto" style="text-align:right">
         <div>همه‌چیز از یک بیماری ناشناخته شروع شد؛ خیابان‌ها یکی‌یکی ساکت شدند و شهرها بی‌صدا از پا درآمدند.</div>
@@ -1175,7 +1233,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <!-- ============ (۲۵٫۰) جعبه‌ی تأیید اندرویدی — کارت متریال + دکمه‌های درشت لمسی ============ -->
   <div class="overlay hidden" id="confirmBox">
     <div class="cf-card">
-      <div class="cf-icon" id="cfIcon">⚠️</div>
+      <div class="cf-icon" id="cfIcon" data-ico="warn"></div>
       <h2 class="cf-title" id="cfTitle">مطمئنی؟</h2>
       <p class="cf-msg" id="cfMsg">این کار قابل برگشت نیست.</p>
       <div class="cf-acts">
@@ -1189,15 +1247,15 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <div class="overlay hidden" id="victoryScreen">
     <div class="vic-wrap">
       <div class="vic-rays"></div>
-      <div class="vic-medal">🏆</div>
+      <div class="vic-medal"><i class="ic big" data-ico="trophy"></i></div>
       <h1 class="vic-title">پیروزی!</h1>
       <div class="vic-ribbon">قهرمانِ <span id="vicNights">۳۶</span> شب — از محله‌ی قدیمی تا پناهگاه</div>
       <div class="vic-stats" id="vStats"></div>
       <div class="btn-row vic-menu">
-        <button class="btn-main" id="btnRestart2">🌙 بازی دوباره از شب اول</button>
-        <button class="btn-sec" id="btnVicMenu">🏠 منوی اصلی</button>
+        <button class="btn-main" id="btnRestart2" data-ico="moon"><span>بازی دوباره از شب اول</span></button>
+        <button class="btn-sec" id="btnVicMenu" data-ico="home"><span>منوی اصلی</span></button>
       </div>
-      <p class="vic-next">⭐ سری دوم: <b>«محاصره‌ی پناهگاه»</b> — به‌زودی...</p>
+      <p class="vic-next"><i class="ic" data-ico="star"></i> سری دوم: <b>«محاصره‌ی پناهگاه»</b> — به‌زودی...</p>
     </div>
   </div>
 
@@ -1206,11 +1264,11 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
     <div class="tbc-box">
       <div class="tbc-title" id="tbcTitle"></div>
       <div class="tbc-sub" id="tbcSub">سری دوم: <b>«محاصره‌ی پناهگاه»</b></div>
-      <div class="tbc-tease" id="tbcTease">🧟 گله‌ی بزرگ... پشتِ درِ پناهگاه...</div>
+      <div class="tbc-tease" id="tbcTease"><i class="ic" data-ico="zombie"></i> گله‌ی بزرگ... پشتِ درِ پناهگاه...</div>
       <div class="btn-row tbc-row" id="tbcRow">
-        <button class="btn-main" id="tbcRestart">🔄 شروع دوباره</button>
-        <button class="btn-sec" id="tbcContinue">🏠 بازگشت به منوی اصلی</button>
-        <button class="btn-sec btn-tbc-stats" id="tbcStats">🏅 کارنامه‌ی نبرد</button>
+        <button class="btn-main" id="tbcRestart" data-ico="restart"><span>شروع دوباره</span></button>
+        <button class="btn-sec" id="tbcContinue" data-ico="home"><span>بازگشت به منوی اصلی</span></button>
+        <button class="btn-sec btn-tbc-stats" id="tbcStats" data-ico="medal"><span>کارنامه‌ی نبرد</span></button>
       </div>
     </div>
   </div>
@@ -2047,9 +2105,9 @@ function waveComplete() {
 /* پنل روز (۱۶٫۰): «شب شود» حالا دکمه‌ی طلاییِ داخل پنل ساخت‌وساز است
    (زیر سربرگ) — برچسب موج درون‌فصلی/آخرین شب (۱۰٫۰) */
 function showDayPanel() {
-  $('bpNight').innerHTML = (state.wave + 1 >= FINAL_WAVE)
-    ? '🌑 آخرین شب'
-    : '🌙 شب شود — موج ' + faNum(waveInChapter(state.wave + 1));
+  /* (۲۶٫۰) آیکن SVG + بدون شماره‌ی موج (درخواست «مثل بازی‌های واقعی») */
+  $('bpNight').innerHTML = (typeof ICO !== 'undefined' ? ICO.ico('moon') : '') +
+    '<span>' + ((state.wave + 1 >= FINAL_WAVE) ? 'آخرین شب' : 'شب شود') + '</span>';
   $('bpNight').classList.remove('hidden');
 }
 function hideDayPanel() { $('bpNight').classList.add('hidden'); }
@@ -7484,6 +7542,134 @@ pd1c:{d:3.86,a:"data:audio/mpeg;base64,SUQzBAAAAAAAIlRTU0UAAAAOAAADTGF2ZjYxLjcuM
 pd1l:{d:3.22,a:"data:audio/mpeg;base64,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zn/VF2M8lNlnctRQeJqc4OoAuttC3PxalciDkUF9QbnoVLCOWTmxXhUDyVHz9m0MfCSI8KrmGNr1tqImD1cEtxNEYRLfL9SWozjwoagZFDkECGvOYkiO9u3LFyD/82TESxz0Otm2YMry5SIbp0/zlKhuzuYpf9dKFelVtyytl///////+Mb9E6qrNVf6PIpBo9oAdyMivcNdmagKDwcWA/V49TkUCsYLKjDJBb5ocJ/aVmMTjCxD4sSQhJpxwb11DgoDfFs49ceOLcW7uknChZwUGIhlENcqWhVyP04ZXpm9xKWJuvzU9jv6f///82TEWhzjotm2eMT+////////9DhSehuUMw4gHBvEOImhw8+kqVoAe7RXuAnglLOiTQitpZuRmFmWMgYYYJ/KtognSNonSLI87uqTskBpQQZ26yEJwoUWk21V9NrCC5KM4m9XIR5NasYWGMCKgNTMY70oyzryM3/qQOpmi/+U6iBBCII+IP/////+8EHQ/8v/82TEaRpKSuGWekS61QgpUAOXefAyoFTBW3xIoa6KZzOUbwfgQEnRJy4xmBiDRgoNkZULGeiDYk9w7sQAhypvH5UubcOxhrtbsdN9Npy9kN/5Cp929fqf2f/okZmd/28iP////6o4w4Q4hQL////tMYokMK////9mOFoQjDpgAG7qLmgsDqYcSo5q5xksGcT/82TEghvsNuGWegTWDVWlEpbdn+rSa/0zP7+8/avoULt6PQb337L9aMgiZao1C5qTRpEjkjnkjPIEY1v2HrIRmD7yUGupGqQcHgI6C4cGmGiQTF7HHiJ0IT////r//////////7/iBSRxxUwmgBWmr5frL8AHn6NqdyF2AQka60DrS5dbF5ywnGBtci9kWLP/82TElRx0LulWYEtvSKNHI13//XRLZNCWZJrNRykt7b/6/m5maolaOY1VvK0pUN7TPLoVndqPmerflYwEKo7UNVtn////9DojIdnKimMpv/+xv0zFQv/8F+oqVeKiHNWABmnls6oaAqi3S/yeS+6XUef6W6mX2fWHa+VerEqbv40phV2AmAnbME2asCOGvAL/82TEph1r+uWWYYTeBn+zUm9SaqVakdUtlWNS2Yv9V55/7NGOqqlwCFYFDq2ntQhLAEYDQVALm//BBwnN+XBAwBw///9JUBPjyQiAs7WGlWnGWS0YkyYS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Jg78RA14NO6J1bwZIFCZb1mM5WKkKCAn9cxnWVAwr/9DPUoq2xlVlb/6h1ko4dZZX//9PNMoxFT/82TEnBq7PfwAGUbIUVQWfQW9UReUv/lmNqXzGUtURSPMZ+YxjdDKysHhYyTOUrFRF9GAYhyPUpaKgtUvxIPDw6K4oKx5MTUIhf/0T//RURU+ieUwUECOT/8xQyHZ26//7lDBQYQ7P///////7CRDX////8jP//2bc3KIgwkDIJq3KNOKuLzcqXbf/NGlxeb/82TEtBrb8WwAMIp5okgUUBHoLze7M7bmycaWJUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEyxX0GNwsEE3NVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/82TEfAAAA0gAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU="}
 };
 /* ==================================================================
+   «سه طبقه تا مرگ» v26 — سیستم آیکن SVG یکدستِ اندرویدی (متریال)
+   ==================================================================
+   بازخورد کاربر: «کلا ایکون دکمه‌ها رو از اول بساز — متمایز و
+   سازگار با اندروید».
+   ایموجی‌ها (⏸🔊🔦👂🔥🔍…) روی هر گوشی شکل عوض می‌کنند (سامسونگ
+   یک‌شکل، اندروید خام شکل دیگر) → آیکن خطیِ خودرنگ (currentColor)
+   با زبان طراحی واحد: viewBox 24×24 · stroke 1.8 · گوشه‌گرد.
+   ICO.ico(name) → رشته‌ی SVG · ICO.apply() همه‌ی عناصر data-ico را
+   در HTML/JS پوشش می‌دهد (این فایل اولِ اسکریپت‌های تعاملی لود
+   می‌شود تا بقیه ICO را ببینند).
+   ================================================================== */
+const ICO = (() => {
+  const S = (inner, fill) =>
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" ' + (fill ? '' : 'fill="none" ') +
+    'stroke="currentColor" stroke-width="' + (fill ? 0 : 1.8) +
+    '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+
+  /* ---------- آیکن‌های کنترل بازی ---------- */
+  const I = {
+    /* توقف — دو میله‌ی گرد (پخش/ادامه هم برعکسش) */
+    pause: S('<rect x="6.2" y="4.6" width="4" height="14.8" rx="1.6"/><rect x="13.8" y="4.6" width="4" height="14.8" rx="1.6"/>', true),
+    /* ادامه — مثلث گرد */
+    play: S('<path d="M8 5.6c0-1 1.1-1.6 2-1.1l9 5.9c.8.5.8 1.7 0 2.2l-9 5.9c-.9.5-2-.1-2-1.1z"/>', true),
+    /* بلندگو + موج‌ها */
+    sound: S('<path d="M4 9.6v4.8c0 .6.4 1 1 1h2.2l3.2 2.8c.7.6 1.7.1 1.7-.7V6.9c0-.8-1-1.3-1.7-.7L7.2 8.9H5c-.6 0-1 .4-1 1z"/><path d="M15.4 9.2c1.5 1.6 1.5 4 0 5.6M18 6.7c2.8 3 2.8 7.6 0 10.6"/>'),
+    /* بلندگوی خاموش */
+    soundOff: S('<path d="M4 9.6v4.8c0 .6.4 1 1 1h2.2l3.2 2.8c.7.6 1.7.1 1.7-.7V6.9c0-.8-1-1.3-1.7-.7L7.2 8.9H5c-.6 0-1 .4-1 1z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>'),
+    /* چراغ‌قوه — بدنه + مخروط نور */
+    torch: S('<path d="M8.5 3h7c.5 0 .9.4.9.9v1.7c0 1.6-.7 2.5-1.5 3.3v10.1c0 .6-.4 1-1 1h-3.8c-.6 0-1-.4-1-1V8.9C8.3 8.1 7.6 7.2 7.6 5.6V3.9c0-.5.4-.9.9-.9z"/><path d="M10.2 8.8h3.6"/><path d="M6.2 3.4L3.8 1.9M17.8 3.4l2.4-1.5M5.9 6.4H3.2M18.1 6.4h2.7" opacity=".55"/>'),
+    /* گوش شنود — گوش + موج ضربان */
+    ear: S('<path d="M8.6 20.5c-1.2-1-2.3-2.6-2.3-5 0-1.3.4-2.2 1-3.2.5-1 .9-1.8.9-3 0-2.2 1.8-4 4-4s3.8 1.6 3.8 3.6c0 1.2-.4 2-1 2.9"/><path d="M9.9 12.6c.3-.8.5-1.4.5-2.4 0-1 .8-1.9 1.7-1.9.9 0 1.6.7 1.6 1.6 0 .6-.2 1-.5 1.5"/><path d="M4.2 8.5c.9-3.4 3.8-5.8 7.3-5.8 3.1 0 5.8 1.9 7 4.6" opacity=".6"/><path d="M17 14.5c.5-1.1.8-2.3.8-3.5"/>'),
+    /* مولوتوف — بطری + شعله */
+    molotov: S('<path d="M10.3 8.4h3.4c.4 0 .7.3.7.7v10c0 .9-.7 1.6-1.6 1.6h-1.6c-.9 0-1.6-.7-1.6-1.6V9.1c0-.4.3-.7.7-.7z"/><path d="M11 8.4V6.1c0-.9.7-1.6 1.6-1.6h1.8"/><path d="M13.4 12.2v4"/><path d="M17.5 2.2c.7 1.1 1 2 1 2.8 0 .9-.6 1.6-1.5 1.6s-1.5-.7-1.5-1.6c0-.8.4-1.7 1-2.8.2-.4.8-.4 1 0z" fill="currentColor" stroke-width="0"/>'),
+    /* سرنخ — ذره‌بین + درخشش */
+    clue: S('<circle cx="10.5" cy="10.5" r="6.2"/><path d="M15.2 15.2L20 20"/><path d="M8 8.4l.1 0M12.3 6.9l.1 0M7.6 12.6l.1 0" stroke-width="2.4"/>'),
+    /* ساخت‌وساز — چکش + آچار */
+    tools: S('<path d="M13.7 6.3l4-4 2.6 2.6-2.3 2.3-1.4-.4-1.2 1.2"/><path d="M12.2 7.8L4.5 15.5c-1 1-1 2.6 0 3.6l.4.4c1 1 2.6 1 3.6 0l7.7-7.7"/><path d="M14.9 9.9l2.5-2.5c.9.5 2.2.3 3-.5.9-.9 1-2.3.3-3.3l-1.8 1.8-1.5-.3-.3-1.5 1.8-1.8c-1-.7-2.4-.6-3.3.3-.8.8-1 2.1-.5 3l-2.5 2.5"/>'),
+    /* ماه — هلال */
+    moon: S('<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>'),
+    /* قلب — جون */
+    heart: S('<path d="M12 20.3s-7.4-4.6-9.2-9.3C1.5 7.7 3.6 4.5 6.9 4.5c2 0 3.6 1.1 5.1 3 1.5-1.9 3.1-3 5.1-3 3.3 0 5.4 3.2 4.1 6.5-1.8 4.7-9.2 9.3-9.2 9.3z"/>', true),
+    /* جمجمه — مرحله */
+    skull: S('<path d="M12 2.8c-4.6 0-8 3.2-8 7.6 0 2.5 1.1 4.3 2.8 5.5v2.7c0 .8.7 1.5 1.5 1.5h7.4c.8 0 1.5-.7 1.5-1.5v-2.7c1.7-1.2 2.8-3 2.8-5.5 0-4.4-3.4-7.6-8-7.6z"/><circle cx="9" cy="10.6" r="1.7" fill="currentColor" stroke-width="0"/><circle cx="15" cy="10.6" r="1.7" fill="currentColor" stroke-width="0"/><path d="M10.6 15.4v2M13.4 15.4v2"/><path d="M5.2 7.5L3 6.2M18.8 7.5L21 6.2" opacity=".6"/>'),
+    /* کوله‌پشتی */
+    backpack: S('<rect x="5.5" y="8" width="13" height="12" rx="2.4"/><path d="M9 8V6.2C9 4.4 10.3 3 12 3s3 1.4 3 3.2V8"/><rect x="9.4" y="12.6" width="5.2" height="4.2" rx="1.2"/><path d="M5.5 13H4.2c-.7 0-1.2.5-1.2 1.2v3c0 .7.5 1.2 1.2 1.2h1.3M18.5 13h1.3c.7 0 1.2.5 1.2 1.2v3c0 .7-.5 1.2-1.2 1.2h-1.3"/>'),
+    /* ذخیره — فلاپی */
+    save: S('<path d="M5 3h11.2c.5 0 1 .2 1.4.6l2.8 2.8c.4.4.6.9.6 1.4V19c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2z"/><path d="M7 3v5.5c0 .6.4 1 1 1h6.5c.6 0 1-.4 1-1V3"/><circle cx="14.8" cy="15.8" r="2.2"/>'),
+    /* قفل */
+    lock: S('<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7.8C8 5.1 9.8 3 12 3s4 2.1 4 4.8v2.7"/><circle cx="12" cy="15" r="1.6"/>'),
+    /* چرخش گوشی */
+    rotate: S('<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3.5 8.5c.8-2.7 2.7-4.6 5.2-5.4M20.5 15.5c-.8 2.7-2.7 4.6-5.2 5.4" opacity=".7"/><path d="M3.5 4.5v4h4M20.5 19.5v-4h-4" opacity=".7"/>'),
+    /* رد کردن — جلو */
+    skip: S('<path d="M5 5.8c0-.8.9-1.3 1.6-.9l7.4 5.2c.6.4.6 1.4 0 1.8l-7.4 5.2c-.7.4-1.6-.1-1.6-.9z"/><path d="M17 5.5v13"/>'),
+    /* هشدار */
+    warn: S('<path d="M10.5 3.9L2.9 17.3c-.7 1.2.2 2.7 1.6 2.7h15c1.4 0 2.3-1.5 1.6-2.7L13.5 3.9c-.7-1.2-2.3-1.2-3 0z"/><path d="M12 9.2v4.4"/><circle cx="12" cy="16.9" r="0.4" fill="currentColor" stroke-width="2.2"/>'),
+    /* خانه */
+    home: S('<path d="M4 10.5L12 3.5l8 7"/><path d="M5.5 12v7c0 .6.4 1 1 1h11c.6 0 1-.4 1-1v-7"/><path d="M9.5 20v-5.5h5V20"/>'),
+    /* شروع دوباره — فلش چرخشی */
+    restart: S('<path d="M4.5 5.5v4.5H9"/><path d="M4.8 10A8 8 0 1 1 4 14.5"/>'),
+    /* تلاش دوباره — طلوع */
+    dawn: S('<path d="M12 9.5a5 5 0 0 0-5 5h10a5 5 0 0 0-5-5z"/><path d="M2.5 18.5h19M5.5 14.5l.1 0M18.5 14.5l.1 0" stroke-width="2"/><path d="M12 2.5v3M5 5.5l2 2M19 5.5l-2 2"/>'),
+    /* تنظیمات — چرخ‌دنده */
+    gear: S('<circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7" stroke-width="2"/>'),
+    /* بالا آوردن/برون‌برد */
+    upload: S('<path d="M12 15.5V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15.5v3.5c0 .6.4 1 1 1h14c.6 0 1-.4 1-1v-3.5"/>'),
+    /* پایین آوردن/درون‌برد */
+    download: S('<path d="M12 4v11.5M7.5 11L12 15.5 16.5 11"/><path d="M4 15.5v3.5c0 .6.4 1 1 1h14c.6 0 1-.4 1-1v-3.5"/>'),
+    /* سطل زباله */
+    trash: S('<path d="M4 6.5h16M9.5 6.5V4.8c0-.7.6-1.3 1.3-1.3h2.4c.7 0 1.3.6 1.3 1.3v1.7"/><path d="M6.5 6.5l.8 13c.05.8.7 1.5 1.5 1.5h6.4c.8 0 1.45-.7 1.5-1.5l.8-13"/><path d="M10 10.5v6M14 10.5v6"/>'),
+    /* کاپ قهرمانی */
+    trophy: S('<path d="M7 3.5h10c.3 3.8-.7 8.5-5 8.5s-5.3-4.7-5-8.5z"/><path d="M7 5.5H4.5c0 3.3 1.2 5 3.3 5.3M17 5.5h2.5c0 3.3-1.2 5-3.3 5.3"/><path d="M12 12v3.5M8.5 20.5h7M9.5 20.5c0-2.8 1-4.8 2.5-4.8s2.5 2 2.5 4.8"/>'),
+    /* ستاره */
+    star: S('<path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.4l6.1-.8z"/>'),
+    /* مدال */
+    medal: S('<circle cx="12" cy="14.5" r="5.5"/><path d="M8 3.5L10 9M16 3.5L14 9"/><path d="M12 12.2l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z" fill="currentColor" stroke-width="0"/>'),
+    /* زامبی */
+    zombie: S('<path d="M5 12c0-4.4 3-7 7-7s7 2.6 7 7v3.5c0 2.5-2 4.5-4.5 4.5h-5C7 20 5 18 5 15.5z"/><circle cx="9.3" cy="12" r="1.5" fill="currentColor" stroke-width="0"/><circle cx="14.7" cy="12" r="1.5" fill="currentColor" stroke-width="0"/><path d="M8.5 16.5c2.3 1.4 4.7 1.4 7 0M9.8 7.5l-2-2.2M14.2 7.5l2-2.2" opacity=".7"/>'),
+    /* اطلاعات */
+    info: S('<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.6" r="0.3" fill="currentColor" stroke-width="2.6"/>'),
+    /* ارتقاء — پیکان + رنز */
+    upgrade: S('<path d="M12 3.5l7.5 6h-3v8h-9v-8h-3z"/><path d="M12 8v6.5M9.5 11.5L12 14l2.5-2.5"/>'),
+    /* سلاح — شکاف هدف */
+    weapon: S('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.6"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" /><circle cx="12" cy="12" r="0.5" fill="currentColor" stroke-width="2"/>'),
+    /* برجک/سپر */
+    shield: S('<path d="M12 2.7l7.5 2.8v5.9c0 4.8-3.2 8.4-7.5 10-4.3-1.6-7.5-5.2-7.5-10V5.5z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>'),
+    /* بقا — قلب+پلاس یا چاقوی بقا؛ اینجا: جعبه بقا */
+    survive: S('<rect x="3.5" y="7" width="17" height="13.5" rx="2.2"/><path d="M3.5 12h17M8.5 7V4.8c0-.7.6-1.3 1.3-1.3h4.4c.7 0 1.3.6 1.3 1.3V7"/><path d="M8.5 15.5h7"/>'),
+    /* خرید از دستفروش — چرخ‌دسته */
+    cart: S('<rect x="4.5" y="5" width="11" height="9" rx="1.5"/><path d="M8 5V3.5M12 5V3.5"/><circle cx="6" cy="18.5" r="1.7"/><circle cx="16" cy="18.5" r="1.7"/><path d="M15.5 14h3l1.5-6.5h-5M4.5 7.5h5.5"/>'),
+    /* بستن */
+    x: S('<path d="M6 6l12 12M18 6L6 18"/>'),
+    /* سکه — دایره + تومان‌مارک ساده */
+    coin: S('<circle cx="12" cy="12" r="8.6"/><path d="M9.3 15.2V8.8h3.2c1.2 0 2.1.9 2.1 2s-.9 2-2.1 2h-3.2M12.5 12.8l2.3 2.4"/>'),
+    /* نقشه ساخت */
+    blueprint: S('<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9h17M9 9v11"/><path d="M13 12.5h4.5M13 15.5h4.5M13 18h2.5" opacity=".8"/>'),
+    /* لرزش */
+    vibrate: S('<rect x="8" y="4" width="8" height="16" rx="1.8"/><path d="M4.5 9v6M2 10.5v3M19.5 9v6M22 10.5v3"/>'),
+    /* موسیقی */
+    music: S('<path d="M9 18.5V5.8l10-2v12.4"/><circle cx="6.6" cy="18.5" r="2.4"/><circle cx="16.6" cy="16.2" r="2.4"/>'),
+    /* بلندی صدا */
+    volume: S('<path d="M4 9.6v4.8c0 .6.4 1 1 1h2.2l3.2 2.8c.7.6 1.7.1 1.7-.7V6.9c0-.8-1-1.3-1.7-.7L7.2 8.9H5c-.6 0-1 .4-1 1z"/><path d="M15 9.4c1.3 1.4 1.3 3.8 0 5.2M17.6 7c2.4 2.7 2.4 7.3 0 10"/>'),
+    /* بازی/شروع داستان — شمشیر و سپر کوچک */
+    sword: S('<path d="M4 20l3-3M6.5 17.5L15.8 8.2 14 4l6-1-1 6-4.2-1.8L5.5 15.5"/><path d="M13 6.5l4.5 4.5"/>'),
+  };
+
+  /* پر کردن عناصر data-ico در کل صفحه */
+  function apply(root) {
+    (root || document).querySelectorAll('[data-ico]').forEach(el => {
+      const name = el.getAttribute('data-ico');
+      if (I[name]) {
+        /* متن کنار آیکن حفظ شود */
+        const rest = el.textContent.trim();
+        el.innerHTML = I[name] + (rest ? '<span>' + rest + '</span>' : '');
+      }
+    });
+  }
+
+  /* سوییچ صدا: آیکن روشن/خاموش */
+  function sound(on) { return on ? I.sound : I.soundOff; }
+
+  return { ico: n => I[n] || '', apply, sound, I };
+})();
+
+/* اجرا وقتی DOM آماده است (این فایل بعد از HTML لود می‌شود) */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => ICO.apply());
+} else ICO.apply();
+/* ==================================================================
    سه طبقه تا بقا — نسخه‌ی ۱۰٫۰ — بخش ۵: فصل‌بندی، جریان موج‌ها و سیو
    ==================================================================
    ساختار چهار فصل بازی (۲۰٫۰: هر فصل ۶/۸/۱۰/۱۲ موج + موج ۳۶ = «آخرین شب»):
@@ -12665,9 +12851,11 @@ function refreshBackpack() {
   if (bar) bar.classList.toggle('compact', !any);
   const cap = $('bpkCap');
   const n = state.backpack.filter(s => s).length;
-  if (cap) cap.textContent = any
-    ? '🎒 کوله ' + faNum(n) + '/' + faNum(6)
-    : '🎒 کوله خالی — خرید از تب «بقا»';
+  /* (۲۶٫۰) آیکن SVG به‌جای ایموجی 🎒 */
+  const bpkIc = (typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('backpack') + '</i>' : '');
+  if (cap) cap.innerHTML = any
+    ? bpkIc + ' کوله ' + faNum(n) + '/' + faNum(6)
+    : bpkIc + ' کوله خالی — خرید از تب «بقا»';
   for (let i = 0; i < 6; i++) {
     const el = $('bpk-' + i);
     if (!el) continue;
@@ -13654,7 +13842,7 @@ function pickRareStock() {
   return stock;
 }
 
-function hidePeddlerPanel() { $('peddlerPanel').classList.add('hidden'); }
+function hidePeddlerPanel() { $('peddlerBox').classList.add('hidden'); }
 
 /* پرتره‌ی دستفروش — (۲۱٫۲) پنج چهره‌ی کاملاً متفاوت: هر بازدید یک
    شخصیت دیگر (کلاه/هود/ماسک/بارانی/کاسکت) + لباس حاشیه‌دارِ فاخر.
@@ -13824,6 +14012,12 @@ function circle2b(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c
 
 function initPeddlerUI() {
   drawPeddlerFace();
+  /* (۲۶٫۰) دکمه‌ی بستن دیالوگ خرید + کلیک روی بک‌دراپ = بستن */
+  const closer = () => { try { SFX.click(); } catch (e) {} hidePeddlerPanel(); };
+  const xc = $('pdClose');
+  if (xc) xc.addEventListener('click', (e) => { e.stopPropagation(); closer(); });
+  const box = $('peddlerBox');
+  if (box) box.addEventListener('click', (e) => { if (e.target === box) closer(); });
 }
 
 /* رندر قفسه‌ی دستفروش (هر بار تازه — با برچسب «تازه!» برای کالای نو) */
@@ -13843,12 +14037,13 @@ function renderPeddlerStock() {
     paintGearIcon(it.id, cv);
     const info = document.createElement('div');
     info.className = 'pd-info';
-    info.innerHTML = '<span class="pd-name">' + (it.bp ? '📐 ' : '') + r.name +
+    /* (۲۶٫۰) آیکن SVG به‌جای ایموجی 📐/💰 — یک‌شکل روی همه‌ی اندرویدها */
+    info.innerHTML = '<span class="pd-name">' + (it.bp && typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('blueprint') + '</i> ' : '') + r.name +
       (it.fresh ? ' <em class="pd-new">تازه!</em>' : '') +
       '</span><span class="pd-sub">' + r.desc + '</span>';
     const price = document.createElement('span');
     price.className = 'pd-price';
-    price.textContent = '💰 ' + faNum(r.price);
+    price.innerHTML = '<i class="coin-ic"></i>' + faNum(r.price);
     info.appendChild(price);
     el.appendChild(cv); el.appendChild(info);
     el.addEventListener('click', () => buyRare(it));
@@ -13857,7 +14052,7 @@ function renderPeddlerStock() {
   /* اگر همه خریداری شد، پنل بسته شود */
   if (!box.children.length) { hidePeddlerPanel(); return; }
   drawPeddlerFace();
-  $('peddlerPanel').classList.remove('hidden');
+  $('peddlerBox').classList.remove('hidden');
 }
 
 /* خرید از دستفروش: ۳۰٪ تقلبی (سکه می‌سوزد) — ۷۰٪ واقعی و قدرتمند
@@ -14459,25 +14654,47 @@ const MG23 = {
     void look;
   },
 
-  /* افق شهری پارالاکس — ۳ لایه با درجه‌ی روشنایی و سرعت متفاوت */
+  /* افق شهری پارالاکس — (۲۶٫۰) بازسازی: پنجره‌های شبکه‌ای + آبانوار/آنتن/
+     یخچال پشت‌بام + کورنیس سقف — دیگر مستطیل‌های خالی نیست */
   cityLayer(yBase, hMin, hMax, col, drift, seed, windowGlow) {
     let s = seed;
     const rd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
-    ctx.fillStyle = col;
     let x = -60 + drift % 90;
     let guard = 0;
     while (x < W + 60 && guard++ < 70) {
       const bw = 50 + rd() * 74;
       const bh = hMin + rd() * hMax;
-      ctx.fillRect(x, yBase - bh, bw, bh + 4);
-      /* آنتن/پشت‌بمه‌های نادر */
-      if (rd() < 0.22) ctx.fillRect(x + bw * 0.35, yBase - bh - 9, 3, 9);
-      if (rd() < 0.16) ctx.fillRect(x + bw * 0.7, yBase - bh - 14, 2, 14);
-      /* پنجره‌های روشن — (۲۴٫۰) بیشتر و درشت‌تر: شهر زنده‌تر دیده شود */
-      if (windowGlow && rd() < 0.34) {
-        ctx.fillStyle = 'rgba(255,190,110,0.34)';
-        ctx.fillRect(x + 8 + rd() * bw * 0.5, yBase - bh + 10 + rd() * (bh * 0.5), 4.5, 6.5);
-        ctx.fillStyle = col;
+      const top = yBase - bh;
+      /* بدنه + کمی روشنیِ لبه */
+      ctx.fillStyle = col;
+      ctx.fillRect(x, top, bw, bh + 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.045)';
+      ctx.fillRect(x, top, 3.5, bh + 4);
+      /* کورنیس سقف */
+      ctx.fillStyle = 'rgba(0,0,0,0.32)';
+      ctx.fillRect(x - 2, top, bw + 4, 3);
+      /* پشت‌بام: آبانوار / آنتن / یخچال هوا */
+      ctx.fillStyle = col;
+      if (rd() < 0.3) { ctx.fillRect(x + bw * 0.18, top - 8, 13, 8); ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fillRect(x + bw * 0.18, top - 8, 13, 2.4); }
+      ctx.fillStyle = col;
+      if (rd() < 0.42) { ctx.fillRect(x + bw * 0.55, top - 12, 2.6, 12); ctx.fillRect(x + bw * 0.55 - 2, top - 12, 6.6, 2.2); }
+      if (rd() < 0.24) ctx.fillRect(x + bw * 0.78, top - 6, 9, 6);
+      /* شبکه‌ی پنجره‌ها — تیره با چند روشنِ گرم */
+      const cols2 = Math.max(2, Math.floor(bw / 15));
+      const rows2 = Math.max(2, Math.floor(bh / 17));
+      for (let cx2 = 0; cx2 < cols2; cx2++) {
+        for (let cy2 = 0; cy2 < rows2; cy2++) {
+          const wx = x + 6 + cx2 * ((bw - 10) / cols2);
+          const wy = top + 7 + cy2 * ((bh - 12) / rows2);
+          const lit = windowGlow && rd() < 0.085;
+          if (lit) {
+            ctx.fillStyle = 'rgba(255,186,105,' + (0.5 + rd() * 0.3) + ')';
+            ctx.fillRect(wx, wy, 4.6, 6.4);
+          } else {
+            ctx.fillStyle = 'rgba(0,0,0,0.30)';
+            ctx.fillRect(wx, wy, 4.6, 6.4);
+          }
+        }
       }
       x += bw + 10 + rd() * 34;
     }
@@ -14508,190 +14725,359 @@ const MG23 = {
     }
   },
 
-  /* ساختمانِ «موجودِ» نیمه‌کاره — قهرمانِ صحنه‌ی ۳ و ۴
-     حالت‌ها: found = پیدا شدن (خرابه/شکسته) | fort = استحکام‌یافته (تخته‌ها) */
+  /* ساختمانِ «موجودِ» نیمه‌کاره — (۲۶٫۰) بازسازی کامل برای «همان بودن»
+     با برجِ داخل بازی: طبقات مخروطی (پهن → باریک)، رنگ‌های فصل ۱
+     (سنگ شنی / آجر سرخ / آبی)، بافت بلوک، کورنیس‌ها، درِ قوس‌دار،
+     بنر نشان طلایی، میله پرچم و کنگره‌ی بام — در found خراب و
+     نیمه‌کاره، در fort استحکام‌یافته با تخته و پرچم.
+     حالت‌ها: found = پیدا شدن (خرابه) | fort = استحکام‌یافته */
   building23(x, y, s, t, mode, duskK) {
-    const bw = 158, fh = 64;
+    const fh = 62;
+    const FW = [158, 144, 130];                     /* پهنای طبقات: مخروطی مثل برج بازی */
+    /* پالت فصل ۱ داخل بازی — با تیرگی شب مه‌آلود */
+    const DK = 0.52;                                /* ضریب شب‌شدگی رنگ بدنه */
+    const FL = [
+      { l: lerpColor('#82705a', '#1c2036', DK), b: lerpColor('#6e5a44', '#181c30', DK), d: lerpColor('#4d3f2f', '#12162a', DK), e: lerpColor('#453a2c', '#101426', DK) },
+      { l: lerpColor('#b25a47', '#232640', DK), b: lerpColor('#a04b3a', '#1f2238', DK), d: lerpColor('#7c3527', '#161a2c', DK), e: lerpColor('#6e2f24', '#141828', DK) },
+      { l: lerpColor('#4f83b5', '#202a48', DK), b: lerpColor('#41729f', '#1c2640', DK), d: lerpColor('#2f557c', '#161e34', DK), e: lerpColor('#2a4b6b', '#141c30', DK) },
+    ];
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(s, s);
-    /* آوار و خارپشتِ آهنیِ ساختِ نیمه‌کاره — سمت چپِ بنا (۲۴: روشن‌تر) */
-    ctx.fillStyle = '#141a30';
-    ctx.beginPath();
-    ctx.moveTo(-bw / 2 - 34, 0);
-    ctx.lineTo(-bw / 2 - 12, -12); ctx.lineTo(-bw / 2 - 4, -5);
-    ctx.lineTo(-bw / 2 + 8, -16); ctx.lineTo(-bw / 2 + 18, -4);
-    ctx.lineTo(-bw / 2 + 2, 0);
-    ctx.closePath(); ctx.fill();
-    /* میل‌گردهای بیرون‌زده از طبقه‌ی سوم (نشانه‌ی نیمه‌کاره بودن) */
-    ctx.strokeStyle = '#2a3158'; ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const rx = -bw / 2 + 14 + i * 13;
-      ctx.moveTo(rx, -fh * 3 + 2); ctx.lineTo(rx + 2, -fh * 3 - 13 - (i % 3) * 5);
-    }
-    ctx.stroke();
-    /* سایه روی زمین */
+    const H3 = fh * 3;
+
+    /* --- سایه روی زمین --- */
     ctx.fillStyle = 'rgba(0,0,0,0.42)';
     ctx.beginPath();
-    ctx.moveTo(-bw / 2, 2); ctx.lineTo(bw / 2, 2);
-    ctx.lineTo(bw / 2 - 96, 26); ctx.lineTo(-bw / 2 - 120, 26);
+    ctx.moveTo(-FW[0] / 2, 3); ctx.lineTo(FW[0] / 2, 3);
+    ctx.lineTo(FW[0] / 2 - 92, 26); ctx.lineTo(-FW[0] / 2 - 118, 26);
     ctx.closePath(); ctx.fill();
-    /* ضلع راست — عمق ۲.۵بعدی (۲۴: روشن‌تر) */
-    ctx.fillStyle = mode === 'fort' ? '#161c3c' : '#141a36';
-    ctx.beginPath();
-    ctx.moveTo(bw / 2, 0); ctx.lineTo(bw / 2 + 27, -10);
-    ctx.lineTo(bw / 2 + 27, -fh * 3 - 10); ctx.lineTo(bw / 2, -fh * 3);
-    ctx.closePath(); ctx.fill();
-    /* نمای اصلی — بتنیِ خسته (۲۴: روشن‌تر با ته‌رنگ مهتاب) */
-    const fg = ctx.createLinearGradient(-bw / 2, 0, bw / 2, 0);
-    const base = mode === 'fort' ? ['#242c54', '#1c2446', '#151b38'] : ['#20284c', '#19203f', '#121734'];
-    fg.addColorStop(0, base[0]); fg.addColorStop(0.6, base[1]); fg.addColorStop(1, base[2]);
-    ctx.fillStyle = fg;
-    ctx.fillRect(-bw / 2, -fh * 3, bw, fh * 3);
-    /* کتنه‌ی بام نیمه‌کاره — یک طرفش آماده، طرف دیگر میل‌گرد */
-    ctx.fillStyle = '#2a3158';
-    ctx.fillRect(-bw / 2 - 7, -fh * 3 - 9, bw * 0.72, 10);
-    ctx.fillRect(bw / 2 + 19, -fh * 3 - 17, 12, 10);
-    /* (۲۴٫۰) لبه‌ی نورِ ماه روی سمتِ چپِ بنا */
-    ctx.strokeStyle = 'rgba(205,218,255,0.28)'; ctx.lineWidth = 2.4;
-    ctx.beginPath(); ctx.moveTo(-bw / 2, -fh * 3); ctx.lineTo(-bw / 2, 0); ctx.stroke();
-    ctx.strokeStyle = 'rgba(205,218,255,0.16)';
-    ctx.beginPath(); ctx.moveTo(bw / 2 + 27, -fh * 3 - 10); ctx.lineTo(bw / 2 + 27, -10); ctx.stroke();
-    /* ترک‌های دیوار (حالت found) */
+
+    /* --- سکوی سنگی پایه (پلینث) مثل برج بازی --- */
+    ctx.fillStyle = lerpColor('#3f362b', '#141828', DK);
+    rr(-FW[0] / 2 - 9, -6, FW[0] + 18, 14, 3); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(-FW[0] / 2 - 9, -6, FW[0] + 18, 2);
+
+    /* --- آوار و خرده‌سنگ کنار پایه (حالت found) --- */
     if (mode === 'found') {
-      ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 1.6;
+      ctx.fillStyle = lerpColor('#5d4c39', '#20243a', DK);
       ctx.beginPath();
-      ctx.moveTo(-bw / 2 + 30, -fh * 3 + 8);
-      ctx.lineTo(-bw / 2 + 38, -fh * 3 + 34);
-      ctx.lineTo(-bw / 2 + 33, -fh * 3 + 58);
-      ctx.moveTo(bw / 2 - 40, -fh * 2 + 6);
-      ctx.lineTo(bw / 2 - 33, -fh * 2 + 30);
-      ctx.stroke();
+      ctx.moveTo(-FW[0] / 2 - 30, 2); ctx.lineTo(-FW[0] / 2 - 12, -13); ctx.lineTo(-FW[0] / 2 - 4, -6);
+      ctx.lineTo(-FW[0] / 2 + 8, -17); ctx.lineTo(-FW[0] / 2 + 18, -5); ctx.lineTo(-FW[0] / 2 + 2, 2);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(FW[0] / 2 + 10, -8, 13, 7); ctx.fillRect(FW[0] / 2 + 20, -4, 8, 4);
     }
-    /* پنجره‌ها */
+
+    /* --- طبقات از پایین به بالا --- */
+    for (let i = 0; i < 3; i++) {
+      const hw = FW[i] / 2;
+      const yT = -fh * (i + 1) - 6, yB = -fh * i - 6;
+      const F = FL[i];
+      const g = ctx.createLinearGradient(-hw, 0, hw, 0);
+      g.addColorStop(0, F.l); g.addColorStop(0.55, F.b); g.addColorStop(1, F.d);
+      ctx.fillStyle = g;
+      ctx.fillRect(-hw, yT, hw * 2, fh);
+      ctx.strokeStyle = F.e; ctx.lineWidth = 2;
+      ctx.strokeRect(-hw + 1, yT + 1, hw * 2 - 2, fh - 2);
+      /* بافت بلوک‌های سنگی/آجری — مثل برج بازی */
+      ctx.strokeStyle = 'rgba(0,0,0,0.16)'; ctx.lineWidth = 1;
+      const rows = i === 1 ? 5 : 4;
+      const bw2 = i === 1 ? 15 : 20;
+      ctx.beginPath();
+      for (let r2 = 0; r2 < rows; r2++) {
+        const yy = yT + (r2 + 1) * fh / rows;
+        if (r2 < rows - 1) { ctx.moveTo(-hw + 3, yy); ctx.lineTo(hw - 3, yy); }
+        const off = (r2 % 2) * (bw2 / 2);
+        for (let xx = -hw + off + bw2; xx < hw - 4; xx += bw2) {
+          ctx.moveTo(xx, yy - fh / rows + 2); ctx.lineTo(xx, yy - 1);
+        }
+      }
+      ctx.stroke();
+      /* سایه‌ی جداکننده‌ی طبقه‌ها */
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.fillRect(-hw, yB - 4, hw * 2, 4);
+      /* کورنیس برآمده بالای طبقه‌های ۱ و ۲ */
+      if (i < 2) {
+        ctx.fillStyle = F.e;
+        ctx.fillRect(-hw - 4, yT - 5, hw * 2 + 8, 6);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillRect(-hw - 4, yT - 5, hw * 2 + 8, 1.6);
+      }
+      /* لبه‌ی مهتاب سمت چپ */
+      ctx.strokeStyle = 'rgba(205,218,255,0.22)'; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(-hw, yT); ctx.lineTo(-hw, yB); ctx.stroke();
+    }
+
+    /* --- طبقه‌ی سومِ نیمه‌کاره در found: میل‌گرد + بام ناقص --- */
+    if (mode === 'found') {
+      ctx.strokeStyle = lerpColor('#2a3158', '#39405e', 0.3); ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const rx = -FW[2] / 2 + 14 + i * 13;
+        ctx.moveTo(rx, -H3 - 6 + 2); ctx.lineTo(rx + 2, -H3 - 6 - 14 - (i % 3) * 5);
+      }
+      ctx.stroke();
+      ctx.fillStyle = FL[2].e;
+      ctx.fillRect(-FW[2] / 2 - 6, -H3 - 6 - 9, FW[2] * 0.66, 10);
+    }
+
+    /* --- کنگره‌ی بام (fort کامل / found ناقص) --- */
+    const topW = FW[2] / 2;
+    ctx.fillStyle = FL[2].e;
+    ctx.fillRect(-topW - 6, -H3 - 6 - 7, topW * 2 + 12, 7);
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillRect(-topW - 6, -H3 - 6 - 7, topW * 2 + 12, 1.6);
+    const nB = mode === 'fort' ? 6 : 4;
+    for (let k = 0; k < nB; k++) {
+      const bx = -topW + 3 + k * ((topW * 2 - 8) / Math.max(1, nB - 1));
+      ctx.fillStyle = FL[2].e;
+      ctx.fillRect(bx - 6, -H3 - 6 - 13, 12, 7);
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(bx + 4.6, -H3 - 6 - 13, 2.4, 7);
+    }
+    if (mode === 'found') {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(topW - 26, -H3 - 6 - 13, 12, 6);
+      ctx.fillRect(-topW + 14, -H3 - 6 - 13, 12, 5);
+    }
+
+    /* --- میله‌ی پرچم + گوی (پرچم فقط در fort — «پناهگاه شد») --- */
+    ctx.fillStyle = lerpColor('#4a3b2a', '#20243a', DK);
+    ctx.fillRect(-1.6, -H3 - 6 - 40, 3.2, 40);
+    ctx.fillStyle = '#f7c948';
+    circle(0, -H3 - 6 - 41, 2.6);
+    if (mode === 'fort') {
+      const wv = Math.sin(t * 3.2) * 3.5;
+      ctx.fillStyle = '#c23a2c';
+      ctx.beginPath();
+      ctx.moveTo(1.4, -H3 - 6 - 38);
+      ctx.quadraticCurveTo(16, -H3 - 6 - 36 + wv * 0.4, 30, -H3 - 6 - 33 + wv);
+      ctx.lineTo(30, -H3 - 6 - 21 + wv);
+      ctx.quadraticCurveTo(16, -H3 - 6 - 23 + wv * 0.4, 1.4, -H3 - 6 - 21);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f7c948';
+      circle(14, -H3 - 6 - 27 + wv * 0.5, 3);
+    } else {
+      ctx.strokeStyle = lerpColor('#4a3b2a', '#20243a', DK); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, -H3 - 6 - 40); ctx.lineTo(6, -H3 - 6 - 44); ctx.stroke();
+    }
+
+    /* --- پنجره‌ها — شبکه‌ی برج بازی: ۲ در هر طبقه --- */
     const win23 = (wx, wy, ww, wh, state23) => {
       ctx.fillStyle = '#0a0e1c';
-      rr(wx, wy, ww, wh, 2); ctx.fill();
-      ctx.strokeStyle = '#2a3158'; ctx.lineWidth = 1.4;
-      rr(wx, wy, ww, wh, 2); ctx.stroke();
+      rr(wx, wy, ww, wh, 2.5); ctx.fill();
+      ctx.strokeStyle = FL.e; ctx.lineWidth = 1.4;
+      rr(wx, wy, ww, wh, 2.5); ctx.stroke();
       if (state23 === 'broken') {
-        /* شیشه‌ی شکسته — (۲۴: برقِ شیشه پررنگ‌تر) */
-        ctx.strokeStyle = 'rgba(170,195,240,0.55)'; ctx.lineWidth = 1.2;
+        ctx.strokeStyle = 'rgba(170,195,240,0.6)'; ctx.lineWidth = 1.2;
         ctx.beginPath();
         ctx.moveTo(wx + 3, wy + 5); ctx.lineTo(wx + ww * 0.45, wy + wh * 0.5); ctx.lineTo(wx + 5, wy + wh - 4);
         ctx.moveTo(wx + ww - 4, wy + 4); ctx.lineTo(wx + ww * 0.55, wy + wh * 0.4);
         ctx.stroke();
         ctx.fillStyle = 'rgba(200,220,255,0.10)';
-        rr(wx, wy, ww, wh, 2); ctx.fill();
+        rr(wx, wy, ww, wh, 2.5); ctx.fill();
       } else if (state23 === 'board') {
-        /* تخته‌ی کوبیده‌شده — چوبِ روشن‌تر */
-        ctx.strokeStyle = '#5c4722'; ctx.lineWidth = 4;
+        ctx.strokeStyle = lerpColor('#5c4722', '#8a6a34', 0.35); ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.moveTo(wx - 3, wy + 5); ctx.lineTo(wx + ww + 3, wy + 9);
         ctx.moveTo(wx - 3, wy + wh - 8); ctx.lineTo(wx + ww + 3, wy + wh - 12);
         ctx.stroke();
+        ctx.fillStyle = 'rgba(220,220,230,0.5)';
+        ctx.fillRect(wx + 4, wy + 7, 1.6, 1.6); ctx.fillRect(wx + ww - 6, wy + wh - 10, 1.6, 1.6);
       } else if (state23 === 'lit') {
         const wm = 0.8 + 0.2 * Math.sin(t * 2.2) * Math.sin(t * 0.8);
         const g2 = ctx.createLinearGradient(wx, wy, wx, wy + wh);
-        g2.addColorStop(0, 'rgba(255,198,112,' + (0.85 * wm * duskK) + ')');
-        g2.addColorStop(1, 'rgba(220,130,60,' + (0.6 * wm * duskK) + ')');
+        g2.addColorStop(0, 'rgba(255,198,112,' + (0.9 * wm * duskK) + ')');
+        g2.addColorStop(1, 'rgba(220,130,60,' + (0.62 * wm * duskK) + ')');
         ctx.fillStyle = g2;
-        rr(wx, wy, ww, wh, 2); ctx.fill();
+        rr(wx, wy, ww, wh, 2.5); ctx.fill();
         ctx.strokeStyle = 'rgba(18,14,8,0.85)'; ctx.lineWidth = 1.6;
         ctx.beginPath();
         ctx.moveTo(wx + ww / 2, wy); ctx.lineTo(wx + ww / 2, wy + wh);
         ctx.moveTo(wx, wy + wh / 2); ctx.lineTo(wx + ww, wy + wh / 2);
         ctx.stroke();
-        const hg = ctx.createRadialGradient(wx + ww / 2, wy + wh / 2, 3, wx + ww / 2, wy + wh / 2, 52);
-        hg.addColorStop(0, 'rgba(255,170,80,' + (0.15 * wm * duskK) + ')');
+        const hg = ctx.createRadialGradient(wx + ww / 2, wy + wh / 2, 3, wx + ww / 2, wy + wh / 2, 54);
+        hg.addColorStop(0, 'rgba(255,170,80,' + (0.17 * wm * duskK) + ')');
         hg.addColorStop(1, 'rgba(255,170,80,0)');
-        ctx.fillStyle = hg; circle(wx + ww / 2, wy + wh / 2, 52);
+        ctx.fillStyle = hg; circle(wx + ww / 2, wy + wh / 2, 54);
       }
     };
     if (mode === 'found') {
-      win23(-bw / 2 + 18, -fh * 3 + 12, 30, 36, 'broken');
-      win23(bw / 2 - 48, -fh * 3 + 12, 30, 36, 'broken');
-      win23(-bw / 2 + 18, -fh * 2 + 12, 30, 36, 'broken');
-      win23(bw / 2 - 48, -fh * 2 + 12, 30, 36, 'dark');
-      win23(-bw / 2 + 18, -fh + 12, 30, 36, 'broken');
-      win23(bw / 2 - 48, -fh + 12, 30, 36, 'broken');
-      /* درِ شکسته/باز — (۲۴: روشن‌تر) */
-      ctx.fillStyle = '#0e1424';
-      ctx.fillRect(-17, -46, 34, 46);
-      ctx.strokeStyle = '#3a311c'; ctx.lineWidth = 2;
-      ctx.strokeRect(-17, -46, 34, 46);
-      /* دیوارنگاره‌ی مبهم روی دیوار (حس انسانی‌هایی که بودند) — پررنگ‌تر */
-      ctx.fillStyle = 'rgba(232,84,64,0.42)';
+      win23(-FW[0] / 2 + 16, -fh - 6 + 12, 28, 34, 'broken');
+      win23(FW[0] / 2 - 44, -fh - 6 + 12, 28, 34, 'dark');
+      win23(-FW[1] / 2 + 16, -fh * 2 - 6 + 12, 28, 34, 'broken');
+      win23(FW[1] / 2 - 44, -fh * 2 - 6 + 12, 28, 34, 'broken');
+      win23(-FW[2] / 2 + 16, -fh * 3 - 6 + 12, 28, 34, 'broken');
+      win23(FW[2] / 2 - 44, -fh * 3 - 6 + 12, 28, 34, 'dark');
+      /* ترک‌های دیوار */
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-FW[0] / 2 + 30, -fh - 6 + 8);
+      ctx.lineTo(-FW[0] / 2 + 38, -fh - 6 + 34);
+      ctx.lineTo(-FW[0] / 2 + 33, -fh - 6 + 56);
+      ctx.moveTo(FW[0] / 2 - 40, -fh * 2 - 6 + 6);
+      ctx.lineTo(FW[0] / 2 - 33, -fh * 2 - 6 + 30);
+      ctx.stroke();
+      /* دیوارنگاره‌ی مبهم — «زنده بمان» */
+      ctx.fillStyle = 'rgba(232,84,64,0.5)';
       ctx.font = 'bold 15px Vazirmatn, Tahoma';
       ctx.textAlign = 'center';
-      ctx.fillText('زنده بمان', 0, -fh * 2 - 12);
+      ctx.fillText('زنده بمان', 0, -fh * 2 - 20);
     } else {
-      /* fort: طبقه‌ی بالا روشن (دیده‌بانی)، بقیه تخته‌کوبی */
-      win23(-bw / 2 + 18, -fh * 3 + 12, 30, 36, 'lit');
-      win23(bw / 2 - 48, -fh * 3 + 12, 30, 36, 'dark');
-      win23(-bw / 2 + 18, -fh * 2 + 12, 30, 36, 'board');
-      win23(bw / 2 - 48, -fh * 2 + 12, 30, 36, 'board');
-      win23(-bw / 2 + 18, -fh + 12, 30, 36, 'board');
-      win23(bw / 2 - 48, -fh + 12, 30, 36, 'board');
-      /* درِ ورودی — ورق فلزی (۲۴: روشن‌تر) */
-      ctx.fillStyle = '#141a2a';
-      ctx.fillRect(-17, -46, 34, 46);
-      ctx.fillStyle = '#323846';
-      ctx.fillRect(-15, -44, 30, 42);
-      ctx.strokeStyle = '#141a2a'; ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      for (let i = 0; i < 3; i++) { ctx.moveTo(-15, -38 + i * 13); ctx.lineTo(15, -38 + i * 13); }
-      ctx.stroke();
-      /* نور از درزِ در — پررنگ‌تر */
-      const dg = ctx.createRadialGradient(0, -22, 3, 0, -22, 48);
-      dg.addColorStop(0, 'rgba(255,190,100,' + (0.22 * duskK) + ')');
-      dg.addColorStop(1, 'rgba(255,190,100,0)');
-      ctx.fillStyle = dg; circle(0, -22, 48);
+      /* fort: طبقه بالا روشن (دیده‌بانی)، بقیه تخته‌کوبی */
+      win23(-FW[2] / 2 + 16, -fh * 3 - 6 + 12, 28, 34, 'lit');
+      win23(FW[2] / 2 - 44, -fh * 3 - 6 + 12, 28, 34, 'dark');
+      win23(-FW[1] / 2 + 16, -fh * 2 - 6 + 12, 28, 34, 'board');
+      win23(FW[1] / 2 - 44, -fh * 2 - 6 + 12, 28, 34, 'board');
+      win23(-FW[0] / 2 + 16, -fh - 6 + 12, 28, 34, 'board');
+      win23(FW[0] / 2 - 44, -fh - 6 + 12, 28, 34, 'board');
     }
-    /* خطوط طبقات */
-    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-bw / 2, -fh); ctx.lineTo(bw / 2, -fh);
-    ctx.moveTo(-bw / 2, -fh * 2); ctx.lineTo(bw / 2, -fh * 2);
-    ctx.moveTo(bw / 2, -fh); ctx.lineTo(bw / 2 + 27, -fh - 10);
-    ctx.moveTo(bw / 2, -fh * 2); ctx.lineTo(bw / 2 + 27, -fh * 2 - 10);
-    ctx.stroke();
+
+    /* --- درِ قوس‌دار: found = شکسته/تاریک · fort = ورق فلزی --- */
+    if (mode === 'found') {
+      ctx.fillStyle = '#0e1424';
+      ctx.beginPath();
+      ctx.moveTo(-17, -2); ctx.lineTo(-17, -40);
+      ctx.quadraticCurveTo(0, -52, 17, -40); ctx.lineTo(17, -2);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = FL[0].e; ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-21, -2); ctx.lineTo(-21, -40);
+      ctx.quadraticCurveTo(0, -54, 21, -40); ctx.lineTo(21, -2);
+      ctx.stroke();
+      /* درِ یک‌طرفه آویزان */
+      ctx.fillStyle = lerpColor('#241a12', '#1a1a2e', 0.4);
+      ctx.save(); ctx.translate(-8, -2); ctx.rotate(-0.18);
+      ctx.fillRect(0, -36, 15, 36); ctx.restore();
+    } else {
+      ctx.fillStyle = '#101828';
+      ctx.beginPath();
+      ctx.moveTo(-17, -2); ctx.lineTo(-17, -40);
+      ctx.quadraticCurveTo(0, -52, 17, -40); ctx.lineTo(17, -2);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = lerpColor('#323846', '#4a5262', 0.3);
+      ctx.beginPath();
+      ctx.moveTo(-14, -2); ctx.lineTo(-14, -38);
+      ctx.quadraticCurveTo(0, -48, 14, -38); ctx.lineTo(14, -2);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#10182a'; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) { ctx.moveTo(-14, -34 + i * 11); ctx.lineTo(14, -34 + i * 11); }
+      ctx.stroke();
+      ctx.strokeStyle = FL[0].e; ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-21, -2); ctx.lineTo(-21, -40);
+      ctx.quadraticCurveTo(0, -54, 21, -40); ctx.lineTo(21, -2);
+      ctx.stroke();
+      const dg = ctx.createRadialGradient(0, -20, 3, 0, -20, 52);
+      dg.addColorStop(0, 'rgba(255,190,100,' + (0.24 * duskK) + ')');
+      dg.addColorStop(1, 'rgba(255,190,100,0)');
+      ctx.fillStyle = dg; circle(0, -20, 52);
+    }
+
+    /* --- بنرِ دیواری طبقه‌ی دوم با نشان طلایی (مثل برج بازی) --- */
+    {
+      const by = -fh * 2 - 6 + 18;
+      ctx.fillStyle = mode === 'fort' ? '#a12a20' : lerpColor('#a12a20', '#3a1e2e', 0.55);
+      ctx.beginPath();
+      ctx.moveTo(34, by);
+      ctx.lineTo(56, by);
+      ctx.lineTo(56, by + 24);
+      ctx.lineTo(45, by + 31);
+      ctx.lineTo(34, by + 24);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = '#f7c948';
+      circle(45, by + 11, 4);
+      ctx.fillStyle = mode === 'fort' ? '#7a1f18' : '#5a2a2a';
+      circle(45, by + 11, 1.7);
+      if (mode === 'found') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(38, by + 4); ctx.lineTo(42, by + 14); ctx.lineTo(39, by + 22); ctx.stroke();
+      }
+    }
     ctx.restore();
   },
 
-  /* زامبی‌های پس‌زمینه با چشم سرخ — آرام نزدیک می‌شوند */
+  /* زامبی‌های پس‌زمینه — (۲۶٫۰) بازطراحی کامل: به‌جای آدمکِ خطی،
+     سایه‌واره‌های خمیده با بدنه‌ی پُر، دست‌های آویزانِ لگن‌دار،
+     سرِ کج و چشم‌های سرخِ تابان، دامنِ پاره و راه‌رفتنِ لکنت‌دار. */
   bgZombies23(t, x0, y, n, spread, k, scale) {
     for (let i = 0; i < n; i++) {
-      const ph = t * 2 + i * 1.7;
+      const ph = t * 1.7 + i * 2.3;
       const zx = x0 + i * spread - k * (40 + i * 22);
       const zz = 0.55 + (i % 3) * 0.28;
       const zs = scale * zz;
+      const lurch = Math.sin(ph) * 0.09;
+      const bob = Math.abs(Math.sin(ph)) * 2.2;
+      const sway = Math.sin(ph * 0.5) * 3.5;
       ctx.save();
-      ctx.translate(zx, y + (1 - zz) * 8);
+      ctx.translate(zx + sway, y + (1 - zz) * 8 - bob);
       ctx.scale(zs, zs);
-      const BC = 'rgba(14,18,34,0.97)';
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath(); ctx.ellipse(0, 1, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = BC; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.rotate(lurch);
+      /* سایه روی زمین */
+      ctx.fillStyle = 'rgba(0,0,0,0.34)';
+      ctx.beginPath(); ctx.ellipse(0, 2, 13, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+      /* دود پای پا */
+      ctx.fillStyle = 'rgba(150,165,210,0.10)';
+      ctx.beginPath(); ctx.ellipse(-4 - Math.sin(ph) * 3, 1, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
+      const BODY = 'rgba(16,20,36,0.97)';
+      /* پاها: گام‌های لرزان */
+      ctx.strokeStyle = BODY; ctx.lineWidth = 5.2; ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(-2, -11); ctx.lineTo(-3 + Math.sin(ph) * 6, -1);
-      ctx.moveTo(3, -11); ctx.lineTo(4 + Math.sin(ph + Math.PI) * 6, -1);
+      const st1 = Math.sin(ph), st2 = Math.sin(ph + Math.PI);
+      ctx.moveTo(-1, -13); ctx.lineTo(-2 + st1 * 5.5, -1);
+      ctx.moveTo(2.5, -13); ctx.lineTo(3.5 + st2 * 5.5, -1);
       ctx.stroke();
-      ctx.fillStyle = BC;
-      rr(-7, -23, 14, 13, 4); ctx.fill();
-      ctx.strokeStyle = BC; ctx.lineWidth = 4;
+      /* بدنه‌ی خمیده: پُکِ پشت + شکم */
+      ctx.fillStyle = BODY;
       ctx.beginPath();
-      ctx.moveTo(-5, -21); ctx.lineTo(-8 - Math.sin(ph) * 3, -11);
-      ctx.moveTo(5, -21); ctx.lineTo(8 + Math.sin(ph + 1.3) * 3, -11);
+      ctx.moveTo(-8, -14);
+      ctx.quadraticCurveTo(-10.5, -22, -6, -27.5);
+      ctx.quadraticCurveTo(-2, -32, 3.5, -30);
+      ctx.quadraticCurveTo(9, -28, 8.5, -22);
+      ctx.quadraticCurveTo(8, -16, 5, -13);
+      ctx.lineTo(-8, -13);
+      ctx.closePath(); ctx.fill();
+      /* دامنِ پاره — دندانه‌ای */
+      ctx.beginPath();
+      ctx.moveTo(-8, -13);
+      ctx.lineTo(-5.5, -10.5); ctx.lineTo(-3, -13.5); ctx.lineTo(0, -10.8);
+      ctx.lineTo(2.6, -13.6); ctx.lineTo(5, -11); ctx.lineTo(5, -13);
+      ctx.closePath(); ctx.fill();
+      /* دست‌های آویزانِ بی‌جان */
+      ctx.strokeStyle = BODY; ctx.lineWidth = 4.6;
+      ctx.beginPath();
+      const aSw = Math.sin(ph + 1.1) * 4;
+      ctx.moveTo(2.5, -28); ctx.quadraticCurveTo(9 + aSw, -22, 10.5 + aSw, -12.5);
+      ctx.moveTo(-1.5, -29); ctx.quadraticCurveTo(-9 - aSw * 0.7, -22, -10 - aSw * 0.7, -13);
       ctx.stroke();
-      circle(1.5, -27.5, 4.8);
-      /* (۲۴٫۰) چشم‌های سرخ درشت‌تر و تابان‌تر */
-      const er = 0.5 + 0.5 * Math.abs(Math.sin(t * 2 + i));
-      ctx.shadowColor = 'rgba(255,60,40,0.8)'; ctx.shadowBlur = 6;
-      ctx.fillStyle = 'rgba(255,80,55,' + Math.min(1, er + 0.35).toFixed(2) + ')';
-      circle(2.6, -28.4, 1.6); circle(4.8, -28.4, 1.6);
+      /* سر: کج + فک آویزان */
+      ctx.save();
+      ctx.translate(5.2, -33.4); ctx.rotate(0.32 + Math.sin(ph * 0.7) * 0.06);
+      ctx.fillStyle = BODY;
+      ctx.beginPath();
+      ctx.moveTo(-4.4, 3);
+      ctx.quadraticCurveTo(-5.2, -2.4, -1.5, -4.6);
+      ctx.quadraticCurveTo(2.6, -6.2, 5, -3.4);
+      ctx.quadraticCurveTo(6.6, -0.6, 5.2, 2.2);
+      ctx.quadraticCurveTo(3.6, 4.6, 1.2, 4.2);
+      ctx.quadraticCurveTo(-2, 5.4, -4.4, 3);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(120,20,16,0.55)';
+      ctx.beginPath(); ctx.ellipse(2.2, 2.4, 2.6, 1.7, 0.25, 0, Math.PI * 2); ctx.fill();
+      const er = 0.55 + 0.45 * Math.abs(Math.sin(t * 2.2 + i * 1.7));
+      ctx.shadowColor = 'rgba(255,52,36,0.9)'; ctx.shadowBlur = 7 * er;
+      ctx.fillStyle = 'rgba(255,84,56,' + Math.min(1, er + 0.3) + ')';
+      circle(0.2, -1.6, 1.55); circle(3.8, -1.2, 1.4);
       ctx.shadowBlur = 0;
+      ctx.restore();
+      /* لبه‌ی مهتاب — جدا شدن از پس‌زمینه */
+      ctx.strokeStyle = 'rgba(200,215,255,0.13)'; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-6, -26); ctx.quadraticCurveTo(-11, -22, -9.5, -15);
+      ctx.stroke();
       ctx.restore();
     }
   },
@@ -14749,6 +15135,50 @@ function introScCityMG(t) {
     ctx.moveTo(lx, GROUND_Y + 14); ctx.lineTo(lx + 26, GROUND_Y + 14);
   }
   ctx.stroke();
+  /* (۲۶٫۰) زمینِ زنده: ترک‌های آسفالت + چاله‌مان + علف هرز + کاغذپاره */
+  ctx.strokeStyle = 'rgba(12,10,20,0.5)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const cxx = ((i * 277 - t * 52) % (W + 300)) + 40;
+    const cyy = GROUND_Y + 22 + (i % 3) * 14;
+    ctx.moveTo(cxx, cyy);
+    ctx.lineTo(cxx + 14 + (i % 2) * 9, cyy + 3 + (i % 3) * 2);
+    ctx.lineTo(cxx + 20 + (i % 2) * 9, cyy + 12);
+    if (i % 2 === 0) ctx.lineTo(cxx + 34, cyy + 16);
+  }
+  ctx.stroke();
+  /* چاله‌ی فاضلاب */
+  for (let i = 0; i < 2; i++) {
+    const mx = ((i * 620 - t * 52) % (W + 700)) + 130;
+    ctx.fillStyle = 'rgba(8,8,16,0.75)';
+    ctx.beginPath(); ctx.ellipse(mx, GROUND_Y + 40, 17, 6.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(120,110,100,0.55)'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.ellipse(mx, GROUND_Y + 40, 17, 6.5, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx - 12, GROUND_Y + 37.5); ctx.lineTo(mx + 12, GROUND_Y + 37.5);
+    ctx.moveTo(mx - 12, GROUND_Y + 42.5); ctx.lineTo(mx + 12, GROUND_Y + 42.5);
+    ctx.stroke();
+  }
+  /* علف هرزِ بین‌ترک‌ها */
+  ctx.strokeStyle = 'rgba(58,84,52,0.75)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < 7; i++) {
+    const gx = ((i * 199 + 90 - t * 52) % (W + 260)) + 30;
+    const gy = GROUND_Y + 16 + (i % 4) * 9;
+    const wv = Math.sin(t * 1.6 + i) * 1.8;
+    ctx.moveTo(gx, gy); ctx.lineTo(gx - 2 + wv, gy - 6);
+    ctx.moveTo(gx, gy); ctx.lineTo(gx + 3 + wv, gy - 8);
+    ctx.moveTo(gx, gy); ctx.lineTo(gx + 1, gy - 4);
+  }
+  ctx.stroke();
+  /* کاغذپاره‌های روان */
+  ctx.fillStyle = 'rgba(225,220,205,0.30)';
+  for (let i = 0; i < 4; i++) {
+    const px = ((i * 311 + t * 34) % (W + 200)) - 100;
+    const py = GROUND_Y + 18 + (i % 3) * 12 + Math.sin(t * 2.2 + i * 2) * 3;
+    ctx.save(); ctx.translate(px, py); ctx.rotate(Math.sin(t * 1.8 + i) * 0.8);
+    ctx.fillRect(-4, -2.6, 8, 5.2); ctx.restore();
+  }
   /* ماشینِ متروکه‌ی کنار خیابان — با بازتابِ آسمان */
   const carx = ((-t * 30 + 400) % (W + 400)) - 200;
   ctx.save();
@@ -14852,6 +15282,31 @@ function introScStreetMG(t) {
   ctx.fillStyle = '#1a2038';
   rr(W * 0.16, GROUND_Y - 22, 30, 22, 4); ctx.fill();
   ctx.beginPath(); ctx.ellipse(W * 0.78, GROUND_Y - 5, 26, 12, 0.2, 0, Math.PI * 2); ctx.fill();
+  /* (۲۶٫۰) لکه‌آبِ بازتابنده‌ی مهتاب + خرده‌آوار کوچه */
+  for (let i = 0; i < 3; i++) {
+    const pxx = W * (0.2 + i * 0.28) + Math.sin(i * 2.4) * 40;
+    const pyy = GROUND_Y + 14 + (i % 2) * 16;
+    const pw = 34 + (i % 3) * 22, ph = 5 + (i % 2) * 2.6;
+    const pg = ctx.createLinearGradient(pxx - pw, pyy, pxx + pw, pyy);
+    pg.addColorStop(0, 'rgba(160,178,230,0.03)');
+    pg.addColorStop(0.5, 'rgba(190,205,245,' + (0.22 - i * 0.04) + ')');
+    pg.addColorStop(1, 'rgba(160,178,230,0.03)');
+    ctx.fillStyle = pg;
+    ctx.beginPath(); ctx.ellipse(pxx, pyy, pw, ph, 0, 0, Math.PI * 2); ctx.fill();
+    /* موجِ آرام روی آب */
+    ctx.strokeStyle = 'rgba(210,222,255,0.14)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    const rp = (t * 0.6 + i) % 1;
+    ctx.ellipse(pxx, pyy, pw * rp, ph * rp, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(22,26,44,0.9)';
+  for (let i = 0; i < 6; i++) {
+    const dx = ((i * 173 + 40) % (W - 80)) + 40;
+    const dy = GROUND_Y + 12 + (i % 4) * 10;
+    ctx.fillRect(dx, dy, 5 + (i % 3) * 3, 2.4);
+    if (i % 3 === 0) { ctx.beginPath(); ctx.arc(dx + 9, dy + 5, 2, 0, Math.PI * 2); ctx.fill(); }
+  }
   /* مه — روشن‌تر */
   MG23.fogBands(t, GROUND_Y - 36, 5, 9, 0.09, '140,160,215');
   /* زامبی‌ها از ته کوچه — با k نزدیک می‌شوند */
@@ -14893,6 +15348,36 @@ function introScFindMG(t) {
   const gr = ctx.createLinearGradient(0, GROUND_Y, 0, H);
   gr.addColorStop(0, '#1e2136'); gr.addColorStop(1, '#131526');
   ctx.fillStyle = gr; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  /* (۲۶٫۰) زمینِ محلِ ساختمان نیمه‌کاره: آوار آجر/سنگ + میل‌گرد پیچ‌خورده */
+  {
+    let s7 = 91;
+    const rd7 = () => { s7 = (s7 * 1103515245 + 12345) & 0x7fffffff; return s7 / 0x7fffffff; };
+    for (let i = 0; i < 14; i++) {
+      const bx = 60 + rd7() * (W - 120);
+      const by = GROUND_Y + 12 + rd7() * (H - GROUND_Y - 24);
+      const bs = 3 + rd7() * 4.5;
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(rd7() * 2.4);
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(122,66,48,0.75)' : 'rgba(64,70,96,0.7)';
+      ctx.fillRect(-bs, -bs * 0.42, bs * 2, bs * 0.84);
+      ctx.fillStyle = 'rgba(255,255,255,0.09)';
+      ctx.fillRect(-bs, -bs * 0.42, bs * 2, bs * 0.28);
+      ctx.restore();
+    }
+    /* دو میل‌گرد پیچ‌خورده از آوار */
+    ctx.strokeStyle = 'rgba(72,80,110,0.85)'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(W * 0.16, GROUND_Y + 30);
+    ctx.quadraticCurveTo(W * 0.2, GROUND_Y + 20, W * 0.25, GROUND_Y + 32);
+    ctx.moveTo(W * 0.78, GROUND_Y + 40);
+    ctx.quadraticCurveTo(W * 0.83, GROUND_Y + 30, W * 0.87, GROUND_Y + 42);
+    ctx.stroke();
+    /* تکه‌چوبِ پرت‌شده */
+    ctx.strokeStyle = 'rgba(96,72,44,0.8)'; ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.3, GROUND_Y + 26); ctx.lineTo(W * 0.34, GROUND_Y + 30);
+    ctx.moveTo(W * 0.64, GROUND_Y + 18); ctx.lineTo(W * 0.68, GROUND_Y + 22);
+    ctx.stroke();
+  }
   /* دوربین: زومِ آرام به ساختمان + پنِ نرم */
   const zk = 1 + clamp(t / 9, 0, 1) * 0.16;
   ctx.save();
@@ -14960,6 +15445,51 @@ function introScFortMG(t) {
   gr.addColorStop(0, lerpColor('#3c2a34', '#1e2136', k));
   gr.addColorStop(1, lerpColor('#241824', '#141729', k));
   ctx.fillStyle = gr; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  /* (۲۶٫۰) زمینِ کارگاه: تخته‌های خوابیده + جعبه‌ابزار قرمز + ارابه‌کوهی */
+  {
+    /* تخته‌های چوبی خوابیده — همون تخته‌هایی که به پنجره‌ها کوبیده می‌شوند */
+    const plank = (px, py, ang, len) => {
+      ctx.save(); ctx.translate(px, py); ctx.rotate(ang);
+      ctx.fillStyle = 'rgba(122,92,54,0.92)';
+      rr(-len / 2, -3.4, len, 6.8, 1.6); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.fillRect(-len / 2, -3.4, len, 1.8);
+      ctx.strokeStyle = 'rgba(70,50,28,0.8)'; ctx.lineWidth = 0.9;
+      ctx.beginPath(); ctx.moveTo(-len / 2 + 5, 0.5); ctx.lineTo(len / 2 - 5, 0.5); ctx.stroke();
+      ctx.restore();
+    };
+    plank(W * 0.24, GROUND_Y + 30, 0.12, 64);
+    plank(W * 0.3, GROUND_Y + 38, -0.06, 48);
+    plank(W * 0.68, GROUND_Y + 34, 0.05, 56);
+    plank(W * 0.74, GROUND_Y + 44, -0.14, 42);
+    /* جعبه‌ابزار قرمز — چفت‌های طلایی */
+    ctx.fillStyle = '#8f2f24';
+    rr(W * 0.41, GROUND_Y + 20, 34, 15, 3); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillRect(W * 0.41, GROUND_Y + 20, 34, 2.6);
+    ctx.strokeStyle = '#e8b54a'; ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.41 + 6, GROUND_Y + 27); ctx.lineTo(W * 0.41 + 12, GROUND_Y + 27);
+    ctx.moveTo(W * 0.41 + 22, GROUND_Y + 27); ctx.lineTo(W * 0.41 + 28, GROUND_Y + 27);
+    ctx.stroke();
+    ctx.strokeStyle = '#5f1e16'; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.arc(W * 0.41 + 17, GROUND_Y + 20, 7, Math.PI, 0); ctx.stroke();
+    /* دسته‌چکش از جعبه بیرون */
+    ctx.strokeStyle = 'rgba(138,122,86,0.95)'; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(W * 0.41 + 27, GROUND_Y + 21); ctx.lineTo(W * 0.41 + 36, GROUND_Y + 12); ctx.stroke();
+    /* ارابه‌کوهی (sawhorse) با نوار هشدار */
+    const shx = W * 0.58, shy = GROUND_Y + 30;
+    ctx.strokeStyle = 'rgba(110,86,56,0.95)'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(shx - 16, shy); ctx.lineTo(shx - 6, shy - 16);
+    ctx.moveTo(shx + 4, shy - 16); ctx.lineTo(shx + 14, shy);
+    ctx.moveTo(shx - 6, shy - 16); ctx.lineTo(shx + 4, shy - 16);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(214,178,64,0.85)';
+    ctx.fillRect(shx - 9, shy - 19, 20, 5);
+    ctx.fillStyle = 'rgba(24,22,18,0.85)';
+    ctx.fillRect(shx - 5, shy - 19, 4, 5); ctx.fillRect(shx + 3, shy - 19, 4, 5);
+  }
   /* (۲۴٫۰) چراغ کارِ ایستاده کنار نردبان — نور گرمِ صحنه‌ی کار */
   const lx0 = W * 0.5 - 108;
   ctx.strokeStyle = '#3a3040'; ctx.lineWidth = 4;
@@ -15289,7 +15819,8 @@ const MYST = {
     if (this._btn && document.body.contains(this._btn)) return;
     const b = document.createElement('button');
     b.id = 'mystBtn';
-    b.innerHTML = '🔍 <span>سرنخ</span>';
+    /* (۲۶٫۰) آیکن SVG متریال به‌جای ایموجی — روی همه‌ی اندرویدها یک‌شکل */
+    b.innerHTML = (typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('clue') + '</i>' : '') + '<span>سرنخ</span>';
     b.addEventListener('click', () => { SFX.click(); this.openArchive(); });
     $('wrap').appendChild(b);
     this._btn = b;
@@ -15298,7 +15829,7 @@ const MYST = {
     if (this._listenBtn && document.body.contains(this._listenBtn)) return;
     const b = document.createElement('button');
     b.id = 'listenBtn';
-    b.innerHTML = '👂';
+    b.innerHTML = '<i class="ic">' + (typeof ICO !== 'undefined' ? ICO.ico('ear') : '👂') + '</i>';
     b.title = 'گوش بسپار — ضربان دشمن‌ها را حس کن';
     b.addEventListener('pointerdown', () => this.startListen());
     $('wrap').appendChild(b);
@@ -15307,12 +15838,26 @@ const MYST = {
     if (!this._molotovBtn || !document.body.contains(this._molotovBtn)) {
       const m = document.createElement('button');
       m.id = 'molotovBtn';
-      m.innerHTML = '🔥';
+      m.innerHTML = '<i class="ic">' + (typeof ICO !== 'undefined' ? ICO.ico('molotov') : '🔥') + '</i>';
       m.title = 'پرتاب کوکتل مولوتوف (F)';
       m.addEventListener('pointerdown', (e) => { e.preventDefault(); this.throwMolotov(); });
       $('wrap').appendChild(m);
       this._molotovBtn = m;
     }
+  },
+
+  /* (۲۶٫۰) پیل بازگشایی خرید دستفروش — مستقل ساخته می‌شود (روزها) */
+  ensurePedBtn() {
+    if (this._pedBtn && document.body.contains(this._pedBtn)) return;
+    const pb = document.createElement('button');
+    pb.id = 'pedReopenBtn';
+    pb.innerHTML = (typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('cart') + '</i>' : '') + '<span>خرید از دستفروش</span>';
+    pb.title = 'قفسه‌ی کالای دستفروش مرموز';
+    pb.addEventListener('click', () => {
+      try { SFX.click(); PED.openShop(); } catch (e) {}
+    });
+    $('wrap').appendChild(pb);
+    this._pedBtn = pb;
   },
 
   /* چه معمایی/امکانی الان در دسترس است؟ */
@@ -15336,6 +15881,14 @@ const MYST = {
       this._btn.style.display = has ? 'flex' : 'none';
       if (has) this._btn.classList.toggle('glow', this.avail().length > 0 && !this._panel);
     } else if (this._btn) this._btn.style.display = 'none';
+    /* (۲۶٫۰) پیل خرید دستفروش — روز، دستفروش حاضر، پنل بسته */
+    if (day) {
+      this.ensurePedBtn();
+      const box = $('peddlerBox');
+      const showPed = typeof PED !== 'undefined' && PED.active && PED.phase === 'stay' &&
+        box && box.classList.contains('hidden');
+      this._pedBtn.style.display = showPed ? 'flex' : 'none';
+    } else if (this._pedBtn) this._pedBtn.style.display = 'none';
     /* دکمه‌ی شنود — فقط شب‌ها */
     if (playing) {
       this.ensureListenBtn();
@@ -16326,9 +16879,9 @@ function applySettings() {
   if (Snd.musicGain && Snd.ctx) Snd.setMusic(SETT.music);
   /* (۱۲٫۰) صدا که خاموش شد، گفتارِ در جریان هم قطع شود */
   if (!SETT.sfx) { try { VOICE.stop(); } catch (e) {} }
-  /* آیکون‌های بی‌صدا */
+  /* آیکون بی‌صدا — (۲۶٫۰) SVG متریال */
   const mb = $('ctlMute');
-  if (mb) mb.textContent = SETT.sfx ? '🔊' : '🔇';   // (۱۳٫۰) ریل چپ
+  if (mb) mb.innerHTML = typeof ICO !== 'undefined' ? ICO.sound(!!SETT.sfx) : (SETT.sfx ? '🔊' : '🔇');
   updateSettingsUI();
 }
 
@@ -18514,6 +19067,16 @@ function fitWrap() {
   const vv = window.visualViewport;
   let aw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 960;
   let ah = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 560;
+  /* (۲۶٫۰) سامسونگ/One UI و iPhone: ناحیه‌ی امن دور دوربین/ناچ —
+     بازی کامل صفحه است (viewport-fit=cover + SHORT_EDGES)؛ حاشیه‌های
+     امنِ گزارش‌شده از ابعاد کم می‌شوند تا HUD/دکمه‌ها زیر حفره‌ی
+     دوربین نروند. مرورگرهای بدون cutout مقدار ۰ می‌دهند → بی‌اثر. */
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const pv = n => { const v = parseFloat(cs.getPropertyValue(n)); return isFinite(v) && v > 0 ? v : 0; };
+    aw = Math.max(320, aw - pv('--sat-l') - pv('--sat-r'));
+    ah = Math.max(200, ah - pv('--sat-t') - pv('--sat-b'));
+  } catch (e) {}
   /* (۲۱٫۴) منو + نسبتِ تازه: اگر صفحه هنوز جا نیفتاده و W غلط محاسبه شده،
      دنیا بازسازی می‌شود (تا مستطیلِ کامل گوشی پر شود). وسط بازی نمی‌کنیم —
      لترباکس امن‌تر از جابه‌جایی ناگهانی صحنه است. */
@@ -18808,10 +19371,11 @@ function toggleSound() {
    چهار تب (ارتقاء/سلاح‌ها/برجک‌ها/بقا) به‌جای فهرست بلند؛ سلاح‌های
    خریداری‌شده با کلیک روی کاشی‌شان «در دست» می‌شوند (نوار پایین حذف شد). */
 const BP_TABS = [
-  { id: 'up',  label: 'ارتقاء', ic: '⛏' },
-  { id: 'wpn', label: 'سلاح‌ها', ic: '🔫' },
-  { id: 'tur', label: 'برجک‌ها', ic: '🛡' },
-  { id: 'sur', label: 'بقا',    ic: '🎒' },
+  /* (۲۶٫۰) آیکن‌های SVG متریال به‌جای ایموجی — یک‌شکل روی همه‌ی اندرویدها */
+  { id: 'up',  label: 'ارتقاء', ic: 'upgrade' },
+  { id: 'wpn', label: 'سلاح‌ها', ic: 'weapon' },
+  { id: 'tur', label: 'برجک‌ها', ic: 'shield' },
+  { id: 'sur', label: 'بقا',    ic: 'survive' },
 ];
 let BP_TAB = 'up';
 function setBPTab(id, silent) {
@@ -18972,7 +19536,7 @@ function buildPanelInit() {
     const b = document.createElement('div');
     b.className = 'bp-tab' + (t.id === BP_TAB ? ' on' : '');
     b.dataset.tab = t.id;
-    b.innerHTML = '<span class="bp-tab-ic">' + t.ic + '</span><span>' + t.label + '</span>';
+    b.innerHTML = '<span class="bp-tab-ic">' + (typeof ICO !== 'undefined' ? ICO.ico(t.ic) : '') + '</span><span>' + t.label + '</span>';
     b.addEventListener('click', () => setBPTab(t.id));
     tabs.appendChild(b);
   });

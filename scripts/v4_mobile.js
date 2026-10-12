@@ -31,6 +31,16 @@ function fitWrap() {
   const vv = window.visualViewport;
   let aw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 960;
   let ah = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 560;
+  /* (۲۶٫۰) سامسونگ/One UI و iPhone: ناحیه‌ی امن دور دوربین/ناچ —
+     بازی کامل صفحه است (viewport-fit=cover + SHORT_EDGES)؛ حاشیه‌های
+     امنِ گزارش‌شده از ابعاد کم می‌شوند تا HUD/دکمه‌ها زیر حفره‌ی
+     دوربین نروند. مرورگرهای بدون cutout مقدار ۰ می‌دهند → بی‌اثر. */
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const pv = n => { const v = parseFloat(cs.getPropertyValue(n)); return isFinite(v) && v > 0 ? v : 0; };
+    aw = Math.max(320, aw - pv('--sat-l') - pv('--sat-r'));
+    ah = Math.max(200, ah - pv('--sat-t') - pv('--sat-b'));
+  } catch (e) {}
   /* (۲۱٫۴) منو + نسبتِ تازه: اگر صفحه هنوز جا نیفتاده و W غلط محاسبه شده،
      دنیا بازسازی می‌شود (تا مستطیلِ کامل گوشی پر شود). وسط بازی نمی‌کنیم —
      لترباکس امن‌تر از جابه‌جایی ناگهانی صحنه است. */

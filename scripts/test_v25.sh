@@ -20,7 +20,7 @@ R=$(agent-browser eval "document.fonts.check('900 34px Vazirmatn')?1:0" | tail -
 
 echo "===== ۲) منو: بدون اسم سازنده + نسخه ====="
 R=$(agent-browser eval "(()=>{const f=document.querySelector('.m23-foot');return f&&!f.textContent.includes('سازنده')&&!f.textContent.includes('مرامی')?1:0})()" | tail -1); ck "منو: اسم سازنده حذف شد" "$R"
-R=$(agent-browser eval "document.querySelector('.m23-foot')&&document.querySelector('.m23-foot').textContent.includes('۲۵٫۰')?1:0" | tail -1); ck "منو: نسخه ۲۵٫۰" "$R"
+R=$(agent-browser eval "document.querySelector('.m23-foot')&&document.querySelector('.m23-foot').textContent.includes('۲۶٫۰')?1:0" | tail -1); ck "منو: نسخه ۲۶٫۰ (به‌روز)" "$R"
 R=$(agent-browser eval "document.getElementById('aboutScreen')&&document.getElementById('aboutScreen').innerHTML.includes('سهند مرامی')?1:0" | tail -1); ck "درباره: اعتبار سازنده حفظ شد" "$R"
 R=$(agent-browser eval "document.body.innerText.includes('آخـریـن')?0:1" | tail -1); ck "کشیده‌نویسی عربی (آخـریـن) حذف شد" "$R"
 
