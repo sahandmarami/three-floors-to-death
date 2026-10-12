@@ -825,9 +825,9 @@ function waveComplete() {
 /* پنل روز (۱۶٫۰): «شب شود» حالا دکمه‌ی طلاییِ داخل پنل ساخت‌وساز است
    (زیر سربرگ) — برچسب موج درون‌فصلی/آخرین شب (۱۰٫۰) */
 function showDayPanel() {
-  $('bpNight').innerHTML = (state.wave + 1 >= FINAL_WAVE)
-    ? '🌑 آخرین شب'
-    : '🌙 شب شود — موج ' + faNum(waveInChapter(state.wave + 1));
+  /* (۲۶٫۰) آیکن SVG + بدون شماره‌ی موج (درخواست «مثل بازی‌های واقعی») */
+  $('bpNight').innerHTML = (typeof ICO !== 'undefined' ? ICO.ico('moon') : '') +
+    '<span>' + ((state.wave + 1 >= FINAL_WAVE) ? 'آخرین شب' : 'شب شود') + '</span>';
   $('bpNight').classList.remove('hidden');
 }
 function hideDayPanel() { $('bpNight').classList.add('hidden'); }

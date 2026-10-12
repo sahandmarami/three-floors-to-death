@@ -267,9 +267,11 @@ function refreshBackpack() {
   if (bar) bar.classList.toggle('compact', !any);
   const cap = $('bpkCap');
   const n = state.backpack.filter(s => s).length;
-  if (cap) cap.textContent = any
-    ? '🎒 کوله ' + faNum(n) + '/' + faNum(6)
-    : '🎒 کوله خالی — خرید از تب «بقا»';
+  /* (۲۶٫۰) آیکن SVG به‌جای ایموجی 🎒 */
+  const bpkIc = (typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('backpack') + '</i>' : '');
+  if (cap) cap.innerHTML = any
+    ? bpkIc + ' کوله ' + faNum(n) + '/' + faNum(6)
+    : bpkIc + ' کوله خالی — خرید از تب «بقا»';
   for (let i = 0; i < 6; i++) {
     const el = $('bpk-' + i);
     if (!el) continue;
@@ -1256,7 +1258,7 @@ function pickRareStock() {
   return stock;
 }
 
-function hidePeddlerPanel() { $('peddlerPanel').classList.add('hidden'); }
+function hidePeddlerPanel() { $('peddlerBox').classList.add('hidden'); }
 
 /* پرتره‌ی دستفروش — (۲۱٫۲) پنج چهره‌ی کاملاً متفاوت: هر بازدید یک
    شخصیت دیگر (کلاه/هود/ماسک/بارانی/کاسکت) + لباس حاشیه‌دارِ فاخر.
@@ -1426,6 +1428,12 @@ function circle2b(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c
 
 function initPeddlerUI() {
   drawPeddlerFace();
+  /* (۲۶٫۰) دکمه‌ی بستن دیالوگ خرید + کلیک روی بک‌دراپ = بستن */
+  const closer = () => { try { SFX.click(); } catch (e) {} hidePeddlerPanel(); };
+  const xc = $('pdClose');
+  if (xc) xc.addEventListener('click', (e) => { e.stopPropagation(); closer(); });
+  const box = $('peddlerBox');
+  if (box) box.addEventListener('click', (e) => { if (e.target === box) closer(); });
 }
 
 /* رندر قفسه‌ی دستفروش (هر بار تازه — با برچسب «تازه!» برای کالای نو) */
@@ -1445,12 +1453,13 @@ function renderPeddlerStock() {
     paintGearIcon(it.id, cv);
     const info = document.createElement('div');
     info.className = 'pd-info';
-    info.innerHTML = '<span class="pd-name">' + (it.bp ? '📐 ' : '') + r.name +
+    /* (۲۶٫۰) آیکن SVG به‌جای ایموجی 📐/💰 — یک‌شکل روی همه‌ی اندرویدها */
+    info.innerHTML = '<span class="pd-name">' + (it.bp && typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('blueprint') + '</i> ' : '') + r.name +
       (it.fresh ? ' <em class="pd-new">تازه!</em>' : '') +
       '</span><span class="pd-sub">' + r.desc + '</span>';
     const price = document.createElement('span');
     price.className = 'pd-price';
-    price.textContent = '💰 ' + faNum(r.price);
+    price.innerHTML = '<i class="coin-ic"></i>' + faNum(r.price);
     info.appendChild(price);
     el.appendChild(cv); el.appendChild(info);
     el.addEventListener('click', () => buyRare(it));
@@ -1459,7 +1468,7 @@ function renderPeddlerStock() {
   /* اگر همه خریداری شد، پنل بسته شود */
   if (!box.children.length) { hidePeddlerPanel(); return; }
   drawPeddlerFace();
-  $('peddlerPanel').classList.remove('hidden');
+  $('peddlerBox').classList.remove('hidden');
 }
 
 /* خرید از دستفروش: ۳۰٪ تقلبی (سکه می‌سوزد) — ۷۰٪ واقعی و قدرتمند

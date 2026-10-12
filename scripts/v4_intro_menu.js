@@ -575,9 +575,9 @@ function applySettings() {
   if (Snd.musicGain && Snd.ctx) Snd.setMusic(SETT.music);
   /* (۱۲٫۰) صدا که خاموش شد، گفتارِ در جریان هم قطع شود */
   if (!SETT.sfx) { try { VOICE.stop(); } catch (e) {} }
-  /* آیکون‌های بی‌صدا */
+  /* آیکون بی‌صدا — (۲۶٫۰) SVG متریال */
   const mb = $('ctlMute');
-  if (mb) mb.textContent = SETT.sfx ? '🔊' : '🔇';   // (۱۳٫۰) ریل چپ
+  if (mb) mb.innerHTML = typeof ICO !== 'undefined' ? ICO.sound(!!SETT.sfx) : (SETT.sfx ? '🔊' : '🔇');
   updateSettingsUI();
 }
 

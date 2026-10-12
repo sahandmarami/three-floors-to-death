@@ -50,10 +50,11 @@ function toggleSound() {
    چهار تب (ارتقاء/سلاح‌ها/برجک‌ها/بقا) به‌جای فهرست بلند؛ سلاح‌های
    خریداری‌شده با کلیک روی کاشی‌شان «در دست» می‌شوند (نوار پایین حذف شد). */
 const BP_TABS = [
-  { id: 'up',  label: 'ارتقاء', ic: '⛏' },
-  { id: 'wpn', label: 'سلاح‌ها', ic: '🔫' },
-  { id: 'tur', label: 'برجک‌ها', ic: '🛡' },
-  { id: 'sur', label: 'بقا',    ic: '🎒' },
+  /* (۲۶٫۰) آیکن‌های SVG متریال به‌جای ایموجی — یک‌شکل روی همه‌ی اندرویدها */
+  { id: 'up',  label: 'ارتقاء', ic: 'upgrade' },
+  { id: 'wpn', label: 'سلاح‌ها', ic: 'weapon' },
+  { id: 'tur', label: 'برجک‌ها', ic: 'shield' },
+  { id: 'sur', label: 'بقا',    ic: 'survive' },
 ];
 let BP_TAB = 'up';
 function setBPTab(id, silent) {
@@ -214,7 +215,7 @@ function buildPanelInit() {
     const b = document.createElement('div');
     b.className = 'bp-tab' + (t.id === BP_TAB ? ' on' : '');
     b.dataset.tab = t.id;
-    b.innerHTML = '<span class="bp-tab-ic">' + t.ic + '</span><span>' + t.label + '</span>';
+    b.innerHTML = '<span class="bp-tab-ic">' + (typeof ICO !== 'undefined' ? ICO.ico(t.ic) : '') + '</span><span>' + t.label + '</span>';
     b.addEventListener('click', () => setBPTab(t.id));
     tabs.appendChild(b);
   });
