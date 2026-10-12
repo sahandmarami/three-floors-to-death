@@ -205,6 +205,71 @@ const MG23 = {
       ctx.fill();
     }
   },
+  /* ---------- (۲۷) لایه‌های سینمایی جدید — جذابیت استوری‌موشن ---------- */
+  /* ذرات خاکستر/جرقه‌ی معلق — حس زنده بودن صحنه */
+  embers27(t, n, hue) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < (n || 26); i++) {
+      const seed = i * 127.31;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * W + Math.sin(t * (0.5 + (i % 5) * 0.13) + seed) * 34;
+      const y = H - ((t * (9 + (i % 7) * 2.2) + seed * 97) % (H + 60));
+      const r = 0.9 + (i % 4) * 0.55;
+      const tw = 0.35 + 0.4 * Math.abs(Math.sin(t * 2.2 + i * 1.9));
+      ctx.fillStyle = (hue || 'rgba(255,150,70,') + (tw * 0.5).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  },
+  /* ستون دودِ دوردست — نشانه‌ی آتش در شهر */
+  smoke27(x, baseY, t, k) {
+    ctx.save();
+    for (let i = 0; i < 5; i++) {
+      const yy = baseY - i * 26 - (t * 6 % 26);
+      const rr2 = 8 + i * 6.5;
+      const xx = x + Math.sin(t * 0.5 + i * 1.3 + x) * (4 + i * 5);
+      ctx.fillStyle = 'rgba(30,34,52,' + (0.30 - i * 0.05).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(xx, yy, rr2, 0, Math.PI * 2); ctx.fill();
+    }
+    /* شعله‌ی ریز پایین ستون */
+    ctx.globalCompositeOperation = 'lighter';
+    const fl = 0.5 + 0.5 * Math.sin(t * 9 + x);
+    const g = ctx.createRadialGradient(x, baseY + 6, 2, x, baseY + 6, 15);
+    g.addColorStop(0, 'rgba(255,140,60,' + (0.55 * fl).toFixed(2) + ')');
+    g.addColorStop(1, 'rgba(255,90,40,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, baseY + 6, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  },
+  /* پرتوی نورِ مورب — god ray */
+  rays27(x, topY, w, h, ang, alpha, hue) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.translate(x, topY);
+    ctx.rotate(ang || -0.42);
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, (hue || 'rgba(255,170,90,') + (alpha || 0.12) + ')');
+    g.addColorStop(1, (hue || 'rgba(255,170,90,0)'));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.18, 0); ctx.lineTo(w * 0.18, 0);
+    ctx.lineTo(w * 0.55, h); ctx.lineTo(-w * 0.55, h);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  },
+  /* ذرات غبار در نور — سکوت سینمایی صحنه‌های ساختمان */
+  dust27(t, cx, cy, rad) {
+    ctx.save();
+    for (let i = 0; i < 18; i++) {
+      const seed = i * 3.77;
+      const x = cx + Math.sin(t * 0.22 + seed) * rad * (0.5 + 0.5 * Math.cos(seed));
+      const y = cy + Math.cos(t * 0.18 + seed * 1.7) * rad * 0.55;
+      const tw = 0.2 + 0.3 * Math.abs(Math.sin(t * 1.1 + seed));
+      ctx.fillStyle = 'rgba(210,220,255,' + tw.toFixed(2) + ')';
+      ctx.fillRect(x, y, 1.4, 1.4);
+    }
+    ctx.restore();
+  },
 
   /* کلاغ‌های عبوری */
   crows(t, y) {
@@ -226,8 +291,8 @@ const MG23 = {
      نیمه‌کاره، در fort استحکام‌یافته با تخته و پرچم.
      حالت‌ها: found = پیدا شدن (خرابه) | fort = استحکام‌یافته */
   building23(x, y, s, t, mode, duskK) {
-    const fh = 62;
-    const FW = [158, 144, 130];                     /* پهنای طبقات: مخروطی مثل برج بازی */
+    const fh = 66;                                  /* (۲۷) دقیقاً floorH بازی */
+    const FW = [136, 124, 112];                     /* (۲۷) دقیقاً widths برج بازی — یکسان‌سازی کامل */
     /* پالت فصل ۱ داخل بازی — با تیرگی شب مه‌آلود */
     const DK = 0.52;                                /* ضریب شب‌شدگی رنگ بدنه */
     const FL = [
@@ -322,18 +387,16 @@ const MG23 = {
     ctx.fillRect(-topW - 6, -H3 - 6 - 7, topW * 2 + 12, 7);
     ctx.fillStyle = 'rgba(255,255,255,0.10)';
     ctx.fillRect(-topW - 6, -H3 - 6 - 7, topW * 2 + 12, 1.6);
-    const nB = mode === 'fort' ? 6 : 4;
+    /* (۲۷) همیشه ۶ کنجره با رنگِ آبیِ batt بازی — مثل drawTowerShell؛ found فقط تیره‌تر */
+    const nB = 6;
+    const battC = lerpColor('#33557e', '#101830', DK);
+    const battH = lerpColor('#5c8ac0', '#1c2a48', DK);
     for (let k = 0; k < nB; k++) {
-      const bx = -topW + 3 + k * ((topW * 2 - 8) / Math.max(1, nB - 1));
-      ctx.fillStyle = FL[2].e;
-      ctx.fillRect(bx - 6, -H3 - 6 - 13, 12, 7);
-      ctx.fillStyle = 'rgba(0,0,0,0.28)';
-      ctx.fillRect(bx + 4.6, -H3 - 6 - 13, 2.4, 7);
-    }
-    if (mode === 'found') {
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(topW - 26, -H3 - 6 - 13, 12, 6);
-      ctx.fillRect(-topW + 14, -H3 - 6 - 13, 12, 5);
+      const bx = -topW + 2 + k * 19;
+      ctx.fillStyle = (mode === 'fort' && k % 2 === 0) ? battH : battC;
+      ctx.fillRect(bx, -H3 - 9, 12, 9);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(bx + 9, -H3 - 9, 3, 9);
     }
 
     /* --- میله‌ی پرچم + گوی (پرچم فقط در fort — «پناهگاه شد») --- */
@@ -342,16 +405,24 @@ const MG23 = {
     ctx.fillStyle = '#f7c948';
     circle(0, -H3 - 6 - 41, 2.6);
     if (mode === 'fort') {
+      /* (۲۷) پرچم دوپاره‌ی موج‌دار مثل drawTowerLive — رنگ بازی #d8453a */
       const wv = Math.sin(t * 3.2) * 3.5;
-      ctx.fillStyle = '#c23a2c';
+      ctx.fillStyle = '#d8453a';
       ctx.beginPath();
       ctx.moveTo(1.4, -H3 - 6 - 38);
       ctx.quadraticCurveTo(16, -H3 - 6 - 36 + wv * 0.4, 30, -H3 - 6 - 33 + wv);
       ctx.lineTo(30, -H3 - 6 - 21 + wv);
       ctx.quadraticCurveTo(16, -H3 - 6 - 23 + wv * 0.4, 1.4, -H3 - 6 - 21);
       ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#a12a20';
+      ctx.beginPath();
+      ctx.moveTo(1.4, -H3 - 6 - 27);
+      ctx.quadraticCurveTo(16, -H3 - 6 - 25.5 + wv * 0.4, 30, -H3 - 6 - 23.5 + wv);
+      ctx.lineTo(30, -H3 - 6 - 21 + wv);
+      ctx.quadraticCurveTo(16, -H3 - 6 - 23 + wv * 0.4, 1.4, -H3 - 6 - 21);
+      ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#f7c948';
-      circle(14, -H3 - 6 - 27 + wv * 0.5, 3);
+      circle(14, -H3 - 6 - 27.5 + wv * 0.5, 2.2);
     } else {
       ctx.strokeStyle = lerpColor('#4a3b2a', '#20243a', DK); ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(0, -H3 - 6 - 40); ctx.lineTo(6, -H3 - 6 - 44); ctx.stroke();
@@ -613,6 +684,13 @@ function introScCityMG(t) {
     ctx.fillRect(stx, sty, 1.6, 1.6);
   }
   MG23.crows(t, 92);
+  /* (۲۷) آتش‌های دوردست شهر — سه کانون با ستون دود و شعله */
+  MG23.smoke27(W * 0.14, GROUND_Y - 74, t, 1);
+  MG23.smoke27(W * 0.34, GROUND_Y - 92, t * 1.15 + 2, 0.8);
+  MG23.smoke27(W * 0.85, GROUND_Y - 66, t * 0.9 + 4, 0.9);
+  /* (۲۷) پرتوی مورب خورشید */
+  MG23.rays27(sx, GROUND_Y - 190, 130, 300, -0.38, 0.10);
+  MG23.rays27(sx + 130, GROUND_Y - 160, 90, 260, -0.5, 0.06);
   /* سه لایه‌ی شهری پارالاکس — (۲۴: روشن‌تر) */
   MG23.cityLayer(GROUND_Y + 2, 60, 150, '#2e3a63', -t * 26, 42, true);
   MG23.cityLayer(GROUND_Y + 2, 34, 92, '#222b4e', -t * 48, 77, true);
@@ -701,6 +779,9 @@ function introScCityMG(t) {
     ctx.fillStyle = 'rgba(255,235,190,' + (0.85 * fl) + ')';
     circle(lx + 44, GROUND_Y - 105, 4);
   }
+  /* (۲۷) زامبی‌های سایه‌وارِ دور — روی خیابان، جلوی خط شهری؛ شهر دارد «بی‌صدا» می‌میرد */
+  MG23.bgZombies23(t, W * 0.18, GROUND_Y - 8, 3, 58, 0.22, 1.1);
+  MG23.bgZombies23(t + 3, W * 0.82, GROUND_Y - 12, 3, 50, 0.16, 1.35);
   /* دو بازمانده در حالِ راه — مرکز قاب ثابت، جهان می‌لغزد */
   MG23.walk2(W * 0.46, GROUND_Y + 30, 3.3, t * 5.4, 1);
   /* گرد‌وغبار معلق — گرم‌تر */
@@ -711,7 +792,8 @@ function introScCityMG(t) {
   }
   MG23.title(t, 'شهر سقوط کرد', 'چهل روز از اولین ویروس — و غروب دارد تمام می‌شود');
   MG23.lift(1);
-  MG23.grain();
+  MG23.embers27(t, 24);
+    MG23.grain();
 }
 
 /* --- صحنه ۲: کوچه — (۲۴٫۰) ماهِ تابان + روشنایی مه‌آلود --- */
@@ -816,7 +898,8 @@ function introScStreetMG(t) {
   vgR.addColorStop(0, 'rgba(170,40,40,0)'); vgR.addColorStop(1, 'rgba(170,40,40,' + pr.toFixed(2) + ')');
   ctx.fillStyle = vgR; ctx.fillRect(W - 130, 0, 130, H);
   MG23.lift(1.15);
-  MG23.grain();
+  MG23.embers27(t, 14);
+    MG23.grain();
 }
 
 /* --- صحنه ۳: پیدا کردنِ ساختمانِ نیمه‌کاره — (۲۴٫۰) چراغ‌قوه‌ها + ماهِ تابان --- */
@@ -912,7 +995,9 @@ function introScFindMG(t) {
     ctx.restore();
   }
   MG23.lift(1.2);
-  MG23.grain();
+  MG23.dust27(t, W * 0.42, GROUND_Y - 90, 130);
+  MG23.rays27(W * 0.30, 30, 150, 330, -0.5, 0.05, 'rgba(150,180,255,');
+    MG23.grain();
 }
 
 /* --- صحنه ۴: استحکام‌بخشی — (۲۴٫۰) چراغ کارِ گرم + غروبِ روشن‌تر --- */
@@ -1069,7 +1154,10 @@ function introScFortMG(t) {
   MG23.fogBands(t, GROUND_Y - 26, 6, 8, 0.07, '140,160,215');
   MG23.title(t, 'پناهگاه آماده شد', 'طبقه اول دفاع · طبقه دوم وسایل · طبقه سوم دیده‌بانی');
   MG23.lift(1.35);
-  MG23.grain();
+  MG23.dust27(t, W * 0.5, GROUND_Y - 100, 140);
+  MG23.rays27(W * 0.5, 26, 160, 340, -0.46, 0.07, 'rgba(255,185,110,');
+  MG23.embers27(t, 10, 'rgba(255,120,80,');
+    MG23.grain();
 }
 
 /* ابزار کمکی: میان‌یابی رنگ hex */

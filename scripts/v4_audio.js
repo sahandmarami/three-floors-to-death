@@ -851,3 +851,104 @@ Object.assign((typeof GAME !== 'undefined' ? GAME : window), {
   VOICE, MUSIC, DLG,
   say(text, who, v) { return VOICE.speak(text, who || 'n', v); },
 });
+
+/* ==================================================================
+   (۲۷٫۰) نگهبان صدا — رفع «صدا خود به خود قطع می‌شود» (سامسونگ/اندروید)
+   ------------------------------------------------------------------
+   ریشه‌ی باگ: اندروید بعد از قطعِ فوکوس صوتی (اعلان/تماس/وصل‌ـ‌وقطع
+   هدفون/خاموشی لحظه‌ای صفحه) AudioContext را suspend می‌کند «بدون اینکه
+   visibilitychange شلیک شود». بازی ادامه می‌یابد اما همه‌ی صداها مرده‌اند.
+   راه‌حل: پایش دوره‌ای + رزومه‌ی خودکار + رزومه روی هر لمس + وصل‌کردن
+   onstatechange. رزومه همیشه بی‌خطر است (قطع موسیقی حین «توقف» با گین
+   انجام می‌شود نه با suspend).
+   ================================================================== */
+(function audioWatchdog27() {
+  if (typeof Snd === 'undefined') return;
+
+  function resumeCtx() {
+    try {
+      if (Snd.ctx && Snd.ctx.state !== 'running') {
+        const p = Snd.ctx.resume();
+        if (p && p.catch) p.catch(() => {});
+      }
+    } catch (e) {}
+  }
+
+  /* ۱) رزومه روی هر ژست — ارزان و روی همه‌ی مرورگرها */
+  window.addEventListener('pointerdown', resumeCtx, { passive: true });
+  window.addEventListener('touchstart', resumeCtx, { passive: true });
+  window.addEventListener('focus', resumeCtx);
+  document.addEventListener('resume', resumeCtx);   /* WebView اندروید */
+
+  /* ۲) وصل‌کردن onstatechange به محض ساخته‌شدن ctx */
+  let tries = 0;
+  const iv = setInterval(() => {
+    tries++;
+    if (Snd.ctx) {
+      if (!Snd.ctx.__wd27) {
+        Snd.ctx.__wd27 = true;
+        Snd.ctx.onstatechange = resumeCtx;
+      }
+      clearInterval(iv);
+    } else if (tries > 120) clearInterval(iv);
+  }, 500);
+
+  /* ۳) پایش دوره‌ای: اگر ctx معلق است و بازی در حال اجراست → رزومه
+        + اگر موسیقی باید روشن باشد ولی تایمرش مُرده → دوباره روشن */
+  setInterval(() => {
+    try {
+      if (!Snd.ready || !Snd.ctx) return;
+      if (Snd.ctx.state !== 'running') resumeCtx();
+      if (typeof MUSIC !== 'undefined' && MUSIC._want && !MUSIC.timer &&
+          typeof state !== 'undefined' && state.mode !== 'paused') {
+        MUSIC._start(MUSIC._want);
+      }
+    } catch (e) {}
+  }, 2000);
+
+  /* ۴) اگر صدای گفتار در میان راه گم شد (بافر پخش‌شده ولی ctx معلق) →
+        دوباره گرم کن و ادامه بده */
+  setInterval(() => {
+    try {
+      if (VOICE._src && Snd.ctx && Snd.ctx.state === 'running' && !VOICE.speaking) {
+        VOICE.speaking = true;   /* خودِ onended بعداً درست می‌کند */
+      }
+    } catch (e) {}
+  }, 4000);
+})();
+
+/* (۲۷٫۰) DLG queue — گفتگوی استوری و دستفروش دیگر همدیگر را نمی‌کُشند:
+   اگر DLG فعالی هست، درخواست جدید در صف می‌ماند تا فعلی تمام شود. */
+(function dlgQueue27() {
+  if (typeof DLG === 'undefined' || DLG.__q27) return;
+  DLG.__q27 = true;
+  const _start = DLG.start.bind(DLG);
+  DLG.start = function (lines, onDone) {
+    if (DLG.active) {                      /* گفتگوی فعال: در صف بگذار */
+      DLG.__queue27 = DLG.__queue27 || [];
+      DLG.__queue27.push([lines, onDone]);
+      return;
+    }
+    _start(lines, function () {
+      try { if (onDone) onDone(); } catch (e) {}
+      /* بعد از پایانِ فعلی، صف را تخلیه کن */
+      if (DLG.__queue27 && DLG.__queue27.length) {
+        const nxt = DLG.__queue27.shift();
+        setTimeout(() => { try { DLG.start(nxt[0], nxt[1]); } catch (e) {} }, 60);
+      }
+    });
+  };
+  /* تخلیه‌ی صف وقتی DLG بدون کال‌بک تمام می‌شود (skip) */
+  const _end = DLG.end ? DLG.end.bind(DLG) : null;
+  if (_end) {
+    DLG.end = function () {
+      _end.apply(DLG, arguments);
+      setTimeout(() => {
+        if (!DLG.active && DLG.__queue27 && DLG.__queue27.length) {
+          const nxt = DLG.__queue27.shift();
+          try { DLG.start(nxt[0], nxt[1]); } catch (e) {}
+        }
+      }, 120);
+    };
+  }
+})();
