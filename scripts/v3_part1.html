@@ -478,6 +478,45 @@ h1 .ic.big{font-size:1.3em;color:#ff8d7a;vertical-align:-0.25em;margin-inline-en
 #confirmBox.danger .cf-icon{background:radial-gradient(circle at 35% 30%,rgba(255,110,80,.28),rgba(220,60,40,.1));
   border-color:rgba(255,120,90,.55);box-shadow:0 0 26px rgba(255,90,60,.3)}
 
+/* ---------- (۲۷٫۰) منوهای متریال اندرویدی — توقف/تنظیمات/درباره ----------
+   همان زبانِ بصریِ جعبه‌ی تأیید v25: کارت گرد + آیکن دایره‌ای درشت +
+   دکمه‌های تمام‌عرض ≥54px لمسی + متریال ۳ */
+.m27-card{background:linear-gradient(180deg,#1d2b54,#0d1530);border:1.5px solid #4d6aa8;
+  border-radius:calc(24px * var(--uiz,1));width:min(92%,calc(430px * var(--uiz,1)));
+  max-height:88%;overflow-y:auto;padding:calc(20px * var(--uiz,1)) calc(18px * var(--uiz,1)) calc(16px * var(--uiz,1));
+  text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.09);
+  animation:cfIn .22s cubic-bezier(.2,1.2,.4,1)}
+.m27-icon{width:calc(70px * var(--uiz,1));height:calc(70px * var(--uiz,1));margin:0 auto calc(8px * var(--uiz,1));
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:calc(34px * var(--uiz,1));
+  background:radial-gradient(circle at 35% 30%,rgba(255,190,60,.28),rgba(255,150,40,.08));
+  border:1.5px solid rgba(255,200,90,.5);box-shadow:0 0 26px rgba(255,180,60,.28)}
+.m27-title{font-size:calc(21px * var(--uiz,1));font-weight:900;color:#ffd873;margin-bottom:calc(4px * var(--uiz,1));
+  text-shadow:0 2px 10px rgba(255,190,60,.25)}
+.m27-sub{font-size:calc(13.5px * var(--uiz,1));color:#b7c5e6;margin-bottom:calc(14px * var(--uiz,1))}
+.m27-list{display:flex;flex-direction:column;gap:calc(9px * var(--uiz,1))}
+.m27-btn{display:flex;align-items:center;justify-content:center;gap:calc(10px * var(--uiz,1));width:100%;
+  min-height:calc(54px * var(--uiz,1));cursor:pointer;font-family:inherit;font-weight:900;
+  font-size:calc(15.5px * var(--uiz,1));border-radius:calc(16px * var(--uiz,1));
+  background:linear-gradient(180deg,#28355c,#1a2546);border:1.5px solid #46609e;color:#dbe5fa;
+  transition:transform .12s,filter .12s;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.m27-btn:active{transform:scale(.96)}
+.m27-btn .ic{width:calc(22px * var(--uiz,1));height:calc(22px * var(--uiz,1));flex:none}
+.m27-primary{background:linear-gradient(180deg,#ffd873,#eda93c);border:none;color:#141a2e;
+  box-shadow:0 6px 24px rgba(240,180,60,.4),inset 0 1px 0 rgba(255,255,255,.5)}
+.m27-danger{background:linear-gradient(180deg,#2e1f33,#231727);border:1.5px solid #7c4050;color:#ff9c8e}
+.m27-row{display:flex;align-items:center;justify-content:space-between;gap:calc(12px * var(--uiz,1));
+  background:rgba(255,255,255,.05);border:1px solid #33518f;border-radius:calc(14px * var(--uiz,1));
+  padding:calc(10px * var(--uiz,1)) calc(14px * var(--uiz,1));min-height:calc(54px * var(--uiz,1))}
+.m27-row>span{display:flex;align-items:center;gap:calc(9px * var(--uiz,1));
+  font-size:calc(14.5px * var(--uiz,1));font-weight:bold;color:#dbe5fa}
+.m27-row .ic{width:calc(20px * var(--uiz,1));height:calc(20px * var(--uiz,1))}
+.m27-row .vol{max-width:calc(150px * var(--uiz,1))}
+.m27-sep{height:1px;background:rgba(255,255,255,.1);margin:calc(6px * var(--uiz,1)) 0}
+.m27-text{display:flex;flex-direction:column;gap:calc(9px * var(--uiz,1));background:rgba(255,255,255,.05);
+  border:1px solid #33518f;border-radius:calc(14px * var(--uiz,1));padding:calc(14px * var(--uiz,1));
+  font-size:calc(13px * var(--uiz,1));color:#cdd8f2;text-align:right;line-height:1.9;
+  margin-bottom:calc(4px * var(--uiz,1))}
+
 
 /* ---------- ۷) منوی اصلی: مینیمال و تمیز روی صحنه‌ی زنده (۵٫۰) ----------
    فقط عنوان + دکمه‌ها؛ صحنه‌ی زنده‌ی بازی خودش تزئین است (۱۴٫۰: دو زامبیِ
@@ -1146,19 +1185,23 @@ h1 .ic.big{font-size:1.3em;color:#ff8d7a;vertical-align:-0.25em;margin-inline-en
         </div>
       </div>
     </div>
-    <div class="m23-foot">نسخه‌ی ۲۶٫۰</div>
+    <!-- (۲۷٫۰) متن نسخه از منو حذف شد — درخواست کاربر -->
   </div>
 
   <!-- ============ (۲۰٫۱) صفحه‌ی راهنما حذف شد — درخواست کاربر ============ -->
 
-  <!-- ============ صفحه توقف (۱۴٫۰: فقط دکمه‌ها — بدون متن اضافه) ============ -->
+  <!-- ============ (۲۷٫۰) صفحه توقف — بازسازی کامل اندرویدی متریال ============ -->
   <div class="overlay hidden" id="pauseScreen">
-    <div class="panel">
-      <h2><i class="ic" data-ico="pause"></i> توقف</h2>
-      <div class="btn-row">
-        <button class="btn-main" id="btnResume" data-ico="play"><span>ادامه بازی</span></button>
-        <button class="btn-sec" id="btnSaveExit" data-ico="save"><span>ذخیره و خروج</span></button>
-        <button class="btn-sec" id="btnRestart0" data-ico="restart"><span>شروع دوباره</span></button>
+    <div class="m27-card">
+      <div class="m27-icon"><i class="ic big" data-ico="pause"></i></div>
+      <h2 class="m27-title">بازی متوقف شد</h2>
+      <p class="m27-sub">هر وقت آماده بودی ادامه بده</p>
+      <div class="m27-list">
+        <button class="m27-btn m27-primary" id="btnResume"><i class="ic" data-ico="play"></i><span>ادامه بازی</span></button>
+        <button class="m27-btn" id="btnPauseSettings"><i class="ic" data-ico="gear"></i><span>تنظیمات</span></button>
+        <button class="m27-btn" id="btnPauseAbout"><i class="ic" data-ico="info"></i><span>درباره‌ی بازی</span></button>
+        <button class="m27-btn" id="btnSaveExit"><i class="ic" data-ico="save"></i><span>ذخیره و خروج</span></button>
+        <button class="m27-btn m27-danger" id="btnRestart0"><i class="ic" data-ico="restart"></i><span>شروع دوباره</span></button>
       </div>
     </div>
   </div>
@@ -1177,48 +1220,35 @@ h1 .ic.big{font-size:1.3em;color:#ff8d7a;vertical-align:-0.25em;margin-inline-en
     </div>
   </div>
 
-  <!-- ============ (۱۰٫۰) صفحه تنظیمات — ۱۳٫۰: کد سیو + ذخیره‌سازی اطمینانی ============ -->
+  <!-- ============ (۲۷٫۰) تنظیمات — بازسازی اندرویدی؛ کد سیو/بارگذاری حذف شد ============ -->
   <div class="overlay hidden" id="settingsScreen">
-    <div class="panel" style="max-width:430px">
-      <h2><i class="ic" data-ico="gear"></i> تنظیمات</h2>
-      <div class="set-row"><span><i class="ic" data-ico="sound"></i> جلوه‌های صوتی</span>
-        <label class="switch"><input type="checkbox" id="setSfx" checked><span></span></label></div>
-      <div class="set-row"><span><i class="ic" data-ico="music"></i> موسیقی محیطی</span>
-        <label class="switch"><input type="checkbox" id="setMusic" checked><span></span></label></div>
-      <div class="set-row"><span><i class="ic" data-ico="vibrate"></i> لرزش صفحه</span>
-        <label class="switch"><input type="checkbox" id="setShake" checked><span></span></label></div>
-      <div class="set-row"><span><i class="ic" data-ico="volume"></i> بلندی صدا</span>
-        <input type="range" id="setVol" min="0" max="100" value="50" class="vol"></div>
-      <div class="btn-row">
-        <button class="btn-sec" id="btnSaveCode" data-ico="upload"><span>کد سیو</span></button>
-        <button class="btn-sec" id="btnLoadCode" data-ico="download"><span>بارگذاری کد</span></button>
-        <button class="btn-sec" id="btnWipe" data-ico="trash"><span>پاک‌کردن سیو</span></button>
-      </div>
-      <div class="btn-row">
-        <button class="btn-main" id="closeSettings">برگرد</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ (۱۳٫۰/۱۴٫۰) صفحه‌ی کد سیو: گرفتن / بارگذاری ============ -->
-  <div class="overlay hidden" id="saveCodeScreen">
-    <div class="panel" style="max-width:460px">
-      <h2 id="scTitle"><i class="ic" data-ico="upload"></i> کد سیو</h2>
-      <p class="subtitle" id="scHint">این کد پیشرفت توست — جایی امن ذخیره‌اش کن</p>
-      <textarea id="scText" placeholder="کد سیو را این‌جا بچسبان..."></textarea>
-      <div class="btn-row">
-        <button class="btn-sec" id="scCopy"><i class="ic" data-ico="upload"></i><span>کپی</span></button>
-        <button class="btn-main" id="scDone">تأیید و برگشت</button>
+    <div class="m27-card">
+      <div class="m27-icon"><i class="ic big" data-ico="gear"></i></div>
+      <h2 class="m27-title">تنظیمات</h2>
+      <p class="m27-sub">صدا و حس بازی</p>
+      <div class="m27-list">
+        <div class="m27-row"><span><i class="ic" data-ico="sound"></i> جلوه‌های صوتی</span>
+          <label class="switch"><input type="checkbox" id="setSfx" checked><span></span></label></div>
+        <div class="m27-row"><span><i class="ic" data-ico="music"></i> موسیقی محیطی</span>
+          <label class="switch"><input type="checkbox" id="setMusic" checked><span></span></label></div>
+        <div class="m27-row"><span><i class="ic" data-ico="vibrate"></i> لرزش صفحه</span>
+          <label class="switch"><input type="checkbox" id="setShake" checked><span></span></label></div>
+        <div class="m27-row m27-vol"><span><i class="ic" data-ico="volume"></i> بلندی صدا</span>
+          <input type="range" id="setVol" min="0" max="100" value="50" class="vol"></div>
+        <div class="m27-sep"></div>
+        <button class="m27-btn m27-danger" id="btnWipe"><i class="ic" data-ico="trash"></i><span>پاک‌کردن سیو</span></button>
+        <button class="m27-btn m27-primary" id="closeSettings"><i class="ic" data-ico="back"></i><span>برگرد</span></button>
       </div>
     </div>
   </div>
 
-  <!-- ============ (۱۰٫۰) صفحه درباره‌ی بازی (۲۰٫۱: فقط داستان + سازنده) ============ -->
+  <!-- ============ (۲۷٫۰) درباره — بازسازی اندرویدی متریال ============ -->
   <div class="overlay hidden" id="aboutScreen">
-    <div class="panel" style="max-width:470px">
-      <h2><i class="ic" data-ico="info"></i> درباره‌ی بازی</h2>
-      <p class="subtitle">سه طبقه تا مرگ</p>
-      <div class="howto" style="text-align:right">
+    <div class="m27-card">
+      <div class="m27-icon"><i class="ic big" data-ico="info"></i></div>
+      <h2 class="m27-title">درباره‌ی بازی</h2>
+      <p class="m27-sub">سه طبقه تا مرگ</p>
+      <div class="m27-text">
         <div>همه‌چیز از یک بیماری ناشناخته شروع شد؛ خیابان‌ها یکی‌یکی ساکت شدند و شهرها بی‌صدا از پا درآمدند.</div>
         <div>تویی و <b>ارشان</b> — دو بازمانده‌ای که ساختمان سه‌طبقه‌ای نیمه‌کاره را پیدا کردند و از آن پناهگاهی ساختند: <b>برج سه‌طبقه</b>.</div>
         <div>سی‌وشش شبِ دفاع، پیام‌های ناقصِ بی‌سیم، عبور از کانالِ مه‌گرفته، ایستگاه متروکه و برج مخابراتی...</div>
@@ -1226,7 +1256,7 @@ h1 .ic.big{font-size:1.3em;color:#ff8d7a;vertical-align:-0.25em;margin-inline-en
         <div style="color:#eef3ff;font-style:italic">این داستان ادامه دارد...</div>
         <div class="about-credit">ساخته شده توسط <b>سهند مرامی</b></div>
       </div>
-      <div class="btn-row"><button class="btn-main" id="closeAbout">برگرد</button></div>
+      <button class="m27-btn m27-primary" id="closeAbout" style="margin-top:calc(12px * var(--uiz,1))"><i class="ic" data-ico="back"></i><span>برگرد</span></button>
     </div>
   </div>
 

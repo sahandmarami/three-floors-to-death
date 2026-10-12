@@ -9,8 +9,8 @@
    ================================================================== */
 
 /* ---------------------- ۱۵) رابط کاربری ---------------------- */
-function showScreen(id) { $(id).classList.remove('hidden'); }
-function hideScreen(id) { $(id).classList.add('hidden'); }
+function showScreen(id) { const el = $(id); if (el) el.classList.remove('hidden'); }   /* (۲۷٫۰) null-safe — صفحه‌ی کد سیو حذف شد */
+function hideScreen(id) { const el = $(id); if (el) el.classList.add('hidden'); }
 function hideOverlays() {
   ['startScreen', 'pauseScreen', 'gameoverScreen', 'victoryScreen',
    'settingsScreen', 'aboutScreen', 'confirmBox', 'saveCodeScreen',
@@ -30,10 +30,15 @@ function resumeGame() {
   hideScreen('pauseScreen');
   setPauseIcon(false);
 }
-/* (۱۳٫۰) آیکون دکمه‌ی توقف در ریل چپ */
+/* (۲۷٫۰) آیکون دکمه‌ی توقف — SVG سالم می‌ماند؛ فقط data-ico عوض می‌شود */
 function setPauseIcon(paused) {
   const b = $('ctlPause');
-  if (b) b.textContent = paused ? '▶' : '⏸';
+  if (b) {
+    const want = paused ? 'play' : 'pause';
+    const ic = b.querySelector('.ic') || b;
+    ic.setAttribute('data-ico', want);
+    try { if (typeof ICO !== 'undefined' && ICO.apply) ICO.apply(b); } catch (e) {}
+  }
 }
 
 /* قطع/وصل صدا — همه‌ی دکمه‌های صدا هم‌زمان به‌روز می‌شوند
@@ -446,10 +451,20 @@ function init() {
   $('btnStart').addEventListener('click', startNewGame);   // تأیید پاک‌کردن سیو + کات‌سین افتتاحیه
   /* (۲۰٫۱) دکمه/صفحه‌ی راهنما حذف شد — درخواست کاربر */
   $('btnContinue').addEventListener('click', continueGame);
-  $('btnSettings').addEventListener('click', () => { SFX.click(); showScreen('settingsScreen'); });
-  $('closeSettings').addEventListener('click', () => { SFX.click(); hideScreen('settingsScreen'); });
-  $('btnAbout').addEventListener('click', () => { SFX.click(); showScreen('aboutScreen'); });
-  $('closeAbout').addEventListener('click', () => { SFX.click(); hideScreen('aboutScreen'); });
+  /* (۲۷٫۰) تنظیمات/درباره — از منو یا از توقف؛ پس از بستن به همان‌جا برمی‌گردد */
+  window.__m27from = 'menu';
+  $('btnSettings').addEventListener('click', () => { SFX.click(); window.__m27from = 'menu'; showScreen('settingsScreen'); });
+  $('closeSettings').addEventListener('click', () => {
+    SFX.click(); hideScreen('settingsScreen');
+    if (window.__m27from === 'pause' && state.mode === 'paused') showScreen('pauseScreen');
+  });
+  $('btnAbout').addEventListener('click', () => { SFX.click(); window.__m27from = 'menu'; showScreen('aboutScreen'); });
+  $('closeAbout').addEventListener('click', () => {
+    SFX.click(); hideScreen('aboutScreen');
+    if (window.__m27from === 'pause' && state.mode === 'paused') showScreen('pauseScreen');
+  });
+  $('btnPauseSettings').addEventListener('click', () => { SFX.click(); window.__m27from = 'pause'; hideScreen('pauseScreen'); showScreen('settingsScreen'); });
+  $('btnPauseAbout').addEventListener('click', () => { SFX.click(); window.__m27from = 'pause'; hideScreen('pauseScreen'); showScreen('aboutScreen'); });
   $('btnWipe').addEventListener('click', () => askConfirm(
     'همه‌ی پیشرفت و وسایلت برای همیشه پاک می‌شه. مطمئنی؟',
     wipeSaveAndUI, { title: 'پاک‌کردن سیو', icon: '🗑', danger: true,
