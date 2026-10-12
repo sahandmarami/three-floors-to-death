@@ -168,7 +168,7 @@ function renderIntro() {
   const T = introGlobalT();
   if (T < 5) {
     ctx.globalAlpha = clamp(1 - T / 5, 0, 1) * 0.8;
-    ctx.font = 'bold 11.5px Tahoma, sans-serif';
+    ctx.font = 'bold 11.5px Vazirmatn, Tahoma, sans-serif';
     ctx.fillStyle = '#c3cdea';
     ctx.textAlign = 'left';
     ctx.fillText('⏭ رد کردن', 16, H - 44);
@@ -547,7 +547,7 @@ function introScRadio(t) {
     ctx.lineTo(91, -54); ctx.closePath(); ctx.fill();
     ctx.restore();
     ctx.fillStyle = '#3a5a2c';
-    ctx.font = 'bold 12px Tahoma, sans-serif';
+    ctx.font = 'bold 12px Vazirmatn, Tahoma, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('پناهگاه', 95, -20);
   }

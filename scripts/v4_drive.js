@@ -687,7 +687,7 @@ function drawDriveCar() {
   /* سپر + پلاک */
   ctx.fillStyle = '#cfd6e4'; rr(-120, -14, 240, 12, 5); ctx.fill();
   ctx.fillStyle = '#e8e4d0'; rr(-26, -12, 52, 10, 2); ctx.fill();
-  ctx.fillStyle = '#3a4252'; ctx.font = 'bold 7px Tahoma'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#3a4252'; ctx.font = 'bold 7px Vazirmatn, Tahoma'; ctx.textAlign = 'center';
   ctx.fillText('۲۸-بقا', 0, -4);
 
   /* اگزوزها */

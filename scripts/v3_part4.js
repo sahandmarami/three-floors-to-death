@@ -449,7 +449,10 @@ function init() {
   $('closeSettings').addEventListener('click', () => { SFX.click(); hideScreen('settingsScreen'); });
   $('btnAbout').addEventListener('click', () => { SFX.click(); showScreen('aboutScreen'); });
   $('closeAbout').addEventListener('click', () => { SFX.click(); hideScreen('aboutScreen'); });
-  $('btnWipe').addEventListener('click', () => askConfirm('همه‌ی پیشرفتت پاک بشه؟', wipeSaveAndUI));
+  $('btnWipe').addEventListener('click', () => askConfirm(
+    'همه‌ی پیشرفت و وسایلت برای همیشه پاک می‌شه. مطمئنی؟',
+    wipeSaveAndUI, { title: 'پاک‌کردن سیو', icon: '🗑', danger: true,
+                     yes: 'پاکش کن', no: 'نه، موندم' }));
   $('cfNo').addEventListener('click', () => { SFX.click(); hideScreen('confirmBox'); });
   /* (۱۳٫۰) ریل کنترل گوشه‌ی چپ: چراغ / صدا / توقف */
   $('ctlFlash').addEventListener('click', () => toggleFlashlight());

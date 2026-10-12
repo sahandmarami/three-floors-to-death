@@ -1124,7 +1124,7 @@ function drawCutscene() {
   }
   /* زیرنویس مراحل (کپسول پایین صحنه) */
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 15px Tahoma, sans-serif';
+  ctx.font = 'bold 15px Vazirmatn, Tahoma, sans-serif';
   for (const c of CS_CAPS) {
     if (t < c[0] || t > c[1]) continue;
     const a = Math.min(1, (t - c[0]) / 0.25, (c[1] - t) / 0.25);
@@ -1150,7 +1150,7 @@ function drawCutscene() {
   if (dr && !dr.ended && t > CS_T.driveStart + 0.4) {
     const pct = Math.round(dr.progress * 100);
     const bw = 430, bx = (W - bw) / 2, by = 58;
-    ctx.font = 'bold 13px Tahoma, sans-serif';
+    ctx.font = 'bold 13px Vazirmatn, Tahoma, sans-serif';
     ctx.fillStyle = '#e8ecf5';
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 6;
     ctx.fillText('مسیر تا برج جدید — ' + faNum(pct) + '٪', W / 2, by - 13);
@@ -1180,13 +1180,13 @@ function drawCutscene() {
       rr(hx, hy, hw, 32, 16); ctx.fill();
       ctx.strokeStyle = 'rgba(255,216,115,0.6)'; ctx.lineWidth = 1.6;
       rr(hx, hy, hw, 32, 16); ctx.stroke();
-      ctx.font = 'bold 14px Tahoma, sans-serif';
+      ctx.font = 'bold 14px Vazirmatn, Tahoma, sans-serif';
       ctx.fillStyle = '#ffd873';
       ctx.fillText('گاز', hx + hw - 54, hy + 16);        // سمت راست: گاز
       ctx.fillStyle = '#8fd6ff';
       ctx.fillText('ترمز', hx + 58, hy + 16);           // سمت چپ: ترمز
       ctx.fillStyle = '#c3cdea';
-      ctx.font = 'bold 12px Tahoma, sans-serif';
+      ctx.font = 'bold 12px Vazirmatn, Tahoma, sans-serif';
       ctx.fillText('کلیدهای جهت‌دار یا لمس چپ/راست صفحه', W / 2, hy + 16);
       /* فلش‌های جهت (رسم مسیری — بدون متن، ضد به‌هم‌ریختگی RTL) */
       ctx.fillStyle = '#ffd873';
@@ -1212,10 +1212,10 @@ function drawCutscene() {
   if (CS.post && t >= CS.post.black) {
     const tb = CS.post.black;
     const lines = [
-      [tb + 0.15, 'bold 21px Tahoma, sans-serif', '#ff9d8a', 'اسلحه‌هایت زیر آوار ماند...'],
-      [tb + 0.72, 'bold 26px Tahoma, sans-serif', '#ffd873', 'غرامت: +' + faNum(CS.compCoins) + ' سکه'],
-      [tb + 1.35, 'bold 30px Tahoma, sans-serif', '#e8ecf5', 'به موقعیت جدید رسیدید...'],
-      [tb + 1.9, 'bold 19px Tahoma, sans-serif', '#ffd873', '🏗 برج بعدی'],
+      [tb + 0.15, 'bold 21px Vazirmatn, Tahoma, sans-serif', '#ff9d8a', 'اسلحه‌هایت زیر آوار ماند...'],
+      [tb + 0.72, 'bold 26px Vazirmatn, Tahoma, sans-serif', '#ffd873', 'غرامت: +' + faNum(CS.compCoins) + ' سکه'],
+      [tb + 1.35, 'bold 30px Vazirmatn, Tahoma, sans-serif', '#e8ecf5', 'به موقعیت جدید رسیدید...'],
+      [tb + 1.9, 'bold 19px Vazirmatn, Tahoma, sans-serif', '#ffd873', '🏗 برج بعدی'],
     ];
     let li = 0;
     for (const [t0, font, col, txt] of lines) {
