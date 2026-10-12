@@ -147,11 +147,11 @@ const CHAPTERS = [
 /* فصل فعال (برای خواندن تم/ضریب‌ها در توابع رندر) */
 function curCh() { return CHAPTERS[clamp(state.chapter - 1, 0, 3)]; }
 
-/* برچسب موج برای HUD: «فصل ۲ • موج ۳/۸» یا «آخرین شب» */
+/* برچسب موج برای HUD (۲۴٫۰): «فصل ۲ · موج ۱۰ از ۳۶» — پیشرفتِ کل همیشه دیده شود */
 function waveLabel() {
   if (state.wave >= FINAL_WAVE) return '🌑 آخرین شب';
   const w = clamp(state.wave, 1, FINAL_WAVE);
-  return 'فصل ' + faNum(waveChapter(w)) + ' • موج ' + faNum(waveInChapter(w)) + '/' + faNum(wavesInChapter(waveChapter(w)));
+  return 'فصل ' + faNum(waveChapter(w)) + ' · موج ' + faNum(w) + ' از ' + faNum(FINAL_WAVE);
 }
 
 /* ---------------------- ۵-۲) تولید ترکیب موج‌ها ---------------------- */
@@ -626,19 +626,9 @@ function refreshMenuContinue() {
       ? 'فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave)) + ' از ۳۶'
       : 'هنوز سیوی نداری';
   }
-  /* (۲۱٫۱) چیپ‌های آمارِ منو: پیشرفت سیو + زامبی‌های کشته‌شده —
-     انگیزه‌ی «ادامه بده» و حس زنده‌بودن منو */
+  /* (۲۴٫۰) چیپ‌های آمارِ منو حذف شدند — درخواست کاربر: زیر دکمه‌های اصلی متن نباشد */
   const ms = $('menuStats');
-  if (ms) {
-    if (d && d.stats && typeof d.stats.kills === 'number') {
-      ms.innerHTML =
-        '<span class="ms-chip">🌙 شب ' + faNum(d.wave) + ' از ' + faNum(FINAL_WAVE) + '</span>' +
-        '<span class="ms-chip">🧟 ' + faNum(d.stats.kills) + ' زامبی‌کُش</span>' +
-        '<span class="ms-chip">💰 ' + faNum(Math.round(d.coins || 0)) + ' سکه</span>';
-    } else {
-      ms.innerHTML = '<span class="ms-chip">🌑 ' + faNum(FINAL_WAVE) + ' شبِ سخت تا پناهگاه — آماده‌ای؟</span>';
-    }
-  }
+  if (ms) ms.innerHTML = '';
 }
 
 /* ---------------------- (۱۳٫۰) کد سیو: انتقال دستی پیشرفت ----------------------

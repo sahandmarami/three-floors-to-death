@@ -587,7 +587,7 @@ window.GAME = {
     STORE: (typeof STORE !== 'undefined' ? STORE : null),
     storageOK: () => (typeof STORE !== 'undefined') && STORE.ok,
     decodedClips: () => Object.keys(VOICE._bufs).filter(k => VOICE._bufs[k]),
-    ctlRail: () => document.getElementById('ctlRail'),
+    ctlRail: () => document.querySelector('#hud .hud-ctl') || document.getElementById('ctlRail'),
     warmup: () => VOICE.warmup(),
     toastSaved,
   },
@@ -628,6 +628,8 @@ window.GAME = {
     if (state.mode === 'transition') skipTransition();   /* (۱۰٫۰) */
     if (state.mode === 'intro') skipIntro();             /* (۱۰٫۰) */
     if (state.mode === 'defeatcine') { skipDefeatCine(); hideOverlays(); }   /* (۱۲٫۰) */
+    if (typeof DLG !== 'undefined' && DLG.active) DLG.skip();   /* (۲۴٫۰) گفتگوی باز → ببند */
+    if (typeof _introSeq !== 'undefined') _introSeq++;          /* (۲۴٫۰) گفتگوی معلقِ پیش‌موج → باطل */
     state.zombies = []; state.bullets = []; state.coinsArr = [];
     state.wave = n - 1;
     state.chapter = waveChapter(n);           /* (۱۰٫۰) فصل هماهنگ شود */

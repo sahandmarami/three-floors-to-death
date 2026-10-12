@@ -170,9 +170,11 @@ function update(dt) {
   if (state.mouse.down && canPlay() && !state.placing) tryShoot();
 
   /* شمارش معکوس شروع بازی (فقط قبل از موج ۱؛ بعد از هر موج به‌جای این
-     وقفه، «روز» می‌شود و بازیکن خودش شب را شروع می‌کند — ۵٫۰) */
+     وقفه، «روز» می‌شود و بازیکن خودش شب را شروع می‌کند — ۵٫۰)
+     (۲۴٫۰) رفع باگ «گفتگو هنگام حمله‌ی زامبی‌ها»: تا وقتی گفتگوی داستانی
+     باز است شمارش معکوس متوقف می‌ماند — موج اول بعد از تمام‌شدن حرف‌ها شروع می‌شود */
   if (state.mode === 'intermission') {
-    state.intermission -= dt;
+    if (!(typeof DLG !== 'undefined' && DLG.active)) state.intermission -= dt;
     if (state.intermission <= 0) startWave(state.wave + 1);
   }
 

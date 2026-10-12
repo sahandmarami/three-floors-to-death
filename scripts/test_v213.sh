@@ -29,7 +29,7 @@ echo "===== ۲) تغییر نام: «سه طبقه تا مرگ» ====="
 R=$(agent-browser eval "document.title.includes('$MARG')?1:0" | tail -1); ck "عنوان تب «سه طبقه تا مرگ»" "$R"
 R=$(agent-browser eval "document.querySelector('.m23-title').textContent.includes('$MARG')?1:0" | tail -1); ck "تیتر منو «سه طبقه تا مرگ»" "$R"
 R=$(agent-browser eval "document.body.innerText.includes('\u0633\u0647 \u0637\u0628\u0642\u0647 \u062a\u0627 '+'$BAQA')?0:1" | tail -1); ck "اثری از نام قدیمی «سه طبقه تا بقا» نیست (تب کوله «بقا» مجاز)" "$R"
-R=$(agent-browser eval "document.body.innerText.includes('\u06F2\u06F3')?1:0" | tail -1); ck "پلاک نسخه ۲۳٫۰ (۲۳٫۱ منو)" "$R"
+R=$(agent-browser eval "document.body.innerText.includes('\u06F2\u06F4')?1:0" | tail -1); ck "پلاک نسخه ۲۴٫۰" "$R"
 
 echo "===== ۳) صحنه‌ی بازی روی گوشی عریض ====="
 fresh

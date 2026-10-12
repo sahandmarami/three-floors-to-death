@@ -8,6 +8,7 @@
    ================================================================== */
 
 let INTRO = null;      // وضعیت کات‌سین افتتاحیه
+let _introSeq = 0;     // (۲۴٫۰) توکن دنباله — پرشِ تستی گفتگوی معلقِ پیش‌موج را باطل می‌کند
 
 /* ---------------------- ۸-۱) صحنه‌ها و زیرنویس‌ها ---------------------- */
 /* (۲۲٫۰) چهار صحنه — داستان رسمی: شهر آلوده → صدای زامبی → پیدا کردن
@@ -114,12 +115,16 @@ function endIntro() {
   INTRO = null;
   $('wrap').classList.remove('cine-mode');
   $('skipCs').classList.add('hidden');
+  const mySeq = ++_introSeq;               /* (۲۴٫۰) فقط آخرین پایانِ اینترو گفتگو می‌سازد */
   doFade(() => {
     startGame();
     setAnnounce('\u{1F9DF} \u{0634}\u{0628} \u{0627}\u{0648}\u{0644} \u{0634}\u{0631}\u{0648}\u{0639} \u{0634}\u{062F}!', '\u{0628}\u{0631}\u{0627}\u{06CC} \u{0634}\u{0644}\u{06CC}\u{06A9} \u{06A9}\u{0644}\u{06CC}\u{06A9} \u{06A9}\u{0646} \u2014 \u{0647}\u{062F}\u{0641}: ' + faNum(FINAL_WAVE) + ' \u{0634}\u{0628} \u{0632}\u{0646}\u{062F}\u{0647} \u{0645}\u{0648}\u{0646}\u{062F}\u{06CC}', 3);
     /* (22.0) pyamhaye mashghool-e bazi: goftoguye pish az mohge-ye aval */
     setTimeout(() => {
-      try { if (!DLG.active && ['playing','intermission'].includes(state.mode)) DLG.start(STORY22.preWave1, null); } catch (e) {}
+      try {
+        if (mySeq !== _introSeq) return;   /* (۲۴٫۰) پرشِ تستی رخ داده — گفتگوی معلق باطل شد */
+        if (!DLG.active && ['playing','intermission'].includes(state.mode)) DLG.start(STORY22.preWave1, null);
+      } catch (e) {}
     }, 1400);
   }, 0.5);
 }
