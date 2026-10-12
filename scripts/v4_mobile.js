@@ -47,6 +47,15 @@ function fitWrap() {
   el.style.transform = 'scale(' + s + ')';
   el.style.transformOrigin = 'center center';
   window.__fitScale = s;
+  /* (۲۴٫۰) جبران مقیاسِ UI — ریشه‌ی «دکمه‌های ریز» روی گوشی:
+     wrap با s کوچک می‌شود؛ پس اندازه‌ی منطقیِ دکمه‌ها/متن‌ها را با --uiz
+     بزرگ می‌کنیم تا در پیکسلِ واقعیِ صفحه، لمس‌پذیر (≥۴۸dp) بمانند.
+     --uiz = ضریب کامل (دکمه‌ها/سکه/گفتگو) · --uiz2 = ملایم (چیپ‌ها/پنل) */
+  const uiz = s >= 0.95 ? 1 : Math.min(1.62, Math.round((0.96 / s) * 1000) / 1000);
+  try {
+    el.style.setProperty('--uiz', uiz);
+    el.style.setProperty('--uiz2', ((1 + uiz) / 2).toFixed(3));
+  } catch (e) {}
   /* (۱۹٫۰) صفحه‌های کوچک: کلاس sui → کوله‌پشتی و متن‌های ریز باز هم
      جمع‌تر می‌شوند تا زمین بازی/زامبی‌های ورودی دیده بمانند */
   el.classList.toggle('sui', W * s < 760);
@@ -211,17 +220,17 @@ window.addEventListener('load', () => {
     resumeGame();          // اول از توقف دربیاور تا state سالم باشد
     saveAndExit();
   });
-  /* دکمه‌ی تمام‌صفحه کنار دکمه‌های HUD (لمسی) */
+  /* دکمه‌ی تمام‌صفحه کنار دکمه‌های HUD (لمسی) — (۲۴٫۰) داخل گروه HUD چپ */
   if (IS_TOUCH) {
-    const rail = $('ctlRail');
-    if (rail) {
+    const hudCtl = document.querySelector('#hud .hud-ctl');
+    if (hudCtl) {
       const fs = document.createElement('button');
-      fs.className = 'ctl-btn';
+      fs.className = 'ctl-btn hud-mini';
       fs.id = 'btnFull';
       fs.title = 'تمام‌صفحه';
       fs.textContent = '⛶';
       fs.addEventListener('click', toggleFullscreen);
-      rail.appendChild(fs);
+      hudCtl.appendChild(fs);
     }
   }
 });
