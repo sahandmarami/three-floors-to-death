@@ -644,7 +644,7 @@ function drawTransitionOverlay() {
   /* زیرنویس فعلی */
   if (TR.subT > 0 && TR.sub) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 14.5px Tahoma, sans-serif';
+    ctx.font = 'bold 14.5px Vazirmatn, Tahoma, sans-serif';
     const a = Math.min(1, TR.subT / 0.3);
     ctx.globalAlpha = a;
     const tw = ctx.measureText(TR.sub).width + 30;
@@ -661,7 +661,7 @@ function drawTransitionOverlay() {
     const pct = clamp(distM / cfg.goalM, 0, 1);
     const bw = 430, bx = (W - bw) / 2, by = 54;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 13px Tahoma, sans-serif';
+    ctx.font = 'bold 13px Vazirmatn, Tahoma, sans-serif';
     ctx.fillStyle = '#e8ecf5';
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 6;
     ctx.fillText('فرار — ' + faNum(Math.round(cfg.goalM - distM)) + ' متر مانده', W / 2, by - 14);
@@ -685,7 +685,7 @@ function drawTransitionOverlay() {
     if (typeof DRV !== 'undefined') {
       const D = DRV;
       const scoreTxt = '⭐ ' + faNum(Math.round(D.score || 0));
-      ctx.font = 'bold 13px Tahoma, sans-serif';
+      ctx.font = 'bold 13px Vazirmatn, Tahoma, sans-serif';
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
       const sw2 = ctx.measureText(scoreTxt).width + 26;
       ctx.fillStyle = 'rgba(5,9,22,0.92)';
@@ -741,7 +741,7 @@ function drawTransitionOverlay() {
       rr(hx, hy, hw, 34, 17); ctx.fill();
       ctx.strokeStyle = 'rgba(255,216,115,0.6)'; ctx.lineWidth = 1.6;
       rr(hx, hy, hw, 34, 17); ctx.stroke();
-      ctx.font = 'bold 13.5px Tahoma, sans-serif';
+      ctx.font = 'bold 13.5px Vazirmatn, Tahoma, sans-serif';
       if (isDrive) {
         ctx.fillStyle = '#ffd873';
         ctx.fillText('فرمان', hx + hw - 92, hy + 17);
@@ -750,12 +750,12 @@ function drawTransitionOverlay() {
         ctx.fillStyle = '#ff9d8f';
         ctx.fillText('ترمز', hx + 52, hy + 17);
         ctx.fillStyle = '#c3cdea';
-        ctx.font = 'bold 12px Tahoma, sans-serif';
+        ctx.font = 'bold 12px Vazirmatn, Tahoma, sans-serif';
         ctx.fillText('← / →', hx + hw - 40, hy + 17);
         ctx.fillText('↑', hx + 226, hy + 17);
         ctx.fillText('↓', hx + 92, hy + 17);
         ctx.fillStyle = '#c3cdea';
-        ctx.font = 'bold 10.5px Tahoma, sans-serif';
+        ctx.font = 'bold 10.5px Vazirmatn, Tahoma, sans-serif';
         ctx.fillText('لمس: چپ/راست فرمان — وسط ترمز (گاز خودکار) • کج‌کردن گوشی = فرمان', W / 2 - 62, hy + 17);
       } else {
         ctx.fillStyle = '#ffd873';
@@ -763,18 +763,18 @@ function drawTransitionOverlay() {
         ctx.fillStyle = '#8fd6ff';
         ctx.fillText('خم‌شدن', hx + 168, hy + 17);
         ctx.fillStyle = '#c3cdea';
-        ctx.font = 'bold 12px Tahoma, sans-serif';
+        ctx.font = 'bold 12px Vazirmatn, Tahoma, sans-serif';
         ctx.fillText('↑ یا Space', hx + hw - 74, hy + 17);
         ctx.fillText('↓', hx + 108, hy + 17);
         ctx.fillStyle = '#c3cdea';
-        ctx.font = 'bold 11.5px Tahoma, sans-serif';
+        ctx.font = 'bold 11.5px Vazirmatn, Tahoma, sans-serif';
         ctx.fillText('سرعت: ←/→      (لمس صفحه = پرش)', W / 2 - 60, hy + 17);
       }
       ctx.globalAlpha = 1;
     }
     /* شمارنده‌ی برخوردها */
     if (MG.hits > 0) {
-      ctx.font = 'bold 11px Tahoma, sans-serif';
+      ctx.font = 'bold 11px Vazirmatn, Tahoma, sans-serif';
       ctx.fillStyle = 'rgba(255,150,140,0.85)';
       ctx.textAlign = 'left';
       ctx.fillText('برخورد: ' + faNum(MG.hits), 14, H - L - 18);

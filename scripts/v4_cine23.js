@@ -57,16 +57,16 @@ const MG23 = {
     ctx.globalAlpha = a;
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(3,5,12,0.62)';
-    ctx.fillRect(0, H * 0.16 - 38, W, 84);
-    ctx.font = '900 34px Tahoma, sans-serif';
+    ctx.fillRect(0, H * 0.16 - 40 * Math.max(1, window.__uiz || 1), W, 92 * Math.max(1, window.__uiz || 1));
+    ctx.font = '900 ' + Math.round(34 * Math.max(1, window.__uiz || 1)) + 'px Vazirmatn, Tahoma, sans-serif';
     ctx.fillStyle = '#ffe9b0';
     ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 10;
     ctx.fillText(main, W / 2, H * 0.16);
     if (sub) {
-      ctx.font = 'bold 14px Tahoma, sans-serif';
+      ctx.font = 'bold ' + Math.round(16 * Math.max(1, window.__uiz || 1)) + 'px Vazirmatn, Tahoma, sans-serif';
       ctx.fillStyle = '#cfd9f2';
       ctx.shadowBlur = 6;
-      ctx.fillText(sub, W / 2, H * 0.16 + 28);
+      ctx.fillText(sub, W / 2, H * 0.16 + 30 * Math.max(1, window.__uiz || 1));
     }
     ctx.restore();
   },
@@ -312,7 +312,7 @@ const MG23 = {
       ctx.strokeRect(-17, -46, 34, 46);
       /* دیوارنگاره‌ی مبهم روی دیوار (حس انسانی‌هایی که بودند) — پررنگ‌تر */
       ctx.fillStyle = 'rgba(232,84,64,0.42)';
-      ctx.font = 'bold 15px Tahoma';
+      ctx.font = 'bold 15px Vazirmatn, Tahoma';
       ctx.textAlign = 'center';
       ctx.fillText('زنده بمان', 0, -fh * 2 - 12);
     } else {
@@ -614,7 +614,7 @@ function introScFindMG(t) {
     const a = clamp((t - 1.2) / 0.8, 0, 1) * (t < 7 ? 1 : clamp(1 - (t - 7) / 0.8, 0, 1));
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.font = '900 26px Tahoma, sans-serif';
+    ctx.font = '900 26px Vazirmatn, Tahoma, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffefc0';
     ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 14;

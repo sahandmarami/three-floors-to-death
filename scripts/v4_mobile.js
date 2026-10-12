@@ -56,6 +56,9 @@ function fitWrap() {
     el.style.setProperty('--uiz', uiz);
     el.style.setProperty('--uiz2', ((1 + uiz) / 2).toFixed(3));
   } catch (e) {}
+  /* (۲۵٫۰) مقیاس UI برای متن‌های Canvas (کات‌سین/تیترها) —
+     همان ضریب --uiz تا متن‌های بومی Canvas هم روی گوشی درشت بمانند */
+  window.__uiz = uiz;
   /* (۱۹٫۰) صفحه‌های کوچک: کلاس sui → کوله‌پشتی و متن‌های ریز باز هم
      جمع‌تر می‌شوند تا زمین بازی/زامبی‌های ورودی دیده بمانند */
   el.classList.toggle('sui', W * s < 760);
@@ -220,19 +223,8 @@ window.addEventListener('load', () => {
     resumeGame();          // اول از توقف دربیاور تا state سالم باشد
     saveAndExit();
   });
-  /* دکمه‌ی تمام‌صفحه کنار دکمه‌های HUD (لمسی) — (۲۴٫۰) داخل گروه HUD چپ */
-  if (IS_TOUCH) {
-    const hudCtl = document.querySelector('#hud .hud-ctl');
-    if (hudCtl) {
-      const fs = document.createElement('button');
-      fs.className = 'ctl-btn hud-mini';
-      fs.id = 'btnFull';
-      fs.title = 'تمام‌صفحه';
-      fs.textContent = '⛶';
-      fs.addEventListener('click', toggleFullscreen);
-      hudCtl.appendChild(fs);
-    }
-  }
+  /* (۲۵٫۰) دکمه‌ی تمام‌صفحه حذف شد — درخواست کاربر: «کلا حذفش کن»
+     داخل APK بازی خودش تمام‌صفحه است؛ در مرورگر هم F11 وجود دارد. */
 });
 
 /* سیو خودکار وقتی کاربر می‌رود بیرون/صفحه را می‌بندد
@@ -254,13 +246,16 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-/* دیباگ API */
-if (typeof window.GAME !== 'undefined') {
-  GAME.perf = PERF;
-  GAME.isTouch = IS_TOUCH;
-  GAME.saveAndExit = saveAndExit;
-  GAME.exitToMenu = exitToMenu;
-}
+/* دیباگ API — (۲۵٫۰) رفع ترتیب لود: GAME در v3_part4 (بعد از این فایل)
+   ساخته می‌شود؛ پس انتساب‌ها را در رویداد load انجام می‌دهیم */
+window.addEventListener('load', () => {
+  if (typeof window.GAME !== 'undefined') {
+    GAME.perf = PERF;
+    GAME.isTouch = IS_TOUCH;
+    GAME.saveAndExit = saveAndExit;
+    GAME.exitToMenu = exitToMenu;
+  }
+});
 
 /* ---------------------- (۱۷٫۰) فرمان با کج‌کردن گوشی ----------------------
    در مینی‌گیم رانندگی (انتقال فصل ۱→۲): شیبِ چپ/راست گوشی = فرمان.

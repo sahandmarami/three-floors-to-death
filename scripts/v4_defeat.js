@@ -123,7 +123,7 @@ function finishDefeatCine() {
   $('wrap').classList.remove('cs-mode');
   $('skipCs').classList.add('hidden');
   hideAnnounce();
-  $('goSubtitle').textContent = 'تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دوام آوردی';
+  $('goSubtitle').textContent = 'تا مرحله ' + faNum(clamp(state.wave, 1, FINAL_WAVE)) + ' دوام آوردی';
   $('goStats').innerHTML = 'کشتار: <b>' + faNum(state.stats.kills) +
     '</b> &nbsp;•&nbsp; بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b>';
   /* «تلاش دوباره» فقط وقتی سیو معتبری هست (با سیوِ شروع موج تقریباً همیشه هست) */
@@ -280,7 +280,7 @@ function drawDefeatOverlay() {
   ctx.fillRect(0, H - 42, W, 42);
   /* زیرنویس‌های مرحله‌ای */
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 17px Tahoma, sans-serif';
+  ctx.font = 'bold 17px Vazirmatn, Tahoma, sans-serif';
   for (const [a, b, txt] of DF_CAPS) {
     if (t >= a && t <= b) {
       const alpha = Math.min(1, (t - a) / 0.18, (b - t) / 0.25);

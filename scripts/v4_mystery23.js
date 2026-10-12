@@ -294,7 +294,7 @@ const MYST = {
       if (dist < 0.4) stat.innerHTML = '<b class="ok">...ایستگاه شمال... مسیر کانال... تکرار می‌شود...</b>';
       else if (dist < 2) stat.textContent = 'شو... شش... ایستگا... شش...';
       else if (dist < 6) stat.textContent = 'شووووش... شش...';
-      else stat.textContent = 'شــــوش... شوش...';
+      else stat.textContent = 'شوش... شوش...';
       /* نویز زنده — فیلتر با نزدیکی باز می‌شود */
       this.radioNoise(1 - clamp(dist / 18, 0, 1));
     };
@@ -487,7 +487,7 @@ const MYST = {
     if (state.mode === 'playing' && this.molotovs > 0) {
       ctx.save();
       ctx.textAlign = 'right';
-      ctx.font = 'bold 12px Tahoma';
+      ctx.font = 'bold 12px Vazirmatn, Tahoma';
       ctx.fillStyle = 'rgba(255,180,90,0.9)';
       ctx.fillText('🔥×' + faNum(this.molotovs), TOWER.x + TOWER.baseHalf + 26, GROUND_Y - 92);
       ctx.restore();

@@ -147,11 +147,13 @@ const CHAPTERS = [
 /* فصل فعال (برای خواندن تم/ضریب‌ها در توابع رندر) */
 function curCh() { return CHAPTERS[clamp(state.chapter - 1, 0, 3)]; }
 
-/* برچسب موج برای HUD (۲۴٫۰): «فصل ۲ · موج ۱۰ از ۳۶» — پیشرفتِ کل همیشه دیده شود */
+/* برچسب مرحله برای HUD (۲۵٫۰): فقط «مرحله ۱۰» — مثل بازی‌های واقعی، بدون فصل/کل */
 function waveLabel() {
-  if (state.wave >= FINAL_WAVE) return '🌑 آخرین شب';
+  /* (۲۵٫۰) خواسته‌ی کاربر: مثل بازی‌های واقعی فقط «مرحله X» —
+     بدون شماره‌ی فصل/موج/کل. آخرین مرحله حس ویژه دارد */
+  if (state.wave >= FINAL_WAVE) return '🌑 آخرین مرحله';
   const w = clamp(state.wave, 1, FINAL_WAVE);
-  return 'فصل ' + faNum(waveChapter(w)) + ' · موج ' + faNum(w) + ' از ' + faNum(FINAL_WAVE);
+  return 'مرحله ' + faNum(w);
 }
 
 /* ---------------------- ۵-۲) تولید ترکیب موج‌ها ---------------------- */
@@ -623,7 +625,7 @@ function refreshMenuContinue() {
   const _c = $('m23c');
   if (_c) {
     _c.textContent = d
-      ? 'فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave)) + ' از ۳۶'
+      ? 'مرحله ' + faNum(clamp(d.wave, 1, FINAL_WAVE))
       : 'هنوز سیوی نداری';
   }
   /* (۲۴٫۰) چیپ‌های آمارِ منو حذف شدند — درخواست کاربر: زیر دکمه‌های اصلی متن نباشد */
@@ -772,11 +774,13 @@ function retryFromSave() {
 function startNewGame() {
   SFX.click();
   if (loadSaveData()) {
-    askConfirm('با شروع بازی جدید، سیوِ قبلی پاک می‌شود. ادامه بدهم؟', () => {
+    askConfirm('سیوِ قبلی‌ات پاک می‌شه و داستان از شب اول شروع می‌شه. ',
+    () => {
       hideScreen('confirmBox');
       wipeSave();
       startIntroCine();
-    });
+    }, { title: 'بازی جدید رو شروع کنم؟', icon: '🎮', danger: true,
+         yes: 'آره، از شب اول', no: 'نه، سیو بمونه' });
     return;
   }
   startIntroCine();
@@ -798,8 +802,17 @@ function doFade(mid, dur) {
 }
 
 let _cfYes = null;
-function askConfirm(msg, onYes) {
+/* (۲۵٫۰) جعبه‌ی تأیید اندرویدی — عنوان + آیکن + دکمه‌های متن‌دار
+   opt: {title, icon, yes, no, danger} */
+function askConfirm(msg, onYes, opt) {
+  opt = opt || {};
+  const box = $('confirmBox');
   $('cfMsg').textContent = msg;
+  if ($('cfTitle')) $('cfTitle').textContent = opt.title || 'مطمئنی؟';
+  if ($('cfIcon')) $('cfIcon').textContent = opt.icon || '⚠️';
+  if ($('cfYes')) $('cfYes').textContent = opt.yes || 'بله';
+  if ($('cfNo')) $('cfNo').textContent = opt.no || 'نه، برگرد';
+  if (box) box.classList.toggle('danger', !!opt.danger);
   _cfYes = onYes;
   showScreen('confirmBox');
 }

@@ -334,7 +334,7 @@ function drawMenuFX() {
 function updateAnnounce(dt) {
   const el = $('announce');
   if (state.mode === 'intermission') {
-    $('announceBig').textContent = 'موج بعدی: ' + faNum(waveInChapter(state.wave + 1));
+    $('announceBig').textContent = 'مرحله ' + faNum(clamp(state.wave + 1, 1, FINAL_WAVE));
     $('announceSub').textContent = 'شروع در ' + faNum(Math.max(1, Math.ceil(state.intermission))) + ' ثانیه — 🛠 فرصت ارتقا!';
     el.style.opacity = 1;
   } else if (announceTimer > 0) {
@@ -379,7 +379,7 @@ function legacyGameOver() {
   if (state.mode === 'gameover') return;
   state.mode = 'gameover';
   try { SFX.defeatSting(); } catch (e) {}      // (۱۵٫۰) صدای باخت، نه دیالوگ
-  $('goSubtitle').textContent = 'تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دوام آوردی';
+  $('goSubtitle').textContent = 'تا مرحله ' + faNum(clamp(state.wave, 1, FINAL_WAVE)) + ' دوام آوردی';
   $('goStats').innerHTML = 'کشتار: <b>' + faNum(state.stats.kills) +
     '</b> &nbsp;•&nbsp; بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b>';
   $('bossBar').style.display = 'none'; bossBarVisible = false;
@@ -1508,7 +1508,7 @@ function drawPlacing() {
   /* نوار راهنمای نصب بالای صحنه */
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 13px Tahoma, sans-serif';
+  ctx.font = 'bold 13px Vazirmatn, Tahoma, sans-serif';
   const msg = 'کلیک: نصب  •  راست‌کلیک / Esc: لغو';
   const tw = ctx.measureText(msg).width + 30;
   ctx.fillStyle = 'rgba(8,14,30,0.82)';
@@ -2834,7 +2834,7 @@ function drawTexts() {
   for (const t of state.texts) {
     const a = 1 - t.age / t.life;
     ctx.globalAlpha = Math.max(0, a);
-    ctx.font = 'bold ' + t.size + 'px Tahoma, sans-serif';
+    ctx.font = 'bold ' + t.size + 'px Vazirmatn, Tahoma, sans-serif';
     ctx.fillStyle = 'rgba(0,0,0,' + (0.5 * a).toFixed(2) + ')';  // سایه متن
     ctx.fillText(t.str, t.x + 1, t.y + 1);
     ctx.fillStyle = t.color;
@@ -2851,7 +2851,7 @@ function drawCombo() {
   ctx.translate(W / 2, 118);
   ctx.scale(scale, scale);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = '900 26px Tahoma, sans-serif';
+  ctx.font = '900 26px Vazirmatn, Tahoma, sans-serif';
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillText('کمبو ×' + faNum(state.combo), 2, 2);
   ctx.fillStyle = state.combo >= 8 ? '#ff9d3d' : '#ffd873';

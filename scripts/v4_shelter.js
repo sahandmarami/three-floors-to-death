@@ -276,7 +276,7 @@ function renderShelterCine() {
   /* زیرنویس سینمایی (مراحل بدون DLG) */
   if (SHEL.subT > 0 && SHEL.sub && ph !== 'tbc') {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 14.5px Tahoma, sans-serif';
+    ctx.font = 'bold 14.5px Vazirmatn, Tahoma, sans-serif';
     const a = Math.min(1, SHEL.subT / 0.3);
     ctx.globalAlpha = a;
     const tw = ctx.measureText(SHEL.sub).width + 30;
@@ -861,7 +861,7 @@ function renderShelterInside(t, ph) {
   /* بشکه‌ی سوخت با علامت خطر */
   ctx.fillStyle = '#7a4a28'; rr(832, 440, 34, 44, 5); ctx.fill();
   ctx.fillStyle = '#e8b54a';
-  ctx.font = 'bold 13px Tahoma'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 13px Vazirmatn, Tahoma'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('⚡', 849, 462);
   ctx.restore();                                /* (21.3) end sleeping-area block */
   /* بند رخت با دو لباس — (۲۱٫۳: نقاط نسبت به VX؛ سرِ بند به دیوار راست) */

@@ -1,4 +1,12 @@
 'use strict';
+/* (۲۵٫۰) پیش‌بارگذاری «وزیرمتن» — فونت باید قبل از اولین رسم Canvas
+   آماده باشد وگرنه متن‌ها با قلم جایگزین (نسخ عربی!) نقاشی می‌شوند */
+if (document.fonts && document.fonts.load) {
+  ['400 16px Vazirmatn', '500 16px Vazirmatn', '600 16px Vazirmatn',
+   '700 16px Vazirmatn', '900 16px Vazirmatn'].forEach(f => {
+    try { document.fonts.load(f); } catch (e) {}
+  });
+}
 /* ==================================================================
    سه طبقه تا بقا — نسخه‌ی ۶٫۰ — منطق بازی (بخش ۱)
    ساختار کد برای گسترش‌پذیری ماژولار طراحی شده:
@@ -769,7 +777,7 @@ function startWave(n) {
     interval: Math.max(2.0 - n * 0.14, 0.5),        // فاصله بین تولدها (کم‌تر هر موج)
     bossDelay: false,
   };
-  setAnnounce('موج ' + faNum(n),
+  setAnnounce('مرحله ' + faNum(n),
     n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
   SFX.wave();
   setBuildPanel(true, true);               // شب شد: پنل خودکار جمع شود تا نقشه آزاد باشد (۶٫۰)
@@ -805,7 +813,7 @@ function waveComplete() {
   state.goingNight = false;
   state.slowmo = Math.max(state.slowmo, 0.45);   // لحظه‌ی سینمایی پاک‌سازی موج
   $('bossBar').style.display = 'none'; bossBarVisible = false;
-  setAnnounce('☀️ صبح شد!', 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
+  setAnnounce('☀️ صبح شد!', 'مرحله ' + faNum(state.wave) + ' گرفتی — ارتقا بخر و شب رو شروع کن', 3);
   SFX.clear();
   SFX.morning();                           // چرپ‌چرپ صبحگاهی
   showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
@@ -830,7 +838,7 @@ function startNight() {
   state.goingNight = true;
   hideDayPanel();
   state.dayTarget = 0;                     // آسمان آرام تاریک می‌شود
-  setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+  setAnnounce('🌙 شب می‌شود...', 'مرحله ' + faNum(clamp(state.wave + 1, 1, FINAL_WAVE)) + ' در راه است — آماده باش!', 1.8);
   SFX.dusk();
 }
 

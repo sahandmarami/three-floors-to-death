@@ -820,7 +820,7 @@ function drawPortrait(cv, who, talking, t) {
     c.beginPath(); c.moveTo(0, -12); c.lineTo(0, 9); c.stroke();
     c.restore();
     c.fillStyle = 'rgba(232,217,176,0.7)';              // هاله‌ی خاطره
-    c.font = 'bold 10px Tahoma'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = 'bold 10px Vazirmatn, Tahoma'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText('· · ·', 0, 22);
   }
   c.restore();
