@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#04060d">
-<meta name="description" content="سه طبقه تا مرگ — نسخه‌ی ۲۳٫۰: داستان کاملِ چهار فصل با صداهای متمایز شخصیت‌ها، پایان سینمایی، ۳۶ شب، تمام‌صفحه روی گوشی، مینی‌گیم‌ها و پناهگاه — بهینه برای موبایل و اندروید">
+<meta name="description" content="سه طبقه تا مرگ — نسخه‌ی ۲۵٫۰: داستان کاملِ چهار فصل با صداهای احساسی، پایان سینمایی، رابط کاربری بازسازی‌شده برای اندروید، مینی‌گیم‌ها و پناهگاه — بهینه برای موبایل">
 <title>سه طبقه تا مرگ — چهار فصل تا پناهگاه</title>
 <style>
 /* ==================================================================
@@ -74,7 +74,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 }
 /* (۱۴٫۰) کلاس dlg-on: هنگام گفتگو، UIِ هم‌مکان مخفی — گفتگو تمیز بماند
    (۱۶٫۰) پنل ساخت‌وساز می‌ماند ولی «شب شود»ی داخلش مخفی می‌شود */
-#wrap.dlg-on #bpNight,
+#wrap.dlg-on #nightCTA,
 #wrap.dlg-on #announce,
 #wrap.dlg-on #backpackBar,
 #wrap.dlg-on #saveToast,
@@ -90,16 +90,8 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #rotateHint.hidden{display:none}
 /* (۱۱٫۰/۱۴٫۰) نمایش rotateHint با JS مدیریت می‌شود (v4_mobile — orient) */
 
-/* ---------- (۱۲٫۰/۲۴٫۰) لمس: دکمه‌های مناسب انگشت — با جبران مقیاس ---------- */
-#wrap.touch #buildPanel{width:calc(210px * var(--uiz2,1));top:calc(72px * var(--uiz2,1));right:calc(10px * var(--uiz2,1));max-height:calc(100% - 84px);display:flex;flex-direction:column}
-#wrap.touch #bpList{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
-#wrap.touch .bp-tab{min-height:calc(46px * var(--uiz2,1));font-size:calc(12px * var(--uiz2,1))}
-#wrap.touch .bp-tab .bp-tab-ic{font-size:calc(16px * var(--uiz2,1))}
-#wrap.touch .bp-ic{width:calc(48px * var(--uiz2,1));height:calc(48px * var(--uiz2,1))}
-#wrap.touch .bp-tile .bp-price{font-size:calc(11.5px * var(--uiz2,1))}
+/* ---------- (۲۵٫۰) لمس: اندازه‌های لمسی در پایه با --uiz اعمال می‌شوند ---------- */
 #wrap.touch .bp-key{display:none!important}
-#wrap.touch #bpNight{min-height:calc(48px * var(--uiz2,1));font-size:calc(14px * var(--uiz2,1))}
-#wrap.touch .bp-tile{height:calc(88px * var(--uiz2,1))}
 #wrap.touch #dlgText{font-size:calc(16.5px * var(--uiz,1))}
 #wrap.touch #dlgTextWrap{min-width:calc(250px * var(--uiz,1))}
 #wrap.touch #bpTip{display:none!important}
@@ -107,48 +99,86 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #wrap.touch .overlay .btn-sec{min-height:calc(50px * var(--uiz,1));font-size:calc(14.5px * var(--uiz,1));padding:calc(12px * var(--uiz,1)) calc(24px * var(--uiz,1))}
 #wrap.touch .myst-x{width:calc(46px * var(--uiz,1));height:calc(46px * var(--uiz,1));font-size:calc(19px * var(--uiz,1))}
 
-/* ---------- ۲) (۲۴٫۰) HUD موبایل — بازطراحی کامل ----------
-   راست (اصلیِ RTL): قرصِ طلاییِ سکه (درشت، مثل بازی‌های معروف) + جون + موج
-   چپ: دکمه‌ی بزرگ توقف + قطع صدا — همه هدف لمسی ≥ ۴۸dp. */
+/* ---------- ۲) (۲۵٫۰) HUD اندرویدی — بازطراحی کامل ----------
+   راست: قرص طلایی سکه با لوگوی چرخان + کپسول جون شیشه‌ای + چیپ «مرحله»
+   چپ: توقف طلایی + صدا — همه لمس‌پذیر با جبران مقیاس */
 #hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
-  align-items:flex-start;padding:calc(10px * var(--uiz2,1)) calc(14px * var(--uiz2,1));gap:10px;pointer-events:none;z-index:5}
-.hud-group{display:flex;gap:calc(9px * var(--uiz2,1));align-items:center;flex-wrap:nowrap;min-width:0}
-.hud-item{display:flex;align-items:center;gap:7px;flex:none;background:linear-gradient(180deg,rgba(20,32,66,.94),rgba(10,17,38,.94));
-  border:1px solid #3d548c;border-radius:12px;padding:calc(6px * var(--uiz2,1)) calc(12px * var(--uiz2,1));
-  font-size:calc(14px * var(--uiz2,1));font-weight:bold;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 12px rgba(0,0,0,.5);
+  align-items:flex-start;padding:calc(9px * var(--uiz2,1)) calc(12px * var(--uiz2,1));gap:8px;pointer-events:none;z-index:5}
+.hud-group{display:flex;gap:calc(7px * var(--uiz2,1));align-items:center;flex-wrap:nowrap;min-width:0}
+.hud-item{display:flex;align-items:center;gap:7px;flex:none;background:linear-gradient(180deg,rgba(18,29,60,.95),rgba(9,15,34,.95));
+  border:1px solid #3a5089;border-radius:999px;padding:calc(5px * var(--uiz2,1)) calc(13px * var(--uiz2,1));
+  font-size:calc(13px * var(--uiz2,1));font-weight:bold;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 4px 14px rgba(0,0,0,.5);
   white-space:nowrap;color:#eef2ff;text-shadow:0 1px 2px rgba(0,0,0,.7)}
-/* قرص طلایی سکه — قهرمانِ نوار بالا (۲۴: جبران مقیاس کامل) */
-#coinItem{gap:calc(10px * var(--uiz,1));padding:calc(5px * var(--uiz,1)) calc(18px * var(--uiz,1)) calc(5px * var(--uiz,1)) calc(16px * var(--uiz,1));border-radius:999px;
-  background:linear-gradient(180deg,rgba(36,25,8,.97),rgba(19,13,4,.97));
+
+/* --- سکه: قرص قهرمان + لوگوی ستاره‌ی چرخان با درخشش --- */
+#coinItem{gap:calc(9px * var(--uiz,1));padding:calc(5px * var(--uiz,1)) calc(17px * var(--uiz,1)) calc(5px * var(--uiz,1)) calc(15px * var(--uiz,1));border-radius:999px;
+  background:linear-gradient(180deg,rgba(38,26,9,.97),rgba(19,13,4,.97));
   border:calc(2px * var(--uiz,1)) solid #f0b53c;
-  box-shadow:0 4px 18px rgba(0,0,0,.55),0 0 24px rgba(240,181,60,.32),inset 0 1px 0 rgba(255,235,170,.3)}
-#coinText{font-size:calc(20px * var(--uiz,1));font-weight:900;color:#ffd873;text-shadow:0 1px 3px rgba(0,0,0,.85);
-  min-width:calc(40px * var(--uiz,1));text-align:center;line-height:1.2}
-.coin-ic{width:calc(27px * var(--uiz,1));height:calc(27px * var(--uiz,1));border-radius:50%;flex:none;position:relative;display:inline-block;
-  background:radial-gradient(circle at 35% 30%,#fff3c4,#ffd873 40%,#e8a41f 72%,#a8681c 98%);
-  border:calc(2px * var(--uiz,1)) solid #b98a1e;
-  box-shadow:0 0 12px rgba(255,200,80,.8),inset 0 2px 4px rgba(255,255,255,.7),inset 0 -3px 5px rgba(120,70,0,.5)}
-.coin-ic::after{content:'';position:absolute;inset:32%;border-radius:50%;border:2px dotted rgba(122,72,10,.6)}
-/* جون برج — درشت‌تر */
-#healthBar{width:calc(150px * var(--uiz2,1));height:calc(16px * var(--uiz2,1));background:#160c0c;border:1.5px solid #55302f;border-radius:8px;overflow:hidden}
-#healthText{font-size:calc(13.5px * var(--uiz2,1));font-weight:900;color:#eef2ff}
-#healthFill{height:100%;width:100%;border-radius:7px;transition:width .18s ease;
-  background:linear-gradient(90deg,#2ee06b,#8cff9a);box-shadow:0 0 8px rgba(72,224,120,.5)}
-#healthFill.mid{background:linear-gradient(90deg,#f0b53a,#f7d968);box-shadow:0 0 8px rgba(240,181,58,.5)}
-#healthFill.low{background:linear-gradient(90deg,#ef4d38,#ff8a72);box-shadow:0 0 8px rgba(239,77,56,.55)}
-/* پالس وقتی سکه‌ای جمع می‌شود */
-@keyframes coinPulse{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
-#coinItem.pulse{animation:coinPulse .3s ease}
-#coinItem.pulse .coin-ic{box-shadow:0 0 20px rgba(255,220,120,1),inset 0 2px 4px rgba(255,255,255,.85),inset 0 -3px 5px rgba(120,70,0,.5)}
-/* (۲۴٫۰) در صفحه‌های باریک چیپ‌ها جمع‌وجور می‌شوند — روی --uiz حساب نمی‌کنیم */
+  box-shadow:0 4px 18px rgba(0,0,0,.55),0 0 22px rgba(240,181,60,.3),inset 0 1px 0 rgba(255,235,170,.32)}
+#coinText{font-size:calc(19px * var(--uiz,1));font-weight:900;color:#ffd873;text-shadow:0 1px 3px rgba(0,0,0,.85);
+  min-width:calc(38px * var(--uiz,1));text-align:center;line-height:1.2}
+.coin-ic{width:calc(28px * var(--uiz,1));height:calc(28px * var(--uiz,1));border-radius:50%;flex:none;position:relative;display:inline-block;
+  background:radial-gradient(circle at 34% 28%,#fff8d8 0%,#ffe289 22%,#f7c948 50%,#e8a41f 74%,#9c661a 100%);
+  border:calc(1.5px * var(--uiz,1)) solid #ffe9a8;overflow:hidden;
+  box-shadow:0 0 13px rgba(255,200,80,.85),0 2px 5px rgba(0,0,0,.55),inset 0 -3px 6px rgba(120,70,0,.5),inset 0 2px 3px rgba(255,255,255,.85);
+  animation:coinBreath 4.2s ease-in-out infinite}
+.coin-ic::before{content:'★';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#8a5710;font-size:calc(14px * var(--uiz,1));font-weight:900;line-height:1;
+  text-shadow:0 1px 0 rgba(255,240,190,.95)}
+.coin-ic::after{content:'';position:absolute;top:-20%;bottom:-20%;width:34%;left:-40%;transform:skewX(-18deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);
+  animation:coinSheen 3.4s ease-in-out infinite}
+@keyframes coinBreath{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-1px) scale(1.07)}}
+@keyframes coinSheen{0%,55%{left:-40%}85%,100%{left:115%}}
+@keyframes coinPulse{0%{transform:scale(1)}40%{transform:scale(1.16)}100%{transform:scale(1)}}
+#coinItem.pulse{animation:coinPulse .32s ease}
+#coinItem.pulse .coin-ic{box-shadow:0 0 22px rgba(255,220,120,1),inset 0 2px 4px rgba(255,255,255,.9),inset 0 -3px 5px rgba(120,70,0,.5)}
+
+/* --- جون: کپسول شیشه‌ای + قلب تپنده + تیک‌های نقطه‌ای --- */
+#hpItem{gap:calc(8px * var(--uiz,1));padding:calc(5px * var(--uiz,1)) calc(14px * var(--uiz,1)) calc(5px * var(--uiz,1)) calc(12px * var(--uiz,1))}
+.hp-heart{width:calc(16px * var(--uiz,1));height:calc(16px * var(--uiz,1));flex:none;position:relative;display:inline-block;
+  background:radial-gradient(circle at 35% 30%,#ff9a8a,#ef4d38 60%,#b01f14);
+  border-radius:50% 50% 50% 0;transform:rotate(-45deg) scale(.95);
+  box-shadow:0 0 10px rgba(239,77,56,.7),inset 0 2px 3px rgba(255,255,255,.5);
+  animation:heartBeat 1.6s ease-in-out infinite}
+.hp-heart::before,.hp-heart::after{content:'';position:absolute;width:100%;height:100%;border-radius:50%;background:inherit}
+.hp-heart::before{top:-52%;left:0}
+.hp-heart::after{top:-52%;right:0}
+@keyframes heartBeat{0%,100%{transform:rotate(-45deg) scale(.95)}12%{transform:rotate(-45deg) scale(1.12)}24%{transform:rotate(-45deg) scale(.98)}36%{transform:rotate(-45deg) scale(1.07)}}
+#healthBar{position:relative;width:calc(148px * var(--uiz2,1));height:calc(14px * var(--uiz2,1));flex:none;
+  background:#140b0b;border-radius:999px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 2px 6px rgba(0,0,0,.75)}
+#healthFill{height:100%;width:100%;border-radius:999px;transition:width .22s ease,background .3s;
+  background:linear-gradient(180deg,#8dffb0,#2ecc5e 55%,#1f9e46);
+  box-shadow:0 0 9px rgba(72,224,120,.6),inset 0 1px 0 rgba(255,255,255,.45)}
+#healthFill.mid{background:linear-gradient(180deg,#ffe9a0,#f0b53c 55%,#c07f18);box-shadow:0 0 9px rgba(240,181,58,.6),inset 0 1px 0 rgba(255,255,255,.45)}
+#healthFill.low{background:linear-gradient(180deg,#ff9a85,#ef4d38 55%,#b01f14);box-shadow:0 0 10px rgba(239,77,56,.7),inset 0 1px 0 rgba(255,255,255,.4);animation:hpAlarm .8s ease-in-out infinite}
+@keyframes hpAlarm{0%,100%{filter:brightness(1)}50%{filter:brightness(1.45)}}
+#healthBar .hp-shine{position:absolute;top:0;bottom:0;width:38%;left:-50%;transform:skewX(-16deg);pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);
+  animation:hpShine 3s linear infinite}
+@keyframes hpShine{to{left:130%}}
+#healthBar .hp-ticks{position:absolute;inset:0;display:flex;pointer-events:none}
+#healthBar .hp-ticks i{flex:1;border-inline-start:1px solid rgba(0,0,0,.3)}
+#healthBar .hp-ticks i:first-child{border:none}
+#healthText{font-size:calc(12.5px * var(--uiz2,1));font-weight:900;color:#eef2ff;min-width:calc(46px * var(--uiz2,1));text-align:center}
+
+/* --- چیپ «مرحله» با پرچم کوچک --- */
+#waveItem{gap:6px}
+#waveItem .wv-ic{width:calc(13px * var(--uiz2,1));height:calc(15px * var(--uiz2,1));flex:none;display:inline-block;
+  background:linear-gradient(180deg,#ffd873,#e8a41f);
+  clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);
+  box-shadow:0 1px 3px rgba(0,0,0,.5)}
+#waveText{font-size:calc(13.5px * var(--uiz2,1));font-weight:900;color:#ffd873}
+
+/* (۲۵٫۰) در صفحه‌های باریک چیپ‌ها جمع‌وجور می‌شوند */
 @media (max-width:820px){
-  #healthBar{width:calc(104px * var(--uiz2,1))}
-  #hud{padding:calc(8px * var(--uiz2,1)) calc(10px * var(--uiz2,1))}
+  #healthBar{width:calc(106px * var(--uiz2,1))}
+  #hud{padding:calc(7px * var(--uiz2,1)) calc(9px * var(--uiz2,1))}
 }
 
-/* ---------- (۲۴٫۰) دکمه‌های HUD چپ: توقفِ بزرگ + صدا ----------
-   توقف همیشه سرِ جای شناخته‌شده‌اش: گوشه‌ی بالا-چپ، ۵۴px، لمس‌آسان. */
+/* ---------- (۲۵٫۰) دکمه‌های HUD چپ: توقف طلایی + صدا ---------- */
 .hud-ctl{pointer-events:none;gap:calc(8px * var(--uiz,1))}
 .ctl-btn{pointer-events:auto;cursor:pointer;font-family:inherit;color:#e8ecf5;line-height:1;
   background:linear-gradient(180deg,rgba(38,55,98,.97),rgba(22,33,62,.97));
@@ -159,10 +189,10 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   transition:background .15s,transform .15s,border-color .15s}
 .ctl-btn:hover{border-color:#ffd873}
 .ctl-btn:active{transform:scale(.93)}
-.hud-pause{width:calc(54px * var(--uiz,1));height:calc(54px * var(--uiz,1));font-size:calc(25px * var(--uiz,1));border-radius:calc(17px * var(--uiz,1));border:calc(2px * var(--uiz,1)) solid #e8b54a;
+.hud-pause{width:calc(52px * var(--uiz,1));height:calc(52px * var(--uiz,1));font-size:calc(23px * var(--uiz,1));border-radius:calc(16px * var(--uiz,1));border:calc(2px * var(--uiz,1)) solid #e8b54a;
   background:linear-gradient(180deg,rgba(52,60,86,.97),rgba(26,30,48,.97))}
-.hud-mini{width:calc(48px * var(--uiz,1));height:calc(48px * var(--uiz,1));font-size:calc(21px * var(--uiz,1));border-radius:calc(15px * var(--uiz,1))}
-/* چراغ‌قوه: دکمه‌ی گرد خوشه‌ی پایین-چپ (کنار شنود) — لمس‌پذیر در همه‌ی مقیاس‌ها */
+.hud-mini{width:calc(44px * var(--uiz,1));height:calc(44px * var(--uiz,1));font-size:calc(19px * var(--uiz,1));border-radius:calc(14px * var(--uiz,1))}
+/* چراغ‌قوه: دکمه‌ی گرد خوشه‌ی پایین-چپ (کنار شنود) */
 #ctlFlash{position:absolute;left:calc(84px * var(--uiz,1));bottom:calc(62px * var(--uiz,1));z-index:7;
   width:calc(58px * var(--uiz,1));height:calc(58px * var(--uiz,1));border-radius:50%;font-size:calc(24px * var(--uiz,1));gap:3px}
 /* باتری چراغ‌قوه: نوار کوچک زیر آیکون */
@@ -199,52 +229,54 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #announce.pop .big{animation:annPop .5s cubic-bezier(.2,1.7,.5,1) both}
 @keyframes annPop{0%{transform:scale(.4) translateY(10px);opacity:0}100%{transform:scale(1);opacity:1}}
 
-/* ---------- ۴) پنل ساخت‌وساز تب‌دار کنار نقشه (۱۲٫۰) ----------
-   به‌جای فهرست بلندِ همه‌ی آیتم‌ها (که از صفحه بیرون می‌زد و
-   چراغ‌قوه دیده نمی‌شد)، چهار تب: ارتقاء / سلاح‌ها / برجک‌ها / بقا.
-   در شب خودکار «جمع» می‌شود تا شلیک آزاد بماند. */
-#buildPanel{position:absolute;top:60px;right:10px;width:208px;z-index:5;
-  background:linear-gradient(180deg,rgba(16,26,54,.96),rgba(9,15,34,.96));border:1px solid #384f86;
-  border-radius:13px;overflow:visible;
-  box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
-/* حالت جمع‌شده: فقط سربرگ به‌صورت یک قرص کوچک در آسمان */
-#buildPanel.collapsed{width:auto}
-#buildPanel.collapsed .bp-head{border-radius:13px;padding:7px 13px;font-size:12px;
-  background:rgba(13,21,44,.92)}
-#buildPanel.collapsed .bp-tabs{display:none}
+/* ---------- ۴) (۲۵٫۰) کشوی ساخت‌وساز — راست، زیر HUD، هرگز روی دکمه‌ها نمی‌افتد
+   کشوی عمودی با ارتفاع سقف‌دار و فهرست اسکرول‌شونده؛ در شب خودکار جمع می‌شود. */
+#buildPanel{position:absolute;top:calc(66px * var(--uiz2,1));right:calc(10px * var(--uiz2,1));width:calc(216px * var(--uiz2,1));z-index:5;
+  max-height:calc(100% - calc(172px * var(--uiz2,1)));display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(16,26,54,.97),rgba(9,15,34,.97));border:1.5px solid #46609e;
+  border-radius:15px;overflow:hidden;
+  box-shadow:0 12px 34px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)}
+/* حالت جمع‌شده: قرص کوچک زیر HUD */
+#buildPanel.collapsed{width:auto;max-height:none}
+#buildPanel.collapsed .bp-head{border-radius:15px;padding:calc(8px * var(--uiz2,1)) calc(14px * var(--uiz2,1));font-size:calc(12px * var(--uiz2,1));
+  background:rgba(13,21,44,.95)}
+#buildPanel.collapsed .bp-tabs,#buildPanel.collapsed #bpList{display:none}
 #buildPanel:not(.collapsed) #bpList{animation:bpOpen .18s ease}
 @keyframes bpOpen{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
-.bp-head{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:11.5px;font-weight:bold;
-  color:#ffd873;background:linear-gradient(180deg,rgba(26,38,74,.95),rgba(15,24,50,.95));cursor:pointer;
-  border-bottom:1px solid #2c3f70;border-radius:13px 13px 0 0}
+.bp-head{display:flex;align-items:center;gap:7px;padding:calc(7px * var(--uiz2,1)) calc(11px * var(--uiz2,1));font-size:calc(12.5px * var(--uiz2,1));font-weight:900;
+  color:#ffd873;background:linear-gradient(180deg,rgba(31,45,84,.98),rgba(15,24,50,.98));cursor:pointer;
+  border-bottom:1px solid #2c3f70;flex:none}
 .bp-head .bp-chev{margin-inline-start:auto;font-size:10px;color:#9fb2dd}
-/* جلب توجه پنل در روزِ بین موج‌ها */
+/* جلب توجه پنل در روزِ بین مرحله‌ها */
 @keyframes attentionPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,216,115,.55)}50%{box-shadow:0 0 0 9px rgba(255,216,115,0)}}
 .bp-head.attention{animation:attentionPulse 1.2s infinite;color:#ffd873}
-/* نوار تب‌ها (۱۲٫۰) — چهار قرص؛ تب فعال طلایی */
-.bp-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:6px 6px 2px}
+/* نوار تب‌ها — چهار قرص؛ تب فعال طلایی */
+.bp-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:7px 6px 3px;flex:none}
 .bp-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  min-height:calc(34px * var(--uiz2,1));background:rgba(13,22,46,.9);border:1px solid #2c3f70;border-radius:9px;
-  cursor:pointer;pointer-events:auto;font-size:calc(9.5px * var(--uiz2,1));font-weight:bold;color:#9fb2dd;
+  min-height:calc(46px * var(--uiz2,1));background:rgba(13,22,46,.9);border:1.5px solid #2c3f70;border-radius:10px;
+  cursor:pointer;pointer-events:auto;font-size:calc(10px * var(--uiz2,1));font-weight:bold;color:#9fb2dd;
   padding:3px 1px;transition:background .15s,color .15s,border-color .15s,transform .1s;
   text-shadow:0 1px 2px rgba(0,0,0,.6)}
-.bp-tab .bp-tab-ic{font-size:calc(13px * var(--uiz2,1));line-height:1.2}
+.bp-tab .bp-tab-ic{font-size:calc(15px * var(--uiz2,1));line-height:1.2}
 .bp-tab:hover{border-color:#4d6aa8;color:#dbe5fa}
+.bp-tab:active{transform:scale(.94)}
 .bp-tab.on{background:linear-gradient(180deg,#ffd873,#eda93c);border-color:#ffd873;color:#1a1206;
   text-shadow:none;box-shadow:0 0 12px rgba(255,216,115,.35)}
 #buildPanel.collapsed #bpList{display:none}
-#bpList{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:6px}
-/* کاشی آیتم — پررنگ‌تر (۱۲٫۰) */
-.bp-tile{position:relative;height:calc(84px * var(--uiz2,1));background:linear-gradient(180deg,rgba(26,40,80,.92),rgba(12,20,44,.92));
-  border:1.5px solid #33518f;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+#bpList{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:7px;
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
+/* کاشی آیتم */
+.bp-tile{position:relative;height:calc(86px * var(--uiz2,1));background:linear-gradient(180deg,rgba(26,40,80,.92),rgba(12,20,44,.92));
+  border:1.5px solid #33518f;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;cursor:pointer;pointer-events:auto;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
   transition:border-color .15s,transform .15s,box-shadow .15s,background .15s}
 .bp-tile:hover{border-color:#e8b54a;background:rgba(34,52,100,.95);transform:translateY(-2px);z-index:2;
   box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 12px rgba(232,181,74,.2)}
+.bp-tile:active{transform:scale(.95)}
 .bp-tile .bp-ic{width:calc(44px * var(--uiz2,1));height:calc(44px * var(--uiz2,1));display:block}
-/* قیمت: نوار تیره‌ی گرد با نقطه‌ی سکه‌ی طلایی */
-.bp-tile .bp-price{font-size:calc(10px * var(--uiz2,1));font-weight:bold;color:#ffd873;line-height:1;min-height:calc(14px * var(--uiz2,1));
+/* قیمت: نوار تیره‌ی گرد با سکه‌ی طلایی */
+.bp-tile .bp-price{font-size:calc(10.5px * var(--uiz2,1));font-weight:bold;color:#ffd873;line-height:1;min-height:calc(14px * var(--uiz2,1));
   display:inline-flex;align-items:center;gap:3px;padding:calc(1.5px * var(--uiz2,1)) calc(7px * var(--uiz2,1)) calc(1.5px * var(--uiz2,1)) calc(5px * var(--uiz2,1));
   background:rgba(4,8,18,.9);border:1px solid #4a3d1e;border-radius:999px}
 .bp-tile .bp-price::before{content:'';width:7px;height:7px;border-radius:50%;flex:none;
@@ -252,8 +284,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   box-shadow:0 0 5px rgba(245,197,66,.7)}
 .bp-key{position:absolute;top:2px;right:3px;font-size:8px;font-weight:bold;background:#1a2546;
   border:1px solid #33477c;border-radius:4px;padding:0 3px;color:#8fa3cf;line-height:1.5}
-/* (۱۳٫۰) نوار سطح ارتقا: تعریف قدیمیِ نقطه‌های ۴px حذف شد — تعریف جدیدِ درخشان در بخش پنل */
-/* سلاحِ فعالِ در دست (۱۲٫۰): قاب طلایی + نشان */
+/* سلاح فعال: قاب طلایی + نشان */
 .bp-tile.armed{border-color:#ffd873;background:rgba(45,58,100,.95);
   box-shadow:0 0 14px rgba(255,216,115,.4),inset 0 1px 0 rgba(255,255,255,.1)}
 .bp-tile.armed::after{content:'✓ در دست';position:absolute;bottom:2.5px;left:50%;transform:translateX(-50%);
@@ -264,7 +295,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 .bp-tile.max{opacity:.82}
 .bp-tile.max .bp-price{color:#7be389}
 .bp-tile.placing{border-color:#ffd873;background:rgba(45,58,100,.95);animation:bpPulse 1s infinite}
-/* (۲۱٫۱) سلاح قفل — بعدیِ بعدی: خط‌چین + بی‌رنگ + نشان قفل */
+/* سلاح قفل — بعدیِ بعدی */
 .bp-tile.locked{border-style:dashed;border-color:#2c3f70;opacity:.82}
 .bp-tile.locked .bp-ic{filter:grayscale(.8) brightness(.6)}
 .bp-tile.locked .bp-price{color:#9fb2dd;border-color:#26355c}
@@ -274,7 +305,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 /* لرزش کاشی وقتی سکه کافی نیست */
 @keyframes bpDeny{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .bp-tile.deny{animation:bpDeny .3s;border-color:#e04b3a}
-/* تولتیپ آیتم‌ها: نام + توضیح + وضعیت (۲۱٫۱: پهن‌تر + جداکننده‌های خوانا) */
+/* تولتیپ آیتم‌ها */
 #bpTip{position:absolute;z-index:8;width:198px;background:rgba(10,16,36,.97);border:1px solid #4d6aa8;
   border-radius:11px;padding:9px 11px;font-size:11.5px;color:#d7e0f5;pointer-events:none;
   display:none;box-shadow:0 8px 24px rgba(0,0,0,.55);text-align:right;line-height:1.7}
@@ -284,19 +315,40 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #bpTip .t-status{display:block;margin-top:6px;padding-top:5px;color:#8fd6ff;font-size:10.5px;
   border-top:1px dashed rgba(77,106,168,.4)}
 
-/* ---------- ۵٫۵) (۱۶٫۰) «شب شود» داخل پنل ساخت‌وساز ============
-       بازخورد کاربر: دکمه‌ی شناورِ گوشه‌ی راست «بد دیده می‌شود و
-       زائد است» — مثل یک لایه‌ی چسبیده به صفحه بود. حالا شروع شب
-       دکمه‌ی طلاییِ خودِ پنل است: زیر سربرگ، همیشه سرِ جایش؛
-       پنلِ باز → نوار پهن، پنلِ جمع → قرص کوچک زیر سربرگ. */
-#bpNight{display:block;width:calc(100% - 12px);margin:6px 6px 0;padding:calc(8px * var(--uiz2,1)) calc(10px * var(--uiz2,1));
-  font-family:inherit;font-size:calc(12.5px * var(--uiz2,1));font-weight:bold;color:#1a1206;text-align:center;
-  background:linear-gradient(180deg,#ffd873,#f0b53c);border:none;border-radius:10px;cursor:pointer;
-  box-shadow:0 3px 14px rgba(240,180,60,.35),inset 0 1px 0 rgba(255,255,255,.45);
-  transition:filter .15s,transform .15s}
-#bpNight:hover{filter:brightness(1.08);transform:translateY(-1px)}
-#bpNight.hidden{display:none}
-#buildPanel.collapsed #bpNight{width:auto;margin:5px 6px 0;padding:7px 13px;font-size:11.5px}
+/* ---------- ۵٫۵) (۲۵٫۰) دکمه‌ی «شروع شب» — CTA بزرگ وسط-پایین ----------
+   درخواست کاربر: جای قشنگ + دکمه‌ی قشنگ و جذاب + متن باحال.
+   ماهِ تابانِ گوددار + م suspense نبض + برای آخرین شب حالت قرمز. */
+#nightCTA{position:absolute;bottom:calc(16px * var(--uiz,1));left:50%;transform:translateX(-50%);z-index:8;
+  display:none;align-items:center;gap:calc(12px * var(--uiz,1));direction:rtl;cursor:pointer;font-family:inherit;
+  padding:calc(11px * var(--uiz,1)) calc(26px * var(--uiz,1)) calc(11px * var(--uiz,1)) calc(22px * var(--uiz,1));
+  border-radius:999px;border:calc(2px * var(--uiz,1)) solid #ffd873;
+  background:linear-gradient(180deg,#2c3a68 0%,#18224a 100%);
+  box-shadow:0 10px 30px rgba(0,0,0,.62),0 0 26px rgba(110,130,255,.28),inset 0 1px 0 rgba(255,255,255,.14);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  transition:transform .14s,filter .14s}
+#nightCTA.show{display:flex;animation:ctaPop .45s cubic-bezier(.2,1.7,.5,1) both}
+@keyframes ctaPop{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(.86)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+#nightCTA:active{transform:translateX(-50%) scale(.95)}
+.nc-moon{position:relative;flex:none;width:calc(34px * var(--uiz,1));height:calc(34px * var(--uiz,1));border-radius:50%;
+  background:radial-gradient(circle at 36% 30%,#fffbe8 0%,#ffeec0 30%,#f5d98a 62%,#d8ab54 100%);
+  box-shadow:0 0 16px rgba(255,224,150,.85),inset -4px -5px 0 rgba(170,115,35,.38);
+  animation:ncFloat 3.2s ease-in-out infinite}
+.nc-moon i{position:absolute;border-radius:50%;background:rgba(168,112,32,.4);box-shadow:inset 0 1px 2px rgba(120,80,20,.5)}
+.nc-moon i:nth-child(1){width:22%;height:22%;top:24%;left:40%}
+.nc-moon i:nth-child(2){width:14%;height:14%;top:55%;left:22%}
+.nc-moon i:nth-child(3){width:11%;height:11%;top:62%;left:58%}
+@keyframes ncFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+#nightCTA .nc-lbl{display:flex;flex-direction:column;gap:1px;text-align:right}
+#nightCTA .nc-main{font-size:calc(17px * var(--uiz,1));font-weight:900;color:#ffd873;text-shadow:0 1px 3px rgba(0,0,0,.8);line-height:1.25}
+#nightCTA .nc-sub{font-size:calc(10.5px * var(--uiz,1));font-weight:bold;color:#aab8dd;line-height:1.3}
+#nightCTA.final{border-color:#ff6a52;
+  background:linear-gradient(180deg,#4a2030 0%,#2a1020 100%);animation:ctaFinal 1.15s ease-in-out infinite}
+@keyframes ctaFinal{0%,100%{box-shadow:0 10px 30px rgba(0,0,0,.62),0 0 22px rgba(255,80,50,.4),inset 0 1px 0 rgba(255,255,255,.12)}50%{box-shadow:0 10px 30px rgba(0,0,0,.62),0 0 40px rgba(255,80,50,.8),inset 0 1px 0 rgba(255,255,255,.12)}}
+#nightCTA.final .nc-main{color:#ff8a72}
+#nightCTA.final .nc-moon{background:radial-gradient(circle at 36% 30%,#ffd8c8 0%,#ffb59a 30%,#ef7a5a 62%,#c24028 100%);
+  box-shadow:0 0 18px rgba(255,120,90,.9),inset -4px -5px 0 rgba(150,40,20,.45)}
+#nightCTA.hidden{display:none!important}
+#wrap.cine-mode #nightCTA,#wrap.cs-mode #nightCTA,#wrap.menu-mode #nightCTA{display:none!important}
 
 /* ---------- ۵٫۶) کات‌سین داستانی (۷٫۰) ----------
    حین کات‌سین، پنل روز/پنل ساخت‌وساز مخفی می‌شوند تا صحنه سینمایی
@@ -390,6 +442,32 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   transition:background .15s,transform .15s}
 .icon-btn:hover{background:#31456e;transform:translateY(-1px)}
 
+/* ---------- (۲۵٫۰) منوی توقف به سبک بازی‌های واقعی اندروید ---------- */
+.pz-panel{max-width:400px;width:88%;padding:0;overflow:hidden;border-radius:20px}
+.pz-head{padding:18px 20px 12px;background:linear-gradient(180deg,rgba(31,45,84,.95),rgba(15,24,50,.95));border-bottom:1px solid #2c3f70}
+.pz-ic{width:62px;height:62px;margin:0 auto 8px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:29px;
+  background:linear-gradient(180deg,#ffd873,#eda93c);color:#221503;
+  box-shadow:0 8px 24px rgba(240,180,60,.4),inset 0 2px 0 rgba(255,255,255,.6)}
+.pz-title{font-size:23px;font-weight:900;color:#ffd873}
+.pz-sub{font-size:11px;color:#9fb2dd;margin-top:3px}
+.pz-stats{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:12px 16px 2px}
+.pz-chip{font-size:12px;font-weight:bold;color:#dbe5fa;background:rgba(255,255,255,.06);border:1px solid #33518f;
+  border-radius:999px;padding:6px 13px;white-space:nowrap}
+.pz-chip b{color:#ffd873}
+.pz-body{padding:12px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.pz-resume{width:100%;font-size:calc(17px * var(--uiz,1));min-height:calc(56px * var(--uiz,1));border-radius:14px}
+.pz-row{display:flex;gap:10px}
+.pz-row .btn-sec{flex:1;margin-right:0;font-size:calc(13px * var(--uiz,1));min-height:calc(48px * var(--uiz,1));border-radius:12px}
+.pz-foot{font-size:10px;color:#7d88a8;padding:0 0 14px;letter-spacing:.3px}
+/* (۲۵٫۰) صفحه‌ی باخت — همان زبان بصری منوی توقف */
+.go-head{background:linear-gradient(180deg,rgba(74,26,30,.95),rgba(30,10,14,.95))!important;border-bottom:1px solid #5e2226!important}
+.go-ic{width:62px;height:62px;margin:0 auto 8px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:29px;
+  background:linear-gradient(180deg,#ff8a72,#c73a28);color:#2a0505;
+  box-shadow:0 8px 24px rgba(239,77,56,.4),inset 0 2px 0 rgba(255,255,255,.5)}
+.go-title{font-size:23px;font-weight:900;color:#ff8a72}
+.go-resume{width:100%;background:linear-gradient(180deg,#8dffb0,#2ecc5e 60%,#1f9e46)!important;
+  box-shadow:0 6px 24px rgba(46,204,94,.4),inset 0 1px 0 rgba(255,255,255,.5)!important;color:#062012!important}
+
 /* ---------- ۷) منوی اصلی: مینیمال و تمیز روی صحنه‌ی زنده (۵٫۰) ----------
    فقط عنوان + دکمه‌ها؛ صحنه‌ی زنده‌ی بازی خودش تزئین است (۱۴٫۰: دو زامبیِ
    آرام + پرده‌ی تیره‌تر — پس‌زمینه دیگر شلوغ نیست).
@@ -420,18 +498,19 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #backpackBar{position:absolute;bottom:2px;left:12px;z-index:5;display:flex;gap:6px;align-items:center;
   opacity:.94;transition:opacity .2s;pointer-events:none}
 #backpackBar:hover{opacity:1}
-.bpk-cap{font-size:10px;font-weight:bold;color:#cdd9f4;background:linear-gradient(180deg,rgba(24,36,72,.92),rgba(11,18,40,.92));
-  border:1px solid #46609e;border-radius:9px;padding:4px 8px;pointer-events:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 3px 10px rgba(0,0,0,.35)}
+.bpk-cap{font-size:10px;font-weight:bold;color:#ffe1a0;background:linear-gradient(180deg,rgba(30,23,8,.94),rgba(16,12,4,.94));
+  border:1px solid #b98a1e;border-radius:999px;padding:calc(5px * var(--uiz,1)) calc(11px * var(--uiz,1));pointer-events:none;
+  box-shadow:inset 0 1px 0 rgba(255,235,170,.15),0 3px 10px rgba(0,0,0,.35)}
 /* حالت خالی: جاخالی‌های خالیِ چسبیده رسم نمی‌شوند (ضدشلوغی ۱۲٫۰) */
 #backpackBar.compact #bpkSlots{display:none}
 #backpackBar.compact .bpk-cap{color:#ffd873;border-color:#e8b54a}
 #bpkSlots{display:flex;gap:5px}
-.bpk-slot{position:relative;width:calc(48px * var(--uiz,1));height:calc(48px * var(--uiz,1));border-radius:11px;cursor:pointer;pointer-events:auto;
-  display:flex;align-items:center;justify-content:center;background:transparent;
-  border:1.5px solid #33518f;box-shadow:0 3px 10px rgba(0,0,0,.35);
+.bpk-slot{position:relative;width:calc(48px * var(--uiz,1));height:calc(48px * var(--uiz,1));border-radius:12px;cursor:pointer;pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(20,32,66,.92),rgba(9,15,34,.92));
+  border:1.5px solid #3a5089;box-shadow:0 3px 10px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.09);
   transition:border-color .15s,transform .15s,box-shadow .15s}
-.bpk-slot:hover{transform:translateY(-2px) scale(1.04)}
+.bpk-slot:hover{transform:translateY(-2px) scale(1.04);border-color:#e8b54a;
+  box-shadow:0 5px 14px rgba(0,0,0,.45),0 0 10px rgba(232,181,74,.25)}
 .bpk-slot canvas{width:calc(44px * var(--uiz,1));height:calc(44px * var(--uiz,1));display:block;border-radius:9px}
 /* (۲۴٫۰) لمس: کوله‌ی بزرگ‌تر — هدف لمسی راحت */
 #wrap.touch .bpk-slot{width:calc(52px * var(--uiz,1));height:calc(52px * var(--uiz,1))}
@@ -459,38 +538,38 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 #wrap.sui.touch .bpk-slot{width:44px;height:44px}
 #wrap.sui.touch .bpk-slot canvas{width:40px;height:40px}
 
-/* --- پنل دستفروش مرموز (۱۵٫۰: بالاتر و کمی راست‌تر — گوشه‌اش دیگر
-   روی دکمه‌ی توقفِ ریل چپ نمی‌نشیند؛ فقط روزها) --- */
-#peddlerPanel{position:absolute;top:48px;left:66px;width:228px;z-index:6;background:rgba(13,10,26,.95);
-  border:1px solid #4a3a6a;border-radius:12px;padding:9px;
-  box-shadow:0 10px 34px rgba(0,0,0,.5);animation:pdIn .4s ease}
-#wrap.touch #peddlerPanel{left:72px}
+/* --- (۲۵٫۰) دستفروش مرموز: کشوی چپ، زیر HUD — دیگر روی دکمه‌ها نمی‌افتد --- */
+#peddlerPanel{position:absolute;top:calc(66px * var(--uiz2,1));left:calc(10px * var(--uiz2,1));width:calc(238px * var(--uiz2,1));z-index:6;
+  max-height:calc(100% - calc(180px * var(--uiz2,1)));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  background:linear-gradient(180deg,rgba(19,14,38,.97),rgba(11,8,24,.97));
+  border:1.5px solid #5a4884;border-radius:15px;padding:calc(10px * var(--uiz2,1));
+  box-shadow:0 14px 38px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.07);animation:pdIn .4s ease}
 @keyframes pdIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-#peddlerPanel .pd-head{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:bold;color:#d8c9ff}
-#peddlerPanel .pd-face{width:46px;height:46px;border-radius:9px;background:#0a0818;border:1px solid #4a3a6a;flex:none}
-#peddlerPanel .pd-note{font-size:10px;color:#9f8fd0;margin:6px 2px 1px;font-style:italic}
-/* (۲۱٫۱) کالای دستفروش: چیدمان ستونی خوانا — آیکون کنار، نام + توضیح +
-   قیمت (قرص طلایی) زیر هم؛ دیگر اسم و توضیح و قیمت روی هم نمی‌افتند */
-.pd-item{display:flex;align-items:flex-start;gap:9px;background:rgba(30,22,52,.85);border:1px solid #56427c;
-  border-radius:10px;padding:7px 9px;margin-top:7px;cursor:pointer;transition:border-color .15s,transform .15s}
+#peddlerPanel .pd-head{display:flex;align-items:center;gap:calc(9px * var(--uiz2,1));font-size:calc(13px * var(--uiz2,1));font-weight:900;color:#d8c9ff}
+#peddlerPanel .pd-face{width:calc(50px * var(--uiz2,1));height:calc(50px * var(--uiz2,1));border-radius:11px;background:#0a0818;border:1.5px solid #5a4884;flex:none}
+#peddlerPanel .pd-note{font-size:calc(10px * var(--uiz2,1));color:#9f8fd0;margin:6px 2px 2px;font-style:italic}
+/* کالای دستفروش: چیدمان ستونی خوانا — آیکون کنار، نام + توضیح + قیمت */
+.pd-item{display:flex;align-items:flex-start;gap:9px;background:rgba(30,22,52,.88);border:1px solid #56427c;
+  border-radius:12px;padding:calc(8px * var(--uiz2,1)) calc(9px * var(--uiz2,1));margin-top:7px;cursor:pointer;transition:border-color .15s,transform .15s}
 .pd-item:hover{border-color:#ffd873;transform:translateY(-1px)}
-.pd-item canvas{width:42px;height:42px;flex:none}
+.pd-item:active{transform:scale(.97)}
+.pd-item canvas{width:calc(42px * var(--uiz2,1));height:calc(42px * var(--uiz2,1));flex:none}
 .pd-item .pd-info{flex:1;min-width:0}
-.pd-item .pd-name{display:block;font-size:11.5px;font-weight:bold;color:#eef1fa;line-height:1.55}
-.pd-item .pd-sub{display:block;font-size:9.5px;color:#bcb1e0;line-height:1.7;margin-top:1px}
-.pd-item .pd-price{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:10.5px;
+.pd-item .pd-name{display:block;font-size:calc(11.5px * var(--uiz2,1));font-weight:bold;color:#eef1fa;line-height:1.55}
+.pd-item .pd-sub{display:block;font-size:calc(9.5px * var(--uiz2,1));color:#bcb1e0;line-height:1.7;margin-top:1px}
+.pd-item .pd-price{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:calc(10.5px * var(--uiz2,1));
   font-weight:bold;color:#ffd873;white-space:nowrap;background:rgba(4,8,18,.85);
   border:1px solid #4a3d1e;border-radius:999px;padding:2px 10px}
 .pd-item.poor{opacity:.6}.pd-item.poor .pd-price{color:#e06a5a}
-/* (۲۰٫۰) نقشه‌ی ساخت برجک ویژه — قاب طلایی برجسته + برچسب «تازه!» */
+/* نقشه‌ی ساخت برجک ویژه — قاب طلایی برجسته */
 .pd-item.pd-bp{background:rgba(48,34,18,.9);border-color:#c9954a;box-shadow:0 0 10px rgba(232,181,74,.25)}
 .pd-item.pd-bp:hover{border-color:#ffd873;box-shadow:0 0 14px rgba(232,181,74,.45)}
 .pd-item .pd-new{font-style:normal;font-size:8.5px;font-weight:bold;color:#0d2a12;background:#7be389;
   border-radius:5px;padding:0 4px;margin-inline-start:4px}
-/* دکمه‌ی کارنامه در «ادامه دارد» — کوچک‌تر از دکمه‌ی اصلی */
+/* دکمه‌ی کارنامه در «ادامه دارد» */
 .btn-tbc-stats{font-size:12.5px;padding:7px 14px}
 #peddlerPanel.scammed{animation:pdScam .7s}
-@keyframes pdScam{0%,100%{transform:translateX(0);border-color:#4a3a6a}
+@keyframes pdScam{0%,100%{transform:translateX(0);border-color:#5a4884}
   20%,60%{transform:translateX(-6px);border-color:#e04b3a}
   40%,80%{transform:translateX(6px);border-color:#e04b3a}}
 
@@ -911,19 +990,20 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
   <!-- بوم اصلی؛ همه‌چیز داخل بازی با Canvas API رسم می‌شود (بدون تصویر خارجی) -->
   <canvas id="game" width="960" height="560"></canvas>
 
-  <!-- ============ (۲۴٫۰) HUD موبایل: راست = سکه‌ی طلایی درشت + جون + موج؛ چپ = توقف/صدا ============ -->
+  <!-- ============ (۲۵٫۰) HUD اندرویدی: راست = سکه‌ی انیمیشنی + جون کپسولی + چیپ مرحله؛ چپ = توقف/صدا ============ -->
   <div id="hud">
     <div class="hud-group">
       <div class="hud-item" id="coinItem" title="سکه‌ها"><i class="coin-ic"></i><span id="coinText">۰</span></div>
-      <div class="hud-item" title="جون برج">❤️
-        <div id="healthBar"><div id="healthFill"></div></div>
+      <div class="hud-item" id="hpItem" title="جون برج">
+        <span class="hp-heart"></span>
+        <div id="healthBar"><div id="healthFill"></div><span class="hp-shine"></span><span class="hp-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
         <span id="healthText">۱۰۰/۱۰۰</span>
       </div>
-      <div class="hud-item" title="موج فعلی">💀 <span id="waveText">موج ۱/۱۰</span></div>
+      <div class="hud-item" id="waveItem" title="مرحله"><span class="wv-ic"></span><span id="waveText">مرحله ۱</span></div>
     </div>
     <div class="hud-group hud-ctl">
-      <button class="ctl-btn hud-pause" id="ctlPause" title="توقف / ادامه (P)">⏸</button>
-      <button class="ctl-btn hud-mini" id="ctlMute" title="قطع/وصل صدا (M)">🔊</button>
+      <button class="ctl-btn hud-pause" id="ctlPause" title="توقف / ادامه">⏸</button>
+      <button class="ctl-btn hud-mini" id="ctlMute" title="قطع/وصل صدا">🔊</button>
     </div>
   </div>
 
@@ -944,21 +1024,21 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
 
   <!-- (۱۲٫۰) نوار سلاح پایین حذف شد — انتخاب سلاح از تب «سلاح‌ها»ی پنل ساخت‌وساز یا کلید ۱/۲/۳ -->
 
-  <!-- ============ پنل ساخت‌وساز تب‌دار (۱۲٫۰) ============
-       چهار تب: ارتقاء / سلاح‌ها / برجک‌ها / بقا — کاشی‌ها در JS ساخته می‌شوند.
-       (۱۶٫۰) «شب شود» دکمه‌ی طلاییِ خودِ پنل است — زیر سربرگ؛
-       جای دکمه‌ی شناورِ گوشه‌ی راست را گرفت. -->
+  <!-- ============ (۲۵٫۰) کشوی ساخت‌وساز — راست، زیر HUD ============ -->
   <div id="buildPanel">
-    <div class="bp-head" id="bpHead" title="خرید وسط بازی هم مجاز است — کلید B جمع/باز">
+    <div class="bp-head" id="bpHead" title="خرید وسط بازی هم مجاز است">
       🛠 ساخت‌وساز <span class="bp-chev" id="bpChev">▾</span>
     </div>
-    <button id="bpNight" class="hidden">🌙 شب شود</button>
     <div class="bp-tabs" id="bpTabs"></div>
     <div id="bpList"></div>
   </div>
   <div id="bpTip"></div>
 
-  <!-- (۱۶٫۰) پنل روزِ شناور حذف شد — «شب شود» داخل پنل ساخت‌وساز است -->
+  <!-- ============ (۲۵٫۰) دکمه‌ی «شروع شب» — CTA بزرگ وسط-پایین (فقط روزها) ============ -->
+  <button id="nightCTA">
+    <span class="nc-moon"><i></i><i></i><i></i></span>
+    <span class="nc-lbl"><span class="nc-main" id="ncMain">شروع شب</span><span class="nc-sub" id="ncSub">مرحله‌ی بعد در راهه</span></span>
+  </button>
 
   <!-- ============ (۱۰٫۰) پنل دستفروش مرموز — کنار فروشگاه، فقط بعضی روزها ============ -->
   <div id="peddlerPanel" class="hidden">
@@ -1019,7 +1099,7 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
       <div class="m23-col">
         <div class="m23-eyebrow">🔥 بازی بقا و دفاع از پناهگاه</div>
         <h1 class="m23-title">سه طبقه تا <span class="m23-red">مرگ</span></h1>
-        <div class="m23-sub">۳۶ شب &nbsp;·&nbsp; ۴ فصل &nbsp;·&nbsp; یک ساختمانِ نیمه‌کاره</div>
+        <div class="m23-sub">۴ فصل داستانی &nbsp;·&nbsp; یک ساختمانِ نیمه‌کاره &nbsp;·&nbsp; ده‌ها مرحله</div>
         <div id="storageWarn" class="hidden">⚠️ این مرورگر اجازه‌ی ذخیره‌شدن نمی‌دهد — از «تنظیمات ← کد سیو» استفاده کن</div>
         <div class="m23-btns">
           <button class="m23-btn m23-primary" id="btnStart">
@@ -1037,34 +1117,47 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
         </div>
       </div>
     </div>
-    <div class="m23-foot">نسخه‌ی ۲۴٫۰ &nbsp;·&nbsp; ساخته‌ی <b>سهند مرامی</b></div>
+    <div class="m23-foot">نسخه‌ی ۲۵٫۰ &nbsp;·&nbsp; ساخته‌ی <b>سهند مرامی</b></div>
   </div>
 
   <!-- ============ (۲۰٫۱) صفحه‌ی راهنما حذف شد — درخواست کاربر ============ -->
 
-  <!-- ============ صفحه توقف (۱۴٫۰: فقط دکمه‌ها — بدون متن اضافه) ============ -->
+  <!-- ============ (۲۵٫۰) صفحه توقف — به سبک بازی‌های واقعی اندروید ============ -->
   <div class="overlay hidden" id="pauseScreen">
-    <div class="panel">
-      <h2>⏸ توقف</h2>
-      <div class="btn-row">
-        <button class="btn-main" id="btnResume">▶ ادامه بازی</button>
-        <button class="btn-sec" id="btnSaveExit">💾 ذخیره و خروج</button>
-        <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
+    <div class="panel pz-panel">
+      <div class="pz-head">
+        <div class="pz-ic">⏸</div>
+        <div class="pz-title">توقف</div>
+        <div class="pz-sub">بازی نگه داشته شده — هر وقت آماده بودی برگرد</div>
       </div>
+      <div class="pz-stats" id="pzStats"></div>
+      <div class="pz-body">
+        <button class="btn-main pz-resume" id="btnResume">▶ ادامه بازی</button>
+        <div class="pz-row">
+          <button class="btn-sec" id="btnRestart0">🔄 شروع دوباره</button>
+          <button class="btn-sec" id="btnSaveExit">💾 ذخیره و خروج</button>
+        </div>
+      </div>
+      <div class="pz-foot">نسخه‌ی ۲۵٫۰ · ساخته‌ی سهند مرامی</div>
     </div>
   </div>
 
-  <!-- ============ صفحه باخت (۱۵٫۰: ساده و تمیز — صدای باخت به‌جای
-        دیالوگ، بدون دکمه‌ی «رد کردن» و بدون آمارِ طولانی) ============ -->
+  <!-- ============ (۲۵٫۰) صفحه باخت — به سبک اندرویدی با آمار ============ -->
   <div class="overlay hidden" id="gameoverScreen">
-    <div class="panel" style="max-width:400px">
-      <h1>💀 باختی!</h1>
-      <p class="subtitle" id="goSubtitle">تا شب ۱ از ۳۶ دوام آوردی</p>
-      <p class="stat-line" id="goStats"></p>
-      <div class="btn-row">
-        <button class="btn-main" id="btnRetryDay">🌅 تلاش دوباره</button>
-        <button class="btn-sec" id="btnRestart1">🏠 منوی اصلی</button>
+    <div class="panel pz-panel">
+      <div class="pz-head go-head">
+        <div class="go-ic">💀</div>
+        <div class="pz-title go-title">باختی!</div>
+        <div class="pz-sub" id="goSubtitle">تا مرحله‌ی ۱ دوام آوردی</div>
       </div>
+      <div class="pz-stats" id="goStats"></div>
+      <div class="pz-body">
+        <button class="btn-main pz-resume go-resume" id="btnRetryDay">🌅 تلاش دوباره</button>
+        <div class="pz-row">
+          <button class="btn-sec" id="btnRestart1">🏠 منوی اصلی</button>
+        </div>
+      </div>
+      <div class="pz-foot">نسخه‌ی ۲۵٫۰ · ساخته‌ی سهند مرامی</div>
     </div>
   </div>
 
@@ -1138,10 +1231,10 @@ body.in-app #wrap{border-radius:0;box-shadow:none}
       <div class="vic-rays"></div>
       <div class="vic-medal">🏆</div>
       <h1 class="vic-title">پیروزی!</h1>
-      <div class="vic-ribbon">قهرمانِ <span id="vicNights">۳۶</span> شب — از محله‌ی قدیمی تا پناهگاه</div>
+      <div class="vic-ribbon">از محله‌ی قدیمی تا پناهگاه — تا آخر دوام آوردی</div>
       <div class="vic-stats" id="vStats"></div>
       <div class="btn-row vic-menu">
-        <button class="btn-main" id="btnRestart2">🌙 بازی دوباره از شب اول</button>
+        <button class="btn-main" id="btnRestart2">🔄 بازی از اول</button>
         <button class="btn-sec" id="btnVicMenu">🏠 منوی اصلی</button>
       </div>
       <p class="vic-next">⭐ سری دوم: <b>«محاصره‌ی پناهگاه»</b> — به‌زودی...</p>

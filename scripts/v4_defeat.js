@@ -123,9 +123,11 @@ function finishDefeatCine() {
   $('wrap').classList.remove('cs-mode');
   $('skipCs').classList.add('hidden');
   hideAnnounce();
-  $('goSubtitle').textContent = 'تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دوام آوردی';
-  $('goStats').innerHTML = 'کشتار: <b>' + faNum(state.stats.kills) +
-    '</b> &nbsp;•&nbsp; بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b>';
+  $('goSubtitle').textContent = 'تا مرحله‌ی ' + faNum(state.wave) + ' دوام آوردی';
+  $('goStats').innerHTML =
+    '<span class="pz-chip">کشتار <b>' + faNum(state.stats.kills) + '</b></span>' +
+    '<span class="pz-chip">بهترین کمبو <b>×' + faNum(state.stats.maxCombo) + '</b></span>' +
+    '<span class="pz-chip">مرحله <b>' + faNum(state.wave) + '</b></span>';
   /* «تلاش دوباره» فقط وقتی سیو معتبری هست (با سیوِ شروع موج تقریباً همیشه هست) */
   const hasSave = !!loadSaveData();
   $('btnRetryDay').classList.toggle('hidden', !hasSave);

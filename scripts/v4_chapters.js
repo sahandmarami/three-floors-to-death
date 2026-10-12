@@ -147,11 +147,11 @@ const CHAPTERS = [
 /* فصل فعال (برای خواندن تم/ضریب‌ها در توابع رندر) */
 function curCh() { return CHAPTERS[clamp(state.chapter - 1, 0, 3)]; }
 
-/* برچسب موج برای HUD (۲۴٫۰): «فصل ۲ · موج ۱۰ از ۳۶» — پیشرفتِ کل همیشه دیده شود */
+/* برچسب مرحله برای HUD (۲۵٫۰): فقط «مرحله X» — درخواست کاربر:
+   بدون شمارش موج/فصل؛ مثل بازی‌های واقعی */
 function waveLabel() {
-  if (state.wave >= FINAL_WAVE) return '🌑 آخرین شب';
-  const w = clamp(state.wave, 1, FINAL_WAVE);
-  return 'فصل ' + faNum(waveChapter(w)) + ' · موج ' + faNum(w) + ' از ' + faNum(FINAL_WAVE);
+  if (state.wave >= FINAL_WAVE) return 'آخرین مرحله';
+  return 'مرحله ' + faNum(clamp(state.wave, 1, FINAL_WAVE));
 }
 
 /* ---------------------- ۵-۲) تولید ترکیب موج‌ها ---------------------- */
@@ -189,7 +189,7 @@ function startGame() {
   state.mode = 'intermission';
   state.prevMode = null;
   state.time = 0; state.wave = 0;
-  state.coins = 40;                       // سرمایه‌ی شروع (۱۵٫۰ کمی بیشتر)
+  state.coins = 60;                       // سرمایه‌ی شروع (۲۵٫۰ بیشتر — اقتصاد منصفانه‌تر)
   state.dayness = 0; state.dayTarget = 0; state.goingNight = false;
   state.tower.hp = 100; state.tower.maxHp = 100;
   state.upgrades = { weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 };
@@ -288,10 +288,10 @@ function startWave(n) {
 /* پایان موج: جایزه + مسیر جدید (انتقال فصل / روز / پیروزی) */
 function waveComplete() {
   if (state.wave >= FINAL_WAVE) { startVictoryCine(); return; }   // برد واقعی (۱۰٫۰)
-  const bonus = 14 + state.wave * 4;      // (۱۵٫۰) جایزه‌ی کمی بیشتر — اقتصاد نفس‌گیرتر
+  const bonus = 18 + state.wave * 5;      // (۲۵٫۰) جایزه‌ی بیشتر — نسبت به قیمت‌های جدید
   state.coins += bonus;
   state.stats.earned += bonus;
-  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
+  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی مرحله: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
   pulseCoins();
   state.zombies = []; state.bullets = []; state.projectiles = [];
   state.blackout.on = false;              // برق برمی‌گردد
@@ -317,16 +317,33 @@ function enterDay() {
   const isFinalNext = state.wave + 1 >= FINAL_WAVE;
   setAnnounce('☀️ صبح شد!',
     isFinalNext ? '⚠️ شب بعدی «آخرین شب» است — آخرین فرصت خرید!'
-                : 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
+                : 'مرحله‌ی ' + faNum(state.wave) + ' تمام شد — فروشگاه بازه، خودت را آماده کن', 3);
   SFX.clear();
   SFX.morning();
-  showDayPanel();                          /* (۱۶٫۰) دکمه‌ی طلایی داخل پنل ساخت‌وساز */
-  peddlerRoll();                          // (۱۰٫۰) شانس آمدن دستفروش مرموز
+  showDayPanel();                          /* (۲۵٫۰) CTA بزرگ «شروع شب» وسط-پایین */
+  peddlerRollDeferred();                   /* (۲۵٫۰) دستفروش فقط بعد از تمام‌شدن گفتگوها می‌آید — درخواست کاربر */
   saveGame();                             // (۱۰٫۰) سیو خودکارِ پایان موج
   /* (۱۱٫۰) روی موبایل پنلِ باز شلوغ است — جمع شروع می‌شود (با ضربه باز می‌شود) */
   setBuildPanel((typeof IS_TOUCH !== 'undefined' && IS_TOUCH) ? true : false, true);
   $('bpHead').classList.add('attention');
   updateHUD(); refreshBackpack();
+}
+
+/* (۲۵٫۰) دستفروشِ مؤدب: فقط وقتی می‌آید که گفتگوی داستانی تمام شده باشد
+   — رفع شکل «وسط حرفِ دوستمون یه‌هو میاد» */
+let _peddlerWaitT = null;
+function peddlerRollDeferred(tries) {
+  try {
+    if (tries === undefined) { if (_peddlerWaitT) clearTimeout(_peddlerWaitT); }
+    const n = (tries || 0) + 1;
+    if (n > 120) return;                                  // حداکثر ~۶۰ ثانیه صبر
+    if (state.mode !== 'day' || state.goingNight) return; // روز تموم شد؟ لازم نیست
+    if (typeof DLG !== 'undefined' && DLG.active) {
+      _peddlerWaitT = setTimeout(() => peddlerRollDeferred(n), 500);
+      return;
+    }
+    peddlerRoll();
+  } catch (e) {}
 }
 
 /* کلیک «شب شود» — با هشدار ویژه‌ی آخرین شب (۱۰٫۰)
@@ -347,7 +364,7 @@ function startNight() {
   } else {
     /* (۲۲٫۰) گفتگوی تنشِ پیش از آخرین موجِ فصل (۶/۱۴/۲۴) */
     storyPreNight();
-    setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+    setAnnounce('🌙 شب می‌شود...', 'مرحله‌ی ' + faNum(state.wave + 1) + ' در راهه — آماده باش!', 1.8);
     SFX.dusk();
   }
 }
@@ -419,7 +436,7 @@ function startChapter(ch) {
     enterDay();
   }
   setAnnounce('🗺 فصل ' + CH_ORD[ch - 1] + ': ' + curCh().name,
-    curCh().sub + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(ch)) + ' در راه است', 3.2);
+    curCh().sub + ' — استراحت کن و آماده شو', 3.2);
   showChapterCard(ch);
   storyChapterStart(ch);                       /* (۲۲٫۰) گفتگوی شروع فصل */
 }
@@ -623,7 +640,7 @@ function refreshMenuContinue() {
   const _c = $('m23c');
   if (_c) {
     _c.textContent = d
-      ? 'فصل ' + faNum(d.chapter) + ' • موج ' + faNum(waveInChapter(d.wave)) + ' از ۳۶'
+      ? 'مرحله‌ی ' + faNum(clamp(d.wave, 1, 36)) + ' — در میانه‌ی راه'
       : 'هنوز سیوی نداری';
   }
   /* (۲۴٫۰) چیپ‌های آمارِ منو حذف شدند — درخواست کاربر: زیر دکمه‌های اصلی متن نباشد */
@@ -704,7 +721,7 @@ function continueGame() {
     state.mode = 'day';
     enterDay();
     setAnnounce('💾 بازی ادامه پیدا کرد',
-      'فصل ' + faNum(state.chapter) + ' — موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(state.chapter)), 2.8);
+      'از ' + waveLabel() + ' ادامه می‌دهی — دوباره آماده شو', 2.8);
   });
 }
 
@@ -762,7 +779,7 @@ function retryFromSave() {
     state.mode = 'day';
     enterDay();
     setAnnounce('🔄 تلاش دوباره',
-      'همه‌ی وسایلت همین است — فصل ' + faNum(state.chapter) + '، موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(state.chapter)), 2.6);
+      'همه‌ی وسایلت همین است — از ' + waveLabel() + ' ادامه بده', 2.6);
   } else {
     startGame();
   }

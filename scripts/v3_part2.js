@@ -72,44 +72,44 @@ const WEAPONS = {
   pistol:  { name: 'کلت', dmg: 3, rate: 0.30, spd: 720, pellets: 1, spread: 0.02,  ttl: 2,
              price: 0,   owned: true,  barrel: 18, flash: 5, knock: 5,   sfx: 'shootP' },
   shotgun: { name: 'شاتگان', dmg: 2, rate: 0.95, spd: 640, pellets: 6, spread: 0.16,  ttl: 0.5,
-             price: 120, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
+             price: 75, owned: false, barrel: 22, flash: 9, knock: 2.6, sfx: 'shootS' },
   mg:      { name: 'مسلسل', dmg: 2, rate: 0.12, spd: 760, pellets: 1, spread: 0.055, ttl: 2,
-             price: 260, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
+             price: 160, owned: false, barrel: 24, flash: 6, knock: 1.6, sfx: 'shootM' },
 };
 
-/* تنظیمات ساخت‌وساز (۵٫۰: اقتصاد نو — قیمت‌ها حدود نصف و رشد ملایم‌تر):
+/* تنظیمات ساخت‌وساز (۲۵٫۰: قیمت‌ها ~۳۵٪ ارزان‌تر — درخواست کاربر):
    قیمت‌های ارتقا تصاعدی‌اند (growth^سطح)؛ سلاح‌ها یک‌بار خریداری می‌شوند */
 const UPGRADES = {
-  weapon:  { name: 'ارتقای اسلحه',     base: 15, growth: 1.55, max: 8 },
-  speed:   { name: 'سرعت شلیک',      base: 18, growth: 1.55, max: 6 },   // (۹٫۰) آیکون کفشِ تصویر مرجع — ۸٪ نرخ شلیک سریع‌تر در هر سطح
-  health:  { name: 'افزایش جون برج',   base: 12, growth: 1.45, max: 8, bonus: 30 },
-  trap:    { name: 'نصب تله پایه برج', base: 20, growth: 1.55, max: 5,
-             dps: 10, dpsPerLvl: 8, radius: 95 },   // آسیب در ثانیه و شعاع مؤثر تله
-  turretUp:{ name: 'ارتقای برجک‌ها',   base: 90, growth: 1.55, max: 5 },  /* (۲۰٫۰) +۲۲٪ دمیج و +۹٪ سرعت شلیک در هر سطح */
-  shotgun: { price: 120 },                          // خرید یک‌باره
-  mg:      { price: 260 },                          // خرید یک‌باره
-  repair:  { price: 25, frac: 0.5 },                // ترمیم ۵۰٪ جون بیشینه (۱۵٫۰ ارزان‌تر)
+  weapon:  { name: 'ارتقای اسلحه',     base: 10, growth: 1.55, max: 8 },
+  speed:   { name: 'سرعت شلیک',      base: 12, growth: 1.55, max: 6 },
+  health:  { name: 'افزایش جون برج',   base: 8,  growth: 1.45, max: 8, bonus: 30 },
+  trap:    { name: 'نصب تله پایه برج', base: 13, growth: 1.55, max: 5,
+             dps: 10, dpsPerLvl: 8, radius: 95 },
+  turretUp:{ name: 'ارتقای برجک‌ها',   base: 60, growth: 1.55, max: 5 },
+  shotgun: { price: 75 },
+  mg:      { price: 160 },
+  repair:  { price: 18, frac: 0.5 },
 };
 
 /* برجک‌های دفاعی خودکار (۴٫۰) — روی زمین نصب می‌شوند و خودشان به زامبی‌ها شلیک می‌کنند:
    gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
    frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
 const TURRETS = {
-  gatling: { name: 'برجک مسلسل',    price: 85,  dmg: 1.6, rate: 0.34, range: 230, spd: 640,
+  gatling: { name: 'برجک مسلسل',    price: 55,  dmg: 1.6, rate: 0.34, range: 230, spd: 640,
              len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
-  sniper:  { name: 'برجک تک‌تیرانداز', price: 200, dmg: 12, rate: 2.15,  range: 400, spd: 950,
+  sniper:  { name: 'برجک تک‌تیرانداز', price: 130, dmg: 12, rate: 2.15,  range: 400, spd: 950,
              len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۲ • برد ۴۰۰' },
-  frost:   { name: 'برجک یخ‌زن',     price: 125, dmg: 2,  rate: 1.05, range: 175, spd: 380,
+  frost:   { name: 'برجک یخ‌زن',     price: 80,  dmg: 2,  rate: 1.05, range: 175, spd: 380,
              len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۲ • برد ۱۷۵' },
   /* (۲۰٫۰) برجک‌های ویژه‌ی فروشنده‌ی مرموز — فقط با خریدِ «نقشه‌ی ساخت»
      از خودِ او باز می‌شوند (در تب برجک‌ها ظاهر می‌شوند) */
-  tesla:   { name: 'برجک تسلا',       price: 240, dmg: 9,  rate: 2.3,  range: 260, spd: 0,
+  tesla:   { name: 'برجک تسلا',       price: 150, dmg: 9,  rate: 2.3,  range: 260, spd: 0,
              len: 14, h: 24, knock: 2, chain: 3, rare: true,
              sub: 'آذرخش زنجیره‌ای به ۳ هدف • فقط از دستفروش' },
-  missile: { name: 'برجک موشک‌انداز', price: 300, dmg: 26, rate: 3.4,  range: 520, spd: 430,
+  missile: { name: 'برجک موشک‌انداز', price: 190, dmg: 26, rate: 3.4,  range: 520, spd: 430,
              len: 16, h: 20, knock: 5, splash: 95, rare: true,
              sub: 'انفجارِ محدوده‌ای • فقط از دستفروش' },
-  flame:   { name: 'برجک شعله‌افکن',  price: 210, dmg: 2.4, rate: 0.085, range: 150, spd: 330,
+  flame:   { name: 'برجک شعله‌افکن',  price: 135, dmg: 2.4, rate: 0.085, range: 150, spd: 330,
              len: 15, h: 17, knock: 0.4, burn: 2.4, burnDps: 6, rare: true,
              sub: 'شعله‌ی پیوسته + آتشِ‌گیرندگی • فقط از دستفروش' },
 };
@@ -769,8 +769,8 @@ function startWave(n) {
     interval: Math.max(2.0 - n * 0.14, 0.5),        // فاصله بین تولدها (کم‌تر هر موج)
     bossDelay: false,
   };
-  setAnnounce('موج ' + faNum(n),
-    n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
+  setAnnounce('مرحله ' + faNum(n),
+    n === TOTAL_WAVES ? 'آخرین مرحله! نگهبانِ آخرین شب پشتِ کاره...' : 'دفاع کن! 🧟', 2);
   SFX.wave();
   setBuildPanel(true, true);               // شب شد: پنل خودکار جمع شود تا نقشه آزاد باشد (۶٫۰)
   $('bpHead').classList.remove('attention');
@@ -785,7 +785,7 @@ function waveComplete() {
   const bonus = 12 + state.wave * 6;
   state.coins += bonus;
   state.stats.earned += bonus;
-  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی موج: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
+  addText(TOWER.x, TOWER_TOP_Y - 56, 'جایزه‌ی مرحله: +' + faNum(bonus) + ' 💰', '#ffd873', 16);
   pulseCoins();
   /* صحنه پاک شود و صبح طلوع کند */
   state.zombies = []; state.bullets = [];
@@ -805,7 +805,7 @@ function waveComplete() {
   state.goingNight = false;
   state.slowmo = Math.max(state.slowmo, 0.45);   // لحظه‌ی سینمایی پاک‌سازی موج
   $('bossBar').style.display = 'none'; bossBarVisible = false;
-  setAnnounce('☀️ صبح شد!', 'موج ' + faNum(state.wave) + ' پاک شد — ارتقا بخر و شب را شروع کن', 3);
+  setAnnounce('☀️ صبح شد!', 'مرحله‌ی ' + faNum(state.wave) + ' تمام شد — فروشگاه بازه، خودت را آماده کن', 3);
   SFX.clear();
   SFX.morning();                           // چرپ‌چرپ صبحگاهی
   showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
@@ -814,15 +814,22 @@ function waveComplete() {
   updateHUD();
 }
 
-/* پنل روز (۱۶٫۰): «شب شود» حالا دکمه‌ی طلاییِ داخل پنل ساخت‌وساز است
-   (زیر سربرگ) — برچسب موج درون‌فصلی/آخرین شب (۱۰٫۰) */
+/* پنل روز (۲۵٫۰): CTA بزرگ «شروع شب» وسط-پایین صفحه — جای قشنگ و جذاب */
 function showDayPanel() {
-  $('bpNight').innerHTML = (state.wave + 1 >= FINAL_WAVE)
-    ? '🌑 آخرین شب'
-    : '🌙 شب شود — موج ' + faNum(waveInChapter(state.wave + 1));
-  $('bpNight').classList.remove('hidden');
+  const last = state.wave + 1 >= FINAL_WAVE;
+  const cta = $('nightCTA');
+  if (!cta) return;
+  $('ncMain').textContent = last ? 'آخرین شب' : 'شروع شب';
+  $('ncSub').textContent = last
+    ? 'تا حالا همه‌چیز برای همین شب بود...'
+    : 'مرحله‌ی ' + faNum(state.wave + 1) + ' در راهه';
+  cta.classList.toggle('final', !!last);
+  cta.classList.add('show');
 }
-function hideDayPanel() { $('bpNight').classList.add('hidden'); }
+function hideDayPanel() {
+  const cta = $('nightCTA');
+  if (cta) cta.classList.remove('show');
+}
 
 /* کلیک «شب شود»: گذار گرگ‌ومیش و بعد شروع موج بعد (۵٫۰) */
 function startNight() {
@@ -830,7 +837,7 @@ function startNight() {
   state.goingNight = true;
   hideDayPanel();
   state.dayTarget = 0;                     // آسمان آرام تاریک می‌شود
-  setAnnounce('🌙 شب می‌شود...', 'موج ' + faNum(state.wave + 1) + ' در راه است — آماده باش!', 1.8);
+  setAnnounce('🌙 شب می‌شود...', 'مرحله‌ی ' + faNum(state.wave + 1) + ' در راهه — آماده باش!', 1.8);
   SFX.dusk();
 }
 

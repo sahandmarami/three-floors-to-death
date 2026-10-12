@@ -145,18 +145,6 @@ if (IS_TOUCH) {
   document.addEventListener('touchmove', e => { if (e.target && e.target.id === 'game') e.preventDefault(); }, { passive: false });
 }
 
-/* دکمه‌ی تمام‌صفحه — فقط روی لمس (دسکتاپ F11 دارد) */
-function toggleFullscreen() {
-  try {
-    const el = document.documentElement;
-    if (!document.fullscreenElement) {
-      (el.requestFullscreen || el.webkitRequestFullscreen || function() {}).call(el);
-    } else {
-      (document.exitFullscreen || document.webkitExitFullscreen || function() {}).call(document);
-    }
-  } catch (e) {}
-}
-
 /* ---------------------- (۲۰٫۰) آماده‌ی APK: دکمه‌ی بازگشت اندروید ----------------------
    داخل کپاسیتور/کوردوا، دکمه‌ی Back گوشی رویداد «backbutton» می‌دهد؛
    در وبِ معمولی popstate. رفتار: صفحه‌ی تنظیمات/درباره باز → بستن؛
@@ -220,19 +208,10 @@ window.addEventListener('load', () => {
     resumeGame();          // اول از توقف دربیاور تا state سالم باشد
     saveAndExit();
   });
-  /* دکمه‌ی تمام‌صفحه کنار دکمه‌های HUD (لمسی) — (۲۴٫۰) داخل گروه HUD چپ */
-  if (IS_TOUCH) {
-    const hudCtl = document.querySelector('#hud .hud-ctl');
-    if (hudCtl) {
-      const fs = document.createElement('button');
-      fs.className = 'ctl-btn hud-mini';
-      fs.id = 'btnFull';
-      fs.title = 'تمام‌صفحه';
-      fs.textContent = '⛶';
-      fs.addEventListener('click', toggleFullscreen);
-      hudCtl.appendChild(fs);
-    }
-  }
+  /* (۲۵٫۰) دکمه‌ی تمام‌صفحه کلاً حذف شد — درخواست کاربر؛ APK خودش تمام‌صفحه است */
+  /* (۲۵٫۰) متن راهنمای گفتگو برای لمس فارسی‌تر */
+  const dh = $('dlgHint');
+  if (dh && IS_TOUCH) dh.textContent = 'برای ادامه، لمس کن';
 });
 
 /* سیو خودکار وقتی کاربر می‌رود بیرون/صفحه را می‌بندد
