@@ -14,7 +14,7 @@ agent-browser screenshot /home/z/my-project/scripts/shots23/01_menu.png >/dev/nu
 
 R=$(agent-browser eval "document.querySelector('.m23-title')?document.querySelector('.m23-title').textContent.trim().slice(0,30):'x'" | tail -1); ck "تیتر منوی جدید" "$([ "$R" != "x" ] && echo 1 || echo 0)" "$R"
 R=$(agent-browser eval "(()=>{const b=document.getElementById('btnStart');if(!b)return 'missing';const r=b.getBoundingClientRect();return Math.round(r.height)})()" | tail -1); ck "دکمه شروع بزرگ (>=60px)" "$([ "$R" -ge 60 ] 2>/dev/null && echo 1 || echo 0)" "h=$R"
-R=$(agent-browser eval "document.body.innerText.includes('۲۳٫۰')?1:0" | tail -1); ck "نسخه ۲۳٫۰" "$R"
+R=$(agent-browser eval "document.body.innerText.includes('۲۵٫۰')?1:0" | tail -1); ck "نسخه ۲۵٫۰" "$R"
 R=$(agent-browser eval "(()=>{const b=document.getElementById('btnStart');if(!b)return 0;const r=b.getBoundingClientRect();return (r.right<=innerWidth+1&&r.bottom<=innerHeight+1&&r.left>=-1&&r.top>=-1)?1:0})()" | tail -1); ck "دکمه شروع داخل قاب" "$R"
 R=$(agent-browser eval "M23&&M23.inited?1:0" | tail -1); ck "صحنه‌ی منوی Canvas آماده" "$R"
 R=$(agent-browser eval "typeof VOICES23==='object'?Object.keys(VOICES23).length:0" | tail -1); ck "VOICES23 با ۱۱۹ کلیپ" "$([ "$R" = "119" ] && echo 1 || echo 0)" "n=$R"
@@ -63,7 +63,8 @@ R=$(agent-browser eval "MYST.clues.length>=1?1:0" | tail -1); ck "سرنخ آر�
 agent-browser eval "MYST.closePanel();'ok'" >/dev/null
 
 echo "===== ۵) TLOU — شنود/مولوتوف ====="
-agent-browser eval "state.mode='playing';state.coins=300;MYST.craftMolotov();MYST.startListen();'ok'" >/dev/null; sleep 0.8
+agent-browser eval "GAME.startWave(2);'ok'" >/dev/null; sleep 2.5
+agent-browser eval "state.coins=300;MYST.craftMolotov();MYST.startListen();'ok'" >/dev/null; sleep 0.8
 agent-browser screenshot /home/z/my-project/scripts/shots23/08_listen.png >/dev/null 2>&1
 R=$(agent-browser eval "MYST.molotovs>0?1:0" | tail -1); ck "مولوتوف ساخته شد" "$R"
 R=$(agent-browser eval "MYST.listen.active?1:0" | tail -1); ck "حالت شنود فعال" "$R"

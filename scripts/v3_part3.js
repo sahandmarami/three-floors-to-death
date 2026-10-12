@@ -334,7 +334,7 @@ function drawMenuFX() {
 function updateAnnounce(dt) {
   const el = $('announce');
   if (state.mode === 'intermission') {
-    $('announceBig').textContent = 'موج بعدی: ' + faNum(waveInChapter(state.wave + 1));
+    $('announceBig').textContent = 'مرحله‌ی ' + faNum(state.wave + 1) + ' در راهه';
     $('announceSub').textContent = 'شروع در ' + faNum(Math.max(1, Math.ceil(state.intermission))) + ' ثانیه — 🛠 فرصت ارتقا!';
     el.style.opacity = 1;
   } else if (announceTimer > 0) {
@@ -379,9 +379,11 @@ function legacyGameOver() {
   if (state.mode === 'gameover') return;
   state.mode = 'gameover';
   try { SFX.defeatSting(); } catch (e) {}      // (۱۵٫۰) صدای باخت، نه دیالوگ
-  $('goSubtitle').textContent = 'تا شب ' + faNum(state.wave) + ' از ' + faNum(FINAL_WAVE) + ' دوام آوردی';
-  $('goStats').innerHTML = 'کشتار: <b>' + faNum(state.stats.kills) +
-    '</b> &nbsp;•&nbsp; بهترین کمبو: <b>×' + faNum(state.stats.maxCombo) + '</b>';
+  $('goSubtitle').textContent = 'تا مرحله‌ی ' + faNum(state.wave) + ' دوام آوردی';
+  $('goStats').innerHTML =
+    '<span class="pz-chip">کشتار <b>' + faNum(state.stats.kills) + '</b></span>' +
+    '<span class="pz-chip">بهترین کمبو <b>×' + faNum(state.stats.maxCombo) + '</b></span>' +
+    '<span class="pz-chip">مرحله <b>' + faNum(state.wave) + '</b></span>';
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   hideAnnounce();
   SFX.gameover();

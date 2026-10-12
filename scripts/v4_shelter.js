@@ -211,7 +211,7 @@ function shelterArrivalDone() {
   state.mode = 'day';
   enterDay();
   setAnnounce('🗺 فصل چهارم: ' + (typeof curCh !== 'undefined' ? curCh().name : 'آخرین پناهگاه'),
-    'موج ' + faNum(waveInChapter(state.wave + 1)) + ' از ' + faNum(wavesInChapter(state.chapter)) + ' در راه است — دیوارها را تقویت کن!', 3.4);
+    'دیوارها را تقویت کن — زامبی‌ها در راهند', 3.4);
   showChapterCard(state.chapter);
 }
 
@@ -1308,7 +1308,7 @@ function victory() {
     ['🔥', '×' + faNum(state.stats.maxCombo), 'بهترین کمبو'],
     ['🛡', faNum(state.stats.turKills), 'کشتار برجک‌ها'],
     ['❤️', faNum(Math.ceil(state.tower.hp)), 'جونِ برجِ آخر'],
-    ['🌙', faNum(FINAL_WAVE) + '/' + faNum(FINAL_WAVE), 'شبِ زنده‌ماندن'],
+    ['🏁', 'تا آخر', 'زنده موندی'],
   ];
   $('vStats').innerHTML = cards.map(c =>
     '<div class="vic-card"><div class="vc-ic">' + c[0] + '</div><div class="vc-n">' + c[1] +
