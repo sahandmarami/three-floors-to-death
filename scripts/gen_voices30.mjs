@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-// gen_voices30.mjs — دو خطِ باقی‌مانده از برنامه‌ی بازسازی لحن (v28)
+// gen_voices30.mjs — v30: متن بازنویسی‌شدهٔ افتتاحیه + لحن جدی برای آرشان
 // ------------------------------------------------------------------
-// در v28 گزارش شد: «۲ خط از ۲۲ (aw1/aw4) صدا تغییر نکرد» — همان دو
-// خطی که کاربر گفت «صداها رو درست کن، گفته بودی مونده». این دو خط
-// آرش‌اند (صدای Liam) و باید با لحن فوری/مضطرب (urgent) گفته شوند:
-//   aw1: «من همین‌جام! تو فقط شلیک کن!»   (وسط نبرد)
-//   aw4: «باتری چراغ‌قوه تموم می‌شه!»      (هشدار بحرانی)
-// کلید جدید ElevenLabs کاربر + ممیزی Scribe + برش کلمه‌ای (پایپ‌لاین ۲۷/۲۸)
-// خروجی: voices30_data.js (کامل voices28 + این دو خط تازه)
+// درخواست‌های کاربر:
+//   ۱) متن افتتاحیه/انتقال‌ها/پناهگاه/پایانی عیناً از اسکریپت خودش
+//   ۲) صدای آرشان «با هیجان و خوشحالی» نباشد — همه‌چیز خطرناک است؛
+//      لحن جدی/کم‌انرژی (grim: stability .82 / style .05 + atempo .96)
+// خروجی: voices30_data.js (کلیپ‌های سالم از voices28_data.js کپی می‌شوند)
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
@@ -19,17 +17,94 @@ const DATA_JS = '/home/z/my-project/scripts/voices30_data.js';
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const VOICES = { a: 'TX3LPaxmHKxFdv7VOQHJ' };        // Liam — آرش
+const VOICES = {
+  a: 'TX3LPaxmHKxFdv7VOQHJ', // Liam — آرش
+  p: 'pqHfZKP75CvOlQylNhV4', // Bill — بازیکن
+  n: 'nPczCjzI2devNBz1zQrb', // Brian — راوی
+  m: 'cgSgspJ2msm6clMCkdW9', // Jessica — دکتر مریم
+  r: 'JBFqnCBsd6RMkjVDRZzb', // George — رادیو
+};
+const NAMES = { a: 'Liam', p: 'Bill', n: 'Brian', m: 'Jessica', r: 'George' };
+
 const FX = {
+  p: 'lowshelf=f=210:g=2.5,acompressor=threshold=0.32:ratio=3:attack=12:release=140,loudnorm=I=-17:TP=-1.5',
   a: 'highshelf=f=3400:g=2,acompressor=threshold=0.30:ratio=3:attack=8:release=120,loudnorm=I=-16.5:TP=-1.5',
+  m: 'acompressor=threshold=0.30:ratio=2.6:attack=10:release=130,loudnorm=I=-17:TP=-1.5',
+  n: 'aecho=0.6:0.24:60|110:0.16|0.09,lowshelf=f=180:g=2,acompressor=threshold=0.30:ratio=3.2:attack=14:release=160,loudnorm=I=-17.5:TP=-1.5',
+  r: 'highpass=f=380,lowpass=f=2900,volume=2.1,acompressor=threshold=0.28:ratio=8:attack=5:release=55,loudnorm=I=-15.5:TP=-1.0',
 };
-const RETAKE = {
-  aw1: { m: 'urgent' },
-  aw4: { m: 'urgent' },
-};
+
+/* ---------- لحن‌ها ---------- */
 const MOOD = {
-  urgent: { stability: 0.65, style: 0.15, tails: ['و باید همین امشب زنده بمونیم', 'چاره‌ی دیگه‌ای نداریم اتفاقاً', 'این تنها راهه و بس'] },
+  calm:   { stability: 0.74, style: 0.10, tails: ['و این تازه آغاز راه بود', 'اما راه هنوز ادامه داشت', 'و شب‌های تازه در پیش بود'] },
+  grim:   { stability: 0.82, style: 0.05, tails: ['ولی باید ادامه بدیم و بس', 'چاره‌ای دیگه نداریم', 'همین درسته و باید قبولش کنیم'] },
+  urgent: { stability: 0.65, style: 0.15, tails: ['و باید همین الان حرکت کنیم', 'دیگه وقت زیادی نداریم', 'هر ثانیه مهمه'] },
+  mcalm:  { stability: 0.72, style: 0.08, tails: ['پس با هم ادامه می‌دهیم', 'به همین دلیل اینجا جمع شدیم', 'و همه باید کمک کنیم'] },
+  radio:  { stability: 0.80, style: 0.05, tails: ['این پیام تکرار خواهد شد', 'پایان پیام', 'لطفاً به این هشدار توجه کنید'] },
 };
+
+/* ---------- خطوط تازه (اسکریپت کاربر) + بازضبط لحن جدی ---------- */
+const LINES = [
+  // —— افتتاحیه ص۱: شهر متروکه ——
+  { k: 'n30a', who: 'n', m: 'calm',  t: 'همه‌چیز با یک ویروس شروع شد؛ بی‌سروصدا از حاشیهٔ شهر رسید و کم‌کم همه‌چیز را تغییر داد.' },
+  { k: 'n30b', who: 'n', m: 'calm',  t: 'چند هفته بیشتر طول نکشید. خیابان‌ها خالی شدند و صدای زندگی جای خودش را به سکوت داد.' },
+  // —— ص۲: برج ——
+  { k: 's30a', who: 'a', m: 'grim',  t: 'عجیبه... یه زمانی این خیابون‌ها پر از آدم بود.' },
+  { k: 's30p', who: 'p', m: 'calm',  t: 'نمی‌دونم چند نفر زنده موندن؛ ولی تا وقتی این برج پابرجاست، هنوز یه شانس داریم.' },
+  { k: 's30b', who: 'a', m: 'grim',  t: 'طبقهٔ سوم جای خوبیه برای دیده‌بانی. از اون بالا می‌تونیم قبل از رسیدن زامبی‌ها ببینیمشون.' },
+  { k: 's30n', who: 'n', m: 'calm',  t: 'آن دو با هر وسیله‌ای که پیدا می‌کردند، برج را محکم‌تر کردند. می‌دانستند شب که برسد، دیگر فرصتی برای اشتباه ندارند.' },
+  // —— ص۳: شروع حمله ——
+  { k: 'k30a', who: 'a', m: 'urgent', t: 'صبر کن... اون صدا رو شنیدی؟ دارن میان!' },
+  { k: 'k30p', who: 'p', m: 'urgent', t: 'آره، دیدمشون! آماده شو؛ این اولین شبه!' },
+  // —— ص۴: پیام رادیویی ——
+  { k: 'r30r', who: 'r', m: 'radio', t: 'توجه، توجه! همهٔ بازماندگان به سمت پاسگاه شمالی حرکت کنند. آنجا آخرین نقطهٔ امن شناخته‌شده است. این پیام تکرار خواهد شد.' },
+  { k: 'r30a', who: 'a', m: 'grim',  t: 'شنیدی؟ پس هنوز آدم‌های دیگه‌ای هم زنده‌ان!' },
+  { k: 'r30p', who: 'p', m: 'calm',  t: 'اول باید امشب رو زنده بمونیم. وقتی راه باز شد، دنبال پاسگاه می‌ریم.' },
+  { k: 'r30n', who: 'n', m: 'calm',  t: 'سفر آن‌ها از همان شب آغاز شد؛ سی‌وشش شب مبارزه، برای رسیدن به جایی که شاید هنوز امیدی در آن باقی مانده باشد.' },
+  // —— انتقال ۱: فرار از برج ——
+  { k: 't30a1', who: 'a', m: 'urgent', t: 'برج داره می‌ریزه! سریع، باید از اینجا بریم!' },
+  { k: 't30a2', who: 'a', m: 'urgent', t: 'طناب رو بگیر! من ماشین رو آماده کردم. زود باش، وقت نداریم!' },
+  { k: 't30n1', who: 'n', m: 'calm',  t: 'آن‌ها درست پیش از فروریختن برج فرار کردند؛ اما راه پناهگاه هنوز طولانی بود.' },
+  // —— انتقال ۲: کانال مه‌آلود ——
+  { k: 't30p1', who: 'p', m: 'urgent', t: 'همه‌جا رو مه گرفته! حتی مسیر رودخونه رو هم نمی‌بینم!' },
+  { k: 't30a3', who: 'a', m: 'grim',  t: 'چراغ قایق رو روشن کردم. آروم جلو برو و حواست به مسیر باشه!' },
+  { k: 't30n2', who: 'n', m: 'calm',  t: 'آن‌ها از کانال گذشتند و به پاسگاه نظامی رسیدند؛ جایی که شاید سرنخی از مسیر پناهگاه پیدا می‌شد.' },
+  // —— انتقال ۳: مسیر برفی ——
+  { k: 't30a4', who: 'a', m: 'urgent', t: 'جاده پر از زامبیه! باید از مسیر کوهستانی بریم.' },
+  { k: 't30p2', who: 'p', m: 'grim',  t: 'با این برف و باد؟ اگه توی مسیر گیر کنیم چی؟' },
+  { k: 't30a5', who: 'a', m: 'urgent', t: 'اگه همین‌جا بمونیم، گیر زامبی‌ها می‌افتیم. حرکت کن؛ با هم از پسش برمیایم!' },
+  { k: 't30n3', who: 'n', m: 'calm',  t: 'پس از عبور از مسیر برفی، برج مخابراتی در دوردست دیده شد. شاید آنجا راه ارتباط با پناهگاه را پیدا می‌کردند.' },
+  // —— پناهگاه ——
+  { k: 'h30m1', who: 'm', m: 'mcalm', t: 'خوش اومدید. از برج دیده‌بانی شما رو دیدیم. رسیدن به اینجا کار آسونی نبوده.' },
+  { k: 'h30a1', who: 'a', m: 'grim',  t: 'اینجا واقعاً امنه؟ دیگه مجبور نیستیم هر شب فرار کنیم؟' },
+  { k: 'h30m2', who: 'm', m: 'mcalm', t: 'فعلاً دیوارها پابرجان؛ اما آذوقه‌مون محدوده و رادیو هم درست کار نمی‌کنه.' },
+  { k: 'h30p1', who: 'p', m: 'calm',  t: 'من رادیو رو بررسی می‌کنم. شاید بتونیم با بقیهٔ بازمانده‌ها ارتباط بگیریم.' },
+  { k: 'h30a2', who: 'a', m: 'grim',  t: 'من هم دیوارها رو تقویت می‌کنم. این بار قرار نیست فقط دو نفر از برج دفاع کنن.' },
+  { k: 'h30m3', who: 'm', m: 'mcalm', t: 'کمی استراحت کنید. از فردا باید برای روزهای سخت آماده بشیم.' },
+  // —— پایانی: هشدار تازه ——
+  { k: 'f30r', who: 'r', m: 'radio', t: 'توجه به تمام واحدها! یک گروه بزرگ از زامبی‌ها از درهٔ شمالی به سمت پناهگاه در حرکت است. همهٔ نیروها آمادهٔ دفاع شوند!' },
+  { k: 'f30a', who: 'a', m: 'grim',  t: 'صدای آژیر رو می‌شنوی؟ انگار تازه شروع شده...' },
+  { k: 'f30n', who: 'n', m: 'calm',  t: 'آن‌ها به پناهگاه رسیده بودند؛ اما امنیتی که دنبالش بودند، شاید فقط آغاز نبردی بزرگ‌تر بود.' },
+  // —— تایپ «ادامه دارد» ——
+  { k: 'tbc30n', who: 'n', m: 'calm', t: 'پایان فصل اول داستان پناهگاه: ادامه دارد...' },
+  // —— بازضبط لحن جدی آرشان (خطوط داخل بازی که هنوز هیجان دارند) ——
+  { k: 'aw1',    who: 'a', m: 'urgent', t: 'من همین‌جام! تو فقط شلیک کن!' },
+  { k: 'aw4',    who: 'a', m: 'urgent', t: 'باتری چراغ‌قوه تموم می‌شه!' },
+  { k: 'c1w1a',  who: 'a', m: 'grim',  t: 'رفتن؟ واقعاً رفتن؟' },
+  { k: 'c1w3a',  who: 'a', m: 'grim',  t: 'جعبه ابزار پیدا کردم!' },
+  { k: 'c3ca',   who: 'a', m: 'grim',  t: 'اینجا نوشته برج مخابراتی تو کوهستانه.' },
+  { k: 'c3a1',   who: 'a', m: 'grim',  t: 'انگار یه گروهی اینجا زندگی می‌کرده.' },
+  { k: 'c1e1a',  who: 'a', m: 'grim',  t: 'ساختمون دیگه مثل روز اول نیست.' },
+  { k: 'c4f1',   who: 'a', m: 'grim',  t: 'همه آماده‌ان. ولی این سکوت عادی نیست.' },
+];
+
+async function quotaLeft() {
+  try {
+    const r = await fetch(`${BASE}/user/subscription`, { headers: { 'xi-api-key': KEY } });
+    const j = await r.json();
+    return j.character_limit - j.character_count;
+  } catch (e) { return 99999; }
+}
 
 async function ttsOnce(voiceId, text, seed, vs) {
   const body = {
@@ -43,7 +118,7 @@ async function ttsOnce(voiceId, text, seed, vs) {
   });
   if (r.ok) return Buffer.from(await r.arrayBuffer());
   const err = await r.text();
-  if ([401, 402, 429].includes(r.status)) throw new Error('STOP:' + r.status);
+  if ([401, 402, 429].includes(r.status)) throw new Error('STOP:' + r.status + ':' + err.slice(0, 60));
   console.log(`    TTS fail ${r.status}: ${err.slice(0, 80)}`);
   return null;
 }
@@ -66,10 +141,8 @@ async function scribe(mp3Path) {
 }
 
 function normW(w) {
-  return w.replace(/\u200c/g, '').replace(/ـ/g, '').replace(/[؛،.!؟:\-…«»]/g, '')
-    .replace(/[آأإ]/g, 'ا').replace(/[یيئ]/g, 'ی').replace(/[ك]/g, 'ک')
-    .replace(/^بطری$/, 'باتری')      /* ASR تلفظ فارسیِ باتری را بطری می‌نویسد — یک واژه است */
-    .toLowerCase();
+  return String(w).replace(/\u200c/g, '').replace(/[؛،.!؟:\-…«»]/g, '')
+    .replace(/[آأإ]/g, 'ا').replace(/[یيئ]/g, 'ی').replace(/[ك]/g, 'ک').toLowerCase();
 }
 function durOf(p) {
   try { return Math.round(parseFloat(execSync(`ffprobe -v quiet -show_entries format=duration -of csv=p=0 ${p}`).toString().trim()) * 100) / 100; }
@@ -98,35 +171,26 @@ function cutByWords(rawMp3, sc, tail, outMp3) {
   return cut;
 }
 
-// متن خطوط از dialogues23.py
-const py = fs.readFileSync('/home/z/my-project/scripts/dialogues23.py', 'utf8');
-const ALL = {};
-for (const m of py.matchAll(/\('([a-z0-9]+)',\s*'([pamnrbd])',\s*'([^']+)',\s*'([^']+)'/g)) {
-  ALL[m[1]] = { who: m[2], fa: m[3] };
-}
-const keys = Object.keys(RETAKE).filter(k => ALL[k]);
-console.log(`بازتولید ${keys.length} خط باقی‌مانده (کلید جدید، لحن urgent):`);
-for (const k of keys) console.log(`  ${k} [${RETAKE[k].m}] ${ALL[k].fa}`);
-
+console.log('quota before:', await quotaLeft());
 const results = {};
 let stopAll = false;
+const t0 = Date.now();
 const MAX_ATTEMPTS = 4, PAD_MIN = 52;
 
-for (let li = 0; li < keys.length; li++) {
-  const key = keys[li];
-  const { who, fa } = ALL[key];
-  const mood = MOOD[RETAKE[key].m];
-  const outMp3 = path.join(OUT_DIR, key + '.mp3');
-  if (fs.existsSync(outMp3) && fs.statSync(outMp3).size > 6000) { results[key] = { ok: true, from: 'cached' }; continue; }
-  if (stopAll) { results[key] = { ok: false }; continue; }
+// صف اولویت: خطوط اسکریپت تازه قبل از بازضبط‌ها
+const order = LINES.slice();
+
+for (let li = 0; li < order.length; li++) {
+  const { k, who, m, t: fa } = order[li];
+  const mood = MOOD[m];
+  const outMp3 = path.join(OUT_DIR, k + '.mp3');
+  if (fs.existsSync(outMp3) && fs.statSync(outMp3).size > 6000) { results[k] = { ok: true, from: 'cached' }; continue; }
+  if (stopAll) { results[k] = { ok: false }; continue; }
   const voiceId = VOICES[who];
   let ok = false, lastInfo = '';
   for (let attempt = 1; attempt <= MAX_ATTEMPTS && !stopAll && !ok; attempt++) {
     const tail = mood.tails[(li + attempt) % mood.tails.length];
-    /* تلفظ شفاف‌ترِ «باتری»: کشیده‌ی میان‌حرفی (باتـری) به TTS می‌گوید
-       هجاها را جدا بگوید — متنِ روی صفحه تغییری نمی‌کند */
     let t = fa.trim();
-    if (key === 'aw4') t = t.replace('باتری', 'باتـری');
     if (!/[.!؟…]$/.test(t)) t += '.';
     const padded = t.length >= PAD_MIN ? t : t + ' ' + tail;
     const seed = Math.floor(Math.random() * 2000000);
@@ -134,13 +198,13 @@ for (let li = 0; li < keys.length; li++) {
     try { buf = await ttsOnce(voiceId, padded, seed, mood); }
     catch (e) { if (String(e.message).startsWith('STOP')) { stopAll = true; console.log('STOP:', e.message); } break; }
     if (!buf) { await sleep(2500); continue; }
-    const raw = path.join(OUT_DIR, key + '_raw.mp3');
+    const raw = path.join(OUT_DIR, k + '_raw.mp3');
     fs.writeFileSync(raw, buf);
     const sc = await scribe(raw);
     if (!sc) { fs.unlinkSync(raw); continue; }
     if (sc.lang && !/^(fas|fa|pes)/.test(sc.lang)) {
       lastInfo = `lang=${sc.lang}`;
-      console.log(`  ${key}/${who} t${attempt}: lang=${sc.lang} ❌`);
+      console.log(`  [${li + 1}/${order.length}] ${k}/${who} t${attempt}: lang=${sc.lang} X`);
       fs.unlinkSync(raw); await sleep(1200); continue;
     }
     const scWords = sc.words.map(w => normW(w.text)).filter(Boolean);
@@ -150,48 +214,54 @@ for (let li = 0; li < keys.length; li++) {
     const cov = Math.round(hits / Math.max(1, lineWords.length) * 100);
     if (cov < 60) {
       lastInfo = `cov=${cov}%`;
-      console.log(`  ${key}/${who} t${attempt}: cov=${cov}% «${sc.text.slice(0, 40)}» ❌`);
+      console.log(`  [${li + 1}/${order.length}] ${k}/${who} t${attempt}: cov=${cov}% «${sc.text.slice(0, 40)}» X`);
       fs.unlinkSync(raw); await sleep(1200); continue;
     }
     const hasTail = padded !== t;
-    const cutMp3 = path.join(OUT_DIR, key + '_cut.mp3');
+    const cutMp3 = path.join(OUT_DIR, k + '_cut.mp3');
     try {
       if (hasTail) cutByWords(raw, sc, tail, cutMp3);
       else fs.copyFileSync(raw, cutMp3);
-    } catch (e) { console.log(`  ${key}: cut ERR`); fs.unlinkSync(raw); continue; }
-    const pre = path.join(OUT_DIR, key + '_pre.mp3');
+    } catch (e) { console.log(`  ${k}: cut ERR`); fs.unlinkSync(raw); continue; }
+    const pre = path.join(OUT_DIR, k + '_pre.mp3');
     fs.copyFileSync(cutMp3, pre);
-    execSync(`ffmpeg -y -v quiet -i ${pre} -filter_complex "${FX[who]}" -ar 24000 -ac 1 -b:a 32k ${outMp3}`);
+    const slow = (m === 'grim' && who === 'a') ? 'atempo=0.96,' : '';
+    execSync(`ffmpeg -y -v quiet -i ${pre} -filter_complex "${slow}${FX[who] || FX.p}" -ar 24000 -ac 1 -b:a 32k ${outMp3}`);
     fs.unlinkSync(pre); fs.unlinkSync(cutMp3);
-    console.log(`  ${key}/${who}(Liam) [urgent] t${attempt}: cov=${cov}% ✓ ${durOf(outMp3)}s — «${sc.text.slice(0, 50)}»`);
+    console.log(`  [${li + 1}/${order.length}] ${k}/${who}(${NAMES[who]}) [${m}] t${attempt}: cov=${cov}% OK ${durOf(outMp3)}s`);
     ok = true;
-    results[key] = { ok: true, cov, asr: sc.text.slice(0, 60) };
+    results[k] = { ok: true, cov };
     fs.unlinkSync(raw);
     await sleep(800);
   }
-  if (!ok) results[key] = { ok: false, why: lastInfo };
+  if (!ok) results[k] = { ok: false, why: lastInfo };
+  if (!ok) await sleep(600);
+  if ((li + 1) % 12 === 0) console.log('quota now:', await quotaLeft());
 }
 
-// voices30_data.js — کپی کامل ۲۸ + جایگزینی دو خط تازه
+console.log('quota after:', await quotaLeft());
+
+// voices30_data.js — کپی کامل ۲۸ + خطوط تازه
 const old = fs.readFileSync(SRC_DATA, 'utf8');
 const getOld = k => {
-  const m = old.match(new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':\\{d:([\\d.]+),a:"(data:audio\\/mpeg;base64,[^"]+)"'));
-  return m ? { d: m[1], a: m[2] } : null;
+  const mm = old.match(new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':\\{d:([\\d.]+),a:"(data:audio\\/mpeg;base64,[^"]+)"'));
+  return mm ? { d: mm[1], a: mm[2] } : null;
 };
-let nEl = 0, nKeep = 0, nMiss = 0;
-let js = `/* v30 — صداهای فارسی ElevenLabs؛ دو خطِ باقی‌مانده (aw1/aw4) با لحن urgent
-   و کلید جدید بازسازی شدند · ${new Date().toISOString()} */\nconst VOICES23 = {\n`;
+let nNew = 0, nKeep = 0, nMiss = 0;
+let js = `/* v30 — صداهای فارسی ElevenLabs؛ متن افتتاحیه/انتقال‌های بازنویسی‌شدهٔ کاربر
+   + لحن جدی آرشان (grim) · ${new Date().toISOString()} */\nconst VOICES23 = {\n`;
 const keyOrder = [];
-for (const m of old.matchAll(/^([a-z0-9]+):\{d:/gm)) keyOrder.push(m[1]);
-for (const k of keys) if (!keyOrder.includes(k)) keyOrder.push(k);
+for (const mm of old.matchAll(/^([a-z0-9]+):\{d:/gm)) keyOrder.push(mm[1]);
+for (const { k } of LINES) if (!keyOrder.includes(k)) keyOrder.push(k);
 for (const k of keyOrder) {
   const fresh = path.join(OUT_DIR, k + '.mp3');
-  if (RETAKE[k] && results[k] && results[k].ok && fs.existsSync(fresh) && fs.statSync(fresh).size > 3000) {
+  const isOurs = LINES.some(l => l.k === k);
+  if (isOurs && results[k] && results[k].ok && fs.existsSync(fresh) && fs.statSync(fresh).size > 3000) {
     const b64 = fs.readFileSync(fresh).toString('base64');
     js += `${k}:{d:${durOf(fresh)},a:"data:audio/mpeg;base64,${b64}"},\n`;
-    nEl++;
+    nNew++;
   } else {
-    if (RETAKE[k]) nMiss++;
+    if (isOurs) nMiss++;
     const o = getOld(k);
     if (o) { js += `${k}:{d:${o.d},a:"${o.a}"},\n`; nKeep++; }
     else nMiss++;
@@ -199,7 +269,7 @@ for (const k of keyOrder) {
 }
 js += '};\n';
 fs.writeFileSync(DATA_JS, js);
-const report = { regenerated: nEl, kept: nKeep, failed: keys.filter(k => !results[k] || !results[k].ok), detail: results };
+const report = { fresh: nNew, kept: nKeep, failed: Object.keys(results).filter(k => !results[k].ok), minutes: Math.round((Date.now() - t0) / 6000) / 10 };
 fs.writeFileSync(path.join(OUT_DIR, 'report.json'), JSON.stringify(report, null, 2));
-console.log('\nDONE:', JSON.stringify({ regenerated: nEl, kept: nKeep, failed: report.failed }));
-console.log('→', DATA_JS, `(${(fs.statSync(DATA_JS).size / 1048576).toFixed(1)}MB)`);
+console.log('\nDONE:', JSON.stringify(report));
+console.log('=>', DATA_JS, `(${(fs.statSync(DATA_JS).size / 1048576).toFixed(1)}MB)`);

@@ -278,7 +278,8 @@ function startWave(n) {
     SFX.wave();
   }
   SFX.dusk();
-  setBuildPanel(true, true);             // شب: پنل جمع
+  /* (۳۰) پنل ساخت‌وساز دیگر شب‌ها خودکار جمع نمی‌شود — داک بالای صفحه
+     روی زمین بازی نمی‌نشیند و وسط نبرد هم در دسترس است (درخواست کاربر) */
   if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفروع باید رفته باشد
   hidePeddlerPanel();
   $('bpHead').classList.remove('attention');
@@ -324,8 +325,8 @@ function enterDay() {
   showDayPanel();                          /* (۱۶٫۰) دکمه‌ی طلایی داخل پنل ساخت‌وساز */
   peddlerRoll();                          // (۱۰٫۰) شانس آمدن دستفروش مرموز
   saveGame();                             // (۱۰٫۰) سیو خودکارِ پایان موج
-  /* (۲۹) شیت همیشه جمع شروع می‌شود — FAB برچسب‌دار + پالس، راهنمای خرید است */
-  setBuildPanel(true, true);
+  /* (۳۰) روز شد هم پنل دست‌نخورده می‌ماند — وضعیت داک همان است که
+     بازیکن گذاشته؛ پالس راهنما فقط روی پیلِ جمع */
   $('bpHead').classList.add('attention');
   updateHUD(); refreshBackpack();
 }
