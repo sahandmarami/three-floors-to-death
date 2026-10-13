@@ -891,6 +891,14 @@ function gunMuzzle(len) {
 
 function tryShoot() {
   if (fireTimer > 0) return;
+  /* (۲۸٫۰) پادبان: اگر سلاحِ در دست به هر دلیلی (سیو قدیمی/لبه‌ی باگ)
+     ناموجود بود، بی‌صدا به کلت برمی‌گردیم — شلیک هرگز قفل نمی‌شود
+     (رفع «بعد تعویض شاتگان نمی‌شود شلیک کرد») */
+  if (!WEAPONS[state.weapon] || !WEAPONS[state.weapon].owned) {
+    WEAPONS.pistol.owned = true;
+    state.weapon = 'pistol';
+    try { refreshBuildPanel(); } catch (e) {}
+  }
   const w = WEAPONS[state.weapon];
   /* قدرت «شلیک سریع» نرخ شلیک را تقریباً دوبرابر می‌کند +
      ارتقای «سرعت شلیک» (۹٫۰) هر سطح ۸٪ فاصله‌ی شلیک را کم می‌کند */
@@ -1644,14 +1652,22 @@ function denyBPItem(kind) {
 }
 
 /* انتخاب سلاح (کلید ۱/۲/۳ یا کلیک روی کاشیِ سلاح در پنل ساخت‌وساز — ۱۲٫۰)
-   (۲۰٫۰) سلاح‌های «تحویل‌شده به فروشنده» دیگر انتخاب نمی‌شوند */
+   (۲۸٫۰) سلاح‌ها برای همیشه مالِ بازیکن‌اند — هر سلاحِ خریده‌شده هر
+   لحظه قابلِ برداشتن/گذاشتن است (رفع «بعد شاتگان نمی‌شود برگشت
+   به کلت»): دیگر هیچ سلاحی «تحویل» نمی‌شود. */
 function selectWeapon(id) {
-  if (!WEAPONS[id] || !WEAPONS[id].owned) { SFX.deny(); try { denyBPItem(id); } catch (e) {} return; }
+  if (!WEAPONS[id] || !WEAPONS[id].owned) {
+    /* سلاح در دستِ نامعتبر (سیو قدیمی/لبه‌ی باگ) → برگشت ایمن به کلت */
+    if (state.weapon === id) { WEAPONS.pistol.owned = true; state.weapon = 'pistol'; updateHUD(); }
+    SFX.deny(); try { denyBPItem(id); } catch (e) {}
+    return;
+  }
   if (state.weapon === id) return;
   state.weapon = id;
   SFX.click();
   try { addText(TOWER.x, TOWER_TOP_Y - 52, '🔫 ' + WEAPONS[id].name, '#8fd6ff', 14); } catch (e) {}
   updateHUD();
+  try { refreshWeaponChips28(); } catch (e) {}
 }
 
 /* خرید ارتقا — در ۳٫۰ وسط مبارزه هم مجاز است (پنل زنده‌ی کنار نقشه) */
@@ -1659,7 +1675,7 @@ function attemptBuy(kind) {
   if (!canPlay()) return;                  // فقط وقتی بازی جریان دارد
   const u = UPGRADES[kind];
 
-  /* --- (۲۰٫۰) کلت: سلاحِ شروع — کلیک فقط انتخابش می‌کند --- */
+  /* --- کلت: سلاحِ شروع — کلیک فقط انتخابش می‌کند --- */
   if (kind === 'pistol') { selectWeapon('pistol'); return; }
 
   /* --- برجک‌های دفاعی: به حالت انتخاب محل نصب می‌رود (۴٫۰)
@@ -1674,26 +1690,22 @@ function attemptBuy(kind) {
     return;
   }
 
-  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) — ۲۰٫۰: خریدِ تازه =
-       تحویلِ سلاحِ قبلی به فروشنده؛ تب ساخت‌وساز فقط سلاحِ فعلی +
-       بعدی را نشان می‌دهد (پیشرفتِ تک‌خطی: کلت ← شاتگان ← مسلسل) --- */
+  /* --- سلاح‌های یک‌بار خرید (شاتگان/مسلسل) — (۲۸٫۰) مالکیت دائمی:
+       سلاح قبلی تحویل نمی‌شود؛ همه‌ی سلاح‌های خریده‌شده همیشه در
+       تب سلاح‌ها قابل تعویض‌اند (کلت ← شاتگان ← مسلسل، آزادانه) --- */
   if (kind === 'shotgun' || kind === 'mg') {
     if (WEAPONS[kind].owned) { selectWeapon(kind); return; }
     if (state.coins < u.price) { denyBPItem(kind); return; }
     state.coins -= u.price;
     state.weaponSpent += u.price;               // مبنای غرامتِ «زیر آوار ماندن»
-    /* سلاحِ قبلی تحویل می‌شود (دیگر در ساخت‌وساز/انتخاب نیست) */
-    const prev = kind === 'shotgun' ? 'pistol' : 'shotgun';
-    if (WEAPONS[prev].owned) {
-      WEAPONS[prev].owned = false;
-      addText(TOWER.x, TOWER_TOP_Y - 70, WEAPONS[prev].name + ' تحویل شد 🔁', '#c3cdea', 13);
-    }
+    WEAPONS.pistol.owned = true;                /* (۲۸٫۰) کلت همیشه می‌ماند */
     WEAPONS[kind].owned = true;
     selectWeapon(kind);                    // بلافاصله دستِ کاربر می‌افتد
-    setBPTab('wpn', true);                 // (۱۲٫۰) تب سلاح‌ها جلوی چشم باشد
     SFX.buy();
     spawnParticles(TOWER.x, TOWER_TOP_Y - 20, 18, '#ffd873', { speed: 170, life: 0.6, size: 2.6, grav: 300, up: true });
+    try { addText(TOWER.x, TOWER_TOP_Y - 70, WEAPONS[kind].name + ' مالِ خودت شد ✅', '#7be389', 13); } catch (e) {}
     updateHUD(); refreshBuildPanel();
+    try { refreshWeaponChips28(); } catch (e) {}
     return;
   }
 

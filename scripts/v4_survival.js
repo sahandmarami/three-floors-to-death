@@ -267,11 +267,14 @@ function refreshBackpack() {
   if (bar) bar.classList.toggle('compact', !any);
   const cap = $('bpkCap');
   const n = state.backpack.filter(s => s).length;
-  /* (۲۶٫۰) آیکن SVG به‌جای ایموجی 🎒 */
+  /* (۲۶٫۰) آیکن SVG به‌جای ایموجی 🎒
+     (۲۸٫۰) متن بلندِ «کوله خالی — خرید از تب بقا» حذف شد —
+     درخواست کاربر: نوشته‌ی کوله دقیقاً وسط بازی بود؛ حالا فقط
+     آیکون کوچک (خالی) یا آیکون + شمارنده (پر) */
   const bpkIc = (typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('backpack') + '</i>' : '');
   if (cap) cap.innerHTML = any
-    ? bpkIc + ' کوله ' + faNum(n) + '/' + faNum(6)
-    : bpkIc + ' کوله خالی — خرید از تب «بقا»';
+    ? bpkIc + ' ' + faNum(n) + '/' + faNum(6)
+    : bpkIc;
   for (let i = 0; i < 6; i++) {
     const el = $('bpk-' + i);
     if (!el) continue;
