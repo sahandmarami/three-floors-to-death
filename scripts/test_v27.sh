@@ -50,7 +50,7 @@ agent-browser eval "GAME.skipToWave(2);'ok'" >/dev/null 2>&1; sleep 2
 agent-browser eval "DLG.skip();'ok'" >/dev/null 2>&1; sleep 1.5
 agent-browser eval "DLG.skip();'ok'" >/dev/null 2>&1; sleep 1
 R=$(agent-browser eval "state.mode==='day'||state.mode==='playing'?1:0" | tail -1); ck "حالت روز/بازی رسید" "$R" "mode=$(agent-browser eval "state.mode" | tail -1)"
-R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar').getBoundingClientRect();const cx=innerWidth/2;return Math.abs((b.left+b.right)/2-cx)<60?1:0})()" | tail -1); ck "کوله: وسط صفحه (مرکز آینه)" "$R" "rect=$(agent-browser eval "(()=>{const r=document.getElementById('backpackBar').getBoundingClientRect();return Math.round(r.x)+'..'+Math.round(r.right)})()" | tail -1)"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar').getBoundingClientRect();return b.x<innerWidth*0.4?1:0})()" | tail -1); ck "کوله: پایین-چپ (v28: بیرون از مرکز تصویر)" "$R" "rect=$(agent-browser eval "(()=>{const r=document.getElementById('backpackBar').getBoundingClientRect();return Math.round(r.x)+'..'+Math.round(r.right)})()" | tail -1)"
 R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar').getBoundingClientRect();return b.y+b.height>innerHeight*0.72?1:0})()" | tail -1); ck "کوله: نوار پایین" "$R"
 
 echo "===== ۷) دکمه شب‌شود در روز + دستفروش بعد از گفتگو ====="
@@ -60,11 +60,13 @@ if [ "$(agent-browser eval "state.mode" | tail -1)" != "day" ]; then
   agent-browser eval "DLG.skip();'ok'" >/dev/null 2>&1; sleep 1.5
 fi
 R=$(agent-browser eval "state.mode==='day'?1:0" | tail -1); ck "روز فعال" "$R"
-R=$(agent-browser eval "!document.getElementById('bpNight').classList.contains('hidden') && document.getElementById('bpNight').textContent.includes('شب')?1:0" | tail -1); ck "دکمه «شب شود» نمایان با متن" "$R"
+R=$(agent-browser eval "(()=>{const sh=document.getElementById('buildPanel'); const mini=document.getElementById('bpNightMini28'); const open=!sh.classList.contains('collapsed'); return (open && mini && mini.classList.contains('on')) || (!open && !document.getElementById('bpNight').classList.contains('hidden') && document.getElementById('bpNight').textContent.includes('شب'))?1:0})()" | tail -1); ck "دکمه «شب شود» در دسترس (v28: مینی داخل شیت باز / شناور وقتی بسته)" "$R"
+# شیت را ببند تا دکمه‌ی شناور شب‌شود قابل سنجش باشد
+agent-browser eval "setBuildPanel(true,true);'ok'" >/dev/null 2>&1; sleep 0.6
 agent-browser screenshot /home/z/my-project/scripts/shots27/t27_day.png >/dev/null 2>&1
 B1=$(agent-browser eval "(()=>{const b=document.getElementById('bpNight').getBoundingClientRect();return Math.round(b.y)+'|'+Math.round(b.x)+'|'+Math.round(b.height)})()" | tail -1)
 echo "  شب‌شود rect: $B1"
-R=$(agent-browser eval "(()=>{const b=document.getElementById('bpNight').getBoundingClientRect();return b.y+b.height>innerHeight*0.6 && b.x>innerWidth*0.5?1:0})()" | tail -1); ck "شب‌شود: پایین-راست صفحه" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('bpNight').getBoundingClientRect();return b.y+b.height>innerHeight*0.6 && b.x>innerWidth*0.5?1:0})()" | tail -1); ck "شب‌شود: پایین-راست کنار FAB (شیت بسته)" "$R"
 R=$(agent-browser eval "(()=>{const b=document.getElementById('bpNight').getBoundingClientRect();return b.height>=40?1:0})()" | tail -1); ck "شب‌شود: دکمه درشت" "$R"
 # دستفروش: در روز، بدون گفتگوی فعال، بعد از تاخیر باید بیاید (نه وسط گفتگو)
 R=$(agent-browser eval "(()=>{ if(DLG.active) return 0; const had=state.peddler.here; return 1 })()" | tail -1); ck "گفتگو فعال نیست (دستفروش وسط صحبت نمی‌آید)" "$R"

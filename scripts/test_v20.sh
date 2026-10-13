@@ -31,12 +31,12 @@ R=$(agent-browser eval "WEAPONS.pistol.owned===true&&state.weapon==='pistol'?1:0
 R=$(agent-browser eval "GAME.v12.setBPTab('wpn',true);document.getElementById('bp-pistol').style.display!=='none'&&document.getElementById('bp-shotgun').style.display!=='none'&&document.getElementById('bp-mg').style.display!=='none'?1:0" | tail -1); ck "تب سلاح: هر سه تفنگ دیده می‌شوند (۲۱٫۱)" "$R"
 R=$(agent-browser eval "document.getElementById('bp-pistol').classList.contains('armed')&&document.getElementById('bp-mg').classList.contains('locked')&&document.getElementById('bp-mg-cost').textContent==='🔒'?1:0" | tail -1); ck "کلت در دست؛ مسلسل با نشان قفل" "$R"
 agent-browser eval "GAME.giveCoins(800);GAME.attemptBuy('shotgun');'ok'" >/dev/null; sleep 0.5
-R=$(agent-browser eval "WEAPONS.shotgun.owned===true&&WEAPONS.pistol.owned===false&&state.weapon==='shotgun'?1:0" | tail -1); ck "خرید شاتگان → کلت تحویل شد" "$R"
+R=$(agent-browser eval "WEAPONS.shotgun.owned===true&&WEAPONS.pistol.owned===true&&state.weapon==='shotgun'?1:0" | tail -1); ck "خرید شاتگان → کلت می‌ماند (v28: مالکیت دائمی)" "$R"
 R=$(agent-browser eval "GAME.v12.setBPTab('wpn',true);document.getElementById('bp-shotgun').classList.contains('armed')&&document.getElementById('bp-mg').classList.contains('locked')===false?1:0" | tail -1); ck "بعد از خرید: شاتگان در دست؛ مسلسل قابل خرید (۲۱٫۱)" "$R"
-R=$(agent-browser eval "GAME.selectWeapon('pistol');state.weapon==='shotgun'?1:0" | tail -1); ck "انتخاب کلتِ تحویل‌شده رد می‌شود" "$R"
-agent-browser eval "GAME.attemptBuy('mg');'ok'" >/dev/null; sleep 0.5
-R=$(agent-browser eval "WEAPONS.mg.owned===true&&WEAPONS.shotgun.owned===false&&state.weapon==='mg'?1:0" | tail -1); ck "خرید مسلسل → شاتگان تحویل شد" "$R"
-R=$(agent-browser eval "collectSave().owned.pistol===false&&collectSave().owned.mg===true?1:0" | tail -1); ck "سیو: مالکیت کلت/مسلسل ذخیره می‌شود" "$R"
+R=$(agent-browser eval "GAME.selectWeapon('pistol');state.weapon==='pistol'?1:0" | tail -1); ck "برگشت به کلت ممکن شد (v28: تعویض آزاد)" "$R"
+agent-browser eval "GAME.selectWeapon('shotgun');GAME.attemptBuy('mg');'ok'" >/dev/null; sleep 0.5
+R=$(agent-browser eval "WEAPONS.mg.owned===true&&WEAPONS.shotgun.owned===true&&WEAPONS.pistol.owned===true&&state.weapon==='mg'?1:0" | tail -1); ck "خرید مسلسل → همه‌ی سلاح‌ها مال (v28)" "$R"
+R=$(agent-browser eval "collectSave().owned.pistol===true&&collectSave().owned.shotgun===true&&collectSave().owned.mg===true?1:0" | tail -1); ck "سیو: مالکیت هر سه سلاح ذخیره می‌شود (v28)" "$R"
 
 echo "===== ۳) برجک‌های ویژه: قفل → نقشه → نصب → شلیک ====="
 agent-browser eval "GAME.v12.setBPTab('tur',true);'ok'" >/dev/null
