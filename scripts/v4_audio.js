@@ -829,8 +829,19 @@ function circle2(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.
 function rr2(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
 /* ---------------------- ۱۰-۵) ورودی گفتگو + هوک‌ها ---------------------- */
+/* (۲۸٫۰) ریشه‌ی «رد کردن با دو ضربه»: این شنونده‌ی capture ای، ضربه‌ی
+   کاربر روی دکمه‌ی «رد کردن» را هم می‌بلوید (stopPropagation) و کلیک
+   هرگز به خود دکمه نمی‌رسید؛ فقط یک خطِ گفتگو جلو می‌رفت.
+   حالا: اگر هدفِ لمس، خودِ یک کنترلِ تعاملی باشد (دکمه/کاشی/سوییچ...)
+   اتفاقی نمی‌افتد و رویداد آزادانه به مقصدش می‌رسد. */
 window.addEventListener('pointerdown', (e) => {
-  if (DLG.active) { DLG.advance(); e.stopPropagation(); e.preventDefault(); }
+  if (!DLG.active) return;
+  const t = e.target;
+  if (t && t.closest && t.closest(
+    'button,.bp-tile,.bp-tab,.bpk-slot,.m27-btn,.m27-row,.switch,#skipCs,#bpNight,#buildPanel,#peddlerPanel,#dayPanel,#bpTip,input,select'
+  )) return;                          // کنترل تعاملی — نبلو
+  if (t && t.closest && t.closest('#dlgBox')) { DLG.advance(); e.stopPropagation(); e.preventDefault(); return; }
+  DLG.advance(); e.stopPropagation(); e.preventDefault();
 }, true);
 window.addEventListener('keydown', (e) => {
   if (DLG.active && (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowDown')) {

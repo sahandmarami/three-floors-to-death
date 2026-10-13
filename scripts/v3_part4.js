@@ -77,11 +77,11 @@ const BUILD_DEFS = [
   { tab: 'up', kind: 'health', key: '۵', codes: ['Digit5', 'Numpad5'], name: 'جون برج',      desc: '+۳۰ به حداکثر جون برج (و همین‌جا ترمیم می‌شود)' },
   { tab: 'up', kind: 'weapon', key: '۴', codes: ['Digit4', 'Numpad4'], name: 'ارتقای اسلحه',  desc: 'قدرت گلوله‌ی همه‌ی سلاح‌ها بالا می‌رود' },
   { tab: 'up', kind: 'trap',   key: '۷', codes: ['Digit7', 'Numpad7'], name: 'تله پایه',     desc: 'خارهای برقی — آسیب خودکار به زامبی‌های نزدیک برج' },
-  /* (۲۱٫۱) پیشرفتِ تک‌خطی سلاح: کلت ← شاتگان ← مسلسل — همه‌ی سه‌تا در تب
-     دیده می‌شوند: فعلی (در دست)، بعدی (قابل خرید)، بعدترها (قفل) */
-  { tab: 'wpn', kind: 'pistol',  key: '۱', codes: [], name: 'کلت',      desc: 'سلاح شروع بازی — با خرید شاتگان تحویل داده می‌شود' },
-  { tab: 'wpn', kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — با خریدنش، کلت را تحویل می‌دهی' },
-  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'دکمه را نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — با خریدنش، شاتگان را تحویل می‌دهی' },
+  /* (۲۸٫۰) مالکیت دائمی سلاح‌ها: خرید = برای همیشه مالِ خودت؛
+     هر سه در تب دیده می‌شوند: خریده‌شده (قابل تعویض) / بعدی / قفل */
+  { tab: 'wpn', kind: 'pistol',  key: '۱', codes: [], name: 'کلت',      desc: 'سلاح شروع — همیشه همراهت می‌ماند' },
+  { tab: 'wpn', kind: 'shotgun', key: '۸', codes: ['Digit8', 'Numpad8'], name: 'شاتگان',       desc: '۶ ساچمه با پراکندگی کشنده — بعد از خرید برای همیشه مالِ خودته' },
+  { tab: 'wpn', kind: 'mg',      key: '۹', codes: ['Digit9', 'Numpad9'], name: 'مسلسل',        desc: 'دکمه را نگه‌دار و ببار؛ نرخ شلیک خیلی بالا — بعد از خرید برای همیشه مالِ خودته' },
   { tab: 'tur', kind: 'gatling', key: '۰', codes: ['Digit0', 'Numpad0'], name: 'برجک مسلسل',   desc: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
   { tab: 'tur', kind: 'sniper',  key: 'G', codes: ['KeyG'],              name: 'تک‌تیرانداز',   desc: 'تک‌ضرب کُشنده با شانس کریت • برد ۴۰۰' },
   { tab: 'tur', kind: 'frost',   key: 'F', codes: ['KeyF'],               name: 'برجک یخ‌زن',    desc: 'کند و یخ‌زده می‌کند • برد ۱۷۵' },
@@ -169,13 +169,11 @@ function tileStatus(kind) {
   }
   if (kind === 'pistol' || kind === 'shotgun' || kind === 'mg') {
     if (kind === state.weapon) return 'همین الان در دستته ✅';
+    if (WEAPONS[kind].owned) return 'مالِ خودته — یک ضربه بزن تا در دستت بیاد';
     const wo = ['pistol', 'shotgun', 'mg'];
     const idx = wo.indexOf(kind), cur = wo.indexOf(state.weapon);
-    if (idx === cur + 1) {
-      if (kind === 'shotgun') return 'خریدش = کلت تحویل می‌شود و این در دستت می‌آید';
-      return 'خریدش = شاتگان تحویل می‌شود و این در دستت می‌آید';
-    }
-    return '🔒 قفل — اول سلاحِ قبلی را بخر';
+    if (idx > cur + 1) return '🔒 قفل — اول سلاحِ قبلی را بخر';
+    return 'قیمت: ' + faNum(UPGRADES[kind].price) + ' سکه — بعد از خرید برای همیشه مالِ خودت';
   }
   if (kind === 'repair') {
     return state.tower.hp >= state.tower.maxHp - 0.5
@@ -290,24 +288,28 @@ function refreshBuildPanel() {
     /* فقط کاشی‌های تبِ فعال دیده شوند */
     item.style.display = (d.tab === BP_TAB) ? '' : 'none';
 
-    /* --- سلاح‌ها (۲۱٫۱: هر سه دیده می‌شوند — فعلی/بعدی/قفل) --- */
+    /* --- سلاح‌ها (۲۸٫۰: هر سه دیده می‌شوند — مالکیت دائمی؛
+         خریده‌شده = قابل تعویض با یک ضربه، بعدی = قیمت، بعدترها = قفل) --- */
     if (WORDER.indexOf(d.kind) >= 0) {
+      const owned = !!WEAPONS[d.kind].owned;
+      const isCur = d.kind === state.weapon;
       const curIdx = WORDER.indexOf(state.weapon);
       const idx = WORDER.indexOf(d.kind);
-      const isCur = d.kind === state.weapon;
-      const isNext = idx === curIdx + 1;
-      const isFar = idx > curIdx + 1;
+      const isFar = !owned && idx > curIdx + 1;
       item.classList.toggle('armed', isCur);
       item.classList.toggle('locked', isFar);
+      item.classList.toggle('owned', owned && !isCur);
       if (isCur) {
-        cost.textContent = 'در دست';
-      } else if (isNext) {
-        cost.textContent = faNum(UPGRADES[d.kind].price);
-        item.classList.toggle('poor', state.coins < UPGRADES[d.kind].price);
+        cost.textContent = 'در دست ✅';
+      } else if (owned) {
+        cost.textContent = 'برداشتن ▸';       /* (۲۸٫۰) یک ضربه = تعویض سلاح */
       } else if (isFar) {
         cost.textContent = '🔒';
+      } else {
+        cost.textContent = faNum(UPGRADES[d.kind].price);
+        item.classList.toggle('poor', state.coins < UPGRADES[d.kind].price);
       }
-      if (!isNext) item.classList.remove('poor');
+      if (!(!owned && !isFar)) item.classList.remove('poor');
       continue;
     }
 

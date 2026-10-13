@@ -566,8 +566,8 @@ function applySave(d) {
     state.upgrades = Object.assign({ weapon: 0, health: 0, trap: 0, turretUp: 0, speed: 0 }, d.upgrades);
     WEAPONS.shotgun.owned = !!(d.owned && d.owned.shotgun);
     WEAPONS.mg.owned = !!(d.owned && d.owned.mg);
-    /* (۲۰٫۰) پیشرفت سلاح: کلت فقط وقتی می‌ماند که هنوز شاتگان نخریده باشیم */
-    WEAPONS.pistol.owned = d.owned ? (d.owned.pistol !== false) : true;
+    /* (۲۸٫۰) کلت همیشه مالِ بازیکن است — سلاح‌ها تحویل نمی‌شوند */
+    WEAPONS.pistol.owned = true;
     state.bps = Object.assign({ tesla: false, missile: false, flame: false }, d.bps);
     if (d.weapon && WEAPONS[d.weapon] && WEAPONS[d.weapon].owned) state.weapon = d.weapon;
     else if (WEAPONS.mg.owned) state.weapon = 'mg';

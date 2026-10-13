@@ -325,7 +325,8 @@ function csBrickBurst(i, n) {
   SFX.csCrack();
 }
 
-/* «اسلحه‌ها زیر آوار ماندند» + پرداخت غرامت (فقط یک‌بار) */
+/* «اسلحه‌ها زیر آوار ماندند» + پرداخت غرامت (فقط یک‌بار)
+   (۲۸٫۰) کلت همیشه در دست می‌ماند (WEAPONS.pistol.owned=true تضمینی) */
 function cutsceneApplyCompensation() {
   if (!CS || CS.compApplied) return;
   CS.compApplied = true;
@@ -334,6 +335,7 @@ function cutsceneApplyCompensation() {
   /* اسلحه‌های همراهِ روی برج از بین می‌روند */
   WEAPONS.shotgun.owned = false;
   WEAPONS.mg.owned = false;
+  WEAPONS.pistol.owned = true;                /* (۲۸٫۰) کلت زیر آوار نمی‌ماند */
   state.weapon = 'pistol';
   state.upgrades.weapon = 0;
   state.upgrades.speed = 0;               // (۹٫۰) ارتقای سرعت شلیک هم «زیر آوار» می‌ماند
@@ -345,6 +347,7 @@ function cutsceneApplyCompensation() {
   pulseCoins();
   refreshWeaponBar();
   refreshBuildPanel();
+  try { refreshWeaponChips28(); } catch (e) {}
   updateHUD();
 }
 

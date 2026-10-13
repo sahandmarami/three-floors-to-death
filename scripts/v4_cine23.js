@@ -17,12 +17,14 @@ const MG23 = {
   /* (۲۴٫۰) بالابرندیِ نهایی صحنه — همه‌چیز دیده شود، رنگ‌ها نشویند */
   lift(k) {
     ctx.save();
+    try {
     ctx.globalCompositeOperation = 'lighter';
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, 'rgba(30,36,64,' + (0.50 * k) + ')');
     g.addColorStop(0.55, 'rgba(24,28,52,' + (0.34 * k) + ')');
     g.addColorStop(1, 'rgba(16,18,34,' + (0.20 * k) + ')');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    } catch (e) {}
     ctx.restore();
   },
 
@@ -196,6 +198,8 @@ const MG23 = {
 
   /* نوار مه روان */
   fogBands(t, y, n, speed, alpha, hue) {
+    ctx.save();
+    try {
     for (let i = 0; i < n; i++) {
       const fx = ((t * speed * (0.6 + (i % 3) * 0.28) + i * 370) % (W + 500)) - 250;
       const fw = 190 + (i % 4) * 90;
@@ -204,11 +208,14 @@ const MG23 = {
       ctx.ellipse(fx, y + Math.sin(i * 2.1 + t * 0.4) * 7, fw / 2, 17 + (i % 3) * 6, 0, 0, Math.PI * 2);
       ctx.fill();
     }
+    } catch (e) {}
+    ctx.restore();
   },
   /* ---------- (۲۷) لایه‌های سینمایی جدید — جذابیت استوری‌موشن ---------- */
   /* ذرات خاکستر/جرقه‌ی معلق — حس زنده بودن صحنه */
   embers27(t, n, hue) {
     ctx.save();
+    try {
     ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < (n || 26); i++) {
       const seed = i * 127.31;
@@ -219,11 +226,13 @@ const MG23 = {
       ctx.fillStyle = (hue || 'rgba(255,150,70,') + (tw * 0.5).toFixed(2) + ')';
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     }
+    } catch (e) {}
     ctx.restore();
   },
   /* ستون دودِ دوردست — نشانه‌ی آتش در شهر */
   smoke27(x, baseY, t, k) {
     ctx.save();
+    try {
     for (let i = 0; i < 5; i++) {
       const yy = baseY - i * 26 - (t * 6 % 26);
       const rr2 = 8 + i * 6.5;
@@ -239,27 +248,37 @@ const MG23 = {
     g.addColorStop(1, 'rgba(255,90,40,0)');
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(x, baseY + 6, 15, 0, Math.PI * 2); ctx.fill();
+    } catch (e) {}
     ctx.restore();
   },
-  /* پرتوی نورِ مورب — god ray */
+  /* پرتوی نورِ مورب — god ray
+     (۲۸٫۰) ریشه‌ی «صفحه‌ی سفید» همین‌جا بود: addColorStop(1) با hueِ
+     ناقص ('rgba(150,180,255,') استثنا می‌انداخت؛ استثنا ctx را در حالت
+     lighter + ترنسفورمِ چرخیده رها می‌کرد و فریم‌های بعدی سفید می‌شدند.
+     حالا رنگ پایه به‌درست بسته می‌شود و بدنه در try/finally است. */
   rays27(x, topY, w, h, ang, alpha, hue) {
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.translate(x, topY);
-    ctx.rotate(ang || -0.42);
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, (hue || 'rgba(255,170,90,') + (alpha || 0.12) + ')');
-    g.addColorStop(1, (hue || 'rgba(255,170,90,0)'));
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.18, 0); ctx.lineTo(w * 0.18, 0);
-    ctx.lineTo(w * 0.55, h); ctx.lineTo(-w * 0.55, h);
-    ctx.closePath(); ctx.fill();
+    try {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(x, topY);
+      ctx.rotate(ang || -0.42);
+      const base = hue || 'rgba(255,170,90,';
+      const a = (alpha == null ? 0.12 : alpha);
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, base + a + ')');
+      g.addColorStop(1, base + '0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.18, 0); ctx.lineTo(w * 0.18, 0);
+      ctx.lineTo(w * 0.55, h); ctx.lineTo(-w * 0.55, h);
+      ctx.closePath(); ctx.fill();
+    } catch (e) {}
     ctx.restore();
   },
   /* ذرات غبار در نور — سکوت سینمایی صحنه‌های ساختمان */
   dust27(t, cx, cy, rad) {
     ctx.save();
+    try {
     for (let i = 0; i < 18; i++) {
       const seed = i * 3.77;
       const x = cx + Math.sin(t * 0.22 + seed) * rad * (0.5 + 0.5 * Math.cos(seed));
@@ -268,6 +287,7 @@ const MG23 = {
       ctx.fillStyle = 'rgba(210,220,255,' + tw.toFixed(2) + ')';
       ctx.fillRect(x, y, 1.4, 1.4);
     }
+    } catch (e) {}
     ctx.restore();
   },
 
