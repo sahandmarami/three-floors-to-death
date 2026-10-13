@@ -750,7 +750,7 @@ function startGame() {
   hideOverlays();
   hideDayPanel();                          // پنل روز مطمئناً بسته باشد (۵٫۰)
   $('wrap').classList.remove('menu-mode'); // HUD و پنل‌ها برگردند (۵٫۰)
-  setBuildPanel(false, true);              // پنل ساخت‌وساز در شروع باز باشد (۶٫۰)
+  setBuildPanel(true, true);              // (۲۹) شروعِ جمع — شیت دیگر خودکار روی صفحه نمی‌افتد؛ FAB با پالس راهنماست
   setPauseIcon(false);   // (۱۳٫۰) ریل چپ
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
@@ -817,7 +817,7 @@ function waveComplete() {
   SFX.clear();
   SFX.morning();                           // چرپ‌چرپ صبحگاهی
   showDayPanel();                          // دکمه‌ی «شب شود» (۵٫۰)
-  setBuildPanel(false, true);              // روز شد: پنل خودکار باز شود برای خرید/نصب (۶٫۰)
+  setBuildPanel(true, true);              // (۲۹) روز شد: شیت جمع می‌ماند — خرید از FAB؛ دیگر صفحه را نمی‌پوشاند
   $('bpHead').classList.add('attention');   // راهنمایی بصری: فرصت خرید رسید
   updateHUD();
 }

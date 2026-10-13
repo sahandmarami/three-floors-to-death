@@ -21,12 +21,6 @@ function hideOverlays() {
 function pauseGame() {
   if (!canPlay()) return;
   state.prevMode = state.mode; state.mode = 'paused';
-  /* (۲۵٫۰) آمار لحظه‌ای در منوی توقف — مثل بازی‌های اندروید */
-  const zs = $('pzStats');
-  if (zs) zs.innerHTML =
-    '<span class="pz-chip">مرحله <b>' + faNum(clamp(state.wave, 1, FINAL_WAVE)) + '</b></span>' +
-    '<span class="pz-chip">💰 <b>' + faNum(state.coins) + '</b></span>' +
-    '<span class="pz-chip">❤ <b>' + faNum(Math.ceil(state.tower.hp)) + '</b></span>';
   showScreen('pauseScreen');
   setPauseIcon(true);
 }
@@ -375,9 +369,16 @@ function updateHUD() {
   fill.className = ratio > 0.5 ? '' : (ratio > 0.25 ? 'mid' : 'low');
   $('healthText').textContent = faNum(Math.ceil(t.hp)) + '/' + faNum(t.maxHp);
   $('coinText').textContent = faNum(state.coins);
-  /* (۲۵٫۰) فقط «مرحله X» — بدون شمارش موج/باقی‌مانده (درخواست کاربر) */
+  /* فصل + شماره‌ی موج درون‌فصلی */
   const wl = waveLabel();
-  $('waveText').textContent = (state.mode === 'day' && state.dayTarget > 0.5 ? '☀️ ' : '') + wl;
+  if (state.mode === 'playing') {
+    const rem = state.spawn.queue.length + state.zombies.filter(z => !z.dead).length;
+    $('waveText').textContent = wl + ' • ' + faNum(rem) + ' باقی';
+  } else if (state.mode === 'day') {
+    $('waveText').textContent = '☀️ ' + wl;
+  } else {
+    $('waveText').textContent = wl;
+  }
   refreshBuildPanel();
   refreshGearHUD();                            // چراغ‌قوه/باتری
 }
@@ -477,7 +478,7 @@ function init() {
   $('ctlPause').addEventListener('click', () => {
     if (state.mode === 'paused') resumeGame(); else pauseGame();
   });
-  $('nightCTA').addEventListener('click', startNight);   // (۲۵٫۰) شروع شب — CTA بزرگ وسط-پایین
+  $('bpNight').addEventListener('click', startNight);   // (۱۶٫۰) شروع شب — دکمه‌ی داخل پنل ساخت‌وساز
   $('btnResume').addEventListener('click', resumeGame);
   $('btnRestart0').addEventListener('click', startGame);
   /* (۱۵٫۰) باخت: «تلاش دوباره» (سیو با همه‌ی وسایل) و «منوی اصلی» —

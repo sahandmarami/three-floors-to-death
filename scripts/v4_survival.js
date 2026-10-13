@@ -14,13 +14,13 @@
 
 /* ---------------------- ۶-۱) وسایل بقی و آیتم‌های کمیاب ---------------------- */
 const GEAR = {
-  flashlight: { name: 'چراغ‌قوه',            price: 55, icon: 'flashlight', color: '#f5d76e',
-    desc: 'دید در مه و قطع برق (باتری دارد) — دکمه‌ی پایین-چپ' },
-  battery:    { name: 'باتری',               price: 20, icon: 'battery',    color: '#7be389',
-    desc: '+۵۰٪ شارژ چراغ‌قوه — ذخیره در کوله، مصرف با لمس' },
-  canned:     { name: 'کنسرو',               price: 16, icon: 'canned',     color: '#e8a13c',
+  flashlight: { name: 'چراغ‌قوه',            price: 80, icon: 'flashlight', color: '#f5d76e',
+    desc: 'با کلید L روشن/خاموش می‌شود — دید در مه و قطع برق (باتری دارد)' },
+  battery:    { name: 'باتری',               price: 30, icon: 'battery',    color: '#7be389',
+    desc: '+۵۰٪ شارژ چراغ‌قوه — ذخیره در کوله، مصرف با کلیک' },
+  canned:     { name: 'کنسرو',               price: 25, icon: 'canned',     color: '#e8a13c',
     desc: 'شفای تدریجی ۴۵ جون در ۱۲ ثانیه' },
-  medkit:     { name: 'کیت کمک‌های اولیه',   price: 30, icon: 'medkit',     color: '#ff8a8a',
+  medkit:     { name: 'کیت کمک‌های اولیه',   price: 45, icon: 'medkit',     color: '#ff8a8a',
     desc: '۷۰ جون برج را فوراً برمی‌گرداند' },
 };
 
@@ -28,28 +28,28 @@ const GEAR = {
    (۲۰٫۰) بازخورد کاربر «هر سری یه چیز جدید بیاره و جالب باشه» —
    سه کالای مصرفیِ تازه هم اضافه شد: حمله‌ی هوایی، بمب یخی و آدرنالین */
 const RARE = {
-  vest:     { name: 'جلیقه‌ی ضدّ گازگزش', price: 150, icon: 'vest',     color: '#8fd6ff',
-    desc: 'آسیب گازِ زامبی‌ها ۲۵٪ کمتر — دائمی' },
-  goldAmmo: { name: 'فشنگ‌های طلایی',   price: 185, icon: 'goldAmmo', color: '#ffd873',
+  vest:     { name: 'جلیقه‌ی ضدّ گازگزش', price: 260, icon: 'vest',     color: '#8fd6ff',
+    desc: 'گازِ زامبی‌ها کمتر می‌گیرد — آسیب ۲۵٪ کمتر، دائمی' },
+  goldAmmo: { name: 'فشنگ‌های طلایی',   price: 320, icon: 'goldAmmo', color: '#ffd873',
     desc: 'دمیج همه‌ی گلوله‌ها ۲۵٪ بیشتر — دائمی' },
-  helmet:   { name: 'کلاهخود فولادی',   price: 120, icon: 'helmet',   color: '#b8c4d4',
-    desc: '+۴۰ به حداکثر جون برج — دائمی' },
-  airstrike:{ name: 'بی‌سیمِ حمله‌ی هوایی', price: 220, icon: 'airstrike', color: '#ff8a5a',
-    desc: 'مصرف = بمبارانِ همه‌ی زامبی‌های صفحه' },
-  freezeBomb:{ name: 'بمب یخی',          price: 140, icon: 'freezeBomb', color: '#8fd6ff',
-    desc: 'مصرف = انجمادِ کاملِ ۶ ثانیه‌ایِ همه' },
-  adrenaline:{ name: 'آدرنالین',         price: 110, icon: 'adrenaline', color: '#ff6a8a',
-    desc: 'مصرف = ۱۲ ثانیه شلیک سریع + دمیج دوبرابر' },
+  helmet:   { name: 'کلاهخود فولادی',   price: 200, icon: 'helmet',   color: '#b8c4d4',
+    desc: '+۴۰ به حداکثر جون برج (و همین‌جا ترمیم) — دائمی' },
+  airstrike:{ name: 'بی‌سیمِ حمله‌ی هوایی', price: 380, icon: 'airstrike', color: '#ff8a5a',
+    desc: 'مصرف = بمبارانِ همه‌ی زامبی‌های صفحه (یک‌بارمصرف)' },
+  freezeBomb:{ name: 'بمب یخی',          price: 240, icon: 'freezeBomb', color: '#8fd6ff',
+    desc: 'مصرف = انجمادِ کاملِ ۶ ثانیه‌ایِ همه (یک‌بارمصرف)' },
+  adrenaline:{ name: 'آدرنالین',         price: 190, icon: 'adrenaline', color: '#ff6a8a',
+    desc: 'مصرف = ۱۲ ثانیه شلیک سریع + دمیج دوبرابر (یک‌بارمصرف)' },
 };
 
 /* (۲۰٫۰) نقشه‌های ساختِ برجک‌های ویژه — فقط از دستفروش می‌آیند؛
    بعد از خرید، برجک در تب «برجک‌ها» باز می‌شود و جداگانه نصب می‌شود */
 const BLUEPRINTS = {
-  tesla:   { name: 'نقشه‌ی برجک تسلا',       price: 240, icon: 'bpTesla',   color: '#c04dff',
+  tesla:   { name: 'نقشه‌ی برجک تسلا',       price: 420, icon: 'bpTesla',   color: '#c04dff',
     desc: 'برجک آذرخش زنجیره‌ای (۳ هدف) را در ساخت‌وساز باز می‌کند' },
-  missile: { name: 'نقشه‌ی برجک موشک‌انداز', price: 280, icon: 'bpMissile', color: '#ff8a5a',
+  missile: { name: 'نقشه‌ی برجک موشک‌انداز', price: 500, icon: 'bpMissile', color: '#ff8a5a',
     desc: 'برجک انفجارِ محدوده‌ای را در ساخت‌وساز باز می‌کند' },
-  flame:   { name: 'نقشه‌ی برجک شعله‌افکن',  price: 200, icon: 'bpFlame',   color: '#ffb347',
+  flame:   { name: 'نقشه‌ی برجک شعله‌افکن',  price: 360, icon: 'bpFlame',   color: '#ffb347',
     desc: 'برجک شعله + آتش‌گیرندگی را در ساخت‌وساز باز می‌کند' },
 };
 
@@ -195,7 +195,7 @@ function useItem(i) {
 function useAirstrike() {
   const targets = state.zombies.filter(z => !z.dead);
   if (!targets.length) {
-    setAnnounce('✈ هدفی نیست!', 'برای مرحله‌ی بعد نگهش دار', 1.6);
+    setAnnounce('✈ هدفی نیست!', 'برای موج بعد نگهش دار', 1.6);
     SFX.deny();
     return false;
   }
@@ -965,12 +965,7 @@ const PED = {
       this.walkT += dt;
       this.x += 118 * this.dirFrom * dt;
       const done = this.dirFrom > 0 ? this.x >= TARGET : this.x <= TARGET;
-      if (done) {
-        this.x = TARGET;
-        /* (۲۵٫۰) اگر گفتگو باز است، مودبانه می‌ایستد و صبر می‌کند —
-           وسط حرفِ هیچ‌کس نمی‌پرد */
-        if (!(typeof DLG !== 'undefined' && DLG.active)) this.talk();
-      }
+      if (done) { this.x = TARGET; this.talk(); }
     } else if (this.phase === 'leave') {
       this.walkT += dt;
       this.x += 150 * this.dir * dt;

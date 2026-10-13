@@ -120,7 +120,7 @@ agent-browser eval "pauseGame(); 'ok'" >/dev/null; sleep 0.7
 R=$(agent-browser eval "!document.getElementById('pauseScreen').classList.contains('hidden')?1:0" | tail -1); ck "منوی توقف باز شد" "$R"
 R=$(agent-browser eval "document.getElementById('btnRestart0')?0:1" | tail -1); ck "«شروع دوباره» از توقف حذف شد" "$R"
 R=$(agent-browser eval "document.getElementById('btnResume') && document.getElementById('btnSaveExit')?1:0" | tail -1); ck "ادامه + ذخیره و خروج موجود" "$R"
-R=$(agent-browser eval "document.querySelector('#pauseScreen .m27-mini-row')?1:0" | tail -1); ck "ردیف کوچک تنظیمات/درباره" "$R"
+R=$(agent-browser eval "document.querySelector('#pauseScreen .m27-mini-row')?0:1" | tail -1); ck "ردیف کوچک حذف شد (v29: فقط ادامه+سیو)" "$R"
 R=$(agent-browser eval "(()=>{const b=document.getElementById('btnResume'); const r=b.getBoundingClientRect(); return r.height>=50?1:0})()" 2>&1 | tail -1); ck "ادامه: دکمه درشت ≥۵۰px" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots28t/t28_pause.png >/dev/null 2>&1
 agent-browser eval "resumeGame(); 'ok'" >/dev/null; sleep 0.4

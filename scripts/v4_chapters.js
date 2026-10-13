@@ -240,8 +240,7 @@ function startGame() {
   hideChapterCard();                      // (۱۰٫۰)
   $('wrap').classList.remove('menu-mode', 'cs-mode', 'cine-mode', 'dlg-on');
   $('lockBadge').classList.add('hidden'); // (۱۰٫۰)
-  setBuildPanel(false, true);
-  setPauseIcon(false);   // (۱۳٫۰) ریل چپ
+  setBuildPanel(true, true);   /* (۲۹) شروعِ جمع — شیت خودکار روی صفحه نمی‌افتد؛ FAB با پالس راهنماست */
   $('bpHead').classList.remove('attention');
   $('bossBar').style.display = 'none'; bossBarVisible = false;
   updateHUD(); refreshBuildPanel(); refreshWeaponBar();
@@ -325,8 +324,8 @@ function enterDay() {
   showDayPanel();                          /* (۱۶٫۰) دکمه‌ی طلایی داخل پنل ساخت‌وساز */
   peddlerRoll();                          // (۱۰٫۰) شانس آمدن دستفروش مرموز
   saveGame();                             // (۱۰٫۰) سیو خودکارِ پایان موج
-  /* (۱۱٫۰) روی موبایل پنلِ باز شلوغ است — جمع شروع می‌شود (با ضربه باز می‌شود) */
-  setBuildPanel((typeof IS_TOUCH !== 'undefined' && IS_TOUCH) ? true : false, true);
+  /* (۲۹) شیت همیشه جمع شروع می‌شود — FAB برچسب‌دار + پالس، راهنمای خرید است */
+  setBuildPanel(true, true);
   $('bpHead').classList.add('attention');
   updateHUD(); refreshBackpack();
 }

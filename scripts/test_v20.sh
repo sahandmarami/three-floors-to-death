@@ -137,7 +137,7 @@ agent-browser eval "GAME.v19.tbcContinueToMenu();'ok'" >/dev/null; sleep 1.2
 R=$(agent-browser eval "state.mode==='start'&&!document.getElementById('startScreen').classList.contains('hidden')?1:0" | tail -1); ck "ادامه → مستقیم منوی اصلی" "$R"
 agent-browser eval "GAME.v19.startShelterCine();GAME.v19.startTbcScreen();'ok'" >/dev/null; sleep 0.3
 agent-browser eval "GAME.v19.tbcShowStats();'ok'" >/dev/null; sleep 1
-R=$(agent-browser eval "state.mode==='victory' && document.querySelector('.vic-ribbon') && !document.getElementById('vicNights') ?1:0" | tail -1); ck "کارنامه → صفحه‌ی برد (بدون شمارش موج — v25)" "$R"
+R=$(agent-browser eval "state.mode==='victory'&&document.getElementById('vicNights').textContent==='۳۶'?1:0" | tail -1); ck "کارنامه → صفحه‌ی برد با «۳۶ شب»" "$R"
 
 echo "===== ۹) APK-ready: متا + دکمه‌ی بازگشت + بسته ====="
 R=$(agent-browser eval "document.querySelector('meta[name=viewport]').content.indexOf('viewport-fit=cover')>=0?1:0" | tail -1); ck "viewport-fit=cover (ناچ/ایفون)" "$R"

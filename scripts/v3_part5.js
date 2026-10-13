@@ -367,11 +367,11 @@ function cutsceneFinish() {
   $('skipCs').classList.add('hidden');
   hideAnnounce();
   showDayPanel();                            // «شب شود — موج ۶»
-  setBuildPanel(false, true);
+  setBuildPanel(true, true);              // (۲۹) جمع — FAB راهنماست
   $('bpHead').classList.add('attention');
   setAnnounce('🌅 برج بعدی!',
-    'اسلحه‌ها زیر آوار ماندند — غرامت: +' + faNum(compCoins) + ' سکه • مرحله‌ی '
-    + faNum(state.wave + 1) + ' در راهه', 3.6);
+    'اسلحه‌ها زیر آوار ماندند — غرامت: +' + faNum(compCoins) + ' سکه • موج '
+    + faNum(state.wave + 1) + ' در راه است', 3.6);
   SFX.morning();
   updateHUD();
 }
