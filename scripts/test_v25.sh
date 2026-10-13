@@ -55,7 +55,7 @@ R=$(agent-browser eval "(()=>{const s=document.getElementById('announceSub');con
 
 echo "===== ۵) حذف دکمه تمام‌صفحه + صداهای فارسی ====="
 R=$(agent-browser eval "document.getElementById('btnFull')?0:1" | tail -1); ck "دکمه تمام‌صفحه حذف شد" "$R"
-R=$(agent-browser eval "typeof VOICES23==='object'?Object.keys(VOICES23).length:0" | tail -1); ck "VOICES23 با ۱۱۹ کلیپ فارسی" "$([ "$R" = "119" ] && echo 1 || echo 0)" "n=$R"
+R=$(agent-browser eval "typeof VOICES23==='object'?Object.keys(VOICES23).length:0" | tail -1); ck "VOICES23 با ۱۵۱ کلیپ فارسی (v30: ۱۱۹+۳۲)" "$([ "$R" -ge "151" ] && echo 1 || echo 0)" "n=$R"
 R=$(agent-browser eval "VOICES23.i1n&&VOICES23.i1n.d>2&&VOICES23.i1n.a.length>1000?1:0" | tail -1); ck "کلیپ i1n سالم" "$R"
 
 echo "===== ۶) گوشی کوچک ۷۸۰×۳۶۰ — استوری‌موشن درشت ====="

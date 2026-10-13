@@ -108,6 +108,16 @@ html, body, #wrap {
 .pd-item .pd-sub { line-height: 1.8 !important; margin-top: calc(3px * var(--uiz,1)) !important; }
 .pd-item .pd-price { margin-top: calc(8px * var(--uiz,1)) !important; }
 
+/* ============ (۳۰٫۱) ردیف چیپ سلاح‌ها — کنارِ ستون چپ، نه روی آن ============
+   ریشه‌ی هم‌پوشانی «دکمه‌ی شنود روی چیپ سلاح» (اسکرین‌شات ۲ کاربر):
+   ردیفِ افقی چیپ‌ها (top:62) از گوشه‌ی چپ شروع می‌شد و دقیقاً روی
+   دکمه‌ی شنود (top:78) می‌افتاد. حالا از x=80 شروع می‌شود — کنارِ
+   ستون دکمه‌ها (شنود/چراغ‌قوه/مولوتوف در x=12 با عرض 58) نه روی آن. */
+#wpnChips28 {
+  left: calc(80px * var(--uiz,1)) !important;
+  top: calc(62px * var(--uiz,1)) !important;
+}
+
 /* ============ (۳۰٫۱) آیکون‌های SVG دکمه‌های منو ============ */
 .m23-ico svg { width: calc(29px * var(--uiz,1)); height: calc(29px * var(--uiz,1)); }
 .m23-small .m23-ico svg { width: calc(22px * var(--uiz,1)); height: calc(22px * var(--uiz,1)); }

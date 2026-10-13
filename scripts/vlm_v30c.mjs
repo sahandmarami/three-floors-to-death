@@ -1,40 +1,34 @@
 #!/usr/bin/env node
 import ZAI from 'z-ai-web-dev-sdk';
 import fs from 'fs';
-
+const SH = '/home/z/my-project/scripts/shots30/';
+const SHOTS = [
+  ['m1_menu.png', 'Main menu of Persian zombie game (merged v30.1). Check: clean SVG icons on 4 buttons, no overlaps, story-flavored subtitle. Rate 1-10.'],
+  ['m2_peddler.png', 'Mysterious peddler purchase dialog (merged v30.1). Check: rows cleanly separated, PNG icons visible, no build-dock bleeding behind, readable. Rate 1-10.'],
+  ['m3_day_all.png', 'Day phase with everything visible + inflated font stress test (merged v30.1): top-right build dock, top-left area buttons, bottom-left backpack row. Check ANY overlapping elements. Rate 1-10.'],
+  ['m4_night.png', 'Night battle (merged v30.1): build dock top-right open, weapon chips top-left, listen button left, backpack bottom-left. Check ANY overlapping elements and general layout. Rate 1-10.'],
+  ['m5_gameover.png', 'Game-over card (merged v30.1). Check: no floating UI overlapping card buttons. Rate 1-10.'],
+];
 const zai = await ZAI.create();
-async function ask(file, prompt) {
-  const b64 = fs.readFileSync(file).toString('base64');
+for (const [file, prompt] of SHOTS) {
+  if (!fs.existsSync(SH+file)) { console.log(`\n===== ${file} MISSING =====`); continue; }
+  const b64 = fs.readFileSync(SH + file).toString('base64');
   for (let a = 1; a <= 4; a++) {
     try {
       const res = await zai.chat.completions.createVision({
         messages: [{ role: 'user', content: [
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } },
-          { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:image/png;base64,${b64}` } },
+            { type: 'text', text: prompt + ' Answer concisely in English.' },
         ] }],
         thinking: { type: 'disabled' },
       });
-      return (res.choices?.[0]?.message?.content || '');
+      console.log(`\n===== ${file} =====`);
+      console.log((res.choices?.[0]?.message?.content || '').slice(0, 700));
+      break;
     } catch (e) {
-      if (a === 4) return 'VLM-ERR ' + e.message.slice(0, 100);
-      await new Promise(r => setTimeout(r, 9000));
+      if (a === 4) console.log(`${file} VLM-ERR ${e.message.slice(0, 80)}`);
+      else await new Promise(r => setTimeout(r, 10000));
     }
   }
+  await new Promise(r => setTimeout(r, 2000));
 }
-
-console.log('===== CARD 1 (first item + price overlap) =====');
-let r = await ask('/home/z/my-project/scripts/bug_card1.jpg',
-`Zoomed crop of a Persian game shop menu item card. Transcribe EVERY piece of text you see, character by character, top to bottom. Especially: is there a word rendered ON TOP of the gold price pill (overlapping)? What does that word say exactly? What is the price number? Describe the icon on the right side. Answer in English but transcribe Persian text in Persian script.`);
-console.log(r.slice(0, 1200));
-await new Promise(r2 => setTimeout(r2, 2000));
-
-console.log('\n===== CARD 2 (bottom clipped area) =====');
-r = await ask('/home/z/my-project/scripts/bug_card2.jpg',
-`Zoomed crop of the bottom part of a Persian game shop menu. Transcribe every text you see top to bottom (Persian script). Is any card cut off / clipped at an edge? What text is partially visible? Answer in English with Persian transcriptions.`);
-console.log(r.slice(0, 1200));
-await new Promise(r2 => setTimeout(r2, 2000));
-
-console.log('\n===== HEADER =====');
-r = await ask('/home/z/my-project/scripts/bug_head.jpg',
-`Zoomed crop of the header of a Persian game shop menu card. Transcribe the title exactly (Persian script). Is the title text vertically centered with the avatar? Any layout issues with close button / title / avatar? Answer in English with Persian transcriptions.`);
-console.log(r.slice(0, 900));

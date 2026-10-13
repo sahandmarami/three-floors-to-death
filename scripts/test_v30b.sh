@@ -57,12 +57,13 @@ for i in $(seq 1 10); do
 done
 agent-browser eval "try{renderPeddlerStock()}catch(e){}; 'ok'" >/dev/null 2>&1; sleep 0.6
 R=$(agent-browser eval "(()=>{const b=document.getElementById('peddlerBox'); return b&&!b.classList.contains('hidden')?1:0})()" | tail -1); ck "پنل دستفروش باز شد" "$R"
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return p.classList.contains('collapsed')?1:0})()" | tail -1); ck "شیت خودکار بسته شد (اختصاص متقابل — ریشه‌ی «همش با هم افتاده»)" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('buildPanel'); const cs=getComputedStyle(b); return b.classList.contains('collapsed')||cs.display==='none'?1:0})()" | tail -1); ck "داک/شیت خودکار بسته شد (اختصاص متقابل — ریشه‌ی «همش با هم افتاده»)" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots30/t_peddler.png >/dev/null 2>&1
 # شیت را دوباره باز کن → دستفروش باید بسته شود
 agent-browser eval "try{toggleBuildPanel()}catch(e){}; 'ok'" >/dev/null 2>&1; sleep 0.7
 R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return p&&!p.classList.contains('collapsed')?1:0})()" | tail -1); ck "شیت دوباره باز شد" "$R"
 R=$(agent-browser eval "(()=>{const b=document.getElementById('peddlerBox'); return b.classList.contains('hidden')?1:0})()" | tail -1); ck "پنل دستفروش خودکار بسته شد" "$R"
+R=$(agent-browser eval "document.getElementById('wrap').classList.contains('peddler-on')?0:1" | tail -1); ck "کلاس peddler-on پاک شد (داک برگشت)" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots30/t_sheet.png >/dev/null 2>&1
 
 echo "===== ۴) هر تب فقط آیتم‌های خودش ====="
@@ -77,7 +78,7 @@ agent-browser eval "try{setBuildPanel(true,true)}catch(e){}; try{hidePeddlerPane
 R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar'); const r=b.getBoundingClientRect(); return getComputedStyle(document.getElementById('bpkSlots')).display==='none' && r.height<=innerHeight*0.16?1:0})()" | tail -1); ck "کوله‌ی پر، بسته: فقط قرص کوچک (≤۱۶٪ ارتفاع)" "$R" "h=$(agent-browser eval "(()=>{const r=document.getElementById('backpackBar').getBoundingClientRect(); return Math.round(r.height)+'/'+innerHeight})()" | tail -1)"
 agent-browser eval "document.getElementById('backpackBar').classList.add('open30'); 'ok'" >/dev/null 2>&1; sleep 0.4
 R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar'); const r=b.getBoundingClientRect(); return getComputedStyle(document.getElementById('bpkSlots')).display==='flex' && r.height<=innerHeight*0.17 && r.width<=innerWidth*0.42?1:0})()" | tail -1); ck "کوله‌ی باز: ردیف باریک (≤۱۷٪ ارتفاع، ≤۴۲٪ عرض)" "$R" "w×h=$(agent-browser eval "(()=>{const r=document.getElementById('backpackBar').getBoundingClientRect(); return Math.round(r.width)+'x'+Math.round(r.height)})()" | tail -1)"
-R=$(agent-browser eval "(()=>{const ic=document.querySelector('#bpkCap .ic svg'); return ic&&ic.querySelector('path')&&ic.innerHTML.length>200?1:0})()" | tail -1); ck "آیکون کوله‌ی تازه (SVG با جزئیات)" "$R"
+R=$(agent-browser eval "(()=>{const ic=document.querySelector('#bpkCap .ic30, #bpkCap .ic svg, #bpkCap img.ic30'); return ic?1:0})()" | tail -1); ck "آیکون کوله (PNG کاربر در کپسول)" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots30/t_bpk.png >/dev/null 2>&1
 agent-browser eval "document.getElementById('backpackBar').classList.remove('open30'); 'ok'" >/dev/null 2>&1
 
@@ -100,10 +101,10 @@ R=$(agent-browser eval "getComputedStyle(document.getElementById('wpnChips28')).
 R=$(agent-browser eval "(()=>{const a=document.getElementById('btnRetryDay').getBoundingClientRect(); const b=document.getElementById('btnRestart1').getBoundingClientRect(); return a.bottom<=b.top+2?1:0})()" | tail -1); ck "دکمه‌های باخت جدا از هم" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots30/t_gameover.png >/dev/null 2>&1
 
-echo "===== ۸) صداهای تازه (aw1/aw4 با کلید جدید + لحن urgent) ====="
-R=$(agent-browser eval "(()=>{const v=VOICES23; return v&&v.aw1&&Math.abs(v.aw1.d-2.64)<0.3?1:0})()" | tail -1); ck "aw1 تازه (۲٫۶۴s — لحن فوری)" "$R" "d=$(agent-browser eval "(()=>{return VOICES23.aw1?VOICES23.aw1.d:'n/a'})()" | tail -1)"
-R=$(agent-browser eval "(()=>{const v=VOICES23; return v&&v.aw4&&Math.abs(v.aw4.d-2.62)<0.3?1:0})()" | tail -1); ck "aw4 تازه (۲٫۶۲s — دیگر edge-tts نیست)" "$R" "d=$(agent-browser eval "(()=>{return VOICES23.aw4?VOICES23.aw4.d:'n/a'})()" | tail -1)"
-R=$(agent-browser eval "(()=>{const v=VOICES23; return v&&Object.keys(v).length>=119?1:0})()" | tail -1); ck "کل ۱۱۹ خط صدا سر جایشان" "$R" "n=$(agent-browser eval "(()=>{return typeof VOICES23!=='undefined'?Object.keys(VOICES23).length:'n/a'})()" | tail -1)"
+echo "===== ۸) صداهای v30 (لحن جدی آرشان — grim/urgent) ====="
+R=$(agent-browser eval "(()=>{const v=VOICES23; return v&&v.aw1&&Math.abs(v.aw1.d-2.83)<0.4?1:0})()" | tail -1); ck "aw1 بازضبط لحن جدی (۲٫۸۳s)" "$R" "d=$(agent-browser eval "(()=>{return VOICES23.aw1?VOICES23.aw1.d:'n/a'})()" | tail -1)"
+R=$(agent-browser eval "(()=>{const v=VOICES23; return v&&v.aw4&&Math.abs(v.aw4.d-2.26)<0.4?1:0})()" | tail -1); ck "aw4 بازضبط با متن اصلاح‌شده (۲٫۲۶s — دیگر edge-tts نیست)" "$R" "d=$(agent-browser eval "(()=>{return VOICES23.aw4?VOICES23.aw4.d:'n/a'})()" | tail -1)"
+R=$(agent-browser eval "(()=>{const v=VOICES23; return v&&Object.keys(v).length>=151?1:0})()" | tail -1); ck "کل ۱۵۱ خط صدا (۱۱۹ قدیمی + ۳۲ گفتگوی جدید)" "$R" "n=$(agent-browser eval "(()=>{return typeof VOICES23!=='undefined'?Object.keys(VOICES23).length:'n/a'})()" | tail -1)"
 
 echo "===== ۹) رگرسیون — توقف دومنویی + چیپ‌های سلاح ====="
 agent-browser eval "location.reload(); 'ok'" >/dev/null 2>&1; sleep 3
@@ -114,7 +115,7 @@ agent-browser eval "DLG.skip(); 'ok'" >/dev/null 2>&1; sleep 0.8
 agent-browser eval "pauseGame(); 'ok'" >/dev/null; sleep 0.7
 R=$(agent-browser eval "(()=>{const ps=document.getElementById('pauseScreen'); const vis=Array.from(ps.querySelectorAll('button')).filter(b=>b.getBoundingClientRect().width>0); const ids=vis.map(b=>b.id).filter(Boolean); const has=x=>ids.some(id=>id.includes(x)); return has('btnResume')&&has('btnSaveExit')&&ids.length<=3?1:0})()" | tail -1); ck "توقف: فقط ادامه + ذخیره و خروج" "$R" "ids=$(agent-browser eval "(()=>{Array.from(document.querySelectorAll('#pauseScreen button')).filter(b=>b.getBoundingClientRect().width>0).map(b=>b.id).join(',')})()" | tail -1)"
 agent-browser eval "resumeGame(); 'ok'" >/dev/null; sleep 0.4
-R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-pistol'); return b&&b.querySelector('svg')?1:0})()" | tail -1); ck "چیپ کلت: SVG (رگرسیون v29)" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-pistol'); return b&&(b.querySelector('svg')||b.querySelector('img.ic30'))?1:0})()" | tail -1); ck "چیپ کلت: آیکون تمیز (PNG/SVG — رگرسیون v29)" "$R"
 
 echo ""
 echo "======================================"

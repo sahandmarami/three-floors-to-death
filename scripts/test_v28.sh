@@ -99,11 +99,11 @@ R=$(agent-browser eval "(()=>{const t=document.querySelector('#bp-shotgun .bp-pr
 echo "===== ۶) باتن‌شیت ساخت‌وساز + FAB ====="
 # شیت را ببند تا FAB قابل اندازه‌گیری باشد + گفتگو نماند
 agent-browser eval "DLG.skip(); setBuildPanel(true); 'closed'" >/dev/null 2>&1; sleep 0.4
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const s=getComputedStyle(p); return s.bottom==='0px' && parseFloat(s.borderTopLeftRadius)>10?1:0})()" | tail -1); ck "ساخت‌وساز: شیت پایین صفحه (گرد)" "$R"
-R=$(agent-browser eval "document.getElementById('bpFab28')?1:0" | tail -1); ck "دکمه‌ی FAB ساخت‌وساز موجود" "$R"
-R=$(agent-browser eval "(()=>{DLG.skip(); setBuildPanel(true,true); const f=document.getElementById('bpFab28'); if(!f) return 0; const cs=getComputedStyle(f); if(cs.display==='none') return 0; const r=f.getBoundingClientRect(); return (r.y+r.height>innerHeight*0.7 && r.x>innerWidth*0.6)?1:0})()" 2>&1 | tail -1); ck "FAB: پایین-راست (دسترسی شست)" "$R"
-R=$(agent-browser eval "(()=>{setBuildPanel(false,true); const hid=getComputedStyle(document.getElementById('bpFab28')).display==='none'; setBuildPanel(true,true); return hid?1:0})()" 2>&1 | tail -1); ck "شیت باز = FAB مخفی" "$R"
-R=$(agent-browser eval "(()=>{const n=document.getElementById('bpNightMini28'); if(!n) return 0; const sv=state.mode, sc=document.getElementById('buildPanel').classList.contains('collapsed'); state.mode='day'; if(sc) setBuildPanel(false,true); updateHUD(); const on=n.classList.contains('on'); if(sc) setBuildPanel(true,true); state.mode=sv; updateHUD(); return on?1:0})()" 2>&1 | tail -1); ck "«شب شود» کوچک در سربرگ شیت (روز)" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const r=p.getBoundingClientRect(); return r.top<innerHeight*0.3 && parseFloat(getComputedStyle(p).borderTopLeftRadius)>10?1:0})()" | tail -1); ck "ساخت‌وساز: داک بالای صفحه (گرد — v30)" "$R"
+R=$(agent-browser eval "(()=>{const d=document.getElementById('buildPanel'); return d && getComputedStyle(d).display!=='none'?1:0})()" | tail -1); ck "داک ساخت‌وساز موجود (v30: جایگزین FAB)" "$R"
+R=$(agent-browser eval "(()=>{DLG.skip(); setBuildPanel(false,true); const d=document.getElementById('buildPanel'); const r=d.getBoundingClientRect(); setBuildPanel(true,true); return r.top<innerHeight*0.3 && r.right>innerWidth*0.6?1:0})()" 2>&1 | tail -1); ck "داک: بالا-راست — همیشه در دسترس (v30)" "$R"
+R=$(agent-browser eval "(()=>{const f=document.getElementById('bpFab28'); return !f||getComputedStyle(f).display==='none'?1:0})()" 2>&1 | tail -1); ck "FAB حذف شده (v30 — داک غیرتهاجمی)" "$R"
+R=$(agent-browser eval "(()=>{const n=document.getElementById('bpNight'); const sv=state.mode; state.mode='day'; updateHUD(); const vis=n && !n.classList.contains('hidden') && getComputedStyle(n).display!=='none'; state.mode=sv; updateHUD(); return vis?1:0})()" 2>&1 | tail -1); ck "«شب شود» شناور (v30: بیرون داک، روزها)" "$R"
 
 echo "===== ۷) کوله‌پشتی — پایین-چپ بدون متن وسط ====="
 agent-browser eval "DLG.skip(); setBuildPanel(true); 'closed'" >/dev/null 2>&1; sleep 0.3
@@ -132,7 +132,7 @@ R=$(agent-browser eval "(()=>{const g=document.getElementById('goStats'); return
 
 echo "===== ۱۱) رگرسیون — ارث ۲۷ ====="
 R=$(agent-browser eval "typeof COIN27==='string' && COIN27.startsWith('data:image/png')?1:0" | tail -1); ck "سکه واقعی COIN27" "$R"
-R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length===119?1:0" | tail -1); ck "۱۱۹ خط صدا" "$R"
+R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length>=151?1:0" | tail -1); ck "صداها: ۱۵۱ خط (v30: ۱۱۹ + ۳۲ جدید)" "$R"
 R=$(agent-browser eval "!document.getElementById('btnSaveCode') && !document.getElementById('saveCodeScreen')?1:0" | tail -1); ck "کد سیو حذف" "$R"
 R=$(agent-browser eval "(()=>{const s=document.getElementById('startScreen'); return s && !s.textContent.includes('نسخه')?1:0})()" | tail -1); ck "منو بدون نسخه" "$R"
 R=$(agent-browser eval "(()=>{const s=MG23.building23.toString(); return s.includes('[136, 124, 112]')?1:0})()" | tail -1); ck "ساختمان استوری = برج بازی" "$R"

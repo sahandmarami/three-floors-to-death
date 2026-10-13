@@ -15,7 +15,7 @@ for i in $(seq 1 40); do
 done
 
 echo "===== ۱) صداهای ElevenLabs فارسی v27 ====="
-R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length===119?1:0" | tail -1); ck "۱۱۹ خط صدا موجود" "$R" "got=$(agent-browser eval "Object.keys(VOICES23).length" | tail -1)"
+R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length>=151?1:0" | tail -1); ck "صداها: ۱۵۱ خط (v30: ۱۱۹ + ۳۲ گفتگوی جدید)" "$R" "got=$(agent-browser eval "Object.keys(VOICES23).length" | tail -1)"
 R=$(agent-browser eval "VOICES23.i3a && VOICES23.i3a.a.startsWith('data:audio/mpeg;base64,') && VOICES23.i3a.d>0.5?1:0" | tail -1); ck "کلیپ i3a (آرش) MP3 با مدت" "$R"
 R=$(agent-browser eval "VOICES23.c4m1 && VOICES23.c4m1.a.length>5000?1:0" | tail -1); ck "کلیپ c4m1 (مریم) بلند" "$R"
 R=$(agent-browser eval "window.__el27 = [...Object.values(VOICES23)].filter(v=>v.a.length>4000).length; __el27>=110?1:0" | tail -1); ck "بیش از ۱۱۰ کلیپ ElevenLabs جاسازی‌شده" "$R" "got=$(agent-browser eval "window.__el27" | tail -1)"
@@ -97,7 +97,7 @@ agent-browser eval "resumeGame();'ok'" >/dev/null 2>&1
 
 echo "===== ۹) چراغ‌قوه + پیل دستفروش بدون تصادم ====="
 R=$(agent-browser eval "document.getElementById('ctlFlash').textContent.includes('چراغ‌قوه')?1:0" | tail -1); ck "برچسب «چراغ‌قوه» زیر دکمه" "$R"
-R=$(agent-browser eval "(()=>{const b=document.getElementById('ctlFlash');return b.querySelector('svg')?1:0})()" | tail -1); ck "آیکن افقی جدید چراغ‌قوه" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('ctlFlash');return b.querySelector('img.ic30')||b.querySelector('svg')?1:0})()" | tail -1); ck "آیکن چراغ‌قوه تمیز (v30: PNG کاربر)" "$R"
 R=$(agent-browser eval "(()=>{for(const ss of document.styleSheets){try{for(const r of ss.cssRules){if(r.selectorText==='#pedReopenBtn'&&r.cssText.includes('296px'))return 1}}catch(e){}}return 0})()" | tail -1); ck "پیل دستفروش: قانون CSS شیار ۴ (296px)" "$R"
 
 echo "===== ۱۰) چیپ جون + کلت مستقل + برچسب در دست ====="
