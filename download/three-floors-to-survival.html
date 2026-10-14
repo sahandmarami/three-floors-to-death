@@ -20705,7 +20705,10 @@ const ICONS30 = {
 }
 #buildPanel .bp-tile{
   flex:none!important;width:calc(84px * var(--uiz2,1))!important;height:calc(108px * var(--uiz2,1))!important;
-  display:flex!important;flex-direction:column!important;align-items:center!important;
+  /* (۳۱) display:flex «بدون» !important — چون !important فیلترینگ تب‌ها را
+     می‌کشت: JS برای تبِ غیرفعال style.display='none' می‌گذاشت ولی!important
+     آن را له می‌کرد و «همه‌ی وسایل با هم» دیده می‌شد (گزارش کاربر) */
+  display:flex;flex-direction:column!important;align-items:center!important;
   justify-content:flex-start!important;
   border-radius:calc(13px * var(--uiz2,1))!important;border-width:2px!important;
   padding:calc(6px * var(--uiz2,1)) calc(4px * var(--uiz2,1)) calc(4px * var(--uiz2,1))!important;
@@ -21909,6 +21912,491 @@ window.GAME = {
     waveComplete();
   },
 };
+
+/* ==================================================================
+   «سه طبقه تا مرگ» v31 — بازسازی منوها بر اساس عکس‌های واقعی گوشی
+   ==================================================================
+   گزارش کاربر (عکس‌های ۲۳۴۰×۱۰۸۰ گوشی سامسونگ):
+   ۱) دستفروش مرموز: متن‌ها روی هم، ناخوانا → بازسازی کامل ردیف‌ها
+   ۲) ساخت‌وساز: «همه‌ی وسایل با هم» → ریشه: display:flex!important
+      روی .bp-tile که فیلترینگ تب‌ها را می‌کشت (رفع در CSS بالا)
+   ۳) سه تفنگ زیر دکمه‌ی توقف + دکمه‌ی سرنخ روی آن → جابه‌جایی کامل
+      چیپ‌ها به پایین‌وسطِ صفحه (دور از توقف/سرنخ/داک/کوله/شب‌شود)
+   ۴) نویز خش‌خش رادیو بعد از حل معما تا ابد می‌ماند → stop درستِ
+      منبع صدا + پاک‌سازی در خروج
+   ۵) چراغ‌قوه/کوله خیلی ریز و بدبرش → دکمه و آیکون درشت‌تر
+   ۶) بعد از «ذخیره و خروج» سرنخ‌ها هنوز کنار منو → مخفی در menu-mode
+   ۷) «ذخیره شد» باید یک‌بار در منو دیده شود و بعد برود → z-index و
+      محو خودکار (منو updateAnnounce را تیک نمی‌زند)
+   ۸) آیکون «شروع بازی» خراب → شمشیرهای متقاطعِ درشت و ضخیم
+   ۹) لوگوهای چسبیده به گوشه‌ی دکمه‌ها → فاصله‌گذاری
+   ۱۰) برجک تک‌تیرانداز آیکون «دوربین دید در شب» شده بود → برگشت به
+      اسپرایت اصلیِ برجک (سه‌پایه + لوله‌ی بلند)
+   ۱۱) خروج از بازی = قطع کامل صدا (موسیقی/پد/باد/نویز/صداپخش)
+   ۱۲) تست خودکار «هیچ دکمه‌ای روی هیچ‌دکمه‌ای نمی‌افتد» (test_v31)
+   ================================================================== */
+
+/* ---------- ۳۱-۱) CSS — همه‌ی اصلاحات بصری ---------- */
+(function css31() {
+  const st = document.createElement('style');
+  st.textContent = `
+/* ==== (۳۱) چیپ سلاح‌ها → پایین‌وسط؛ دور از توقف/سرنخ/داک ==== */
+#wpnChips28 {
+  top: auto !important;
+  bottom: calc(9px * var(--uiz,1)) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  flex-direction: row !important;
+  gap: calc(7px * var(--uiz,1)) !important;
+  z-index: 7 !important;
+  padding: calc(5px * var(--uiz,1)) calc(8px * var(--uiz,1)) !important;
+  border-radius: calc(24px * var(--uiz,1)) !important;
+  background: rgba(8,14,30,.68) !important;
+  border: 1px solid rgba(94,124,196,.4) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+#wpnChips28 .wchip28 { margin: 0 !important; }
+
+/* ==== (۳۱) دستفروش مرموز — بازسازی کامل چیدمان ====
+   ردیف = [آیکون] [نام + توضیح] [قیمت + خرید] — جریان flex خالص؛
+   هیچ عنصری position:absolute ندارد تا روی متن دیگری نیفتد */
+#peddlerPanel {
+  width: min(calc(478px * var(--uiz,1)), 94%) !important;
+  max-height: 86% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+#peddlerPanel .pd-head {
+  gap: calc(10px * var(--uiz,1)) !important;
+  padding: calc(10px * var(--uiz,1)) calc(12px * var(--uiz,1)) !important;
+  flex: 0 0 auto !important;
+}
+#peddlerPanel .pd-note {
+  flex: 0 0 auto !important;
+  margin: calc(7px * var(--uiz,1)) calc(2px * var(--uiz,1)) 0 !important;
+  font-size: calc(12px * var(--uiz,1)) !important;
+  line-height: 1.6 !important;
+}
+#pdStock {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: calc(9px * var(--uiz,1)) !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  margin: calc(8px * var(--uiz,1)) 0 0 !important;
+  padding: calc(2px * var(--uiz,1)) calc(2px * var(--uiz,1)) calc(6px * var(--uiz,1)) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+/* ردیف تازه‌ی کالا (DOM تازه در renderPeddlerStockِ v31) */
+.pd-row31 {
+  display: flex !important;
+  align-items: center !important;
+  gap: calc(10px * var(--uiz,1)) !important;
+  padding: calc(9px * var(--uiz,1)) calc(11px * var(--uiz,1)) !important;
+  min-height: calc(72px * var(--uiz,1)) !important;
+  border-radius: calc(15px * var(--uiz,1)) !important;
+  border: 1.5px solid #5c4c9e !important;
+  background: linear-gradient(180deg, rgba(56,44,102,.96), rgba(38,30,72,.96)) !important;
+  cursor: pointer;
+  flex: 0 0 auto !important;
+  transition: transform .12s, border-color .12s !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+.pd-row31:active { transform: scale(.97) !important; }
+.pd-row31.poor { opacity: .62 !important; }
+.pd-row31.bp31 {
+  background: linear-gradient(180deg, rgba(64,45,17,.96), rgba(42,29,10,.96)) !important;
+  border-color: #c9954a !important;
+  box-shadow: 0 0 12px rgba(232,181,74,.22), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.pd-row31 .pd-ic31 {
+  width: calc(54px * var(--uiz,1)) !important;
+  height: calc(54px * var(--uiz,1)) !important;
+  flex: none !important;
+  border-radius: calc(13px * var(--uiz,1)) !important;
+  background: rgba(10,8,24,.62) !important;
+  border: 1px solid #4a3d84 !important;
+  object-fit: contain !important;
+  padding: calc(4px * var(--uiz,1)) !important;
+}
+.pd-row31 .pd-mid31 {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+.pd-row31 .pd-name31 {
+  font-size: calc(14px * var(--uiz,1)) !important;
+  font-weight: 900 !important;
+  color: #eee6ff !important;
+  line-height: 1.45 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.pd-row31 .pd-name31 .ic { font-size: calc(15px * var(--uiz,1)) !important; color: #ffd873 !important; }
+.pd-row31 .pd-sub31 {
+  font-size: calc(11.5px * var(--uiz,1)) !important;
+  color: #a89ecf !important;
+  line-height: 1.6 !important;
+  margin-top: calc(2px * var(--uiz,1)) !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+.pd-row31 .pd-new31 {
+  font-style: normal !important;
+  font-size: calc(9px * var(--uiz,1)) !important;
+  font-weight: 900 !important;
+  color: #0d2a12 !important;
+  background: #7be389 !important;
+  border-radius: calc(5px * var(--uiz,1)) !important;
+  padding: 0 calc(4px * var(--uiz,1)) !important;
+  margin-inline-start: calc(4px * var(--uiz,1)) !important;
+}
+.pd-row31 .pd-buy31 {
+  flex: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: calc(4px * var(--uiz,1)) !important;
+}
+.pd-row31 .pd-price31 {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: calc(4px * var(--uiz,1)) !important;
+  font-size: calc(14px * var(--uiz,1)) !important;
+  font-weight: 900 !important;
+  color: #ffd873 !important;
+  white-space: nowrap !important;
+  background: rgba(4,8,18,.9) !important;
+  border: 1px solid #4a3d1e !important;
+  border-radius: 999px !important;
+  padding: calc(3px * var(--uiz,1)) calc(12px * var(--uiz,1)) !important;
+}
+.pd-row31 .pd-price31 .coin-ic { width: calc(13px * var(--uiz,1)) !important; height: calc(13px * var(--uiz,1)) !important; }
+.pd-row31.poor .pd-price31 { color: #e06a5a !important; }
+.pd-row31 .pd-go31 {
+  font-size: calc(10.5px * var(--uiz,1)) !important;
+  font-weight: 900 !important;
+  color: #8fd6ff !important;
+  letter-spacing: .3px;
+}
+
+/* ==== (۳۱) چراغ‌قوه — دکمه و آیکون درشت (قابل‌تشخیص) ==== */
+#ctlFlash {
+  width: calc(66px * var(--uiz,1)) !important;
+  height: calc(66px * var(--uiz,1)) !important;
+}
+#ctlFlash .ic .ic30,
+#ctlFlash .ic svg {
+  width: calc(37px * var(--uiz,1)) !important;
+  height: calc(37px * var(--uiz,1)) !important;
+}
+#ctlFlash .ctl-batt {
+  width: calc(34px * var(--uiz,1)) !important;
+  height: calc(6px * var(--uiz,1)) !important;
+}
+
+/* ==== (۳۱) کوله‌پشتی — قرص درشت‌تر + آیکون درشت ==== */
+#backpackBar .bpk-cap {
+  padding: calc(8px * var(--uiz,1)) calc(13px * var(--uiz,1)) !important;
+  border-radius: calc(15px * var(--uiz,1)) !important;
+  gap: calc(7px * var(--uiz,1)) !important;
+}
+#backpackBar .bpk-cap .ic30 {
+  width: calc(30px * var(--uiz,1)) !important;
+  height: calc(30px * var(--uiz,1)) !important;
+  border-radius: calc(9px * var(--uiz,1)) !important;
+  margin-inline-end: 0 !important;
+}
+#backpackBar .bpk-cap .ic { font-size: calc(24px * var(--uiz,1)) !important; }
+.bpk-slot {
+  width: calc(46px * var(--uiz,1)) !important;
+  height: calc(46px * var(--uiz,1)) !important;
+}
+.bpk-slot canvas { width: calc(41px * var(--uiz,1)) !important; height: calc(41px * var(--uiz,1)) !important; }
+
+/* ==== (۳۱) منو — بقایای بازی مخفی + آیکون‌های درشت با فاصله ==== */
+#wrap.menu-mode #mystBtn,
+#wrap.menu-mode #listenBtn,
+#wrap.menu-mode #molotovBtn,
+#wrap.menu-mode #pedReopenBtn,
+#wrap.menu-mode #saveToast { display: none !important; }
+/* «ذخیره شد» باید در منو هم دیده شود (روی لایه‌ی منو) */
+#wrap.menu-mode #announce { z-index: 30 !important; }
+/* دکمه‌های منو: آیکون درشت‌تر + فاصله از گوشه‌ها (لوگو چسبیده نباشد) */
+.m23-btn { padding-inline: calc(16px * var(--uiz,1)) !important; }
+.m23-ico svg {
+  width: calc(34px * var(--uiz,1)) !important;
+  height: calc(34px * var(--uiz,1)) !important;
+  stroke-width: 2.2 !important;
+}
+.m23-small .m23-ico svg {
+  width: calc(25px * var(--uiz,1)) !important;
+  height: calc(25px * var(--uiz,1)) !important;
+}
+.m23-ico { margin-inline-end: calc(2px * var(--uiz,1)) !important; }
+/* دکمه‌های کوچک منو هم فاصله بگیرند */
+.mini-btn { padding: calc(11px * var(--uiz,1)) calc(24px * var(--uiz,1)) !important; }
+/* «شب شود» — چسبیده به گوشه (FAB حذف شده؛ gap ۸۲px دیگر بی‌معنی) */
+#bpNight { right: calc(14px * var(--uiz,1)) !important; }
+/* برچسب FAB قدیمی اگر جایی مانده باشد */
+#bpFab28 { display: none !important; }
+/* پنل دستفروش باز = چیپ سلاح‌ها مخفی (اختصاص متقابل — هم‌پوشانی صفر) */
+#wrap.peddler-on #wpnChips28 { display: none !important; }
+`;
+  document.head.appendChild(st);
+})();
+
+/* ---------- ۳۱-۲) بازسازی قفسه‌ی دستفروش مرموز ---------- */
+(function merchant31() {
+  if (typeof renderPeddlerStock !== 'function' || renderPeddlerStock.__31) return;
+  renderPeddlerStock = function () {
+    const box = $('pdStock');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!state.peddler.here) { hidePeddlerPanel(); return; }
+    for (const it of state.peddler.stock) {
+      if (it.bought) continue;
+      const r = it.bp ? BLUEPRINTS[it.id] : RARE[it.id];
+      if (!r) continue;
+      const el = document.createElement('div');
+      el.className = 'pd-row31' + (state.coins < r.price ? ' poor' : '') + (it.bp ? ' bp31' : '');
+      /* آیکون: PNG مرجع کاربر اگر بود؛ وگرنه همان نقاشی کانواسِ gear */
+      let ic = '';
+      const png = (typeof PDICONS30 !== 'undefined' && PDICONS30[it.id] &&
+        typeof ICONS30 !== 'undefined' && ICONS30[PDICONS30[it.id]]) || null;
+      if (png) {
+        ic = '<img class="pd-ic31" alt="" src="' + png + '">';
+      } else {
+        try {
+          const cv = document.createElement('canvas');
+          paintGearIcon(it.id, cv);
+          ic = '<img class="pd-ic31" alt="" src="' + cv.toDataURL() + '">';
+        } catch (e) {}
+      }
+      el.innerHTML =
+        ic +
+        '<div class="pd-mid31">' +
+          '<div class="pd-name31">' +
+            (it.bp && typeof ICO !== 'undefined' ? '<i class="ic">' + ICO.ico('blueprint') + '</i> ' : '') +
+            r.name + (it.fresh ? ' <em class="pd-new31">تازه!</em>' : '') +
+          '</div>' +
+          '<div class="pd-sub31">' + r.desc + '</div>' +
+        '</div>' +
+        '<div class="pd-buy31">' +
+          '<span class="pd-price31"><i class="coin-ic"></i>' + faNum(r.price) + '</span>' +
+          '<span class="pd-go31">برای خرید بزن</span>' +
+        '</div>';
+      el.addEventListener('click', () => buyRare(it));
+      box.appendChild(el);
+    }
+    /* اگر همه خریداری شد، پنل بسته شود */
+    if (!box.children.length) { hidePeddlerPanel(); return; }
+    try { drawPeddlerFace(); } catch (e) {}
+    $('peddlerBox').classList.remove('hidden');
+  };
+  renderPeddlerStock.__31 = true;
+})();
+
+/* ---------- ۳۱-۳) رفع نویز ابدیِ رادیو ----------
+   ریشه: closePanel روی wrapper ــِ {src,g,flt} متد stop() می‌زد
+   (چنین متدی وجود ندارد → خطای بی‌صدا → نویز برای همیشه) */
+(function radio31() {
+  try {
+    if (typeof MYST === 'undefined' || !MYST || MYST.closePanel.__31) return;
+    const _cp = MYST.closePanel.bind(MYST);
+    MYST.closePanel = function () {
+      try {
+        if (this._radioNoise && typeof Snd !== 'undefined' && Snd.ctx) {
+          const t = Snd.ctx.currentTime;
+          try {
+            this._radioNoise.g.gain.cancelScheduledValues(t);
+            this._radioNoise.g.gain.setTargetAtTime(0.0001, t, 0.02);
+          } catch (e) {}
+          try { this._radioNoise.src.stop(t + 0.07); } catch (e) {}
+        }
+      } catch (e) {}
+      this._radioNoise = null;
+      return _cp();
+    };
+    MYST.closePanel.__31 = true;
+    /* ایمنی: وقتی شب می‌شود هم نویز رادیو خاموش شود */
+    if (typeof startNight === 'function' && !startNight.__31rz) {
+      const _sn = startNight;
+      startNight = function () {
+        try { if (MYST._radioNoise) MYST.closePanel(); } catch (e) {}
+        return _sn.apply(this, arguments);
+      };
+      startNight.__31rz = true;
+    }
+  } catch (e) {}
+})();
+
+/* ---------- ۳۱-۴) خروج از بازی = قطع کامل صدا ----------
+   نکته‌ی حیاتی: MUSIC.update() هر فریم، حالت منو را به موسیقی منو
+   مپ می‌کند و پد/باد را هم برمی‌گرداند → هر قطعِ ساده یک فریم بعد
+   خنثی می‌شد. راه‌حل: پرچم «منوی بی‌صدا» که تا شروعِ بازیِ بعدی
+   (جدید/ادامه/تلاش دوباره) بی‌صدا نگه می‌دارد. */
+(function exitSound31() {
+  window.__menuSilent31 = false;
+  function duckMusic31() {
+    try {
+      if (typeof Snd !== 'undefined' && Snd.musicGain && Snd.ctx) {
+        const t = Snd.ctx.currentTime;
+        Snd.musicGain.gain.cancelScheduledValues(t);
+        Snd.musicGain.gain.setValueAtTime(Math.max(0.0001, Snd.musicGain.gain.value), t);
+        Snd.musicGain.gain.linearRampToValueAtTime(0.0001, t + 0.35);
+      }
+    } catch (e) {}
+  }
+  function unduckMusic31() {
+    try {
+      if (typeof Snd !== 'undefined' && Snd.musicGain && Snd.ctx && Snd.musicOn !== false) {
+        const t = Snd.ctx.currentTime;
+        Snd.musicGain.gain.cancelScheduledValues(t);
+        Snd.musicGain.gain.setValueAtTime(Math.max(0.0001, Snd.musicGain.gain.value), t);
+        Snd.musicGain.gain.linearRampToValueAtTime(1, t + 0.5);
+      }
+    } catch (e) {}
+  }
+  function clearSilent31() { window.__menuSilent31 = false; unduckMusic31(); }
+  window.__unduckMusic31 = clearSilent31;
+  try {
+    if (typeof exitToMenu === 'function' && !exitToMenu.__31) {
+      const _exit = exitToMenu;
+      exitToMenu = function () {
+        try { if (typeof MYST !== 'undefined' && MYST && MYST._radioNoise) MYST.closePanel(); } catch (e) {}
+        try { if (typeof VOICE !== 'undefined' && VOICE) VOICE.stop(); } catch (e) {}
+        const r = _exit.apply(this, arguments);
+        /* طبق درخواست کاربر: بعد از خروج، صدای بازی کلاً قطع می‌شود */
+        window.__menuSilent31 = true;
+        try { if (typeof MUSIC !== 'undefined' && MUSIC) { MUSIC._want = null; MUSIC.fadeStop(); MUSIC.stop(); } } catch (e) {}
+        duckMusic31();
+        return r;
+      };
+      exitToMenu.__31 = true;
+    }
+  } catch (e) {}
+  /* MUSIC.update هر فریم صدا زده می‌شود — در منویِ بی‌صدا همه‌ی
+     خودکارها (set منو / برگرداندن امبینت) را دور می‌زنیم */
+  try {
+    if (typeof MUSIC !== 'undefined' && MUSIC && MUSIC.update && !MUSIC.update.__31) {
+      const _up = MUSIC.update.bind(MUSIC);
+      MUSIC.update = function () {
+        if (window.__menuSilent31) {
+          const m = (typeof state !== 'undefined') ? state.mode : '';
+          if (m === 'start') {          /* فقط خودِ منو بی‌صدا می‌ماند */
+            try { if (MUSIC.timer) MUSIC.fadeStop(); } catch (e) {}
+            try { MUSIC._want = null; } catch (e) {}
+            duckMusic31();
+            return;
+          }
+          /* به محض شروع بازی/سینمایی/هر حالت دیگر، صدا کامل برمی‌گردد */
+          window.__menuSilent31 = false;
+        }
+        return _up();
+      };
+      MUSIC.update.__31 = true;
+    }
+  } catch (e) {}
+  /* شروع بازی جدید / ادامه / تلاش دوباره = برگشتن صدا */
+  try {
+    if (typeof startNewGame === 'function' && !startNewGame.__31clr) {
+      const _s = startNewGame;
+      startNewGame = function () { clearSilent31(); return _s.apply(this, arguments); };
+      startNewGame.__31clr = true;
+    }
+    if (typeof continueGame === 'function' && !continueGame.__31clr) {
+      const _c = continueGame;
+      continueGame = function () { clearSilent31(); return _c.apply(this, arguments); };
+      continueGame.__31clr = true;
+    }
+    if (typeof retryFromSave === 'function' && !retryFromSave.__31clr) {
+      const _r = retryFromSave;
+      retryFromSave = function () { clearSilent31(); return _r.apply(this, arguments); };
+      retryFromSave.__31clr = true;
+    }
+  } catch (e) {}
+  /* شروع شب/روز هم صدا را برمی‌گرداند (اگر از مسیر بالا رد نشد) */
+  try {
+    if (typeof startNight === 'function' && !startNight.__31snd) {
+      const _sn = startNight;
+      startNight = function () { clearSilent31(); return _sn.apply(this, arguments); };
+      startNight.__31snd = true;
+    }
+    if (typeof enterDay === 'function' && !enterDay.__31) {
+      const _ed = enterDay;
+      enterDay = function () { clearSilent31(); return _ed.apply(this, arguments); };
+      enterDay.__31 = true;
+    }
+  } catch (e) {}
+})();
+
+/* ---------- ۳۱-۵) «ذخیره شد» — یک‌بار در منو، بعد محو ----------
+   منو updateAnnounce را تیک نمی‌زند → خودمان بعد از ~۳.۴ ثانیه
+   محوش می‌کنیم تا برای همیشه روی منو نماند */
+(function savedToast31() {
+  try {
+    if (typeof saveAndExit !== 'function' || saveAndExit.__31) return;
+    const _se = saveAndExit;
+    saveAndExit = function () {
+      const r = _se.apply(this, arguments);
+      setTimeout(() => { try { hideAnnounce(); } catch (e) {} }, 3400);
+      return r;
+    };
+    saveAndExit.__31 = true;
+  } catch (e) {}
+})();
+
+/* ---------- ۳۱-۶) آیکون قبلیِ برجک تک‌تیرانداز ----------
+   v30 تصویر «دوربین دید در شب» را روی این برجک گذاشته بود؛
+   کاربر: «اصلا برجک نیست — همون قبلی رو بزار» */
+(function sniperIcon31() {
+  try {
+    const ORIG = 'data:image/png;base64,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';
+    const im = new Image();
+    im.onload = () => { try { repaintCubeIcons('sniper'); } catch (e) {} };
+    im.src = ORIG;
+    try { if (typeof CUBE_SPRITES !== 'undefined' && CUBE_SPRITES) CUBE_SPRITES.sniper = ORIG; } catch (e) {}
+    try { if (typeof CUBE_IMGS !== 'undefined' && CUBE_IMGS) CUBE_IMGS.sniper = im; } catch (e) {}
+    try { if (typeof SPRITE30 !== 'undefined' && SPRITE30) delete SPRITE30.sniper; } catch (e) {}
+    try { repaintCubeIcons('sniper'); } catch (e) {}
+  } catch (e) {}
+})();
+
+/* ---------- ۳۱-۷) آیکون «شروع بازی» — شمشیرهای متقاطعِ درشت ----------
+   قبلی: شمشیر تکیِ نازک که مثل مداد دیده می‌شد (گزارش کاربر) */
+(function startIcon31() {
+  try {
+    if (typeof ICO === 'undefined' || !ICO || !ICO.I) return;
+    const S = (inner) =>
+      '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+    ICO.I.sword30 = S(
+      '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/>' +
+      '<line x1="13" y1="19" x2="19" y2="13"/>' +
+      '<line x1="16" y1="16" x2="20" y2="20"/>' +
+      '<line x1="19" y1="21" x2="21" y2="19"/>' +
+      '<polyline points="14.5 6.5 18 3 21 3 21 6 17.5 10"/>' +
+      '<line x1="5" y1="14" x2="9" y2="18"/>' +
+      '<line x1="7" y1="17" x2="4" y2="20"/>' +
+      '<line x1="3" y1="19" x2="5" y2="21"/>'
+    );
+    /* اگر منو قبلاً رندر شده، آیکون را تازه کنیم */
+    setTimeout(() => {
+      try {
+        document.querySelectorAll('.m23-ico[data-ico="sword30"]').forEach(b => {
+          b.innerHTML = ICO.I.sword30;
+        });
+      } catch (e) {}
+    }, 60);
+  } catch (e) {}
+})();
+
 </script>
 </body>
 </html>

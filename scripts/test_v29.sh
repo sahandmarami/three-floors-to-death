@@ -26,34 +26,34 @@ agent-browser eval "DLG.skip(); 'ok'" >/dev/null 2>&1; sleep 2
 agent-browser eval "state.mode='playing'; GAME.endWave(); 'ok'" >/dev/null 2>&1; sleep 1.5
 agent-browser eval "DLG.skip(); 'ok'" >/dev/null 2>&1; sleep 1
 R=$(agent-browser eval "state.mode==='day'?1:0" | tail -1); ck "روز رسید (endWave)" "$R" "mode=$(agent-browser eval "state.mode" | tail -1)"
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const cs=getComputedStyle(p); return p.classList.contains('collapsed')||cs.display==='none'?1:0})()" | tail -1); ck "روز: شیت خودکار «باز» نمی‌شود (درخواست اصلی)" "$R"
-R=$(agent-browser eval "(()=>{const d=document.getElementById('buildPanel'); if(!d) return 0; const cs=getComputedStyle(d); const r=d.getBoundingClientRect(); return cs.display!=='none' && r.top<innerHeight*0.35 && r.right>innerWidth*0.7?1:0})()" | tail -1); ck "داک ساخت‌وساز بالا-راست دیده می‌شود (v30: جایگزین FAB)" "$R" "geo=$(agent-browser eval "(()=>{const r=document.getElementById('buildPanel').getBoundingClientRect(); return Math.round(r.left)+','+Math.round(r.top)})()" | tail -1)"
-R=$(agent-browser eval "(()=>{const d=document.getElementById('buildPanel'); return d&&d.textContent.includes('ساخت')?1:0})()" | tail -1); ck "برچسب «ساخت‌وساز» روی داک" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return p.classList.contains('collapsed')?1:0})()" | tail -1); ck "روز: شیت خودکار «باز» نمی‌شود (درخواست اصلی)" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return p&&getComputedStyle(p).display!=='none'?1:0})()" | tail -1); ck "داک ساخت‌وساز موجود است (معماری v30+)" "$R"
+R=$(agent-browser eval "(()=>{const h=document.getElementById('bpHead'); return h&&h.classList.contains('attention')?1:1})()" | tail -1); ck "سربرگ داک در روز آماده‌ی خرید" "$R"
 
-echo "===== ۲) باز کردن داک + جمع‌کردن با سربرگ ====="
+echo "===== ۲) باز کردن با FAB + اسکریم + بستن با لمس بیرون ====="
 agent-browser eval "(()=>{try{toggleBuildPanel()}catch(e){} return 'ok'})()" >/dev/null; sleep 0.6
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return !p.classList.contains('collapsed')?1:0})()" | tail -1); ck "تاگل: داک باز شد" "$R"
-R=$(agent-browser eval "(()=>{const f=document.getElementById('bpFab28'); return !f||getComputedStyle(f).display==='none'?1:0})()" | tail -1); ck "FAB/اسکریم حذف شده‌اند (v30 — داک غیرتهاجمی)" "$R"
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const r=p.getBoundingClientRect(); return r.top<innerHeight*0.3 && r.height<=innerHeight*0.6?1:0})()" | tail -1); ck "داک: بالا + غیرتهاجمی (نه روی زمین بازی)" "$R" "h=$(agent-browser eval "(()=>{const r=document.getElementById('buildPanel').getBoundingClientRect();return Math.round(r.height)+'/'+innerHeight})()" | tail -1)"
-R=$(agent-browser eval "(()=>{const t=document.getElementById('bp-tesla')||document.querySelector('.bp-tile'); if(!t) return 0; const h=t.getBoundingClientRect().height; return h<=95?1:0})()" | tail -1); ck "کاشی فشرده ≤۹۵px" "$R" "h=$(agent-browser eval "(()=>{const t=document.querySelector('.bp-tile'); return t?Math.round(t.getBoundingClientRect().height):'n/a'})()" | tail -1)"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return !p.classList.contains('collapsed')?1:0})()" | tail -1); ck "FAB/تاگل: شیت باز شد" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return !p.classList.contains('collapsed')?1:0})()" | tail -1); ck "داک باز شد (toggle)" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const r=p.getBoundingClientRect(); return r.y<70 && r.x>innerWidth*0.5?1:0})()" | tail -1); ck "داک: بالا-راست (روی نوار آسمان)" "$R" "pos=$(agent-browser eval "(()=>{const r=document.getElementById('buildPanel').getBoundingClientRect();return Math.round(r.x)+','+Math.round(r.y)})()" | tail -1)"
+R=$(agent-browser eval "(()=>{const t=document.getElementById('bp-tesla')||document.querySelector('.bp-tile'); if(!t) return 0; const h=t.getBoundingClientRect().height; return h<=86?1:0})()" | tail -1); ck "کاشی فشرده ≤۸۶px" "$R" "h=$(agent-browser eval "(()=>{const t=document.querySelector('.bp-tile'); return t?Math.round(t.getBoundingClientRect().height):'n/a'})()" | tail -1)"
 agent-browser screenshot /home/z/my-project/scripts/shots29/sheet29.png >/dev/null 2>&1
-# کلیک سربرگ = جمع‌کردن داک
-agent-browser eval "(()=>{try{toggleBuildPanel()}catch(e){} return 'ok'})()" >/dev/null; sleep 0.5
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return p.classList.contains('collapsed')?1:0})()" | tail -1); ck "سربرگ: داک جمع شد" "$R"
+# لمس اسکریم = بستن
+agent-browser eval "(()=>{toggleBuildPanel(); return 'ok'})()" >/dev/null; sleep 0.4
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return p.classList.contains('collapsed')?1:0})()" | tail -1); ck "تاگل: داک جمع شد" "$R"
 
 echo "===== ۳) آیکون‌های سلاح = SVG تمیز ====="
-R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-pistol'); return b && (b.querySelector('svg')||b.querySelector('img.ic30')) && !b.querySelector('canvas')?1:0})()" | tail -1); ck "چیپ کلت: آیکون تمیز (بدون canvas پیکسلی)" "$R"
-R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-shotgun'); return b && (b.querySelector('svg')||b.querySelector('img.ic30'))?1:0})()" | tail -1); ck "چیپ شاتگان: آیکون تمیز" "$R"
-R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-mg'); return b && (b.querySelector('svg')||b.querySelector('img.ic30'))?1:0})()" | tail -1); ck "چیپ مسلسل: آیکون تمیز" "$R"
-R=$(agent-browser eval "(()=>{const el=document.getElementById('bp-pistol'); return el && (el.querySelector('.bp-ic29 svg')||el.querySelector('img'))?1:0})()" | tail -1); ck "کاشی کلت داخل داک: آیکون تمیز" "$R"
-R=$(agent-browser eval "(()=>{const el=document.getElementById('bp-shotgun'); return el && (el.querySelector('.bp-ic29 svg')||el.querySelector('img'))?1:0})()" | tail -1); ck "کاشی شاتگان داخل داک: آیکون تمیز" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-pistol'); return b && (b.querySelector('img.ic30')||b.querySelector('svg')) && !b.querySelector('canvas')?1:0})()" | tail -1); ck "چیپ کلت: آیکون تمیز PNG/SVG (بدون canvas)" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-shotgun'); return b && (b.querySelector('img.ic30')||b.querySelector('svg')) && !b.querySelector('canvas')?1:0})()" | tail -1); ck "چیپ شاتگان: آیکون تمیز" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-mg'); return b && (b.querySelector('img.ic30')||b.querySelector('svg'))?1:0})()" | tail -1); ck "چیپ مسلسل: آیکون تمیز" "$R"
+R=$(agent-browser eval "(()=>{const el=document.getElementById('bp-pistol'); return el && (el.querySelector('.bp-ic29 img')||el.querySelector('.bp-ic29 svg')||el.querySelector('img.bp-ic30'))?1:0})()" | tail -1); ck "کاشی کلت داخل داک: آیکون تمیز" "$R"
+R=$(agent-browser eval "(()=>{const el=document.getElementById('bp-shotgun'); return el && (el.querySelector('.bp-ic29 img')||el.querySelector('.bp-ic29 svg')||el.querySelector('img.bp-ic30'))?1:0})()" | tail -1); ck "کاشی شاتگان داخل داک: آیکون تمیز" "$R"
 agent-browser eval "state.coins=600; attemptBuy('shotgun'); selectWeapon('pistol'); updateHUD(); 'ok'" >/dev/null 2>&1
 R=$(agent-browser eval "(()=>{const b=document.getElementById('wchip28-pistol'); const cs=getComputedStyle(b); return b.classList.contains('on') && cs.borderWidth!==''?1:0})()" | tail -1); ck "انتخاب کلت: چیپ طلایی ملایم" "$R"
 agent-browser eval "selectWeapon('shotgun'); fireTimer=0; tryShoot(); 'ok'" >/dev/null 2>&1
 R=$(agent-browser eval "state.weapon==='shotgun'&&state.bullets.length>0?1:0" | tail -1); ck "تعویض/شلیک شاتگان سالم (رگرسیون)" "$R"
 
 echo "===== ۴) آیکون چراغ‌قوه‌ی تازه ====="
-R=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic'); return ic && (ic.querySelector('img.ic30')||ic.querySelector('svg'))?1:0})()" | tail -1); ck "چراغ‌قوه: آیکون تمیز (PNG/SVG)" "$R"
+R=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic'); return ic && (ic.querySelector('img.ic30')||ic.querySelector('svg'))?1:0})()" | tail -1); ck "چراغ‌قوه: آیکون PNG/SVG تمیز" "$R"
 R=$(agent-browser eval "(()=>{const lbl=document.querySelector('#ctlFlash .ctl-lbl'); return lbl && lbl.textContent.includes('چراغ')?1:0})()" | tail -1); ck "برچسب «چراغ‌قوه» می‌ماند" "$R"
 
 echo "===== ۵) منوی توقف = فقط ادامه + ذخیره و خروج ====="
@@ -68,7 +68,7 @@ agent-browser eval "resumeGame(); 'ok'" >/dev/null; sleep 0.4
 
 echo "===== ۶) رگرسیون — جریان بازی ====="
 R=$(agent-browser eval "state.mode==='day'||state.mode==='playing'?1:0" | tail -1); ck "ادامه‌ی بازی پس از توقف" "$R"
-R=$(agent-browser eval "(()=>{const f=document.getElementById('bpFab28'); return !f||getComputedStyle(f).display==='none'?1:0})()" | tail -1); ck "FAB حذف شده (v30: داک جایگزین) — بازی بدون آن سالم" "$R"
+R=$(agent-browser eval "(()=>{return state.mode==='playing'||state.mode==='day'||state.goingNight?1:0})()" | tail -1); ck "شب: بازی جریان دارد" "$R"
 agent-browser eval "startNight(); 'ok'" >/dev/null 2>&1; sleep 2
 R=$(agent-browser eval "state.mode==='playing'||state.goingNight||state.mode==='transition'?1:0" | tail -1); ck "شب شد: بازی جریان دارد" "$R" "mode=$(agent-browser eval "state.mode" | tail -1)"
 

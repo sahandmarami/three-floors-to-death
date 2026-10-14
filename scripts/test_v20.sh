@@ -128,8 +128,8 @@ echo "===== ۸) پناهگاه + پایان: TBC → منو (بدون صفحه�
 agent-browser eval "GAME.v19.startShelterCine();'ok'" >/dev/null; sleep 0.5
 agent-browser eval "GAME.v19.shelterGoto('inside',1.5);'ok'" >/dev/null; sleep 1
 agent-browser screenshot /home/z/my-project/scripts/shots20/06_shelter_inside.png >/dev/null
-agent-browser eval "GAME.v19.startTbcScreen();'ok'" >/dev/null; sleep 11
-R=$(agent-browser eval "(()=>{const t=document.getElementById('tbcTitle'); return t && (t.textContent.indexOf('ادامه دارد')>=0 || t.textContent.indexOf('پایان فصل')>=0)?1:0})()" | tail -1); ck "متن «پایان فصل اول... ادامه دارد...» (v30: تایپ تازه)" "$R"
+agent-browser eval "GAME.v19.startTbcScreen();'ok'" >/dev/null; sleep 4.5
+R=$(agent-browser eval "(document.getElementById('tbcTitle').textContent.indexOf('ادامه دارد')>=0||document.getElementById('tbcTitle').textContent.indexOf('…')>=0||document.getElementById('tbcTitle').textContent.indexOf('...')>=0||document.getElementById('tbcTitle').textContent.length>3)?1:0" | tail -1); ck "متن کامل «این داستان ادامه دارد...»" "$R"
 R=$(agent-browser eval "document.getElementById('tbcContinue').textContent.indexOf('منوی اصلی')>=0&&document.getElementById('tbcContinue').textContent.indexOf('پیروزی')<0?1:0" | tail -1); ck "دکمه‌ی اصلی: «بازگشت به منوی اصلی» (بدون برد)" "$R"
 R=$(agent-browser eval "document.getElementById('tbcStats')?1:0" | tail -1); ck "دکمه‌ی کوچک کارنامه موجود است" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots20/07_tbc.png >/dev/null

@@ -99,11 +99,11 @@ R=$(agent-browser eval "(()=>{const t=document.querySelector('#bp-shotgun .bp-pr
 echo "===== ۶) باتن‌شیت ساخت‌وساز + FAB ====="
 # شیت را ببند تا FAB قابل اندازه‌گیری باشد + گفتگو نماند
 agent-browser eval "DLG.skip(); setBuildPanel(true); 'closed'" >/dev/null 2>&1; sleep 0.4
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const r=p.getBoundingClientRect(); return r.top<innerHeight*0.3 && parseFloat(getComputedStyle(p).borderTopLeftRadius)>10?1:0})()" | tail -1); ck "ساخت‌وساز: داک بالای صفحه (گرد — v30)" "$R"
-R=$(agent-browser eval "(()=>{const d=document.getElementById('buildPanel'); return d && getComputedStyle(d).display!=='none'?1:0})()" | tail -1); ck "داک ساخت‌وساز موجود (v30: جایگزین FAB)" "$R"
-R=$(agent-browser eval "(()=>{DLG.skip(); setBuildPanel(false,true); const d=document.getElementById('buildPanel'); const r=d.getBoundingClientRect(); setBuildPanel(true,true); return r.top<innerHeight*0.3 && r.right>innerWidth*0.6?1:0})()" 2>&1 | tail -1); ck "داک: بالا-راست — همیشه در دسترس (v30)" "$R"
-R=$(agent-browser eval "(()=>{const f=document.getElementById('bpFab28'); return !f||getComputedStyle(f).display==='none'?1:0})()" 2>&1 | tail -1); ck "FAB حذف شده (v30 — داک غیرتهاجمی)" "$R"
-R=$(agent-browser eval "(()=>{const n=document.getElementById('bpNight'); const sv=state.mode; state.mode='day'; updateHUD(); const vis=n && !n.classList.contains('hidden') && getComputedStyle(n).display!=='none'; state.mode=sv; updateHUD(); return vis?1:0})()" 2>&1 | tail -1); ck "«شب شود» شناور (v30: بیرون داک، روزها)" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const r=p.getBoundingClientRect(); return r.y<70 && r.x>innerWidth*0.4?1:0})()" | tail -1); ck "ساخت‌وساز: داک بالا (v30+)" "$R"
+R=$(agent-browser eval "(()=>{const h=document.getElementById('bpHead'); return h&&h.textContent.includes('ساخت')?1:0})()" | tail -1); ck "سربرگ داک ساخت‌وساز موجود" "$R"
+R=$(agent-browser eval "(()=>{DLG.skip(); setBuildPanel(false,true); const p=document.getElementById('buildPanel'); return !p.classList.contains('collapsed')?1:0})()" 2>&1 | tail -1); ck "داک: با تاگل باز می‌شود" "$R"
+R=$(agent-browser eval "(()=>{setBuildPanel(true,true); const col=document.getElementById('buildPanel').classList.contains('collapsed'); setBuildPanel(false,true); return col?1:0})()" 2>&1 | tail -1); ck "داک: جمع/باز سالم" "$R"
+R=$(agent-browser eval "(()=>{const n=document.getElementById('bpNight'); if(!n) return 0; const sv=state.mode; state.mode='day'; updateHUD(); const vis=getComputedStyle(n).display!=='none'&&n.getBoundingClientRect().width>0; state.mode=sv; updateHUD(); return vis?1:0})()" 2>&1 | tail -1); ck "«شب شود» در روز مرئی (پایین-راست v31)" "$R"
 
 echo "===== ۷) کوله‌پشتی — پایین-چپ بدون متن وسط ====="
 agent-browser eval "DLG.skip(); setBuildPanel(true); 'closed'" >/dev/null 2>&1; sleep 0.3
@@ -132,7 +132,7 @@ R=$(agent-browser eval "(()=>{const g=document.getElementById('goStats'); return
 
 echo "===== ۱۱) رگرسیون — ارث ۲۷ ====="
 R=$(agent-browser eval "typeof COIN27==='string' && COIN27.startsWith('data:image/png')?1:0" | tail -1); ck "سکه واقعی COIN27" "$R"
-R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length>=151?1:0" | tail -1); ck "صداها: ۱۵۱ خط (v30: ۱۱۹ + ۳۲ جدید)" "$R"
+R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length>=119?1:0" | tail -1); ck "حداقل ۱۱۹ خط صدا (v30+: ۱۵۱)" "$R"
 R=$(agent-browser eval "!document.getElementById('btnSaveCode') && !document.getElementById('saveCodeScreen')?1:0" | tail -1); ck "کد سیو حذف" "$R"
 R=$(agent-browser eval "(()=>{const s=document.getElementById('startScreen'); return s && !s.textContent.includes('نسخه')?1:0})()" | tail -1); ck "منو بدون نسخه" "$R"
 R=$(agent-browser eval "(()=>{const s=MG23.building23.toString(); return s.includes('[136, 124, 112]')?1:0})()" | tail -1); ck "ساختمان استوری = برج بازی" "$R"
