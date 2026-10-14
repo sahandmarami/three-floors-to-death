@@ -33,8 +33,8 @@ R=$(agent-browser eval "(()=>{const h=document.getElementById('bpHead'); return 
 echo "===== ۲) باز کردن با FAB + اسکریم + بستن با لمس بیرون ====="
 agent-browser eval "(()=>{try{toggleBuildPanel()}catch(e){} return 'ok'})()" >/dev/null; sleep 0.6
 R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return !p.classList.contains('collapsed')?1:0})()" | tail -1); ck "FAB/تاگل: شیت باز شد" "$R"
-R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const r=p.getBoundingClientRect(); const sc=window.__fitScale||1; return (r.top/sc)<160 && (r.bottom/sc)<400?1:0})()" | tail -1); ck "(۳۰) داک: بالا-راست، فقط نوار آسمان" "$R" "b=$(agent-browser eval "(()=>{const r=document.getElementById('buildPanel').getBoundingClientRect(); const sc=window.__fitScale||1; return Math.round(r.bottom/sc)})()" | tail -1)"
-R=$(agent-browser eval "(()=>{const t=document.querySelector('#bpList .bp-tile'); if(!t) return 0; const h=t.getBoundingClientRect().height/(window.__fitScale||1); return h<=150?1:0})()" | tail -1); ck "(۳۰) کاشی فشرده کافی" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); const r=p.getBoundingClientRect(); const sc=window.__fitScale||1; const uiz2=parseFloat(getComputedStyle(document.getElementById('wrap')).getPropertyValue('--uiz2'))||1; /* (۳۲) روی گوشی واقعی uiz2=۱ → یک ردیف؛ روی ویوپورت تست ۷۸۰×۳۶۰ دو ردیف مجاز — سقف ارتفاع لیست ۲۵۲×uiz2 */ const cap=170+252*uiz2; return (r.top/sc)<160 && (r.bottom/sc)<cap+15?1:0})()" | tail -1); ck "(۳۲) داک: بالا-راست، کاشی‌های درشت (wrap، سقف‌دار)" "$R" "b=$(agent-browser eval "(()=>{const r=document.getElementById('buildPanel').getBoundingClientRect(); const sc=window.__fitScale||1; return Math.round(r.bottom/sc)})()" | tail -1)"
+R=$(agent-browser eval "(()=>{const t=document.querySelector('#bpList .bp-tile'); if(!t) return 0; const h=t.getBoundingClientRect().height/(window.__fitScale||1); return h<=165?1:0})()" | tail -1); ck "(۳۲) کاشی درشت (۱۱۸px منطقی)" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots29/sheet29.png >/dev/null 2>&1
 agent-browser eval "(()=>{try{toggleBuildPanel()}catch(e){} return 'ok'})()" >/dev/null; sleep 0.5
 R=$(agent-browser eval "(()=>{const p=document.getElementById('buildPanel'); return p.classList.contains('collapsed')?1:0})()" | tail -1); ck "(۳۰) سربرگ: داک دوباره جمع شد" "$R"
@@ -51,7 +51,7 @@ agent-browser eval "selectWeapon('shotgun'); fireTimer=0; tryShoot(); 'ok'" >/de
 R=$(agent-browser eval "state.weapon==='shotgun'&&state.bullets.length>0?1:0" | tail -1); ck "تعویض/شلیک شاتگان سالم (رگرسیون)" "$R"
 
 echo "===== ۴) آیکون چراغ‌قوه‌ی تازه ====="
-R=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic'); return ic && ic.querySelector('img.ic30')?1:0})()" | tail -1); ck "(۳۰) چراغ‌قوه: PNG کاربر" "$R"
+R=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic'); return ic && ic.querySelector('svg')?1:0})()" | tail -1); ck "(۳۲) چراغ‌قوه: SVG تمیز (درخواست کاربر)" "$R"
 R=$(agent-browser eval "(()=>{const lbl=document.querySelector('#ctlFlash .ctl-lbl'); return lbl && lbl.textContent.includes('چراغ')?1:0})()" | tail -1); ck "برچسب «چراغ‌قوه» می‌ماند" "$R"
 
 echo "===== ۵) منوی توقف = فقط ادامه + ذخیره و خروج ====="

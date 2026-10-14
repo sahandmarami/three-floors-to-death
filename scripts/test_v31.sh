@@ -41,12 +41,14 @@ for T in "up:repair,speed,health,weapon,trap" "wpn:pistol,shotgun,mg" "tur:gatli
 done
 agent-browser screenshot /home/z/my-project/scripts/shots31/build_tur31.png >/dev/null 2>&1
 
-echo "===== ۲) چیپ سلاح‌ها — پایین‌وسط، دور از توقف/سرنخ ====="
+echo "===== ۲) نوار سلاح — (۳۲) حذف کامل: خرید/تعویض فقط از ساخت‌وساز ====="
 to_night
-R=$(agent-browser eval "(()=>{const c=document.getElementById('wpnChips28'); const r=c.getBoundingClientRect(); const pause=document.querySelector('#pauseBtn,[title*=توقف]'); const pr=pause?pause.getBoundingClientRect():null; const clashPause=pr&&!(r.x>pr.right||r.x+r.width<pr.x||r.y>pr.bottom||r.y+r.height<pr.y); const lowEnough=r.y>200; const centered=Math.abs((r.x+r.width/2)-innerWidth/2)<30; return (!clashPause&&lowEnough&&centered)?1:0})()" 2>/dev/null | tail -1)
-ck "چیپ‌ها: پایین صفحه + وسط + بدون برخورد با توقف" "$R" "pos=$(agent-browser eval "(()=>{const r=document.getElementById('wpnChips28').getBoundingClientRect(); return Math.round(r.x)+','+Math.round(r.y)})()" 2>/dev/null | tail -1)"
-R=$(agent-browser eval "(()=>{const c=document.getElementById('wpnChips28').getBoundingClientRect(); const m=document.getElementById('mystBtn')||document.getElementById('listenBtn'); if(!m) return 1; const mr=m.getBoundingClientRect(); if(mr.width===0) return 1; return !(c.x<mr.right&&c.x+c.width>mr.x&&c.y<mr.bottom&&c.y+c.height>mr.y)?1:0})()" 2>/dev/null | tail -1)
-ck "چیپ‌ها: بدون برخورد با ستون چپ (سرنخ/شنود)" "$R"
+R=$(agent-browser eval "(()=>{const c=document.getElementById('wpnChips28'); if(!c) return 1; const cs=getComputedStyle(c); return (cs.display==='none'||c.getBoundingClientRect().width===0)?1:0})()" 2>/dev/null | tail -1)
+ck "نوار سلاح پایین حذف شده (درخواست کاربر ۳۲)" "$R"
+R=$(agent-browser eval "(()=>{const w=document.getElementById('wchip28-pistol'); if(!w) return 1; const cs=getComputedStyle(w); return (cs.display==='none'||w.getBoundingClientRect().width===0)?1:0})()" 2>/dev/null | tail -1)
+ck "هیچ چیپ سلاحی در صفحه نیست" "$R"
+R=$(agent-browser eval "(()=>{try{setBuildPanel(false, true); setBPTab('wpn', true); const t=document.getElementById('bp-shotgun'); if(!t) return 'no-tile'; const r=t.getBoundingClientRect(); const disp=getComputedStyle(t).display; const w=r.width; setBuildPanel(true, true); setBPTab('up', true); return (disp!=='none'&&w>40)?1:0}catch(e){return 0}})()" 2>/dev/null | tail -1 | tr -d '"')
+ck "تب سلاح‌ها: کاشی‌های سلاح در ساخت‌وساز موجود" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots31/night31.png >/dev/null 2>&1
 
 echo "===== ۳) دستفروش مرموز — ردیف بازسازی‌شده ====="
@@ -85,9 +87,9 @@ ck "دکمه‌ی سرنخ دیگر در منو دیده نمی‌شود" "$R"
 R=$(agent-browser eval "(()=>{const a=document.getElementById('announce'); return a&&+a.style.opacity===1?1:0})()" 2>/dev/null | tail -1)
 ck "«ذخیره شد» در منو ظاهر شد (z-index بالا)" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots31/menu_saved31.png >/dev/null 2>&1
-sleep 3.2
+sleep 1.9
 R=$(agent-browser eval "(()=>{const a=document.getElementById('announce'); return a&&+a.style.opacity===0?1:0})()" 2>/dev/null | tail -1)
-ck "«ذخیره شد» بعد از ~۳.۴s خودش رفت" "$R"
+ck "«ذخیره شد» بعد از ~۱٫۳۵s خودش رفت (سریع‌تر — ۳۲)" "$R"
 
 echo "===== ۷) خروج = قطع کامل صدا ====="
 R=$(agent-browser eval "(()=>{return (window.__menuSilent31===true&&(!MUSIC.timer)&&MUSIC.track===null)?1:0})()" 2>/dev/null | tail -1)
@@ -155,8 +157,8 @@ R=$(agent-browser eval "state.mode==='day'||state.mode==='playing'?1:0" 2>/dev/n
 ck "بازی بعد از توقف ادامه می‌یابد" "$R"
 R=$(agent-browser eval "(()=>{state.coins=600; const b=state.coins; attemptBuy('shotgun'); const got=!!WEAPONS.shotgun.owned; selectWeapon('shotgun'); fireTimer=0; tryShoot(); return got&&state.weapon==='shotgun'&&state.bullets.length>0?1:0})()" 2>/dev/null | tail -1)
 ck "خرید/تعویض/شلیک شاتگان (رگرسیون)" "$R"
-R=$(agent-browser eval "(()=>{selectWeapon('pistol'); updateHUD(); const c=document.getElementById('wchip28-pistol'); return c&&c.classList.contains('on')?1:0})()" 2>/dev/null | tail -1)
-ck "چیپ کلت طلایی بعد از تعویض" "$R"
+R=$(agent-browser eval "(()=>{selectWeapon('pistol'); updateHUD(); refreshBuildPanel(); const t=document.getElementById('bp-pistol'); return t&&t.classList.contains('armed')?1:0})()" 2>/dev/null | tail -1)
+ck "کاشی کلت طلایی (در دست) بعد از تعویض — در داک (۳۲)" "$R"
 
 echo ""
 echo "======================================"

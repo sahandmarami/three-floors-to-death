@@ -96,7 +96,7 @@ agent-browser eval "document.getElementById('closeAbout').click();'ok'" >/dev/nu
 agent-browser eval "resumeGame();'ok'" >/dev/null 2>&1
 
 echo "===== ۹) چراغ‌قوه + پیل دستفروش بدون تصادم ====="
-R=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic'); return ic && ic.querySelector('img.ic30')?1:0})()" | tail -1); ck "(۳۰) آیکن چراغ‌قوه = PNG کاربر" "$R"
+R=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic'); return ic && ic.querySelector('svg')?1:0})()" | tail -1); ck "(۳۲) آیکن چراغ‌قوه = SVG تمیز (درخواست کاربر)" "$R"
 R=$(agent-browser eval "(()=>{for(const ss of document.styleSheets){try{for(const r of ss.cssRules){if(r.selectorText==='#pedReopenBtn'&&r.cssText.includes('296px'))return 1}}catch(e){}}return 0})()" | tail -1); ck "پیل دستفروش: قانون CSS شیار ۴ (296px)" "$R"
 
 echo "===== ۱۰) چیپ جون + کلت مستقل + برچسب در دست ====="
