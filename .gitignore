@@ -18,3 +18,6 @@ scripts/wav_*.wav
 scripts/voice_test_*.mp3
 tool-results/
 upload/
+.keys_scrub.txt
+.env_local_key
+.keys_repl.txt
