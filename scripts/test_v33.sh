@@ -76,15 +76,15 @@ agent-browser eval "if(GAME.v10.TR){GAME.v10.TR._paused=false;} 'ok'" >/dev/null
 echo "===== ۴) حذف دکمه‌ی شنود → کارت «گوش بسپار» ====="
 R=$(agent-browser eval "typeof MYST!=='undefined'&&MYST._listenBtn?getComputedStyle(MYST._listenBtn).display==='none'?1:0:1" 2>/dev/null | tail -1 | tr -d '"')
 ck "دکمه‌ی شناور شنود نمایش داده نمی‌شود" "$R"
-R=$(agent-browser eval "(()=>{try{MYST.openArchive();}catch(e){return 'err'} const p=document.querySelector('.myst-panel'); if(!p) return 'npx'; const h=p.innerHTML; const ok=h.indexOf('گوش بسپار')>=0&&h.indexOf('listen')>=0?1:0; try{MYST.closePanel()}catch(e){} return ok})()" 2>/dev/null | tail -1 | tr -d '"')
-ck "کارت «گوش بسپار» در پرونده‌ی سرنخ‌ها هست" "$R"
+R=$(agent-browser eval "(()=>{try{MYST.openArchive();}catch(e){return 'err'} const p=document.getElementById('clueSheet34'); if(!p) return 'npx'; const h=p.innerHTML; const ok=h.indexOf('گوش بسپار')>=0&&h.indexOf('listen')>=0?1:0; try{closeSheet34()}catch(e){} return ok})()" 2>/dev/null | tail -1 | tr -d '"')
+ck "کارت «گوش بسپار» در پرونده‌ی سرنخ‌ها (باتن‌شیت v34) هست" "$R"
 R=$(agent-browser eval "var b=document.getElementById('listenBtn'); !b||getComputedStyle(b).display==='none'?1:0" 2>/dev/null | tail -1 | tr -d '"')
 ck "rail چپ: فقط چراغ‌قوه + مولوتوف (بدون دایره‌ی سوم)" "$R"
 
 echo "===== ۵) نام کاشی‌های ساخت‌وساز ====="
 agent-browser eval "var bp=document.getElementById('buildPanel'); if(!bp||bp.classList.contains('collapsed')){try{toggleBuildPanel()}catch(e){}} 'ok'" >/dev/null 2>&1; sleep 0.8
-R=$(agent-browser eval "document.querySelectorAll('#bpList .bp-name').length===BUILD_DEFS.length?1:0" 2>/dev/null | tail -1 | tr -d '"')
-ck "همه‌ی کاشی‌ها برچسب نام دارند" "$R"
+R=$(agent-browser eval "document.querySelectorAll('#bpList .bp-name').length===BUILD_DEFS.filter(function(d){return d.tab!=='wpn'}).length?1:0" 2>/dev/null | tail -1 | tr -d '"')
+ck "همه‌ی کاشی‌ها به‌جز سلاح‌ها برچسب نام دارند (v34)" "$R"
 R=$(agent-browser eval "var els=document.querySelectorAll('#bpList .bp-name'); var ok=1; for(var i=0;i<els.length;i++){if(!els[i].textContent.trim()){ok=0;break}} ok" 2>/dev/null | tail -1 | tr -d '"')
 ck "هیچ نامی خالی نیست (تب بقا: همه نام‌دار)" "$R"
 R=$(agent-browser eval "var n=document.querySelector('#bpList .bp-name'); var r=n.getBoundingClientRect(); r.height>6?1:0" 2>/dev/null | tail -1 | tr -d '"')

@@ -76,8 +76,8 @@ echo "===== ۵) آیکون‌های درشت چراغ‌قوه/کوله ====="
 to_night
 R=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic img.ic30,#ctlFlash .ic svg'); if(!ic) return 0; const w=ic.getBoundingClientRect().width; return w>=33?1:0})()" 2>/dev/null | tail -1)
 ck "آیکون چراغ‌قوه ≥ ۳۳px (قبلاً ۲۲)" "$R" "w=$(agent-browser eval "(()=>{const ic=document.querySelector('#ctlFlash .ic img.ic30,#ctlFlash .ic svg'); return ic?Math.round(ic.getBoundingClientRect().width):0})()" 2>/dev/null | tail -1)"
-R=$(agent-browser eval "(()=>{const cap=document.querySelector('#backpackBar .bpk-cap img.ic30,#backpackBar .bpk-cap .ic'); if(!cap) return 0; const w=cap.getBoundingClientRect().width; return w>=26?1:0})()" 2>/dev/null | tail -1)
-ck "آیکون کوله ≥ ۲۶px (قبلاً ۱۵)" "$R" "w=$(agent-browser eval "(()=>{const cap=document.querySelector('#backpackBar .bpk-cap img.ic30,#backpackBar .bpk-cap .ic'); return cap?Math.round(cap.getBoundingClientRect().width):0})()" 2>/dev/null | tail -1)"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('bpkBtn34'); if(!b) return 0; const w=b.getBoundingClientRect().width; return w>=48?1:0})()" 2>/dev/null | tail -1)
+ck "دکمه‌ی کوله در ریل ≥ ۴۸px (v34 — جایگزین نوار قدیمی)" "$R" "w=$(agent-browser eval "(()=>{const b=document.getElementById('bpkBtn34'); return b?Math.round(b.getBoundingClientRect().width):0})()" 2>/dev/null | tail -1)"
 
 echo "===== ۶) ذخیره و خروج — منوی تمیز + «ذخیره شد» یک‌بار ====="
 agent-browser eval "MYST.clues.push({icon:'📻',name:'تست سرنخ',sub:'تست'}); 'ok'" >/dev/null 2>&1

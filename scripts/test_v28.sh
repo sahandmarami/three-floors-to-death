@@ -107,7 +107,7 @@ R=$(agent-browser eval "(()=>{const n=document.getElementById('bpNight'); if(!n)
 
 echo "===== ۷) کوله‌پشتی — پایین-چپ بدون متن وسط ====="
 agent-browser eval "DLG.skip(); setBuildPanel(true); 'closed'" >/dev/null 2>&1; sleep 0.3
-R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar'); const r=b.getBoundingClientRect(); return r.x<innerWidth*0.4 && r.y+r.height>innerHeight*0.7?1:0})()" | tail -1); ck "کوله: پایین-چپ" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('bpkBtn34'); if(!b) return 0; const r=b.getBoundingClientRect(); return r.x<innerWidth*0.4 && r.y+r.height>innerHeight*0.5?1:0})()" | tail -1); ck "کوله: دکمه‌ی ریل پایین (v34)" "$R"
 R=$(agent-browser eval "document.getElementById('bpkCap').textContent.includes('کوله خالی')?0:1" | tail -1); ck "متن «کوله خالی» حذف شد" "$R"
 
 echo "===== ۸) HUD اندرویدی ====="
