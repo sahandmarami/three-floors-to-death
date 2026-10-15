@@ -6078,6 +6078,13 @@ function render() {
     drawClouds();
     drawDriveScene();
     drawPlayer();                              // بازیکن روی سقف ماشین (۸٫۰)
+  /* (۳۳) ارشان + پله‌های کناری در فروریختن فصل ۱ — مسیر واقعی رندر */
+  try {
+    if (typeof TR !== 'undefined' && TR && TR.phase === 1 && TR.ch === 1 && typeof drawCsArash33 === 'function') {
+      drawCsStairs33();
+      if (TR.ev.arash && TR.ev.arash.st !== 'in') drawCsArash33(TR.ev.arash);
+    }
+  } catch (e) {}
   } else if (state.mode === 'start') {
     /* (۲۳٫۰) منوی اصلی جدید: صحنه‌ی سینمایی اختصاصی — به‌جای دنیای بازی */
     drawMenuScene23();
@@ -6246,12 +6253,14 @@ const CS_DRIVE_CAR_X = 330;
 
 /* زیرنویس‌های کات‌سین: [شروع، پایان، متن] */
 const CS_CAPS = [
-  [0.35, 2.95, 'زمین می‌لرزد... برج دارد ترک می‌خورد!'],
-  [3.5, 5.05, 'طبقه‌ی اول فرو می‌ریزد!'],
-  [5.35, 6.85, 'طبقه‌ی دوم هم...!'],
+  [0.35, 2.45, 'ارشان: صدای این ستون‌ها رو می‌شنوی؟ ساختمون داره فرو می‌ریزه!'],
+  [2.55, 4.3, 'ارشان: من از پله‌ها پایین می‌رم و ماشین رو روشن می‌کنم — موقعش بپر!'],
+  [4.5, 5.1, 'طبقه‌ی اول فرو ریخت!'],
+  [5.35, 5.95, 'ارشان: زود باش! طبقه‌ی دوم هم دارد می‌ریزه!'],
+  [6.25, 6.85, 'ارشان: رسیدم به ماشین — موتور رو گرم می‌کنم!'],
   [7.0, 7.9, 'بام می‌لغزد — بپر!'],
-  [8.6, 9.1, 'رسیدی! سوار شو'],
-  [9.5, 12.6, 'فرمان با توست! گاز بده تا برج جدید'],
+  [8.55, 9.15, 'ارشان: گرفتمت! محکم خودت رو بگیر!'],
+  [9.5, 12.8, 'ارشان: فرمان با توئه! گاز بده!'],
 ];
 
 /* --- پوسته‌های برج (۱۰٫۰): هر فصل رنگ و جنس خودش را دارد ---
@@ -6580,6 +6589,7 @@ function cutsceneHardReset() {
    تا neither قفل شود نه تستِ زمانی (csGoto) غیرقطعی شود. */
 function startCsDrive() {
   const cs = CS;
+  try { VOICE.speak('فرمان با توئه! گاز بده!', 'a', 'tb1s'); } catch (e) {}
   cs.zombies = [];                           // صحنه‌ی برج تمام شد
   state.particles = []; state.texts = [];
   if (cs.car) { cs.car.x = CS_DRIVE_CAR_X; cs.car.hand = 0; }
@@ -6776,32 +6786,51 @@ function updateCutscene(dt) {
     }
   }
 
-  /* ---- ماشین نجات: ورود نرم از چپ و ایستادن زیر بازیکن ---- */
+    /* ---- (۳۳) ماشینِ نجات از قبل پارکِ کنار برج است؛ آرش از پله‌ها پایین می‌آید ----
+     منطق جدید (درخواست کاربر): «آرش با ماشین میاد» غیرمنطقی بود — حالا آرش
+     خودش از بام با پله‌های کناری پایین می‌آید، ماشینِ خودشان را روشن می‌کند
+     و زیر برج می‌آید تا بازیکن از بام روی ماشین بپرد. */
   const catchT = CS_T.playerDrop + CS_T.fallDur;   // لحظه‌ی رسیدن بازیکن به ماشین
-  if (t >= CS_T.carEnter && t < CS_T.driveStart) {
+  if (!cs.arash) cs.arash = { st: 'roof', x: 0, y: 0, ph: 0 };
+  const A = cs.arash;
+  A.ph += dt * 9;
+  if (t < 2.5) {                                   // روی بام، کنار بازیکن
+    A.st = 'roof';
+    A.x = TOWER.x + 42;
+    A.y = TOWER_TOP_Y + D.floors[2].dy;
+  } else if (t < 6.2) {                            // پایین‌آمدن از پله‌های سمت چپ
+    A.st = 'stairs';
+    const k = clamp((t - 2.5) / (6.2 - 2.5), 0, 1);
+    A.x = TOWER.x - 62 + Math.sin(k * Math.PI * 3) * 7;   // زیگزاگ پله‌ها
+    A.y = TOWER_TOP_Y + (GROUND_Y + 10 - TOWER_TOP_Y) * k;
+  } else if (t < 6.9) {                            // دویدن به ماشینِ پارک‌شده
+    A.st = 'run';
+    const k = clamp((t - 6.2) / 0.7, 0, 1);
+    A.x = (TOWER.x - 62) + ((TOWER.x - 205) - (TOWER.x - 62)) * k;
+    A.y = GROUND_Y + 10;
+  } else {
+    A.st = 'in';                                   // سوار شد — داخل ماشین
+  }
+  /* ماشین: از ابتدای صحنه پارک است (خاموش)؛ آرش سوار که شد روشن و زیر برج می‌آید */
+  if (t < CS_T.driveStart) {
     if (!cs.car) {
-      cs.car = { x: -160, y: GROUND_Y + 14, spin: 0, kick: 0, hand: 1.8 };
-      SFX.csEngine();
+      cs.car = { x: TOWER.x - 205, y: GROUND_Y + 14, spin: 0, kick: 0, hand: 0 };
     }
-    if (t < catchT) {
-      /* حرکت قطعی از زمان (قابل تست و پرش زمانی): نرم به زیر برج می‌رسد */
-      const u = clamp((t - CS_T.carEnter) / (catchT - CS_T.carEnter), 0, 1);
-      const e = u * u * (3 - 2 * u);
-      cs.car.x = -160 + (TOWER.x + 160) * e;
-      cs.car.spin += 24 * dt;
+    if (t < CS_T.carEnter) {
+      cs.car.spin = 0;                             // پارکِ خاموش کنار خیابان
     } else {
-      cs.car.x = TOWER.x;                          // زیر برج منتظر بازیکن
-      cs.car.spin += 6 * dt;
-    }
-    cs.car.hand = Math.max(0, cs.car.hand - dt);   // اول کار دست می‌دهد
-    SFX.csEngine();
-    /* تصادم ساده: هر زامبیِ جلوی مسیر کنار پرتاب می‌شود */
-    for (const z of cs.zombies) {
-      if (!z.hit && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z, 430);
+      const u = clamp((t - CS_T.carEnter) / 0.7, 0, 1);
+      const e = u * u * (3 - 2 * u);
+      cs.car.x = (TOWER.x - 205) + 205 * e;        // زیر برج می‌آید
+      cs.car.spin += 24 * dt;
+      cs.car.hand = Math.max(0, 1.5 - (t - CS_T.carEnter));
+      SFX.csEngine();
+      for (const z of cs.zombies) {
+        if (!z.hit && Math.abs(z.x - cs.car.x) < 76) csKnockZombie(z, 430);
+      }
     }
   }
-
-  /* ---- سقوط قوسی بازیکن و نشستن روی ماشین ---- */
+/* ---- سقوط قوسی بازیکن و نشستن روی ماشین ---- */
   const pf = clamp((t - CS_T.playerDrop) / CS_T.fallDur, 0, 1);
   if (pf > 0 && !cs.caught) {
     const y0 = TOWER_TOP_Y + 112;                   // بامِ نشسته روی آوار (پیوستگی با فریم قبل)
@@ -6816,6 +6845,7 @@ function updateCutscene(dt) {
     if (!cs.whistled) { cs.whistled = true; SFX.csWhistle(); }
     if (pf >= 1) {                                 // رسید به ماشین — سوار شد
       cs.caught = true;
+      try { VOICE.speak('گرفتمت! محکم خودت رو بگیر!', 'a', 'tb1c'); } catch (e) {}
       state.shake = 4;
       SFX.csThud();
       spawnParticles(D.player.x, D.player.y, 9, '#ffd873',
@@ -7311,7 +7341,7 @@ function drawCutscene() {
   }
   /* زیرنویس مراحل (کپسول پایین صحنه) */
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 15px Vazirmatn, Tahoma, sans-serif';
+  ctx.font = 'bold 17px Vazirmatn, Tahoma, sans-serif';
   for (const c of CS_CAPS) {
     if (t < c[0] || t > c[1]) continue;
     const a = Math.min(1, (t - c[0]) / 0.25, (c[1] - t) / 0.25);
@@ -7324,6 +7354,8 @@ function drawCutscene() {
     ctx.globalAlpha = 1;
   }
   /* تپش قرمز لبه‌ها حین لرزش زمین */
+  /* (۳۳) ارشان: بام → پله‌ها → ماشین */
+  if (CS.arash && CS.arash.st !== 'in' && CS.t < CS_T.driveStart) drawCsArash33(CS.arash);
   if (t < CS_T.shakeEnd) {
     const a = 0.1 + 0.08 * Math.sin(t * 26);
     const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
@@ -10104,6 +10136,7 @@ function transitionHardReset() {
 /* رد کردن انتقال: مستقیم فصل بعد (بدون آیتم مخفی) */
 function skipTransition() {
   if (!TR) return;
+  if (TR.phase === 2) return;   /* (۳۳) خودِ مینی‌گیم قابل رد کردن نیست */
   SFX.click();
   const ch = TR.ch;
   transitionHardReset();
@@ -10158,12 +10191,12 @@ function brickBurstStep(i, dt) {
 
 /* ---- زیرنویس‌های فاز ۱ هر فصل ---- */
 const SUBS_INTRO1 = [
-  [0.4, 2.0, 'زمین می‌لرزه... برجِ محله داره ترک می‌خوره!'],
-  [2.1, 3.5, 'طبقه‌ی اول فرو می‌ریزه!'],
-  [3.7, 5.0, 'طبقه‌ی دوم هم...!'],
-  [5.3, 5.9, 'بام می‌لغزه — بپر!'],
-  [6.2, 6.9, '— [ارشان]: ماشین! سوار شو!'],
-  [7.0, 7.7, '— [ارشان]: زامبی‌ها پشت سرمون‌ان — تو پشت فرمان، من صندلی کمکی!'],
+  [0.4, 2.2, '— [ارشان]: صدای این ستون‌ها رو می‌شنوی؟ ساختمون داره فرو می‌ریزه!'],
+  [2.3, 4.2, '— [ارشان]: من از پله‌ها می‌رم پایین و ماشین رو روشن می‌کنم — موقعش بپر!'],
+  [4.4, 5.1, 'طبقه‌ی اول و دوم فرو ریختن...'],
+  [5.3, 5.85, 'بام می‌لغزه — بپر!'],
+  [6.0, 6.6, '— [ارشان]: گرفتمت! محکم خودت رو بگیر!'],
+  [6.8, 7.75, '— [ارشان]: فرمان با توئه! گاز بده تا برج بعدی!'],
 ];
 const SUBS_INTRO2 = [
   [0.4, 1.6, 'صدای پای گله‌ی بزرگ میاد...'],
@@ -10219,12 +10252,33 @@ function introUpdate1(dt) {
     };
     if (!TR.ev.whistle) { TR.ev.whistle = 1; SFX.csWhistle(); }
   }
-  /* ماشین ارشان از چپ می‌رسد */
-  if (t >= 4.2) {
-    const cx = clamp(-170 + (t - 4.2) * 240, -170, 316);
-    CS.car = { x: cx, y: GROUND_Y + 8, kick: 0, spin: t * 9, hand: t < 5.9 ? 1 : 0 };
+  /* (۳۳) ماشین از قبل کنار برج پارک است؛ ارشان سوارش می‌شود و زیر برج می‌آورد */
+  if (!TR.ev.carInit) { TR.ev.carInit = 1; CS.car = { x: TOWER.x - 205, y: GROUND_Y + 8, kick: 0, spin: 0, hand: 0 }; }
+  if (t < 5.2) {
+    CS.car.spin = 0;                       /* پارکِ خاموش — ارشان هنوز نرسیده */
+  } else {
+    const u = clamp((t - 5.2) / 0.7, 0, 1);          /* زیر برج می‌آورد */
+    CS.car.x = (TOWER.x - 205) + (330 - (TOWER.x - 205)) * u;
+    CS.car.spin = t * 9;
+    CS.car.hand = t < 5.9 ? 1 : 0;
     if (!TR.ev.engine) { TR.ev.engine = 1; SFX.csEngine(); }
   }
+  /* (۳۳) ارشان: بام → پله‌های کناری → دویدن به ماشین → سوار شدن */
+  if (!TR.ev.arash) TR.ev.arash = { st: 'roof', x: TOWER.x + 42, y: TOWER_TOP_Y, ph: 0 };
+  const A = TR.ev.arash;
+  A.ph += dt * 9;
+  if (t < 1.6) { A.st = 'roof'; A.x = TOWER.x + 42; A.y = TOWER_TOP_Y + F[2].dy; }
+  else if (t < 4.4) {
+    A.st = 'stairs';
+    const k = clamp((t - 1.6) / (4.4 - 1.6), 0, 1);
+    A.x = TOWER.x - 62 + Math.sin(k * Math.PI * 3) * 7;   /* زیگزاگ پله‌ها */
+    A.y = TOWER_TOP_Y + (GROUND_Y + 10 - TOWER_TOP_Y) * k;
+  } else if (t < 5.2) {
+    A.st = 'run';
+    const k = clamp((t - 4.4) / 0.8, 0, 1);
+    A.x = (TOWER.x - 62) + ((TOWER.x - 205) - (TOWER.x - 62)) * k;
+    A.y = GROUND_Y + 10;
+  } else { A.st = 'in'; }
   /* فرود روی ماشین */
   if (t >= 5.9) {
     CS.draw.player = { x: 330, y: GROUND_Y + 8 - 57, aim: 0.2 };
@@ -10430,6 +10484,7 @@ function mgBegin() {
   TR.fadeWhite = false;
   DLG.skip();                        // (۱۱٫۰) گفتگوی فاز ۱ حتماً بسته شود
   MG.reset(MGCFG[TR.ch]);
+  $('skipCs').classList.add('hidden');      /* (۳۳) در مینی‌گیم دکمه‌ی رد کردن نیست */
   setTransSub(MGCFG[TR.ch].startSub, 3.2);
   const b = TR_BARKS[TR.ch];         /* (۱۲٫۰) صدای شروع مینی‌گیم */
   if (b && b.start) transBark(b.start, MGCFG[TR.ch].startSub, 3.4);
@@ -10444,6 +10499,7 @@ function mgUpdate(dt) {
 function mgOutro() {
   TR.phase = 3;
   TR.t = 0;
+  $('skipCs').classList.remove('hidden');   /* (۳۳) پس از مینی‌گیم، رد کردن برمی‌گردد */
   TR.ev = {};
   MG.obs = [];
   TR.outroDurEff = MGCFG[TR.ch].outroDur;
@@ -10492,7 +10548,7 @@ function updateTransition(dt) {
     else introUpdate3(dt);
     /* (۱۱٫۰) لحظه‌ی گرفتن بازیکن توسط ماشین ارشان (چ۱) / جهش زیپ‌لاین (چ۳) */
     const b = TR_BARKS[TR.ch];
-    if (b && b.catch && !TR.ev.catchBark && TR.t > (TR.ch === 1 ? 4.9 : 4.2)) {
+    if (b && b.catch && !TR.ev.catchBark && TR.t > (TR.ch === 1 ? 5.85 : 4.2)) {
       TR.ev.catchBark = true;
       transBark(b.catch, TR.ch === 1 ? '— [ارشان]: گرفتمت! محکم خودت رو بگیر!' : '— [ارشان]: دیوونه‌ی زنده! برو! من پشتتم!', 2.6);
     }
@@ -10608,7 +10664,7 @@ function drawTransitionOverlay() {
   /* زیرنویس فعلی */
   if (TR.subT > 0 && TR.sub) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 14.5px Vazirmatn, Tahoma, sans-serif';
+    ctx.font = 'bold 17px Vazirmatn, Tahoma, sans-serif';
     const a = Math.min(1, TR.subT / 0.3);
     ctx.globalAlpha = a;
     const tw = ctx.measureText(TR.sub).width + 30;
@@ -14365,10 +14421,10 @@ const M23 = {
 
     /* --- ۱) آسمان --- */
     const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    sky.addColorStop(0, '#05060f');
-    sky.addColorStop(0.55, '#0a0a1a');
-    sky.addColorStop(0.85, '#170b18');
-    sky.addColorStop(1, '#24101c');
+    sky.addColorStop(0, '#0c1024');
+    sky.addColorStop(0.55, '#171833');
+    sky.addColorStop(0.85, '#271424');
+    sky.addColorStop(1, '#361a29');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, GROUND_Y + 2);
     if (flash > 0) { ctx.fillStyle = 'rgba(150,170,235,' + (0.16 * flash) + ')'; ctx.fillRect(0, 0, W, GROUND_Y); }
@@ -14376,7 +14432,7 @@ const M23 = {
     /* --- ۲) ستاره‌ها --- */
     for (const s of this.stars) {
       const tw = 0.45 + 0.55 * Math.abs(Math.sin(s.ph));
-      ctx.fillStyle = 'rgba(214,222,255,' + (0.34 * tw).toFixed(2) + ')';
+      ctx.fillStyle = 'rgba(214,222,255,' + (0.5 * tw).toFixed(2) + ')';
       ctx.fillRect(s.x + par * -4, s.y, s.r, s.r);
     }
 
@@ -14416,7 +14472,7 @@ const M23 = {
         ctx.fillRect(x + off, yBase - bh, bw, bh);
         /* چند پنجره‌ی روشنِ نادر در افق */
         if (rd() < 0.16) {
-          ctx.fillStyle = 'rgba(255,190,110,0.20)';
+          ctx.fillStyle = 'rgba(255,196,120,0.34)';
           ctx.fillRect(x + off + bw * 0.3, yBase - bh + 12, 3, 4);
           ctx.fillStyle = col;
         }
@@ -14424,14 +14480,14 @@ const M23 = {
         if (i > 60) break;
       }
     };
-    skyline(GROUND_Y + 2, 44, 120, '#0d0f20', 0, par * -7);
-    skyline(GROUND_Y + 2, 26, 70, '#080a15', 0, par * -14);
+    skyline(GROUND_Y + 2, 44, 120, '#1a1e3a', 0, par * -7);
+    skyline(GROUND_Y + 2, 26, 70, '#12141f', 0, par * -14);
 
     /* --- ۵) زمین + بازتاب ماه --- */
     const gr = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-    gr.addColorStop(0, '#0c0e17');
-    gr.addColorStop(0.5, '#12101a');
-    gr.addColorStop(1, '#1a1420');
+    gr.addColorStop(0, '#171b31');
+    gr.addColorStop(0.5, '#201d2b');
+    gr.addColorStop(1, '#2a2230');
     ctx.fillStyle = gr; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
     const refl = ctx.createLinearGradient(0, GROUND_Y, 0, H);
     refl.addColorStop(0, 'rgba(255,140,80,0.14)');
@@ -14642,18 +14698,23 @@ const M23 = {
     /* بازوهای آویزان که تاب می‌خورند */
     ctx.strokeStyle = bodyC; ctx.lineWidth = 4.6;
     ctx.beginPath();
-    ctx.moveTo(-6, -24); ctx.lineTo(-9 - Math.sin(ph) * 4, -13);
-    ctx.moveTo(6, -24); ctx.lineTo(9 + Math.sin(ph + 1.4) * 4, -13);
+    /* (۳۳) بازوها: فاز متضاد پاها — حرکت طبیعی، نه عروسکی */
+    ctx.moveTo(-6, -24); ctx.lineTo(-9 - Math.sin(ph + Math.PI) * 4.5, -13);
+    ctx.moveTo(6, -24); ctx.lineTo(9 + Math.sin(ph) * 4.5, -13);
     ctx.stroke();
-    /* سرِ کج */
+    /* (۳۳) سرِ نیم‌رخ: پیشانی + فکِ افتاده — فقط یک چشم دیده می‌شود */
     ctx.fillStyle = bodyC;
-    circle(2, -32, 5.4);
-    /* چشم‌های سرخِ سوسوزن */
+    circle(3.5, -31.5, 5.6);
+    ctx.beginPath();
+    ctx.moveTo(5.6, -28.6); ctx.lineTo(9.4, -27.3); ctx.lineTo(5.9, -26.6); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(7.2, -33.6); ctx.lineTo(9.8, -32.2); ctx.lineTo(7.4, -31.4); ctx.closePath(); ctx.fill();
+    /* چشمِ سرخِ سوسوزن — یک چشم در نمای نیم‌رخ */
     const er = 0.55 + 0.45 * Math.abs(Math.sin(t * 1.8 + ph * 0.6));
     ctx.fillStyle = 'rgba(255,60,40,' + er.toFixed(2) + ')';
-    circle(3.4, -33, 1.1); circle(5.9, -33, 1.1);
+    circle(6.1, -32.2, 1.3);
     ctx.fillStyle = 'rgba(255,60,40,' + (er * 0.22).toFixed(2) + ')';
-    circle(4.6, -33, 4.2);
+    circle(6.1, -32.2, 4.2);
     ctx.restore();
   },
 };
@@ -16315,6 +16376,7 @@ const MYST = {
     h += '<div class="myst-sep">— بقا —</div>';
     h += '<button class="myst-act small" data-act="scav">🔍 جست‌وجوی محیط<span>روزی یک‌بار — شانس قراضه یا مدکیت</span></button>';
     h += '<button class="myst-act small" data-act="molo">🔥 ساخت کوکتل مولوتوف <b>۴۵🪙</b><span>داردی: ' + faNum(this.molotovs) + ' — در شب، دکمه‌ی شعله در ریل چپ</span></button>';
+    h += '<button class="myst-act small" data-act="listen">👂 گوش بسپار<span>۴ ثانیه ضربان دشمن‌ها در مه — ۱۴ ثانیه فرصت دوباره</span></button>';
     box.innerHTML = h;
     box.querySelectorAll('.myst-act').forEach((b) => {
       b.addEventListener('click', () => {
@@ -16325,6 +16387,7 @@ const MYST = {
         else if (act === 'fuse') this.openFuse();
         else if (act === 'scav') this.scavenge();
         else if (act === 'molo') { if (this.craftMolotov()) { b.querySelector('span').innerHTML = 'داردی: ' + faNum(this.molotovs) + ' — در شب، دکمه‌ی شعله در ریل چپ'; } }
+        else if (act === 'listen') { if (this.listen.cd > 0) { setAnnounce('گوش خسته است', 'هر ۱۴ ثانیه یک‌بار — کمی صبر کن', 2); } else { this.startListen(); this.closePanel(); } }
       });
     });
   },
@@ -19599,10 +19662,11 @@ if (IS_TOUCH && typeof window.DeviceOrientationEvent !== 'undefined') {
     if (e.gamma == null) return;
     if (typeof DRV === 'undefined' || !DRV) return;
     if (DRV.kb) return;                          /* کلید/لمس فرمان فعال است */
-    const g = clamp(e.gamma, -24, 24) / 18;      /* ±۱۸ درجه = فرمان کامل */
-    if (TR && TR.phase === 2 && MG.cfg && isRideTheme(MG.cfg.theme)) {   /* (۱۹٫۰) هر سه تم */
-      DRV.steer = clamp(g, -1, 1);
-    }
+    /* (۳۳) فرمانِ کج‌کردن گوشی حذف شد — ریشه‌ی «ماشین خودش به چپ می‌ره»:
+       در حالت افقی محور gamma همان محورِ درست نیست و بدون ناحیه‌ی مرده و
+       کالیبراسیون، ماشین به‌سمت شیبِ طبیعی دستِ کاربر می‌لغزید.
+       فرمان فقط با لمسِ ثلث چپ/راست یا کلیدهای جهت‌دار. */
+    void 0;
   });
 }
 /* ==================================================================
@@ -21468,6 +21532,11 @@ function buildPanelInit() {
     cv.className = 'bp-ic';
     paintIcon(d.kind, cv);
     el.appendChild(cv);
+    /* (۳۳) نام کاشی — روی گوشی hover نداریم؛ نام باید همیشه دیده شود */
+    const nm = document.createElement('span');
+    nm.className = 'bp-name';
+    nm.textContent = d.name;
+    el.appendChild(nm);
     /* کلید میان‌بر */
     if (d.key) {
       const k = document.createElement('span');
@@ -22752,6 +22821,7 @@ const SVG32 = {
       h += '<div class="sec-hdr32"><i></i><span>بقا</span><i></i></div>';
       h += '<button class="act-card32" data-act="scav"><span class="ac-ic32">🔍</span><div><b>جست‌وجوی محیط</b><span>روزی یک‌بار — شانس قراضه یا مدکیت</span></div></button>';
       h += '<button class="act-card32" data-act="molo"><span class="ac-ic32">🔥</span><div><b>ساخت کوکتل مولوتوف</b><span>داردی: ' + faNum(this.molotovs) + ' — در شب، دکمه‌ی شعله در ریل چپ</span></div><em class="ac-price32">۴۵🪙</em></button>';
+      h += '<button class="act-card32" data-act="listen"><span class="ac-ic32">👂</span><div><b>گوش بسپار</b><span>۴ ثانیه ضربان دشمن‌ها در مه — ۱۴ ثانیه فرصت دوباره</span></div></button>';
       box.innerHTML = h;
       box.querySelectorAll('[data-act]').forEach((b) => {
         b.addEventListener('click', () => {
@@ -22766,6 +22836,10 @@ const SVG32 = {
               const sp = b.querySelector('div span');
               if (sp) sp.textContent = 'داردی: ' + faNum(this.molotovs) + ' — در شب، دکمه‌ی شعله در ریل چپ';
             }
+          }
+          else if (act === 'listen') {   /* (۳۳) شنود = کارت اکشن، نه دکمه‌ی شناور */
+            if (this.listen.cd > 0) setAnnounce('گوش خسته است', 'هر ۱۴ ثانیه یک‌بار — کمی صبر کن', 2);
+            else { this.startListen(); this.closePanel(); }
           }
         });
       });
@@ -22853,5 +22927,114 @@ if (document.readyState === 'loading') {
 }
 
 </script>
+
+<script>
+/* ==================================================================
+   سه طبقه تا مرگ — v33 — ماژول تکمیلی
+   ------------------------------------------------------------------
+   · مینی‌گیم: فرمان شیب گوشی حذف شد (ماشین دیگر خودش نمی‌لغزد)
+   · مینی‌گیم: دکمه/عمل «رد کردن» در خود مینی‌گیم وجود ندارد
+   · کات‌سین فروریختن برج: آرش از بام با پله‌ها پایین می‌آید،
+     ماشین از قبل پارک است، زیرنویس‌های دیالوگ‌دار + صدای آرش
+   · دکمه‌ی شنود از ریل چپ حذف → کارت «گوش بسپار» در پرونده سرنخ‌ها
+   · نام کاشی‌های ساخت‌وساز همیشه دیده می‌شود (بدون hover)
+   · منوی اصلی روشن‌تر + زامبی سایه‌ای با نیم‌رخ درست
+   ================================================================== */
+
+/* ---------- ۳۳-۱) CSS ---------- */
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `
+/* (۳۳) دکمه‌ی شنودِ شناور حذف — گوش بسپار حالا کارتِ پرونده‌ی سرنخ‌هاست */
+#listenBtn{display:none!important}
+/* (۳۳) نام کاشی‌های ساخت‌وساز */
+.bp-tile .bp-name{font-size:calc(10.5px * var(--uiz,1));font-weight:800;color:#e8eeff;line-height:1.15;
+  max-width:calc(96px * var(--uiz,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:0 3px;text-shadow:0 1px 2px rgba(0,0,0,.7);pointer-events:none}
+/* (۳۳) آیکون کمی جمع‌تر تا نام + قیمت در کاشی ۱۰۲px جا شود */
+#buildPanel .bp-ic{width:calc(46px * var(--uiz,1))!important;height:calc(46px * var(--uiz,1))!important}
+`;
+  document.head.appendChild(st);
+})();
+
+/* ---------- ۳۳-۲) رسم آرش در کات‌سین فروریختن برج ----------
+   سیلوئت دوستِ همراه: کلاه‌کپ + ژاکت زیتونی + کوله —
+   روی بام: ایستاده/هشدار؛ پله‌ها: خمیده و زیگزاگ؛ دویدن: چرخه‌ی کامل پا */
+function drawCsArash33(A) {
+  const t = (typeof TR !== 'undefined' && TR && TR.t) ? TR.t : ((typeof CS !== 'undefined' && CS) ? CS.t : 0);
+  ctx.save();
+  ctx.translate(A.x, A.y);
+  ctx.scale(-1, 1);                       // رو به چپ (به سمت پله‌ها/ماشین)
+  const run = A.st === 'run' || A.st === 'stairs';
+  const ph = A.ph;
+  const bob = run ? Math.abs(Math.sin(ph)) * 2 : Math.sin(t * 2.2) * 1.2;
+  /* سایه روی سطح */
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(0, 2, 12, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(0, -bob);
+  /* پاها */
+  ctx.strokeStyle = '#1f2c44'; ctx.lineWidth = 5.4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  const l1 = run ? Math.sin(ph) * 8 : 2, l2 = run ? Math.sin(ph + Math.PI) * 8 : -2;
+  ctx.moveTo(-2, -14); ctx.lineTo(-3 + l1, -1);
+  ctx.moveTo(3, -14); ctx.lineTo(4 + l2, -1);
+  ctx.stroke();
+  /* بدن: ژاکت زیتونی + کوله‌ی پشتی */
+  ctx.fillStyle = '#5f6f3a';
+  rr(-7.5, -30, 15, 17, 5); ctx.fill();
+  ctx.fillStyle = '#3c2f22';
+  rr(-11, -28, 5, 11, 3); ctx.fill();
+  /* بازوها */
+  ctx.strokeStyle = '#5f6f3a'; ctx.lineWidth = 4.2;
+  ctx.beginPath();
+  const a1 = run ? Math.sin(ph + Math.PI) * 5 : 1;
+  const a2 = run ? Math.sin(ph) * 5 : -1;
+  ctx.moveTo(-5, -27); ctx.lineTo(-7 + a1, -16);
+  ctx.moveTo(5, -27); ctx.lineTo(7 + a2, -16);
+  ctx.stroke();
+  /* سر + کلاه‌کپ با لبه‌ی جلو */
+  ctx.fillStyle = '#c9a07a';
+  circle(2.5, -35, 5.2);
+  ctx.fillStyle = '#2c3a26';
+  ctx.beginPath(); ctx.arc(2.5, -36.2, 5.5, Math.PI * 0.95, Math.PI * 2.05); ctx.fill();
+  rr(-3.4, -41.2, 11, 3, 1.5); ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- ۳۳-۲b) پله‌های کناری برج (فروریختن فصل ۱) ---------- */
+function drawCsStairs33() {
+  const x0 = TOWER.x - 66;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(26,22,18,0.9)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x0, TOWER_TOP_Y); ctx.lineTo(x0, GROUND_Y);
+  ctx.moveTo(x0 + 14, TOWER_TOP_Y); ctx.lineTo(x0 + 14, GROUND_Y);
+  ctx.stroke();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = 'rgba(48,40,32,0.9)';
+  ctx.beginPath();
+  const n = 9, dy = (GROUND_Y - TOWER_TOP_Y) / n;
+  for (let i = 0; i < n; i++) {
+    const y = TOWER_TOP_Y + dy * (i + 0.5);
+    ctx.moveTo(x0, y); ctx.lineTo(x0 + 14, y + dy * 0.5);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- ۳۳-۳) پرچم‌های تست/بوت ---------- */
+window.__V33 = {
+  tiltOff: true,          /* فرمان شیب گوشی حذف شد */
+  skipGuard: true,        /* مینی‌گیم قابل رد کردن نیست */
+  arashStairs: true,      /* آرش از پله‌ها می‌آید + ماشین پارک */
+  listenCard: true,       /* شنود = کارت اکشن پرونده */
+  bpNames: true,          /* نام کاشی‌ها همیشه مرئی */
+  menuBright: true,       /* پالت منوی روشن‌تر */
+  zombieProfile: true,    /* نیم‌رخ زامبی منو */
+};
+try { if (typeof MYST !== 'undefined' && MYST && MYST.ensureBtn) { MYST.ensureBtn(); } } catch (e) {}
+</script>
+
 </body>
 </html>

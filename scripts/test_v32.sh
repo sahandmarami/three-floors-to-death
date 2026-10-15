@@ -93,7 +93,7 @@ R=$(agent-browser eval "(()=>{return document.querySelector('.case-card32')&&doc
 ck "کارت معمای فعال (کهربایی + chevron)" "$R"
 R=$(agent-browser eval "(()=>{const h=document.querySelector('.sec-hdr32'); return h&&getComputedStyle(h).display==='flex'?1:0})()" 2>/dev/null | tail -1)
 ck "سرصفحه‌های بخش با خط‌کشی (نه متن معلق)" "$R"
-R=$(agent-browser eval "(()=>{return document.querySelectorAll('.act-card32').length===2?1:0})()" 2>/dev/null | tail -1)
+R=$(agent-browser eval "(()=>{return document.querySelectorAll('.act-card32').length===3?1:0   /* (۳۳) کارت شنود اضافه شد */})()" 2>/dev/null | tail -1)
 ck "اکشن‌های بقا = کارت‌های ردیفی" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots32/clue_menu32.png >/dev/null 2>&1
 R=$(agent-browser eval "(()=>{const b=document.querySelector('.case-card32[data-act=radio]'); if(!b) return 0; b.dispatchEvent(new MouseEvent('click',{bubbles:true})); return document.querySelector('.radio-dial')?1:0})()" 2>/dev/null | tail -1)
