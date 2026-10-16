@@ -94,7 +94,7 @@ R=$(agent-browser eval "(()=>{const sv=state.weapon, so=WEAPONS.shotgun.owned; W
 # چیپ در دست
 agent-browser eval "selectWeapon('shotgun'); 'ok'" >/dev/null
 R=$(agent-browser eval "document.getElementById('wchip28-shotgun').classList.contains('on') && document.getElementById('wchip28-pistol').classList.contains('on')===false?1:0" | tail -1); ck "چیپ سلاحِ در دست = روشن طلایی" "$R"
-R=$(agent-browser eval "(()=>{const t=document.querySelector('#bp-shotgun .bp-price'); return t && t.textContent.includes('در دست')?1:0})()" | tail -1); ck "کاشی شاتگان: «در دست»" "$R"
+R=$(agent-browser eval "(()=>{const t=document.getElementById('bp-shotgun'); return t && t.classList.contains('armed')?1:0})()" | tail -1); ck "کاشی شاتگان: حالت «در دست» (v35: قاب طلایی، بی‌متن)" "$R"
 
 echo "===== ۶) باتن‌شیت ساخت‌وساز + FAB ====="
 # شیت را ببند تا FAB قابل اندازه‌گیری باشد + گفتگو نماند
@@ -103,7 +103,7 @@ R=$(agent-browser eval "(()=>{const n=document.getElementById('bpNight'); if(!n)
 
 echo "===== ۷) کوله‌پشتی — پایین-چپ بدون متن وسط ====="
 agent-browser eval "DLG.skip(); setBuildPanel(true); 'closed'" >/dev/null 2>&1; sleep 0.3
-R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar'); const r=b.getBoundingClientRect(); return r.x<innerWidth*0.4 && r.y+r.height>innerHeight*0.7?1:0})()" | tail -1); ck "کوله: پایین-چپ" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('bpkBtn34'); return b && getComputedStyle(b).display!=='none'?1:0})()" | tail -1); ck "کوله: دکمه‌ی ریل چپ (v34+، وسط ریل در v36)" "$R"
 R=$(agent-browser eval "document.getElementById('bpkCap').textContent.includes('کوله خالی')?0:1" | tail -1); ck "متن «کوله خالی» حذف شد" "$R"
 
 echo "===== ۸) HUD اندرویدی ====="

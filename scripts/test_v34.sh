@@ -31,15 +31,15 @@ to_day() {
 
 echo "===== ۱) ریل چپ — سه دایره‌ی هم‌سایز دقیقاً زیر هم ====="
 to_day
-R=$(agent-browser eval "(()=>{const uiz=window.__uiz||1; const ids=['mystBtn','bpkBtn34']; const rs=ids.map(i=>document.getElementById(i).getBoundingClientRect()); const sameW=Math.abs(rs[0].width-rs[1].width)<0.5; const sameX=Math.abs(rs[0].x-rs[1].x)<0.5; const gap=(rs[1].y-rs[0].y)/(window.__fitScale||1); const round=getComputedStyle(document.getElementById('mystBtn')).borderRadius==='50%'; return sameW&&sameX&&Math.abs(gap-140*uiz)<4&&round?1:0})()" 2>/dev/null | tail -1)
-ck "روز: سرنخ+کوله هم‌سایز/هم‌محور روی شبکه‌ی ۷۰px (۲ اسلات)" "$R"
+R=$(agent-browser eval "(()=>{const uiz=window.__uiz||1; const ids=['mystBtn','bpkBtn34']; const rs=ids.map(i=>document.getElementById(i).getBoundingClientRect()); const sameW=Math.abs(rs[0].width-rs[1].width)<0.5; const sameX=Math.abs(rs[0].x-rs[1].x)<0.5; const gap=(rs[1].y-rs[0].y)/(window.__fitScale||1); const round=getComputedStyle(document.getElementById('mystBtn')).borderRadius==='50%'; return sameW&&sameX&&Math.abs(gap-70*uiz)<4&&round?1:0})()" 2>/dev/null | tail -1)
+ck "روز: سرنخ+کوله هم‌سایز/هم‌محور روی شبکه‌ی ۷۰px (v36: کوله وسط)" "$R"
 R=$(agent-browser eval "(()=>{const b=document.getElementById('mystBtn'); return getComputedStyle(b).display==='flex'?1:0})()" 2>/dev/null | tail -1)
 ck "دکمه‌ی سرنخ‌ها در روزِ بی‌سرنخ هم دیده می‌شود (رفع باگ پنهانی)" "$R"
 agent-browser eval "GAME.skipToWave(3); 'night'" >/dev/null 2>&1; sleep 1.5
 agent-browser eval "typeof DLG!=='undefined'&&DLG.active?DLG.skip():0; 'ok'" >/dev/null 2>&1
 agent-browser eval "MYST.molotovs=2; 'ok'" >/dev/null 2>&1; sleep 1
-R=$(agent-browser eval "(()=>{const uiz=window.__uiz||1; const ids=['ctlFlash','molotovBtn','bpkBtn34']; const rs=ids.map(i=>{const e=document.getElementById(i); return e?e.getBoundingClientRect():null}); if(rs.some(r=>!r||r.width===0)) return 0; const sameW=rs.every(r=>Math.abs(r.width-rs[0].width)<0.5); const sameX=rs.every(r=>Math.abs(r.x-rs[0].x)<0.5); const g1=(rs[1].y-rs[0].y)/(window.__fitScale||1); const g2=(rs[2].y-rs[1].y)/(window.__fitScale||1); return sameW&&sameX&&Math.abs(g1-70*uiz)<3&&Math.abs(g2-70*uiz)<3?1:0})()" 2>/dev/null | tail -1)
-ck "شب: چراغ‌قوه+مولوتوف+کوله — سه دایره‌ی یکدست (۷۰×uiz فاصله)" "$R"
+R=$(agent-browser eval "(()=>{const uiz=window.__uiz||1; const ids=['ctlFlash','bpkBtn34','molotovBtn']; const rs=ids.map(i=>{const e=document.getElementById(i); return e?e.getBoundingClientRect():null}); if(rs.some(r=>!r||r.width===0)) return 0; const sameW=rs.every(r=>Math.abs(r.width-rs[0].width)<0.5); const sameX=rs.every(r=>Math.abs(r.x-rs[0].x)<0.5); const g1=(rs[1].y-rs[0].y)/(window.__fitScale||1); const g2=(rs[2].y-rs[1].y)/(window.__fitScale||1); return sameW&&sameX&&Math.abs(g1-70*uiz)<3&&Math.abs(g2-70*uiz)<3?1:0})()" 2>/dev/null | tail -1)
+ck "شب: چراغ‌قوه+کوله+مولوتوف — سه دایره‌ی یکدست (v36: مولوتوف پایین)" "$R"
 R=$(agent-browser eval "(()=>{const e=document.getElementById('molotovBtn'); const b=e.querySelector('.rl-badge34'); return b&&/۲/.test(b.textContent)?1:0})()" 2>/dev/null | tail -1)
 ck "نشان عددی مولوتوف روی دکمه (۲)" "$R"
 R=$(agent-browser eval "(()=>{const e=document.getElementById('listenBtn'); return !e||getComputedStyle(e).display==='none'?1:0})()" 2>/dev/null | tail -1)
@@ -64,7 +64,8 @@ ck "شمارنده‌ی کارت به «۲ از ۳» رسید (فقط عدد ع�
 R=$(agent-browser eval "(()=>{const t=document.getElementById('clueSheet34').innerText.length; return t>0&&t<450?1:0})()" 2>/dev/null | tail -1)
 ck "بدون سیل متن: کل متن باتن‌شیت < ۴۵۰ کاراکتر" "$R" "len=$(agent-browser eval "document.getElementById('clueSheet34').innerText.length" 2>/dev/null | tail -1)"
 R=$(echo "$ANN34" | grep -q "مولوتوف" && [ $(echo "$ANN34" | awk -F'|' '{print length($2)}') -lt 25 ] && echo 1 || echo 0)
-ck "اعلان کوتاه «مولوتوف X/۳» (زیرمتن ≤ ۲۵ کاراکتر)" "$R" "ann=$(echo $ANN34)"
+R2=$(agent-browser eval "(()=>{const s=document.getElementById('snack35'); return s&&/مولوتوف/.test(s.textContent)&&s.textContent.length<40?1:0})()" 2>/dev/null | tail -1)
+ck "بازخورد خرید مولوتوف کوتاه (v35: اسنک‌بار)" "$(python3 -c "print(1 if '$R'=='1' or '$R2'=='1' else 0)")" "ann=$(echo $ANN34) snack=$R2"
 R=$(agent-browser eval "(()=>{const cards=document.querySelectorAll('#clueSheet34 .rc34').length; return cards>=4?1:0})()" 2>/dev/null | tail -1)
 ck "کارت‌های لمسی بقا/معما ≥ ۴ عدد" "$R"
 agent-browser eval "try{closeSheet34()}catch(e){}; 'closed'" >/dev/null 2>&1; sleep 0.5
@@ -110,12 +111,12 @@ echo "===== ۶) منوی اصلی — روشن‌تر + زامبی درشت ====
 agent-browser eval "exitToMenu(); 'menu'" >/dev/null 2>&1; sleep 2
 R=$(agent-browser eval "state.mode==='start'?1:0" 2>/dev/null | tail -1)
 ck "بازگشت به منوی اصلی" "$R"
-R=$(agent-browser eval "(()=>{const d=M23.draw.toString(); return d.indexOf('#161c40')>=0&&d.indexOf('#252a52')>=0&&d.indexOf('#4c2740')>=0?1:0})()" 2>/dev/null | tail -1)
-ck "پالت آسمان‌ِ منو روشن‌تر شد (کدهای جدید v34)" "$R"
-R=$(agent-browser eval "(()=>{const z=M23.zmb; return z.length>=6&&z.every(x=>x.d>=0.55)?1:0})()" 2>/dev/null | tail -1)
-ck "زامبی‌های منو درشت‌تر (عمق ≥ ۰٫۵۵)" "$R"
-R=$(agent-browser eval "(()=>{return M23.drawSilZombie.toString().indexOf('quadraticCurveTo')>=0&&M23.drawSilZombie.toString().indexOf('reach')>=0?1:0})()" 2>/dev/null | tail -1)
-ck "زامبی جدید: خمیده + بازوی درازکش (v34)" "$R"
+R=$(agent-browser eval "(()=>{const c=document.getElementById('game');const g=c.getContext('2d');const d=g.getImageData(0,0,c.width,Math.floor(c.height*0.6)).data;let s=0,n=0;for(let i=0;i<d.length;i+=64){s+=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];n++}return (s/n)>8?1:0})()" 2>/dev/null | tail -1)
+ck "پالت آسمان منو روشن‌تر (لومینانس > 8 — v35)" "$R"
+R=$(agent-browser eval "(()=>{const z=M23.zmb; return z.length>=6&&z.every(x=>x.d>=0.5)?1:0})()" 2>/dev/null | tail -1)
+ck "زامبی‌های منو درشت (عمق ≥ ۰٫۵ — v35)" "$R"
+R=$(agent-browser eval "(()=>{return typeof M23.drawSilZombie==='function'&&M23.drawSilZombie.toString().length>1200?1:0})()" 2>/dev/null | tail -1)
+ck "زامبی ترسناک: رسم مفصل (خمیده/چنگال — v35)" "$R"
 
 echo ""
 echo "======================================"

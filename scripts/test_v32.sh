@@ -77,10 +77,10 @@ sleep 0.08
 R=$(agent-browser eval "(()=>{const p=document.getElementById('clueSheet34'); if(!p) return 0; const cs=getComputedStyle(p); return cs.display==='flex'&&p.classList.contains('open')?1:0})()" 2>/dev/null | tail -1)
 ck "باتن‌شیت در ۸۰ms اول باز شده" "$R"
 sleep 0.45
-R=$(agent-browser eval "(()=>{const p=document.getElementById('clueSheet34'); const r=p.getBoundingClientRect(); const in34=p.classList.contains('in34'); const bottom=Math.abs(r.bottom-innerHeight)<3; return in34&&bottom?1:0})()" 2>/dev/null | tail -1)
-ck "پس از انیمیشن: کامل بالا آمده و به پایین چسبیده" "$R"
-R=$(agent-browser eval "(()=>{const bk=document.getElementById('sheetBk34'); const p=document.getElementById('clueSheet34'); const r=p.getBoundingClientRect(); const anchored=Math.abs(r.bottom-innerHeight)<3; const scrim=bk&&bk.classList.contains('open'); const capped=r.height<=innerHeight*0.88; return anchored&&scrim&&capped?1:0})()" 2>/dev/null | tail -1)
-ck "باتن‌شیت اندرویدی: پایین‌چسبیده + اسکریم + سقف ارتفاع" "$R"
+R=$(agent-browser eval "(()=>{const p=document.getElementById('clueSheet34'); const r=p.getBoundingClientRect(); const in34=p.classList.contains('in34'); const w=document.getElementById('wrap').getBoundingClientRect(); const centered=Math.abs((r.top+r.bottom)/2-(w.top+w.bottom)/2)<r.height*0.3; return in34&&centered?1:0})()" 2>/dev/null | tail -1)
+ck "پس از انیمیشن: کامل باز و وسط صفحه (v36)" "$R"
+R=$(agent-browser eval "(()=>{const bk=document.getElementById('sheetBk34'); const p=document.getElementById('clueSheet34'); const r=p.getBoundingClientRect(); const w=document.getElementById('wrap').getBoundingClientRect(); const centered=Math.abs((r.left+r.right)/2-(w.left+w.right)/2)<20; const scrim=bk&&bk.classList.contains('open'); const capped=r.height<=w.height*0.9; return centered&&scrim&&capped?1:0})()" 2>/dev/null | tail -1)
+ck "دیالوگ اندرویدی: وسط صفحه + اسکریم + سقف ارتفاع (v36)" "$R"
 agent-browser eval "try{closeSheet34()}catch(e){} document.getElementById('mystBtn').click(); 'reopen'" >/dev/null 2>&1
 sleep 0.12
 R=$(agent-browser eval "(()=>{const p=document.getElementById('clueSheet34'); return p.classList.contains('open')?1:0})()" 2>/dev/null | tail -1)

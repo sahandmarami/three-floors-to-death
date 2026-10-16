@@ -1416,21 +1416,22 @@ const UPGRADES = {
    gatling رگبار سریع با برد متوسط | sniper تک‌ضرب کُشنده با برد بلند و شانس کریت
    frost زامبی را کند و یخ‌زده می‌کند (chill = ثانیه‌ی اثر کندشدن) */
 const TURRETS = {
-  gatling: { name: 'برجک مسلسل',    price: 85,  dmg: 1.6, rate: 0.34, range: 230, spd: 640,
+  /* (۳۶) قیمت‌ها ~۲۵٪ کم شد — درخواست کاربر */
+  gatling: { name: 'برجک مسلسل',    price: 65,  dmg: 1.6, rate: 0.34, range: 230, spd: 640,
              len: 17, h: 16, knock: 1.2, sub: 'رگبار پیوسته • دمیج ۲ • برد ۲۳۰' },
-  sniper:  { name: 'برجک تک‌تیرانداز', price: 200, dmg: 12, rate: 2.15,  range: 400, spd: 950,
+  sniper:  { name: 'برجک تک‌تیرانداز', price: 150, dmg: 12, rate: 2.15,  range: 400, spd: 950,
              len: 30, h: 19, knock: 6, crit: 0.20, sub: 'تک‌ضرب کُشنده • دمیج ۱۲ • برد ۴۰۰' },
-  frost:   { name: 'برجک یخ‌زن',     price: 125, dmg: 2,  rate: 1.05, range: 175, spd: 380,
+  frost:   { name: 'برجک یخ‌زن',     price: 95, dmg: 2,  rate: 1.05, range: 175, spd: 380,
              len: 13, h: 20, knock: 0, chill: 2, sub: 'کند کردن زامبی • دمیج ۲ • برد ۱۷۵' },
   /* (۲۰٫۰) برجک‌های ویژه‌ی فروشنده‌ی مرموز — فقط با خریدِ «نقشه‌ی ساخت»
      از خودِ او باز می‌شوند (در تب برجک‌ها ظاهر می‌شوند) */
-  tesla:   { name: 'برجک تسلا',       price: 240, dmg: 9,  rate: 2.3,  range: 260, spd: 0,
+  tesla:   { name: 'برجک تسلا',       price: 180, dmg: 9,  rate: 2.3,  range: 260, spd: 0,
              len: 14, h: 24, knock: 2, chain: 3, rare: true,
              sub: 'آذرخش زنجیره‌ای به ۳ هدف • فقط از دستفروش' },
-  missile: { name: 'برجک موشک‌انداز', price: 300, dmg: 26, rate: 3.4,  range: 520, spd: 430,
+  missile: { name: 'برجک موشک‌انداز', price: 225, dmg: 26, rate: 3.4,  range: 520, spd: 430,
              len: 16, h: 20, knock: 5, splash: 95, rare: true,
              sub: 'انفجارِ محدوده‌ای • فقط از دستفروش' },
-  flame:   { name: 'برجک شعله‌افکن',  price: 210, dmg: 2.4, rate: 0.085, range: 150, spd: 330,
+  flame:   { name: 'برجک شعله‌افکن',  price: 160, dmg: 2.4, rate: 0.085, range: 150, spd: 330,
              len: 15, h: 17, knock: 0.4, burn: 2.4, burnDps: 6, rare: true,
              sub: 'شعله‌ی پیوسته + آتشِ‌گیرندگی • فقط از دستفروش' },
 };
@@ -6082,13 +6083,6 @@ function render() {
     drawClouds();
     drawDriveScene();
     drawPlayer();                              // بازیکن روی سقف ماشین (۸٫۰)
-  /* (۳۳) ارشان + پله‌های کناری در فروریختن فصل ۱ — مسیر واقعی رندر */
-  try {
-    if (typeof TR !== 'undefined' && TR && TR.phase === 1 && TR.ch === 1 && typeof drawCsArash33 === 'function') {
-      drawCsStairs33();
-      if (TR.ev.arash && TR.ev.arash.st !== 'in') drawCsArash33(TR.ev.arash);
-    }
-  } catch (e) {}
   } else if (state.mode === 'start') {
     /* (۲۳٫۰) منوی اصلی جدید: صحنه‌ی سینمایی اختصاصی — به‌جای دنیای بازی */
     drawMenuScene23();
@@ -6158,6 +6152,15 @@ function render() {
       else drawTurret(e.t);
     }
   }
+  /* (۳۶) ارشان + پله‌های کناری در فروریختن فصل ۱ — این‌جای صحنه‌ی عادی
+     رندر می‌شوند (قبلاً داخل شاخه‌ی CS.drive بود که در انتقال فصل ۱
+     هیچ‌وقت اجرا نمی‌شد → ارشان دیده نمی‌شد — رفع باگ کاربر) */
+  try {
+    if (typeof TR !== 'undefined' && TR && TR.phase === 1 && TR.ch === 1 && typeof drawCsArash33 === 'function') {
+      drawCsStairs33();
+      if (TR.ev.arash && TR.ev.arash.st !== 'in') drawCsArash33(TR.ev.arash);
+    }
+  } catch (e) {}
   drawPlayer();
   drawPlacing();                              // شبحِ نصب برجک روی همه‌چیز (۴٫۰)
   drawPowerTimers();
@@ -10524,14 +10527,24 @@ function mgOutro() {
   } else if (b && b.outro) {
     transBark(b.outro, MGCFG[TR.ch].outroSub, 3.2);
   }
+  /* (۳۶) نگهبان پایان: اگر به هر دلیلی (خطای گفتگو/صدا روی گوشی)
+     شرط پایان اجرا نشد، در ۱۲٫۵ ثانیه‌ی قطعی انتقال بسته می‌شود */
+  const _ch36 = TR.ch;
+  setTimeout(() => {
+    try {
+      if (TR && TR.phase === 3 && TR.ch === _ch36 && TR.t < 11.4) TR.t = 11.4;
+    } catch (e) {}
+  }, 12500);
 }
 
-/* فاز ۳ مشترک: حرکت خودکار + محوِ پایانی */
+/* فاز ۳ مشترک: حرکت خودکار + محوِ پایانی — (۳۶) سقف سخت ۹٫۵ ثانیه:
+   بعد از پایان مسیر، بازیکن نباید تا ۶۲ ثانیه یا فشردنِ «رد کردن»
+   منتظر بماند (رفع باگ کاربر: ماشین خودش می‌رفت جلو و تمام نمی‌شد) */
 function mgOutroUpdate(dt) {
   const cfg = MG.cfg;
   MG.scroll += Math.min(MG.speed + 130, cfg.speedMax + 170) * dt;
   cfg.outroUpdate && cfg.outroUpdate(dt);
-  const od = TR.outroDurEff || cfg.outroDur;   /* (۲۲٫۰) مدت مؤثر با گفتگو */
+  const od = Math.min(TR.outroDurEff || cfg.outroDur, 9.5);   /* (۳۶) سقف مؤثر */
   TR.fade = Math.max(TR.fade, clamp((TR.t - (od - 1.15)) / 1.0, 0, 1));
 }
 
@@ -10562,7 +10575,8 @@ function updateTransition(dt) {
   } else {
     DLG.update(dt);                                  /* (۲۲٫۰) گفتگوی چندخطی outro */
     mgOutroUpdate(dt);
-    if (TR.t >= (TR.outroDurEff || MG.cfg.outroDur) && (TR.outroDlgDone !== false || TR.t > 62)) finishTransition();
+    /* (۳۶) پایان قطعی: سقف ۹٫۵ث یا حداکثر ۱۱ث — حتی اگر گفتگو تمام نشده */
+    if (TR.t >= Math.min(TR.outroDurEff || MG.cfg.outroDur, 9.5) || TR.t > 11) finishTransition();
   }
   updateParticles(dt);
   updateTexts(dt);
@@ -10666,16 +10680,22 @@ function drawTransitionOverlay() {
     ctx.fillRect(0, H - L, W, L);
   }
   /* زیرنویس فعلی */
-  if (TR.subT > 0 && TR.sub) {
+  /* (۳۶) وقتی گفتگو (DLG) بالای صفحه باز است، زیرنویس انتقال رسم نمی‌شود تا روی هم نیفتند */
+  if (TR.subT > 0 && TR.sub && !(typeof DLG !== 'undefined' && DLG.active)) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = 'bold 17px Vazirmatn, Tahoma, sans-serif';
     const a = Math.min(1, TR.subT / 0.3);
     ctx.globalAlpha = a;
-    const tw = ctx.measureText(TR.sub).width + 30;
-    ctx.fillStyle = 'rgba(0,0,0,0.68)';
-    rr(W / 2 - tw / 2, H - L - 42, tw, 27, 13); ctx.fill();
+    /* (۳۶) زیرنویس بالا صفحه (زیر نوار پیشرفت) — قبلاً پایین بود و
+       روی ماشین/ارشان می‌افتاد و دیده نمی‌شدند (رفع باگ کاربر) */
+    const tw = Math.min(ctx.measureText(TR.sub).width + 30, W - 40);
+    const sy36 = (TR.phase === 2) ? 84 : 64;
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    rr(W / 2 - tw / 2, sy36, tw, 27, 13); ctx.fill();
+    ctx.strokeStyle = 'rgba(232,181,74,0.4)'; ctx.lineWidth = 1;
+    rr(W / 2 - tw / 2, sy36, tw, 27, 13); ctx.stroke();
     ctx.fillStyle = '#f3e9cf';
-    ctx.fillText(TR.sub, W / 2, H - L - 28);
+    ctx.fillText(TR.sub, W / 2, sy36 + 13.5);
     ctx.globalAlpha = 1;
   }
   /* نوار پیشرفت فاز ۲ + راهنمای کنترل */
@@ -12861,11 +12881,12 @@ const RARE = {
 /* (۲۰٫۰) نقشه‌های ساختِ برجک‌های ویژه — فقط از دستفروش می‌آیند؛
    بعد از خرید، برجک در تب «برجک‌ها» باز می‌شود و جداگانه نصب می‌شود */
 const BLUEPRINTS = {
-  tesla:   { name: 'نقشه‌ی برجک تسلا',       price: 420, icon: 'bpTesla',   color: '#c04dff',
+  /* (۳۶) قیمت نقشه‌ها هم هم‌جهت با برجک‌ها کم شد */
+  tesla:   { name: 'نقشه‌ی برجک تسلا',       price: 320, icon: 'bpTesla',   color: '#c04dff',
     desc: 'برجک آذرخش زنجیره‌ای (۳ هدف) را در ساخت‌وساز باز می‌کند' },
-  missile: { name: 'نقشه‌ی برجک موشک‌انداز', price: 500, icon: 'bpMissile', color: '#ff8a5a',
+  missile: { name: 'نقشه‌ی برجک موشک‌انداز', price: 380, icon: 'bpMissile', color: '#ff8a5a',
     desc: 'برجک انفجارِ محدوده‌ای را در ساخت‌وساز باز می‌کند' },
-  flame:   { name: 'نقشه‌ی برجک شعله‌افکن',  price: 360, icon: 'bpFlame',   color: '#ffb347',
+  flame:   { name: 'نقشه‌ی برجک شعله‌افکن',  price: 270, icon: 'bpFlame',   color: '#ffb347',
     desc: 'برجک شعله + آتش‌گیرندگی را در ساخت‌وساز باز می‌کند' },
 };
 
@@ -13175,13 +13196,21 @@ function paintGearIcon(kind, cv) {
   c.save();
   c.scale(S0 / 80, S1 / 80);
   const col = GEAR_ICON_COLORS[kind] || '#ffd873';
-  /* زمینه‌ی کاشی */
+  /* زمینه‌ی کاشی — (۳۶) رنگ هر کالا در پس‌زمینه تونت می‌شود تا
+     کالاهای دستفروش از هم قابل تشخیص باشند */
   icoRR(c, 4, 4, 72, 72, 11);
   c.save(); c.clip();
   const bg = c.createRadialGradient(40, 28, 8, 40, 46, 60);
-  bg.addColorStop(0, 'rgba(56,76,128,0.95)');
-  bg.addColorStop(0.6, 'rgba(22,32,64,0.97)');
-  bg.addColorStop(1, 'rgba(8,13,30,0.99)');
+  if (kind === 'tesla' || kind === 'missile' || kind === 'flame') {
+    /* نقشه‌های ساخت: کاغذ مهندسی روشن — از کالاهای معمولی جداست */
+    bg.addColorStop(0, '#dbe9f6');
+    bg.addColorStop(0.6, '#b9d2e8');
+    bg.addColorStop(1, '#8fb0cc');
+  } else {
+    bg.addColorStop(0, hexA(col, 0.34));
+    bg.addColorStop(0.55, 'rgba(18,26,52,0.97)');
+    bg.addColorStop(1, 'rgba(8,13,30,0.99)');
+  }
   c.fillStyle = bg; c.fillRect(0, 0, 80, 80);
   const halo = c.createRadialGradient(40, 42, 4, 40, 42, 34);
   halo.addColorStop(0, hexA(col, 0.28)); halo.addColorStop(1, hexA(col, 0));
@@ -13333,35 +13362,70 @@ function paintGearIcon(kind, cv) {
       break;
     }
     case 'tesla': case 'missile': case 'flame': {
-      /* نقشه‌ی ساخت: کاغذ آبیِ مهندسی + طرحِ برجک */
-      c.fillStyle = '#d8e4f0'; icoRR(c, -13, -15, 26, 30, 3); c.fill();
-      c.strokeStyle = '#8aa0b8'; c.lineWidth = 1.2; icoRR(c, -13, -15, 26, 30, 3); c.stroke();
-      c.strokeStyle = 'rgba(70,100,140,0.6)'; c.lineWidth = 0.8;
-      for (let k = -2; k <= 2; k++) {
-        c.beginPath(); c.moveTo(-13, k * 6); c.lineTo(13, k * 6); c.stroke();
-        c.beginPath(); c.moveTo(k * 6, -15); c.lineTo(k * 6, 15); c.stroke();
+      /* (۳۶) نقشه‌های ساخت: طرحِ بزرگ و کاملاً متمایز — هر برجک با
+         هنر اختصاصی خودش (کلاف تسلا/موشک/شعله‌افکن) تا از هم
+         قابل تشخیص باشند (درخواست کاربر: «لوگوها یکی نیست») */
+      /* مهرِ نقشه در گوشه — کوچک و مشترک */
+      c.strokeStyle = 'rgba(60,90,130,0.55)'; c.lineWidth = 0.7;
+      for (let k = -3; k <= 3; k++) {
+        c.beginPath(); c.moveTo(-16, k * 6); c.lineTo(16, k * 6); c.stroke();
+        c.beginPath(); c.moveTo(k * 6, -18); c.lineTo(k * 6, 18); c.stroke();
       }
-      c.strokeStyle = col; c.lineWidth = 2; c.lineCap = 'round';
+      c.save();
       if (kind === 'tesla') {
-        c.beginPath(); c.moveTo(0, 10); c.lineTo(0, -2); c.stroke();
-        c.fillStyle = col; circle2(c, 0, -6, 4);
-        c.beginPath();
-        c.moveTo(3, -9); c.lineTo(8, -12); c.moveTo(8, -12); c.lineTo(5, -12);
-        c.moveTo(-3, -9); c.lineTo(-8, -12); c.moveTo(-8, -12); c.lineTo(-5, -12);
+        /* تسلا: پایه فلزی + کلاف مسی + گوی + دو آذرخش بزرگ */
+        c.fillStyle = '#46525f'; icoRR(c, -5, 2, 10, 15, 2); c.fill();
+        c.fillStyle = '#39424f'; c.fillRect(-9, 15, 18, 4);
+        c.strokeStyle = '#b8794a'; c.lineWidth = 2.6;
+        for (let k = 0; k < 4; k++) {           // حلقه‌های کلاف مسی
+          c.beginPath(); c.ellipse(0, 2 + k * 3.4, 7.5 - k * 0.9, 1.7, 0, 0, Math.PI * 2); c.stroke();
+        }
+        const gg = c.createLinearGradient(-6, -14, 6, -6);
+        gg.addColorStop(0, '#9fe4ff'); gg.addColorStop(1, '#3f9fd8');
+        c.fillStyle = gg; circle2(c, 0, -9, 6.2);
+        c.fillStyle = 'rgba(255,255,255,0.85)'; circle2(c, -1.8, -10.8, 1.8);
+        c.strokeStyle = col; c.lineWidth = 2.2; c.lineCap = 'round';
+        c.beginPath();                          // آذرخش چپ
+        c.moveTo(-8, -13); c.lineTo(-13, -7); c.lineTo(-9.5, -7); c.lineTo(-14, -1);
+        c.stroke();
+        c.beginPath();                          // آذرخش راست
+        c.moveTo(8, -13); c.lineTo(13, -7); c.lineTo(9.5, -7); c.lineTo(14, -1);
         c.stroke();
       } else if (kind === 'missile') {
-        c.save(); c.rotate(0.6);
-        c.fillStyle = col; icoRR(c, -2.6, -11, 5.2, 18, 2.6); c.fill();
-        c.beginPath(); c.moveTo(-2.6, -11); c.quadraticCurveTo(0, -15, 2.6, -11); c.closePath(); c.fill();
-        c.beginPath(); c.moveTo(-2.6, 7); c.lineTo(-5, 10); c.lineTo(-2.6, 8); c.closePath(); c.fill();
-        c.beginPath(); c.moveTo(2.6, 7); c.lineTo(5, 10); c.lineTo(2.6, 8); c.closePath(); c.fill();
+        /* موشک‌انداز: پرتابگر + موشک درشت قرمز/سفید + دود */
+        c.save(); c.rotate(-0.5);
+        c.fillStyle = '#46525f'; icoRR(c, -8, -2, 16, 10, 3); c.fill();
+        c.fillStyle = '#39424f'; c.fillRect(-8, -2, 16, 3);
+        const mg = c.createLinearGradient(-3, 0, 3, 0);
+        mg.addColorStop(0, '#f3f6fa'); mg.addColorStop(0.5, '#c9d4e2'); mg.addColorStop(1, '#9aa8ba');
+        c.fillStyle = mg; icoRR(c, -3, -18, 6, 17, 3); c.fill();  // بدنه‌ی موشک
+        c.fillStyle = col;                                        // سرِ قرمز
+        c.beginPath(); c.moveTo(-3, -18); c.quadraticCurveTo(0, -25, 3, -18); c.closePath(); c.fill();
+        c.fillStyle = col;                                        // باله‌ها
+        c.beginPath(); c.moveTo(-3, -4); c.lineTo(-7.5, 1); c.lineTo(-3, 0); c.closePath(); c.fill();
+        c.beginPath(); c.moveTo(3, -4); c.lineTo(7.5, 1); c.lineTo(3, 0); c.closePath(); c.fill();
+        c.fillStyle = '#ffd873';                                  // شعله‌ی موتور
+        c.beginPath(); c.moveTo(-2.4, -1); c.lineTo(0, 5.5); c.lineTo(2.4, -1); c.closePath(); c.fill();
         c.restore();
+        c.fillStyle = 'rgba(120,132,150,0.55)';                   // پف‌های دود
+        circle2(c, 12, 6, 3); circle2(c, 15, 1, 2.2); circle2(c, 13.5, 11, 1.8);
       } else {
-        c.fillStyle = '#6e2a22'; icoRR(c, -7, -3, 14, 12, 4); c.fill();
-        c.strokeStyle = col; c.lineWidth = 2.4;
-        c.beginPath(); c.moveTo(4, 3); c.lineTo(12, -5); c.stroke();
-        c.fillStyle = col; circle2(c, 13, -6, 2.6);
+        /* شعله‌افکن: مخزن سوخت نارنجی + لوله + شعله‌ی درشت */
+        const fg = c.createLinearGradient(-9, -4, 9, 12);
+        fg.addColorStop(0, '#ff9a3c'); fg.addColorStop(1, '#c2531a');
+        c.fillStyle = fg; icoRR(c, -10, -4, 15, 15, 6); c.fill(); // مخزن سوخت
+        c.strokeStyle = '#6e2a22'; c.lineWidth = 1.6; icoRR(c, -10, -4, 15, 15, 6); c.stroke();
+        c.strokeStyle = '#46525f'; c.lineWidth = 3.4;
+        c.beginPath(); c.moveTo(5, 4); c.lineTo(13, -8); c.stroke();  // لوله
+        c.fillStyle = '#39424f'; circle2(c, 13.5, -8.5, 3);
+        const fl = c.createRadialGradient(17, -12, 1, 17, -12, 9);    // زبانه‌ی آتش
+        fl.addColorStop(0, '#fff3b0'); fl.addColorStop(0.45, col); fl.addColorStop(1, 'rgba(255,90,40,0)');
+        c.fillStyle = fl; circle2(c, 17, -12, 9);
+        c.fillStyle = col;
+        c.beginPath(); c.moveTo(13, -9); c.quadraticCurveTo(19, -14, 23, -8);
+        c.quadraticCurveTo(18, -7, 13, -6); c.closePath(); c.fill();
       }
+      c.restore();
       break;
     }
   }
@@ -24169,6 +24233,199 @@ function snack35(text) {
     '.m30act .m30s,.mc-sub,.pd-item .pd-sub,.sh-tx34 span{overflow-wrap:break-word!important;word-break:break-word!important}' +
     '.pd-item .pd-sub{overflow:hidden!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important}';
   document.head.appendChild(st);
+})();
+
+})();
+
+</script>
+
+<script>
+/* ==================================================================
+   سه طبقه تا مرگ — v36 — ماژول بازخورد جدید کاربر
+   ------------------------------------------------------------------
+   · ریل چپ: جابه‌جایی دایره‌ی دستفروش ↔ کوله (کوله وسط، دستفروش پایین)
+     + آیکون جدید کوله (سبک مرجع کاربر: بدنه‌ی سرمه‌ای + بندهای طلایی)
+   · کوله و سرنخ‌ها: پنل کوچک وسط صفحه (دیگر از پایین باز نمی‌شود)
+   · نام کاشی‌های ساخت‌وساز: اُورلی وسطِ عکس کاشی (نه زیر آن)
+   · اعلان‌های بالای صفحه: توست فشرده اندرویدی — دیگر روی بخش‌های
+     دیگر نمی‌افتد
+   · کارایی: updateHUD/updateBossBar با حداقل ۱۲۰ms فاصله — رفع
+     هنگِ صفحه با زیاد شدن زامبی‌ها (به‌روزرسانی DOM در هر ضربه)
+   ================================================================== */
+(function v36boot() {
+'use strict';
+if (window.__V36) return;
+window.__V36 = { rail: 1, bpkIcon: 1, sheetCenter: 1, tileName: 1, announce: 1, perf: 1 };
+
+/* ---------- ۳۶-۰) CSS ---------- */
+(function css36() {
+  var st = document.createElement('style');
+  st.textContent = `
+/* ==== (۳۶) ریل چپ: جابه‌جایی دستفروش ↔ کوله ====
+   روز: [سرنخ‌ها ۷۸] [کوله ۱۴۸] [دستفروش ۲۱۸]
+   شب: [چراغ‌قوه ۷۸] [کوله ۱۴۸] [مولوتوف ۲۱۸] */
+#bpkBtn34{top:calc(148px * var(--uiz,1))!important}
+#pedReopenBtn{top:calc(218px * var(--uiz,1))!important}
+#molotovBtn{top:calc(218px * var(--uiz,1))!important}
+
+/* ==== (۳۶) شیت‌ها: دیالوگ کوچک وسط صفحه (مثل ساخت‌وساز) — نه از پایین ==== */
+.sheet34{left:50%!important;right:auto!important;bottom:auto!important;top:50%!important;
+  transform:translate(-50%,-46%) scale(.93)!important;opacity:0!important;
+  width:calc(480px * var(--uiz,1))!important;max-width:94%!important;max-height:86%!important;
+  border-radius:calc(20px * var(--uiz,1))!important;
+  border:1.5px solid rgba(232,181,74,.5)!important;
+  box-shadow:0 22px 60px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.08)!important;
+  transition:transform .22s cubic-bezier(.2,1,.32,1),opacity .17s ease!important}
+.sheet34.in34{transform:translate(-50%,-50%) scale(1)!important;opacity:1!important}
+.sh-grab34{display:none!important}
+.sh-body34{padding:calc(9px * var(--uiz,1)) calc(12px * var(--uiz,1)) calc(12px * var(--uiz,1))}
+
+/* ==== (۳۶) نام کاشی: وسطِ عکس کاشی (اُورلی) ==== */
+.bp-tile .bp-name{
+  position:absolute!important;left:50%!important;top:40%!important;right:auto!important;bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  max-width:calc(104px * var(--uiz,1))!important;width:auto!important;
+  font-size:calc(9px * var(--uiz2,1))!important;font-weight:900;color:#ffffff!important;
+  text-align:center!important;line-height:1.35!important;white-space:normal!important;
+  padding:calc(2.5px * var(--uiz,1)) calc(9px * var(--uiz,1))!important;
+  background:rgba(4,8,18,.68)!important;border-radius:calc(9px * var(--uiz,1))!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+  display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.9)!important;pointer-events:none;z-index:2;
+  margin:0!important;flex:none!important}
+#buildPanel .bp-ic{margin-top:calc(3px * var(--uiz,1))}
+
+/* ==== (۳۶) اعلان مرکزی → توست فشرده‌ی بالای صفحه (اندرویدی) ====
+   قبلاً: متن درشت وسط صفحه که روی باس‌بار/برج/ریل می‌افتاد */
+#announce{top:calc(86px * var(--uiz2,1))!important;left:50%!important;right:auto!important;
+  transform:translateX(-50%)!important;width:auto!important;max-width:calc(min(88vw, 520px) / var(--uiz2,1))!important;
+  background:linear-gradient(180deg,rgba(17,26,52,.96),rgba(9,15,34,.96))!important;
+  border:1.5px solid rgba(232,181,74,.55)!important;border-radius:calc(14px * var(--uiz2,1))!important;
+  padding:calc(7px * var(--uiz2,1)) calc(18px * var(--uiz2,1)) calc(8px * var(--uiz2,1))!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.09)!important;
+  z-index:14!important;backdrop-filter:blur(2px)}
+#announce .big{font-size:calc(16.5px * var(--uiz2,1))!important;font-weight:900;color:#ffd873!important;
+  line-height:1.5!important;text-shadow:0 1px 3px rgba(0,0,0,.9)!important}
+#announce .sub{font-size:calc(11px * var(--uiz2,1))!important;color:#dbe5fa!important;margin-top:2px!important;
+  line-height:1.55!important;text-shadow:0 1px 2px rgba(0,0,0,.9)!important}
+#announce .sub:empty{display:none!important}
+@media (max-height:430px){
+  #announce{top:calc(78px * var(--uiz,1))!important}
+}
+
+/* ==== (۳۶) گفتگوی کات‌سین: بالا صفحه — پایین برای ماشین/ارشان آزاد ==== */
+#wrap.cine-mode #dlgBox{bottom:auto!important;top:calc(10px * var(--uiz,1))!important;
+  max-width:calc(88% )!important}
+#wrap.cine-mode #dlgTextWrap{max-width:calc(560px * var(--uiz,1))!important}
+#wrap.cine-mode #dlgPortrait{width:calc(84px * var(--uiz,1))!important;height:calc(84px * var(--uiz,1))!important}
+#wrap.cine-mode #dlgText{font-size:calc(15px * var(--uiz,1))!important;line-height:1.7!important;min-height:calc(26px * var(--uiz,1))!important}
+
+`;
+  document.head.appendChild(st);
+})();
+
+/* ---------- ۳۶-۱) آیکون جدید کوله‌پشتی (سبک مرجع کاربر) ----------
+   کوله‌پشتی سه‌بعدیِ قهرمانِ بازی‌های بقا: بدنه‌ی سرمه‌ای + درِ روشن‌تر
+   + دو بندِ عمودی طلایی + سگکِ مرکزی — بر اساس آیکونی که کاربر داد */
+var BPK_SVG36 =
+  '<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true">' +
+  '<defs>' +
+  '<linearGradient id="bpkB36" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#364a75"/><stop offset=".5" stop-color="#1b2949"/><stop offset="1" stop-color="#101a30"/></linearGradient>' +
+  '<linearGradient id="bpkF36" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#4f6da6"/><stop offset="1" stop-color="#2c406e"/></linearGradient>' +
+  '<linearGradient id="bpkG36" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#ffe08a"/><stop offset=".55" stop-color="#f2b93c"/><stop offset="1" stop-color="#c98a1e"/></linearGradient>' +
+  '</defs>' +
+  '<path d="M9.4 6.9V5.5c0-1.2 1-2.1 2.1-2.1h1c1.2 0 2.1 1 2.1 2.1v1.4" fill="none" stroke="#2c406e" stroke-width="1.8" stroke-linecap="round"/>' +
+  '<rect x="4.4" y="6.5" width="15.2" height="14.2" rx="3.9" fill="url(#bpkB36)" stroke="#0b1220" stroke-width=".7"/>' +
+  '<path d="M4.4 10.6c0-2.3 1.8-4.1 4.1-4.1h7c2.3 0 4.1 1.8 4.1 4.1v.7c0 2.1-1.7 3.8-3.8 3.8H8.2c-2.1 0-3.8-1.7-3.8-3.8z" fill="url(#bpkF36)"/>' +
+  '<rect x="7.5" y="8.8" width="2.2" height="11.9" rx="1.1" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".4"/>' +
+  '<rect x="14.3" y="8.8" width="2.2" height="11.9" rx="1.1" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".4"/>' +
+  '<rect x="9" y="12.6" width="6" height="4.5" rx="1.4" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".5"/>' +
+  '<rect x="10.5" y="13.9" width="3" height="2" rx=".9" fill="#5c3f0e"/>' +
+  '<path d="M5.8 8.3c.5-1.1 1.5-1.7 2.6-1.8" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.1" stroke-linecap="round"/>' +
+  '</svg>';
+
+(function bpkIcon36() {
+  /* دکمه‌ی ریل — فقط عنصر <i> عوض می‌شود تا نشان عددی (badge) بماند */
+  function apply36() {
+    try {
+      var b = document.getElementById('bpkBtn34');
+      if (b) {
+        var ic = b.querySelector('i.ic');
+        if (ic) ic.innerHTML = BPK_SVG36;
+        else b.insertAdjacentHTML('afterbegin', '<i class="ic">' + BPK_SVG36 + '</i>');
+      }
+      /* شیتِ بازشده‌ی قبلی */
+      var sh = document.getElementById('bpkSheet34');
+      if (sh) {
+        var hi = sh.querySelector('.sh-ic34');
+        if (hi) hi.innerHTML = BPK_SVG36;
+      }
+    } catch (e) {}
+  }
+  apply36();
+  setTimeout(apply36, 600);
+  setTimeout(apply36, 2500);
+  /* شیت وقتی ساخته شد (اولین باز شدن) آیکونش تازه شود */
+  try {
+    var wrap = document.getElementById('wrap');
+    if (wrap && window.MutationObserver) {
+      var obs = new MutationObserver(function (muts) {
+        for (var m = 0; m < muts.length; m++) {
+          var add = muts[m].addedNodes;
+          for (var i = 0; i < add.length; i++) {
+            var n = add[i];
+            if (n && n.id === 'bpkSheet34') {
+              var hi = n.querySelector && n.querySelector('.sh-ic34');
+              if (hi) hi.innerHTML = BPK_SVG36;
+            }
+          }
+        }
+      });
+      obs.observe(wrap, { childList: true });
+    }
+  } catch (e) {}
+})();
+
+/* ---------- ۳۶-۲) کارایی: ضد-هنگِ صفحه با زیاد شدن زامبی‌ها ----------
+   ریشه‌ی هنگ: killZombie و damageTower در «هر ضربه» updateHUD را
+   صدا می‌زدند → refreshBuildPanel روی همه‌ی کاشی‌ها + چیپ‌ها + DOM
+   در هر فریم چند بار → لایه‌بندی مجدد بی‌وقفه. حالا: حداکثر هر ۱۲۰ms */
+(function perf36() {
+  /* updateHUD — انباشتگی با فاصله‌ی حداقل ۱۲۰ms */
+  if (typeof updateHUD === 'function' && !updateHUD.__36) {
+    var _real36 = updateHUD;
+    var _last36 = 0, _tm36 = null;
+    updateHUD = function () {
+      if (_tm36) return;                        /* یکی در صف است — همین کافی است */
+      var wait = Math.max(0, 120 - (performance.now() - _last36));
+      _tm36 = setTimeout(function () {
+        _tm36 = null;
+        _last36 = performance.now();
+        try { _real36(); } catch (e) {}
+      }, wait);
+    };
+    updateHUD.__36 = true;
+  }
+  /* updateBossBar — نوشتنِ width در هر فریم فقط وقتی عدد واقعاً عوض شده */
+  if (typeof updateBossBar === 'function' && !updateBossBar.__36) {
+    var _ub36 = updateBossBar;
+    var _w36 = -1, _vis36 = null;
+    updateBossBar = function () {
+      try {
+        var boss = (typeof state !== 'undefined') ? state.zombies.find(function (z) { return z.type === 'boss' && !z.dead; }) : null;
+        if (boss) {
+          var w = Math.round(clamp(boss.hp / boss.maxHp, 0, 1) * 250);
+          if (w !== _w36) { _w36 = w; _ub36(); }
+        } else if (_vis36 !== false) { _vis36 = false; _ub36(); }
+        else _vis36 = true;
+      } catch (e) { try { _ub36(); } catch (e2) {} }
+    };
+    updateBossBar.__36 = true;
+  }
 })();
 
 })();

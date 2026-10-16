@@ -50,8 +50,8 @@ agent-browser eval "GAME.skipToWave(2);'ok'" >/dev/null 2>&1; sleep 2
 agent-browser eval "DLG.skip();'ok'" >/dev/null 2>&1; sleep 1.5
 agent-browser eval "DLG.skip();'ok'" >/dev/null 2>&1; sleep 1
 R=$(agent-browser eval "state.mode==='day'||state.mode==='playing'?1:0" | tail -1); ck "حالت روز/بازی رسید" "$R" "mode=$(agent-browser eval "state.mode" | tail -1)"
-R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar').getBoundingClientRect();return b.x<innerWidth*0.4?1:0})()" | tail -1); ck "کوله: پایین-چپ (v28: بیرون از مرکز تصویر)" "$R" "rect=$(agent-browser eval "(()=>{const r=document.getElementById('backpackBar').getBoundingClientRect();return Math.round(r.x)+'..'+Math.round(r.right)})()" | tail -1)"
-R=$(agent-browser eval "(()=>{const b=document.getElementById('backpackBar').getBoundingClientRect();return b.y+b.height>innerHeight*0.72?1:0})()" | tail -1); ck "کوله: نوار پایین" "$R"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('bpkBtn34');return b&&getComputedStyle(b).display!=='none'?1:0})()" | tail -1); ck "کوله: دکمه‌ی ریل چپ (v34+)" "$R" "rect=$(agent-browser eval "(()=>{const r=document.getElementById('backpackBar').getBoundingClientRect();return Math.round(r.x)+'..'+Math.round(r.right)})()" | tail -1)"
+R=$(agent-browser eval "(()=>{const b=document.getElementById('bpkBtn34');const t=parseFloat(getComputedStyle(b).top)/(window.__uiz||1);return Math.abs(t-148)<8?1:0})()" | tail -1); ck "کوله: دکمه‌ی ریل وسط (v36)" "$R"
 
 echo "===== ۷) دکمه شب‌شود در روز + دستفروش بعد از گفتگو ====="
 if [ "$(agent-browser eval "state.mode" | tail -1)" != "day" ]; then
