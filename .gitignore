@@ -18,3 +18,4 @@ scripts/wav_*.wav
 scripts/voice_test_*.mp3
 tool-results/
 upload/
+scripts/.gh_token
