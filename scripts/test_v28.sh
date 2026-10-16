@@ -94,7 +94,7 @@ R=$(agent-browser eval "(()=>{const sv=state.weapon, so=WEAPONS.shotgun.owned; W
 # چیپ در دست
 agent-browser eval "selectWeapon('shotgun'); 'ok'" >/dev/null
 R=$(agent-browser eval "document.getElementById('wchip28-shotgun').classList.contains('on') && document.getElementById('wchip28-pistol').classList.contains('on')===false?1:0" | tail -1); ck "چیپ سلاحِ در دست = روشن طلایی" "$R"
-R=$(agent-browser eval "(()=>{const t=document.querySelector('#bp-shotgun .bp-price'); return t && t.textContent.includes('در دست')?1:0})()" | tail -1); ck "کاشی شاتگان: «در دست»" "$R"
+R=$(agent-browser eval "(()=>{const t=document.getElementById('bp-shotgun'); return t && t.classList.contains('armed')?1:0})()" | tail -1); ck "کاشی شاتگان: در دست (طلایی، بی‌متن — v30)" "$R"
 
 echo "===== ۶) باتن‌شیت ساخت‌وساز + FAB ====="
 # شیت را ببند تا FAB قابل اندازه‌گیری باشد + گفتگو نماند

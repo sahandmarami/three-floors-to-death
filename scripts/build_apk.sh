@@ -29,7 +29,7 @@ $BT/aapt2 link -o build/base.apk \
   --manifest AndroidManifest.xml \
   --java build/gen \
   --min-sdk-version 24 --target-sdk-version 34 \
-  --version-code 290 --version-name "2.9.0" \
+  --version-code 350 --version-name "3.5.0" \
   -A assets \
   build/compiled/res.zip
 

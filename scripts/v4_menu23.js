@@ -1,6 +1,10 @@
 /* ==================================================================
    سه طبقه تا مرگ — نسخه‌ی ۲۳٫۰ — منوی اصلی جدید (بازسازی کامل)
-   ==================================================================
+   (۳۰٫۰) روشن‌تر: آسمان/ماه/زمین روشن‌تر + وینیت ملایم‌تر — درخواست کاربر
+   (۳۰٫۰) زامبی‌های پس‌زمینه: بازطراحی ترسناک — بدن خمیده‌ی بزرگ،
+      فک باز با دندان، چشم سرخ تابان، چنگال، لبه‌ی پارگی لباس،
+      قدم لکنت‌دار؛ به‌جای رفت‌وآمدِ رفت‌وبرگشتیِ مضحک، به‌سوی برج
+      خزیده و آنجا توقف/تکان می‌خورند (محاصره‌ی خبیث)
    صحنه‌ی سینمایی Canvas به‌جای رندر دنیای بازی:
      · ماه خونی بزرگ + ابرهای عبوری + ستاره‌های چشمک‌زن
      · افق شهری دو لایه (سایه‌وار) + بازتاب ماه روی زمین خیس
@@ -32,17 +36,20 @@ const M23 = {
     for (let i = 0; i < 5; i++) {
       this.wisps.push({ x: rnd() * W, y: 60 + rnd() * 120, w: 130 + rnd() * 210, h: 10 + rnd() * 16, v: 2.5 + rnd() * 3.5, a: 0.10 + rnd() * 0.14 });
     }
-    /* زامبی‌های سایه‌وار — عمق‌دار (d=0.42..1.12) */
+    /* زامبی‌های سایه‌وار — عمق‌دار (d=0.46..1.12) — (۳۰) چندتا درشت‌تر برای ترس */
     this.zmb = [];
     const zs = [
-      { d: 0.46, x0: 0.13, ty: 'tank' }, { d: 0.62, x0: 0.86, ty: 'normal' },
-      { d: 0.78, x0: 0.30, ty: 'normal' }, { d: 0.9, x0: 0.68, ty: 'fast' },
-      { d: 1.0, x0: 0.05, ty: 'normal' }, { d: 1.12, x0: 0.93, ty: 'tank' },
+      { d: 0.5, x0: 0.13, ty: 'tank' }, { d: 0.66, x0: 0.86, ty: 'normal' },
+      { d: 0.8, x0: 0.3, ty: 'normal' }, { d: 0.95, x0: 0.68, ty: 'fast' },
+      { d: 1.18, x0: 0.04, ty: 'normal' }, { d: 1.34, x0: 0.95, ty: 'tank' },
+      { d: 1.5, x0: 0.55, ty: 'fast' },
     ];
     for (const z of zs) {
       this.zmb.push({
         d: z.d, ty: z.ty, x: z.x0 * W, ph: rnd() * 6.28,
-        dir: (z.x0 < 0.4 ? 1 : -1), spd: 5 + rnd() * 4,
+        dir: (z.x0 < 0.4 ? 1 : -1), spd: 4.5 + rnd() * 3.5,
+        stare: 0,           /* (۳۰) توقفِ خیرگی جلوی برج */
+        hurt: rnd() * 6.28, /* (۳۰) لکنت راه‌رفتن */
       });
     }
     /* اخگرها */
@@ -63,12 +70,29 @@ const M23 = {
     for (const s of this.stars) s.ph += dt * s.sp;
     for (const w of this.wisps) { w.x += w.v * dt; if (w.x - w.w > W) w.x = -w.w; }
     for (const z of this.zmb) {
-      z.ph += dt * (1.6 + z.d * 1.8);
-      z.x += z.dir * z.spd * z.d * dt;
+      z.ph += dt * (1.1 + z.d * 0.9);
+      z.hurt += dt * 2.2;
       const bx = W * 0.34;
-      if (Math.abs(z.x - bx) < 110 * z.d) z.dir *= -1;
-      if (z.x < -80) { z.x = -80; z.dir = 1; }
-      if (z.x > W + 80) { z.x = W + 80; z.dir = -1; }
+      /* (۳۰) محاصره‌ی خبیث: به‌سوی برج می‌خزد؛ نزدیک که شد می‌ایستد و
+         با لکنت خیره می‌شود — بعد از مدتی دوباره از بیرون قاب می‌آید */
+      if (z.stare > 0) {
+        z.stare -= dt;
+        if (z.stare <= 0) {
+          const side = Math.random() < 0.5 ? -1 : 1;
+          z.x = side < 0 ? -60 - rnd(120) : W + 60 + rnd(120);
+          z.dir = side < 0 ? 1 : -1;
+        }
+      } else {
+        /* خزش لکنت‌دار — سرعت نامنظم */
+        const limp = 0.55 + 0.45 * Math.abs(Math.sin(z.hurt));
+        z.x += z.dir * z.spd * z.d * limp * dt;
+        if (Math.abs(z.x - bx) < 120 * z.d + 40) {
+          z.stare = 5 + rnd(6);
+          z.dir = z.x < bx ? 1 : -1;   /* رو به برج بایستد */
+        }
+        if (z.x < -100) { z.x = -100; z.dir = 1; }
+        if (z.x > W + 100) { z.x = W + 100; z.dir = -1; }
+      }
     }
     for (const e of this.embers) {
       e.y -= e.v * dt; e.sw += dt * 1.7; e.x += Math.sin(e.sw) * 0.35;
@@ -91,15 +115,15 @@ const M23 = {
     const par = this._press.x, parY = this._press.y;
     const flash = this.bolt.t > 0 ? Math.max(0, this.bolt.t / 0.30) : 0;
 
-    /* --- ۱) آسمان --- */
+    /* --- ۱) آسمان — (۳۰) روشن‌تر --- */
     const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    sky.addColorStop(0, '#05060f');
-    sky.addColorStop(0.55, '#0a0a1a');
-    sky.addColorStop(0.85, '#170b18');
-    sky.addColorStop(1, '#24101c');
+    sky.addColorStop(0, '#0b1026');
+    sky.addColorStop(0.55, '#131838');
+    sky.addColorStop(0.85, '#261a38');
+    sky.addColorStop(1, '#3a2446');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, GROUND_Y + 2);
-    if (flash > 0) { ctx.fillStyle = 'rgba(150,170,235,' + (0.16 * flash) + ')'; ctx.fillRect(0, 0, W, GROUND_Y); }
+    if (flash > 0) { ctx.fillStyle = 'rgba(170,190,245,' + (0.2 * flash) + ')'; ctx.fillRect(0, 0, W, GROUND_Y); }
 
     /* --- ۲) ستاره‌ها --- */
     for (const s of this.stars) {
@@ -108,17 +132,17 @@ const M23 = {
       ctx.fillRect(s.x + par * -4, s.y, s.r, s.r);
     }
 
-    /* --- ۳) ماه خونی --- */
-    const mx = W * 0.72 + par * -9, my = 112 + parY * -5, mr = 62;
+    /* --- ۳) ماه خونی — (۳۰) هاله‌ی قوی‌تر و روشن‌تر --- */
+    const mx = W * 0.72 + par * -9, my = 112 + parY * -5, mr = 64;
     const mg = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 3.4);
-    mg.addColorStop(0, 'rgba(255,140,80,0.30)');
-    mg.addColorStop(0.4, 'rgba(255,110,70,0.10)');
+    mg.addColorStop(0, 'rgba(255,150,95,0.42)');
+    mg.addColorStop(0.4, 'rgba(255,125,85,0.16)');
     mg.addColorStop(1, 'rgba(255,110,70,0)');
     ctx.fillStyle = mg; circle(mx, my, mr * 3.4);
     const moon = ctx.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, mr * 0.2, mx, my, mr);
-    moon.addColorStop(0, '#ffd9a8');
-    moon.addColorStop(0.55, '#f0a05c');
-    moon.addColorStop(1, '#c96a3a');
+    moon.addColorStop(0, '#ffe8c2');
+    moon.addColorStop(0.55, '#f7b070');
+    moon.addColorStop(1, '#d67c48');
     ctx.fillStyle = moon; circle(mx, my, mr);
     /* دهانه‌های ماه */
     ctx.fillStyle = 'rgba(120,55,30,0.30)';
@@ -155,15 +179,15 @@ const M23 = {
     skyline(GROUND_Y + 2, 44, 120, '#0d0f20', 0, par * -7);
     skyline(GROUND_Y + 2, 26, 70, '#080a15', 0, par * -14);
 
-    /* --- ۵) زمین + بازتاب ماه --- */
+    /* --- ۵) زمین + بازتاب ماه — (۳۰) روشن‌تر --- */
     const gr = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-    gr.addColorStop(0, '#0c0e17');
-    gr.addColorStop(0.5, '#12101a');
-    gr.addColorStop(1, '#1a1420');
+    gr.addColorStop(0, '#181c2c');
+    gr.addColorStop(0.5, '#201a2a');
+    gr.addColorStop(1, '#2a2032');
     ctx.fillStyle = gr; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
     const refl = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-    refl.addColorStop(0, 'rgba(255,140,80,0.14)');
-    refl.addColorStop(0.45, 'rgba(255,120,70,0.05)');
+    refl.addColorStop(0, 'rgba(255,150,95,0.2)');
+    refl.addColorStop(0.45, 'rgba(255,130,80,0.08)');
     refl.addColorStop(1, 'rgba(255,110,60,0)');
     ctx.fillStyle = refl;
     ctx.fillRect(mx - mr * 1.5, GROUND_Y, mr * 3, H - GROUND_Y);
@@ -214,14 +238,14 @@ const M23 = {
       ctx.stroke();
     }
 
-    /* --- ۱۲) وینیت + گرادیان پایین --- */
-    const vg = ctx.createRadialGradient(W / 2, H * 0.44, H * 0.38, W / 2, H * 0.5, W * 0.62);
+    /* --- ۱۲) وینیت + گرادیان پایین — (۳۰) خیلی ملایم‌تر: صفحه روشن می‌ماند --- */
+    const vg = ctx.createRadialGradient(W / 2, H * 0.44, H * 0.42, W / 2, H * 0.5, W * 0.68);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(2,3,8,0.55)');
+    vg.addColorStop(1, 'rgba(4,6,16,0.30)');
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
     const bt = ctx.createLinearGradient(0, H - 120, 0, H);
-    bt.addColorStop(0, 'rgba(5,6,14,0)');
-    bt.addColorStop(1, 'rgba(5,6,14,0.72)');
+    bt.addColorStop(0, 'rgba(10,12,24,0)');
+    bt.addColorStop(1, 'rgba(10,12,24,0.42)');
     ctx.fillStyle = bt; ctx.fillRect(0, H - 120, W, 120);
   },
 
@@ -342,46 +366,100 @@ const M23 = {
     ctx.restore();
   },
 
-  /* زامبی سایه‌وار با چشم سرخ و چرخه‌ی راه‌رفتن */
+  /* (۳۰) زامبی سایه‌وارِ ترسناک — بدن خمیده‌ی بزرگ با فک باز و دندان،
+     چشم‌های سرخِ تابان، چنگال‌های آویزان، لبه‌ی پارگی لباس، قدم لکنت‌دار.
+     حالت «stare»: جلوی برج می‌ایستد، تاب می‌خورد و خیره می‌شود. */
   drawSilZombie(z, t, flash) {
     const d = z.d, x = z.x + this._press.x * -22 * d;
     const y = GROUND_Y + (d - 0.6) * 16;
-    const s = d * (z.ty === 'tank' ? 1.25 : z.ty === 'fast' ? 0.9 : 1.05);
+    const s = d * (z.ty === 'tank' ? 1.5 : z.ty === 'fast' ? 1.12 : 1.3);
     const ph = z.ph;
-    const sway = Math.sin(ph) * 0.09;
-    const bodyC = flash > 0.4 ? 'rgba(30,34,60,0.95)' : 'rgba(4,5,12,0.94)';
+    const stare = z.stare > 0;
+    const bodyC = flash > 0.4 ? 'rgba(34,38,64,0.96)' : 'rgba(6,7,14,0.96)';
+    const bodyC2 = flash > 0.4 ? 'rgba(44,48,78,0.96)' : 'rgba(12,13,24,0.96)';
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(z.dir < 0 ? -s : s, s);
-    /* سایه‌ی زیر پا */
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.beginPath(); ctx.ellipse(0, 2, 13, 3.4, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.rotate(sway * 0.5);
-    /* پاها */
-    ctx.strokeStyle = bodyC; ctx.lineWidth = 6.2; ctx.lineCap = 'round';
+    /* سایه‌ی تیره‌تر زیر پا */
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath(); ctx.ellipse(0, 2, 17, 4, 0, 0, Math.PI * 2); ctx.fill();
+    /* کل بدن رو به برج خم می‌شود — هیکل خمیده‌ی زامبی */
+    const hunch = stare ? 0.34 + Math.sin(t * 1.6 + ph) * 0.03 : 0.3 + Math.sin(ph) * 0.04;
+    ctx.rotate(-hunch * 0.5);
+    /* گام لکنت‌دار — پاها با زانوی خمیده و کف له‌شده */
+    const lim = Math.sin(ph), lim2 = Math.sin(ph + Math.PI);
+    const drag = z.hurt ? Math.sin(z.hurt) * 2.2 : 0;
+    ctx.strokeStyle = bodyC; ctx.lineWidth = 6.8; ctx.lineCap = 'round';
     ctx.beginPath();
-    const l1 = Math.sin(ph) * 7, l2 = Math.sin(ph + Math.PI) * 7;
-    ctx.moveTo(-2, -13); ctx.lineTo(-3 + l1, -1);
-    ctx.moveTo(3, -13); ctx.lineTo(4 + l2, -1);
+    ctx.moveTo(-3, -15); ctx.lineTo(-5 + lim * 8, -2 + Math.abs(lim) * 1.6);
+    ctx.moveTo(3.5, -15); ctx.lineTo(5 + lim2 * 8 + drag, -2 + Math.abs(lim2) * 1.6);
     ctx.stroke();
-    /* بدن خمیده */
+    /* بدن خمیده — بالاتنه به‌جلو خم شده، پهن و سنگین */
     ctx.fillStyle = bodyC;
-    rr(-8, -27, 16, 15, 5); ctx.fill();
-    /* بازوهای آویزان که تاب می‌خورند */
-    ctx.strokeStyle = bodyC; ctx.lineWidth = 4.6;
     ctx.beginPath();
-    ctx.moveTo(-6, -24); ctx.lineTo(-9 - Math.sin(ph) * 4, -13);
-    ctx.moveTo(6, -24); ctx.lineTo(9 + Math.sin(ph + 1.4) * 4, -13);
+    ctx.moveTo(-9, -14);
+    ctx.quadraticCurveTo(-11.5, -26, -6, -33);
+    ctx.quadraticCurveTo(1, -38, 8, -33);
+    ctx.quadraticCurveTo(12, -26, 10, -14);
+    /* لبه‌ی پارگی لباس — دندانه‌های نامنظم پایین تنه */
+    ctx.lineTo(7, -11); ctx.lineTo(5.5, -13.5); ctx.lineTo(3, -10.5);
+    ctx.lineTo(0.5, -13); ctx.lineTo(-2, -10); ctx.lineTo(-4.5, -12.5); ctx.lineTo(-7, -10);
+    ctx.closePath(); ctx.fill();
+    /* لکه‌ی روشن‌ترِ پشت (حجم) */
+    ctx.fillStyle = bodyC2;
+    ctx.beginPath();
+    ctx.moveTo(-6, -16); ctx.quadraticCurveTo(-8, -26, -4, -31);
+    ctx.quadraticCurveTo(0, -34, 3, -31); ctx.quadraticCurveTo(5, -25, 3.5, -16);
+    ctx.closePath(); ctx.fill();
+    /* بازوهای بلندِ آویزان با چنگال — تاب غیرهمزمان */
+    ctx.strokeStyle = bodyC; ctx.lineWidth = 5.4;
+    ctx.beginPath();
+    ctx.moveTo(-5, -29); ctx.quadraticCurveTo(-13, -22 + Math.sin(ph + 1.1) * 3, -15, -11 + Math.sin(ph + 1.1) * 2.4);
+    ctx.moveTo(6, -30); ctx.quadraticCurveTo(13.5, -24 + Math.sin(ph + 2.2) * 3, 15.5, -13 + Math.sin(ph + 2.2) * 2.4);
     ctx.stroke();
-    /* سرِ کج */
+    /* چنگال‌ها — سه انگشت خمیده */
+    ctx.lineWidth = 2.1;
+    const claw = (cx, cy, k) => {
+      ctx.beginPath();
+      for (let i = -1; i <= 1; i++) {
+        ctx.moveTo(cx, cy);
+        ctx.quadraticCurveTo(cx + i * 2.4, cy + 2.2, cx + i * 3.1, cy + 4.6 + k);
+      }
+      ctx.stroke();
+    };
+    claw(-15, -11 + Math.sin(ph + 1.1) * 2.4, 0.8);
+    claw(15.5, -13 + Math.sin(ph + 2.2) * 2.4, 0.8);
+    /* سرِ کجِ به‌عقب — جمجمه با فک باز */
+    const tilt = 0.22 + Math.sin(t * 0.9 + ph) * 0.05;
+    ctx.save();
+    ctx.translate(7.5, -34.5);
+    ctx.rotate(tilt);
     ctx.fillStyle = bodyC;
-    circle(2, -32, 5.4);
-    /* چشم‌های سرخِ سوسوزن */
+    ctx.beginPath(); ctx.ellipse(0, -1.5, 6.4, 7, 0, 0, Math.PI * 2); ctx.fill();
+    /* فک پایینِ باز — لِه‌شده به پایین */
+    ctx.beginPath();
+    ctx.moveTo(-4.5, 2.2);
+    ctx.quadraticCurveTo(0.5, 7.8, 5, 3.4);
+    ctx.quadraticCurveTo(3.4, 1.2, -4.5, 2.2);
+    ctx.closePath(); ctx.fill();
+    /* دندان‌های بالای فکِ باز */
+    ctx.strokeStyle = 'rgba(210,214,226,0.85)'; ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const tx = -3.4 + i * 1.9;
+      ctx.moveTo(tx, 1.6); ctx.lineTo(tx + 0.75, 3.4);
+    }
+    ctx.stroke();
+    /* چشم‌های سرخِ تابان — گود افتاده با هاله‌ی خون */
     const er = 0.55 + 0.45 * Math.abs(Math.sin(t * 1.8 + ph * 0.6));
     ctx.fillStyle = 'rgba(255,60,40,' + er.toFixed(2) + ')';
-    circle(3.4, -33, 1.1); circle(5.9, -33, 1.1);
-    ctx.fillStyle = 'rgba(255,60,40,' + (er * 0.22).toFixed(2) + ')';
-    circle(4.6, -33, 4.2);
+    circle(1.6, -3.4, 1.25); circle(4.6, -3.2, 1.25);
+    ctx.fillStyle = 'rgba(255,60,40,' + (er * 0.26).toFixed(2) + ')';
+    circle(3, -3.3, 5.4);
+    ctx.restore();
+    /* مهِ تیره دور پا — حضورِ مرده‌وار */
+    ctx.fillStyle = 'rgba(24,28,44,0.4)';
+    ctx.beginPath(); ctx.ellipse(0, 1, 24, 5.5, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   },
 };
