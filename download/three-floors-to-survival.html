@@ -24112,13 +24112,17 @@ function snack35(text) {
         var idx = WORDER.indexOf(id);
         var curIdx = WORDER.indexOf(typeof state !== 'undefined' ? state.weapon : 'pistol');
         var isFar = !owned && idx > curIdx + 1;
-        if (isCur || owned || isFar) {
+        /* (۳۷) قیمتِ سلاحِ قفل‌شده هم نوشته شود — قبلاً کاشیِ قفل هیچ
+           قیمتی نداشت و کاربر نمی‌دانست مسلسل چقدر است؛ قفل با نشانِ
+           گوشه‌ای مشخص است، قیمت را هم باید دید */
+        if (isCur || owned) {
           cost.textContent = '';
           cost.classList.remove('poor');
         } else if (typeof UPGRADES !== 'undefined' && UPGRADES[id]) {
           cost.textContent = faNum(UPGRADES[id].price);
           cost.classList.toggle('poor', state.coins < UPGRADES[id].price);
         }
+        void isFar;
       }
     } catch (e) {}
   };
@@ -24327,7 +24331,10 @@ window.__V36 = { rail: 1, bpkIcon: 1, sheetCenter: 1, tileName: 1, announce: 1, 
 
 /* ---------- ۳۶-۱) آیکون جدید کوله‌پشتی (سبک مرجع کاربر) ----------
    کوله‌پشتی سه‌بعدیِ قهرمانِ بازی‌های بقا: بدنه‌ی سرمه‌ای + درِ روشن‌تر
-   + دو بندِ عمودی طلایی + سگکِ مرکزی — بر اساس آیکونی که کاربر داد */
+   + دو بندِ عمودی طلایی + سگکِ مرکزی — بر اساس آیکونی که کاربر داد
+   (۳۷٫۰ بازطراحی «خفن‌تر» — کوله‌ی تاکتیکالِ بقا: رخت‌خوابِ لوله‌شده‌ی
+   بالا + جیبِ ضربدری + قمقمه‌ی کناری با درِ طلایی — همان پالت سرمه‌ای/
+   طلاییِ مرجع کاربر) */
 var BPK_SVG36 =
   '<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true">' +
   '<defs>' +
@@ -24338,14 +24345,25 @@ var BPK_SVG36 =
   '<linearGradient id="bpkG36" x1="0" y1="0" x2="0" y2="1">' +
   '<stop offset="0" stop-color="#ffe08a"/><stop offset=".55" stop-color="#f2b93c"/><stop offset="1" stop-color="#c98a1e"/></linearGradient>' +
   '</defs>' +
-  '<path d="M9.4 6.9V5.5c0-1.2 1-2.1 2.1-2.1h1c1.2 0 2.1 1 2.1 2.1v1.4" fill="none" stroke="#2c406e" stroke-width="1.8" stroke-linecap="round"/>' +
-  '<rect x="4.4" y="6.5" width="15.2" height="14.2" rx="3.9" fill="url(#bpkB36)" stroke="#0b1220" stroke-width=".7"/>' +
-  '<path d="M4.4 10.6c0-2.3 1.8-4.1 4.1-4.1h7c2.3 0 4.1 1.8 4.1 4.1v.7c0 2.1-1.7 3.8-3.8 3.8H8.2c-2.1 0-3.8-1.7-3.8-3.8z" fill="url(#bpkF36)"/>' +
-  '<rect x="7.5" y="8.8" width="2.2" height="11.9" rx="1.1" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".4"/>' +
-  '<rect x="14.3" y="8.8" width="2.2" height="11.9" rx="1.1" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".4"/>' +
-  '<rect x="9" y="12.6" width="6" height="4.5" rx="1.4" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".5"/>' +
-  '<rect x="10.5" y="13.9" width="3" height="2" rx=".9" fill="#5c3f0e"/>' +
-  '<path d="M5.8 8.3c.5-1.1 1.5-1.7 2.6-1.8" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.1" stroke-linecap="round"/>' +
+  /* رخت‌خوابِ لوله‌شده روی کوله + دو بندِ طلایی عرضی */
+  '<rect x="5.9" y="2.2" width="12.2" height="3.7" rx="1.85" fill="url(#bpkF36)" stroke="#0b1220" stroke-width=".65"/>' +
+  '<path d="M8.9 2.2v3.7M15.1 2.2v3.7" stroke="url(#bpkG36)" stroke-width="1.05"/>' +
+  /* بدنه‌ی سرمه‌ای */
+  '<rect x="4.4" y="6.4" width="15.2" height="14.3" rx="3.9" fill="url(#bpkB36)" stroke="#0b1220" stroke-width=".7"/>' +
+  /* درِ روشن‌ترِ بالای بدنه */
+  '<path d="M4.4 11.1c0-2.4 1.9-4.3 4.3-4.3h6.6c2.4 0 4.3 1.9 4.3 4.3v.5c0 2.1-1.7 3.8-3.8 3.8H8.2c-2.1 0-3.8-1.7-3.8-3.8z" fill="url(#bpkF36)"/>' +
+  /* قمقمه‌ی کناری با درِ طلایی */
+  '<rect x="2.1" y="10.9" width="3" height="6.6" rx="1.25" fill="url(#bpkF36)" stroke="#0b1220" stroke-width=".55"/>' +
+  '<rect x="2.6" y="9.7" width="2" height="1.5" rx=".5" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".35"/>' +
+  /* دو بندِ عمودی طلایی */
+  '<rect x="7.5" y="8.5" width="2.2" height="12.1" rx="1.1" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".4"/>' +
+  '<rect x="14.3" y="8.5" width="2.2" height="12.1" rx="1.1" fill="url(#bpkG36)" stroke="#8a5f14" stroke-width=".4"/>' +
+  /* جیبِ جلو با بندِ ضربدری + سگک */
+  '<rect x="9" y="13.5" width="6" height="5.2" rx="1.5" fill="url(#bpkF36)" stroke="#0b1220" stroke-width=".55"/>' +
+  '<path d="M9.3 13.8l5.4 4.6M14.7 13.8l-5.4 4.6" stroke="url(#bpkG36)" stroke-width="1.15" opacity=".9"/>' +
+  '<rect x="10.9" y="15.4" width="2.2" height="1.7" rx=".65" fill="#5c3f0e"/>' +
+  /* هایلایتِ لبه‌ی بدنه */
+  '<path d="M5.9 8.1c.5-1 1.4-1.6 2.5-1.7" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.1" stroke-linecap="round"/>' +
   '</svg>';
 
 (function bpkIcon36() {
@@ -24426,6 +24444,102 @@ var BPK_SVG36 =
     };
     updateBossBar.__36 = true;
   }
+})();
+
+})();
+
+/* ==================================================================
+   سه طبقه تا مرگ — v37 — بازخورد کاربر (۴ درخواست):
+   ۱) «منوی اصلی بازی خیلی تیره هستش» → پس‌پردازشِ صحنه‌ی منو با
+      شستشوی screen (آبیِ غروب‌مانند + هاله‌ی گرمِ افق) — سایه‌ها
+      بالا می‌آیند، حال‌وهوای شبِ زامبی می‌ماند
+   ۲) «نوشته‌های بازی نباید بالا بیفته، باید پایین باشه» → توستِ
+      اعلانِ مرکزی (مرحله/صبح/شب/کمبو) از بالای صفحه به پایینِ
+      صفحه می‌آید — کف صفحه در v36 خالی است (داک بالا است)
+   ۳) «لوگوی کوله‌پشتی باحال نیست» → BPK_SVG36 در v36 بازطراحی شد:
+      رخت‌خوابِ لوله‌شده + جیبِ ضربدری + قمقمه‌ی کناری (همان پالت
+      سرمه‌ای/طلایی) — ویرایشِ مستقیم در v36
+   ۴) «قیمت تفنگ‌ها رو هم ننوشته» → کاشیِ سلاحِ قفل‌شده قیمت را هم
+      نشان می‌دهد (قبلاً فقط قفل بود) — ویرایشِ مستقیم در v35
+   ================================================================== */
+(function v37boot() {
+'use strict';
+if (window.__V37) return;
+window.__V37 = { menu: 1, announce: 1 };
+
+/* ---------- ۳۷-۱) CSS ---------- */
+(function css37() {
+  var st = document.createElement('style');
+  st.textContent = `
+/* ==== (۳۷) اعلان مرکزی → پایینِ صفحه (نه بالا) ====
+   کف صفحه خالی است: داک ساخت‌وساز بالاست، ریل چپ کنار، «شب شود»
+   فقط روز و در گوشه‌ی راست — توستِ وسط-پایین جا دارد */
+#announce{
+  top:auto!important;
+  bottom:calc(14px * var(--uiz2,1))!important;
+  max-width:calc(min(74vw,480px) / var(--uiz2,1))!important;
+}
+@media (max-height:430px){
+  #announce{top:auto!important;bottom:calc(11px * var(--uiz,1))!important}
+}
+/* خوانایی توست در پایین صفحه (روی زمینِ بازی/زامبی‌ها): متن درشت‌تر + سایه‌ی قوی‌تر */
+#announce .big{font-size:calc(19px * var(--uiz2,1))!important;
+  text-shadow:0 2px 8px rgba(0,0,0,.95),0 0 18px rgba(255,180,60,.25)!important}
+#announce .sub{font-size:calc(12px * var(--uiz2,1))!important;
+  text-shadow:0 2px 6px rgba(0,0,0,.95)!important}
+
+/* ==== (۳۷) عددِ قیمتِ سلاح‌ها نوشته شود ====
+   v35 برای کاشی سلاح‌ها font-size:0 می‌گذاشت → فقط آیکون سکه دیده
+   می‌شد و «عدد» هیچ‌وقت نوشته نمی‌شد (بازخورد کاربر: قیمت تفنگ‌ها
+   رو ننوشته). الان: سکه + عددِ درشتِ طلایی */
+#bpList .bp-tile[id^=bp-pistol] .bp-price,
+#bpList .bp-tile[id^=bp-shotgun] .bp-price,
+#bpList .bp-tile[id^=bp-mg] .bp-price{
+  font-size:calc(13.5px * var(--uiz2,1))!important;
+  font-weight:900!important;color:#ffe9b3!important;
+  gap:calc(3px * var(--uiz,1))!important;
+  padding:calc(2.5px * var(--uiz,1)) calc(10px * var(--uiz,1))!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.9)!important;
+}
+#bpList .bp-tile[id^=bp-pistol] .bp-price::before,
+#bpList .bp-tile[id^=bp-shotgun] .bp-price::before,
+#bpList .bp-tile[id^=bp-mg] .bp-price::before{
+  width:calc(14px * var(--uiz,1))!important;height:calc(14px * var(--uiz,1))!important;
+}
+/* کاشی قفل: قیمت خوانا بماند (شفافیت ۰٫۴۵ عدد را می‌کُشت) */
+#bpList .bp-tile.locked{opacity:.85!important}
+#bpList .bp-tile.locked .bp-price{color:#ffe9b3!important}
+`;
+  document.head.appendChild(st);
+})();
+
+/* ---------- ۳۷-۲) منوی اصلی روشن‌تر — پس‌پردازش صحنه‌ی M23 ---------- */
+(function menuBright37() {
+  if (typeof M23 === 'undefined' || typeof M23.draw !== 'function') return;
+  var _d37 = M23.draw.bind(M23);
+  M23.draw = function () {
+    _d37();
+    try {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';   /* فقط سایه‌ها بالا می‌روند */
+      /* ۱) شستشوی آبیِ غروب‌مانند — به‌جای سیاهیِ مطلق */
+      var lift = ctx.createLinearGradient(0, 0, 0, H);
+      lift.addColorStop(0, 'rgba(56,72,124,0.58)');
+      lift.addColorStop(0.55, 'rgba(64,70,108,0.46)');
+      lift.addColorStop(1, 'rgba(96,82,102,0.48)');
+      ctx.fillStyle = lift;
+      ctx.fillRect(0, 0, W, H);
+      /* ۲) هاله‌ی گرمِ افق — غروبِ زندهٔ شهری */
+      var hz = ctx.createLinearGradient(0, GROUND_Y - 160, 0, H);
+      hz.addColorStop(0, 'rgba(130,78,74,0)');
+      hz.addColorStop(0.5, 'rgba(168,100,88,0.24)');
+      hz.addColorStop(0.85, 'rgba(196,120,100,0.32)');
+      hz.addColorStop(1, 'rgba(150,106,108,0.26)');
+      ctx.fillStyle = hz;
+      ctx.fillRect(0, GROUND_Y - 160, W, H - GROUND_Y + 160);
+      ctx.restore();
+    } catch (e) {}
+  };
 })();
 
 })();

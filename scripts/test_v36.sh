@@ -83,10 +83,10 @@ R=$(ev "(()=>{const n=document.querySelector('#bpList .bp-name');const st=getCom
 ck "پس‌زمینه‌ی نیمه‌تیره برای خوانایی" "$(ok1 "$R")" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots36/v36_tile_name.png >/dev/null 2>&1
 
-echo "===== ۷) اعلان مرکزی → توست بالای صفحه ====="
+echo "===== ۷) اعلان مرکزی → توست (v37: پایین صفحه — درخواست جدید کاربر) ====="
 agent-browser eval "try{DLG.skip()}catch(e){}; document.getElementById('wrap').classList.remove('dlg-on'); 'ok'" >/dev/null 2>&1
-R=$(ev "(()=>{setAnnounce('تست','زیرنویس تست',2);const e=document.getElementById('announce');const st=getComputedStyle(e);const t=parseFloat(st.top)/(window.__uiz||1);return t>60&&t<120&&st.borderRadius!=='0px'?1:'t='+t.toFixed(1)})()")
-ck "اعلان: توست فشرده زیر HUD (top≈86)" "$(ok1 "$R")" "$R"
+R=$(ev "(()=>{setAnnounce('تست','زیرنویس تست',2);const e=document.getElementById('announce');const st=getComputedStyle(e);const b=parseFloat(st.bottom);const r=e.getBoundingClientRect();return b>0&&r.top>innerHeight*0.7&&st.borderRadius!=='0px'?1:'b='+b.toFixed(1)})()")
+ck "اعلان: توست فشرده پایین صفحه (v37)" "$(ok1 "$R")" "$R"
 R=$(ev "(()=>{const e=document.getElementById('announce');const big=e.querySelector('.big');const fs=parseFloat(getComputedStyle(big).fontSize);const st=getComputedStyle(e);return fs<25&&st.maxWidth!=='none'?1:'fs='+fs})()")
 ck "فونت اعلان فشرده شد (<25px)" "$(ok1 "$R")" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots36/v36_announce_toast.png >/dev/null 2>&1
