@@ -278,7 +278,8 @@ function startWave(n) {
     SFX.wave();
   }
   SFX.dusk();
-  setBuildPanel(true, true);             // شب: پنل جمع
+  /* (۳۰) پنل ساخت‌وساز دیگر شب‌ها خودکار جمع نمی‌شود — داک بالای صفحه
+     روی زمین بازی نمی‌نشیند و وسط نبرد هم در دسترس است (درخواست کاربر) */
   if (typeof PED !== 'undefined') PED.leave(false);   // (۱۴٫۰) شب = دستفروع باید رفته باشد
   hidePeddlerPanel();
   $('bpHead').classList.remove('attention');

@@ -177,8 +177,8 @@ function updateShelterCine(dt) {
       if (SHEL.t >= SHEL._fadeT + 2.6) startTbcScreen();
     }
   } else if (ph === 'tbc') {
-    /* typing: «این داستان ادامه دارد...» */
-    const full = 'این داستان ادامه دارد...';
+    /* typing: «پایان فصل اول داستان پناهگاه: ادامه دارد...» (۳۰ — اسکریپت کاربر) */
+    const full = 'پایان فصل اول داستان پناهگاه: ادامه دارد...';
     if (SHEL.typed < full.length) {
       SHEL.typeAcc = (SHEL.typeAcc || 0) + dt * 7.5;
       while (SHEL.typeAcc >= 1 && SHEL.typed < full.length) {
@@ -196,7 +196,7 @@ function updateShelterCine(dt) {
         $('tbcSub').classList.add('on');
         $('tbcTease').classList.add('on');
         $('tbcRow').classList.add('on');
-        try { VOICE.speak(full, 'n', 'tbc1n'); } catch (e) {}
+        try { VOICE.speak(full, 'n', 'tbc30n'); } catch (e) {}
         SFX.heartbeat();
       }
       SHEL.teaseT = (SHEL.teaseT || 0) + dt;

@@ -321,14 +321,16 @@ function updateVictoryCine(dt) {
       { speed: 26, life: 2.4, size: 2.4, grav: 110 });
   }
   if (VC.phase === 'dawn') {
-    /* (22.0) گفتگوی پس از موج نهایی — «تموم شد؟ واقعاً تموم شد؟» */
+    /* (۳۰) afterFinal خالی شد — اسکریپت کاربر مستقیم با هشدار رادیویی شروع
+       می‌شود؛ سپیده‌دمِ ساکت فقط چند ثانیه تعلیق می‌سازد (DLG.start([]) هم
+       بلافاصله done=true می‌دهد) */
     if (!VC.spoken && VC.t > 1.3) {
       VC.spoken = true;
       const dl = (typeof STORY22 !== 'undefined') ? STORY22.afterFinal : [];
       DLG.start(dl, () => { if (VC) VC.done = true; });
     }
     if (!VC.radio && VC.t > 3.2) { VC.radio = true; SFX.peddler(); }
-    if ((VC.done || VC.t > 26) && VC.t > 8) {
+    if ((VC.done || VC.t > 26) && VC.t > 5) {
       /* بی‌سیم ناگهان با صدای هشدار روشن می‌شود */
       VC.phase = 'alarm';
       VC.t = 0;

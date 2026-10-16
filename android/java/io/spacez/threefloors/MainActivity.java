@@ -62,6 +62,10 @@ public class MainActivity extends Activity {
         s.setUseWideViewPort(true);
         s.setMediaPlaybackRequiresUserGesture(false);  /* (۲۳٫۰) موسیقی منو همان لحظه‌ی ورود پخش می‌شود */
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);      /* همیشه نسخه‌ی همراه‌شده */
+        /* (۳۰٫۰) مقیاس فونت سیستم (سامسونگ/One UI) روی WebView اعمال می‌شد و
+           متن‌های بازی از کادرهایشان بیرون می‌پرید («دکمه‌ها روی هم»).
+           textZoom=100 → بازی روی هر گوشی دقیقاً همان چیدمانِ طراحی‌شده است. */
+        try { s.setTextZoom(100); } catch (Throwable ignored) {}
         /* (۲۱٫۳) حالت تیره‌ی سیستم روی WebView قدیمی/شرکتی رنگ‌ها را
            کم‌رنگ می‌کرد — صریحاً خاموشش می‌کنیم (برای targetSdk 34
            بی‌اثر و بی‌ضرر است؛ برای WebViewهای OEM حیاتی) */

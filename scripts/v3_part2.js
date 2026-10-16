@@ -780,7 +780,7 @@ function startWave(n) {
   setAnnounce('مرحله ' + faNum(n),
     n === TOTAL_WAVES ? 'موج آخر! پادشاه زامبی‌ها پشتِ کاره...' : 'دفاع کن! 🧟', 2);
   SFX.wave();
-  setBuildPanel(true, true);               // شب شد: پنل خودکار جمع شود تا نقشه آزاد باشد (۶٫۰)
+  /* (۳۰) شب: پنل باز می‌ماند — داک بالا زمین بازی را نمی‌پوشاند */
   $('bpHead').classList.remove('attention');
   updateHUD();
 }
