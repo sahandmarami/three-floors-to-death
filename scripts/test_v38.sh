@@ -45,14 +45,15 @@ R=$([ "$(md5sum /home/z/my-project/android/res/mipmap-xxxhdpi/ic_launcher.png | 
 echo "===== ۳) مه‌های سفید منو کم شود ====="
 agent-browser open "$URL" >/dev/null; agent-browser wait 4000 >/dev/null
 agent-browser eval "M23.t=8; 'ok'" >/dev/null; sleep 1.5
-R=$(ev "M23.fogA.length<=4&&M23.fogB.length<=3?1:0"); ck "تعداد لایه‌های مه نصف شد (۹/۸ → ۳/۲)" "$R" "a=$(ev "M23.fogA.length")/b=$(ev "M23.fogB.length")"
-R=$(ev "(()=>{const a=M23.fogA.reduce((m,f)=>Math.max(m,f.a),0); const b=M23.fogB.reduce((m,f)=>Math.max(m,f.a),0); return (a<0.06&&b<0.07)?1:0})()"); ck "شفافیت هر لایه‌ی مه به‌شدت کم (~نصف)" "$R" "maxA=$(ev "(()=>{return M23.fogA.reduce((m,f)=>Math.max(m,f.a),0).toFixed(3)})()")"
+R=$(ev "M23.fogA.length===0&&M23.fogB.length===0?1:0"); ck "مه‌ها به‌کلی حذف شدند (v39: ۰/۰)" "$R" "a=$(ev "M23.fogA.length")/b=$(ev "M23.fogB.length")"
+R=$(ev "M23.fogA.length===0&&M23.fogB.length===0?1:0"); ck "هیچ بیضیِ مه‌ای رسم نمی‌شود (آرایه‌ها خالی — v39)" "$R"
 R=$(ev "(()=>{const c=document.querySelector('canvas'); const x=c.getContext('2d'); const d=x.getImageData(0,Math.floor(c.height*0.88),c.width,Math.floor(c.height*0.12)).data; let w=0,n=0; for(let i=0;i<d.length;i+=16){n++; if(d[i]>185&&d[i+1]>185&&d[i+2]>190)w++;} return (w/n<0.02)?1:0})()"); ck "نوار پایین منو: بدون سیلِ پیکسل سفید (مه سفید رفته)" "$R" "white%=$(ev "(()=>{const c=document.querySelector('canvas'); const x=c.getContext('2d'); const d=x.getImageData(0,Math.floor(c.height*0.88),c.width,Math.floor(c.height*0.12)).data; let w=0,n=0; for(let i=0;i<d.length;i+=16){n++; if(d[i]>185&&d[i+1]>185&&d[i+2]>190)w++;} return (100*w/n).toFixed(1)+'%'})()")"
-R=$(ev "(()=>{const c=document.querySelector('canvas'); const x=c.getContext('2d'); const d=x.getImageData(0,Math.floor(c.height/2),c.width,Math.floor(c.height/2)).data; let s=0,n=0; for(let i=0;i<d.length;i+=40){s+=(d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11);n++;} return s/n>=45?1:0})()"); ck "منو همچنان روشن (v37 حفظ شد — lum پایین ≥۴۵)" "$R" "lum=$(ev "(()=>{const c=document.querySelector('canvas'); const x=c.getContext('2d'); const d=x.getImageData(0,Math.floor(c.height/2),c.width,Math.floor(c.height/2)).data; let s=0,n=0; for(let i=0;i<d.length;i+=40){s+=(d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11);n++;} return (s/n).toFixed(1)})()")"
+agent-browser eval "M23.bolt.t=-999; M23.bolt.next=1e12; 'ok'" >/dev/null; sleep 0.4
+R=$(ev "(()=>{const c=document.querySelector('canvas'); const x=c.getContext('2d'); const d=x.getImageData(0,Math.floor(c.height/2),c.width,Math.floor(c.height/2)).data; let s=0,n=0; for(let i=0;i<d.length;i+=40){s+=(d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11);n++;} const L=s/n; return (L>=25&&L<42)?1:0})()"); ck "پایینِ منو: تیره‌ی تمیز ۲۵–۴۲ (v39: شستشوی پایین حذف)" "$R" "lum=$(ev "(()=>{const c=document.querySelector('canvas'); const x=c.getContext('2d'); const d=x.getImageData(0,Math.floor(c.height/2),c.width,Math.floor(c.height/2)).data; let s=0,n=0; for(let i=0;i<d.length;i+=40){s+=(d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11);n++;} return (s/n).toFixed(1)})()")"
 agent-browser screenshot /home/z/my-project/scripts/shots38/t38_menu.png >/dev/null 2>&1
 
 echo "===== ۴) زامبی‌های منو باحال‌تر ====="
-R=$(ev "M23.drawSilZombie.toString().includes('crawl')?1:0"); ck "زامبی خزنده (نوع fast چهاردست‌وپا)" "$R"
+R=$(ev "M23.drawSilZombie.toString().includes('crawl')?0:1"); ck "خزنده حذف شد — همه ایستاده (v39)" "$R"
 R=$(ev "M23.drawSilZombie.toString().includes('rimC')?1:0"); ck "نورِ لبه‌ی ماه خونی روی بدن/جمجمه" "$R"
 R=$(ev "M23.drawSilZombie.toString().includes('rdapvsh')||M23.drawSilZombie.toString().includes('wf')?1:0"); ck "دنباله‌های رداپوش موج‌دار در باد" "$R"
 R=$(ev "(()=>{const zs=M23.zmb.filter(z=>z.ty==='tank'||z.ty==='normal'); return zs.length>0?1:0})()"); ck "زامبی‌های ایستاده بولد موجود" "$R"

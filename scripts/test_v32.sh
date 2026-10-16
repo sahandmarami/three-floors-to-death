@@ -91,13 +91,8 @@ R=$(agent-browser eval "(()=>{const ev=Array.from(document.querySelectorAll('#cl
 ck "کارت‌های شواهد+اکشن در باتن‌شیت (v34)" "$R"
 R=$(agent-browser eval "(()=>{const nums=Array.from(document.querySelectorAll('#clueSheet34 .rc34 em')).map(e=>e.textContent); return nums.some(t=>/۰۱/.test(t))?1:0})()" 2>/dev/null | tail -1)
 ck "شماره‌گذاری فارسی شواهد (۰۱، ۰۲…)" "$R"
-<<<<<<< HEAD
-R=$(agent-browser eval "(()=>{return document.querySelector('#clueSheet34 [data-act=radio].gold34')&&document.querySelector('#clueSheet34 .rc-go34')?1:0})()" 2>/dev/null | tail -1)
-ck "کارت معمای فعال (کهربایی + chevron)" "$R"
-=======
 R=$(agent-browser eval "(()=>{return document.querySelector('#clueSheet34 [data-act=radio].gold34')&&!document.querySelector('#clueSheet34 .rc-go34')?1:0})()" 2>/dev/null | tail -1)
 ck "کارت معمای فعال (کهربایی — chevron حذف شد v38)" "$R"
->>>>>>> 863fa02 (نسخه‌ی ۳۸٫۰ — متن داستان پایین صفحه + آیکون جدید بازی + حذف مه‌های سفید منو + زامبی‌های باحال + بدون علامت در سرنخ‌ها — ۴۳۹ تست سبز)
 R=$(agent-browser eval "(()=>{const h=document.querySelector('#clueSheet34 .sh-sec34'); return h&&getComputedStyle(h).display==='flex'?1:0})()" 2>/dev/null | tail -1)
 ck "سرصفحه‌های بخش با خط‌کشی (نه متن معلق)" "$R"
 R=$(agent-browser eval "(()=>{return document.querySelectorAll('#clueSheet34 .rc34[data-act]').length===4?1:0   /* جست‌وجو + مولوتوف + شنود + معما */})()" 2>/dev/null | tail -1)

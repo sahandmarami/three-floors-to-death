@@ -22,7 +22,7 @@ echo "===== ۱) منو: روشن‌تر + زامبی ترسناک ====="
 LUM=$(ev "(()=>{const c=document.getElementById('game');const g=c.getContext('2d');const d=g.getImageData(0,0,c.width,Math.floor(c.height*0.6)).data;let s=0,n=0;for(let i=0;i<d.length;i+=64){s+=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];n++}return (s/n).toFixed(1)})()")
 LUMN=$(echo $LUM | sed 's/[^0-9.]//g')
 ck "منو روشن‌تر (لومینانس > 8)" "$(python3 -c "print(1 if float('$LUMN')>8 else 0)")" "lum=$LUM"
-R=$(ev "M23.zmb.length>=7?'1':'n='+M23.zmb.length"); ck "۷ زامبی با مقیاس درشت" "$(echo "$R" | grep -c '^1$')" "$R"
+R=$(ev "M23.zmb.length>=3?'1':'n='+M23.zmb.length"); ck "زامبی‌های منو (۳ ایستاده — v39؛ قبلا ۷)" "$(echo "$R" | grep -c '^1$')" "$R"
 R=$(ev "M23.zmb.some(z=>z.d>=1.3)?'1':'no big'"); ck "زامبی‌های پیش‌زمینه درشت (d≥1.3)" "$(echo "$R" | grep -c '^1$')" "$R"
 R=$(ev "M23.zmb.every(z=>typeof z.hurt==='number'&&typeof z.stare==='number')?'1':'fields missing'"); ck "فیلدهای لکنت/خیرگی فعال" "$(echo "$R" | grep -c '^1$')" "$R"
 agent-browser screenshot /home/z/my-project/scripts/shots30/v35_menu.png >/dev/null 2>&1

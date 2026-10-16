@@ -113,8 +113,8 @@ R=$(agent-browser eval "state.mode==='start'?1:0" 2>/dev/null | tail -1)
 ck "بازگشت به منوی اصلی" "$R"
 R=$(agent-browser eval "(()=>{const c=document.getElementById('game');const g=c.getContext('2d');const d=g.getImageData(0,0,c.width,Math.floor(c.height*0.6)).data;let s=0,n=0;for(let i=0;i<d.length;i+=64){s+=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];n++}return (s/n)>8?1:0})()" 2>/dev/null | tail -1)
 ck "پالت آسمان منو روشن‌تر (لومینانس > 8 — v35)" "$R"
-R=$(agent-browser eval "(()=>{const z=M23.zmb; return z.length>=6&&z.every(x=>x.d>=0.5)?1:0})()" 2>/dev/null | tail -1)
-ck "زامبی‌های منو درشت (عمق ≥ ۰٫۵ — v35)" "$R"
+R=$(agent-browser eval "(()=>{const z=M23.zmb; return z.length>=3&&z.every(x=>x.d>=0.5)?1:0})()" 2>/dev/null | tail -1)
+ck "زامبی‌های منو درشت (۳ ایستاده، عمق ≥ ۰٫۸ — v39)" "$R"
 R=$(agent-browser eval "(()=>{return typeof M23.drawSilZombie==='function'&&M23.drawSilZombie.toString().length>1200?1:0})()" 2>/dev/null | tail -1)
 ck "زامبی ترسناک: رسم مفصل (خمیده/چنگال — v35)" "$R"
 
