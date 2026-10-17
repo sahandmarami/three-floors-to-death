@@ -128,7 +128,7 @@ R=$(agent-browser eval "(()=>{const g=document.getElementById('goStats'); return
 
 echo "===== ۱۱) رگرسیون — ارث ۲۷ ====="
 R=$(agent-browser eval "typeof COIN27==='string' && COIN27.startsWith('data:image/png')?1:0" | tail -1); ck "سکه واقعی COIN27" "$R"
-R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length===151?1:0" | tail -1); ck "۱۵۱ خط صدا (۱۱۹+۳۲ جدید)" "$R"
+R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length===175?1:0" | tail -1); ck "۱۷۵ خط صدا (۴۰٫۰)" "$R"
 R=$(agent-browser eval "!document.getElementById('btnSaveCode') && !document.getElementById('saveCodeScreen')?1:0" | tail -1); ck "کد سیو حذف" "$R"
 R=$(agent-browser eval "(()=>{const s=document.getElementById('startScreen'); return s && !s.textContent.includes('نسخه')?1:0})()" | tail -1); ck "منو بدون نسخه" "$R"
 R=$(agent-browser eval "(()=>{const s=MG23.building23.toString(); return s.includes('[136, 124, 112]')?1:0})()" | tail -1); ck "ساختمان استوری = برج بازی" "$R"
@@ -138,7 +138,7 @@ R=$(agent-browser eval "typeof Snd!=='undefined' && Snd.ctx && Snd.ctx.onstatech
 
 echo "===== ۱۲) صداهای بازسازی‌شده (لحن موقعیت) ====="
 R=$(agent-browser eval "(()=>{const v=VOICES23.aw1; return v && v.d>1.2 && v.a.length>4000?1:0})()" | tail -1); ck "کلیپ aw1 (فوری) تازه" "$R"
-R=$(agent-browser eval "(()=>{const v=VOICES23.c4v4; return v && v.d>1.5 && v.a.length>4000?1:0})()" | tail -1); ck "کلیپ c4v4 (ترس) تازه" "$R"
+R=$(agent-browser eval "(()=>{const v=VOICES23.si1a; return v && v.d>0.5 && v.a.length>2000?1:0})()" | tail -1); ck "کلیپ si1a (آژیر، فوریت) تازه (۴۰٫۰)" "$R"
 R=$(agent-browser eval "(()=>{const v=VOICES23.t1a1; return v && v.d>1.4 && v.a.length>4000?1:0})()" | tail -1); ck "کلیپ t1a1 (وحشت) تازه" "$R"
 
 echo ""

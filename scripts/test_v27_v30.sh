@@ -15,9 +15,9 @@ for i in $(seq 1 40); do
 done
 
 echo "===== ۱) صداهای ElevenLabs فارسی v27 ====="
-R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length===151?1:0" | tail -1); ck "(۳۰) ۱۵۱ خط صدا موجود (۱۱۹+۳۲ جدید)" "$R"
-R=$(agent-browser eval "VOICES23.i3a && VOICES23.i3a.a.startsWith('data:audio/mpeg;base64,') && VOICES23.i3a.d>0.5?1:0" | tail -1); ck "کلیپ i3a (آرش) MP3 با مدت" "$R"
-R=$(agent-browser eval "VOICES23.c4m1 && VOICES23.c4m1.a.length>5000?1:0" | tail -1); ck "کلیپ c4m1 (مریم) بلند" "$R"
+R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length===175?1:0" | tail -1); ck "(۳۰) ۱۵۱ خط صدا موجود (۱۱۹+۳۲ جدید)" "$R"
+R=$(agent-browser eval "VOICES23.in1p && VOICES23.in1p.a.startsWith('data:audio/mpeg;base64,') && VOICES23.in1p.d>0.5?1:0" | tail -1); ck "کلیپ in1p (آرش) MP3 با مدت (۴۰٫۰)" "$R"
+R=$(agent-browser eval "VOICES23.sa3m && VOICES23.sa3m.a.length>5000?1:0" | tail -1); ck "کلیپ sa3m (مریم، خوش‌آمد) بلند (۴۰٫۰)" "$R"
 R=$(agent-browser eval "window.__el27 = [...Object.values(VOICES23)].filter(v=>v.a.length>4000).length; __el27>=110?1:0" | tail -1); ck "بیش از ۱۱۰ کلیپ ElevenLabs جاسازی‌شده" "$R" "got=$(agent-browser eval "window.__el27" | tail -1)"
 
 echo "===== ۲) منوهای متریال ۲۷ (توقف/تنظیمات/درباره) ====="
