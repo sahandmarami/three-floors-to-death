@@ -1568,6 +1568,11 @@ const E30_DLG = {
     { who: 's', v: 'st9s', text: 'اونی که می‌ریم، دیگه برگشتی نیست.' },
     { who: 'p', v: 'st10p', text: 'برگشتی از اول هم نبود.' },
   ],
+  epilogue: [
+    { who: 'n', v: 'ep1', text: 'جاده از دره گذشت؛ و چراغ ماشین، مثل ستاره‌ای ریز، در دلِ تاریکی گم شد.' },
+    { who: 'a', v: 'ep2', text: 'فصلِ اول تمومه، آرش. این فقط اولِ راهه...' },
+    { who: 'p', v: 'ep3', text: 'ولی امشب... برای اولین‌بار، آسمون روشن‌تر به نظر می‌رسه.' },
+  ],
 };
 
 function startEnding30() {
@@ -1618,6 +1623,7 @@ function e30Next(ph) {
   if (ph === 'siren') { try { SFX.alarm(); } catch (e) {} state.shake = 9; }
   if (ph === 'escape') { try { SFX.alarm(); } catch (e) {} state.shake = 12; try { SFX.csRumble(); } catch (e) {} }
   if (ph === 'control') { state.shake = 4; }
+  if (ph === 'creditroll') { try { VOICE.stop(); } catch (e) {} try { MUSIC.set('menu'); } catch (e) {} try { VOICE.speak('سه‌طبقه تا مرگ. پایانِ فصلِ اول... ادامه دارد.', 'n', 'ep4'); } catch (e) {} }
   if (ph === 'plati') {
     /* کارت فصل میانی → پلتفرمر */
     E30.dlgStarted = true; E30.dlgDone = true;
@@ -1629,7 +1635,11 @@ function skipEnding30() {
   SFX.click();
   try { VOICE.stop(); } catch (e) {}
   try { DLG.skip(); } catch (e) {}
-  if (E30.phase === 'station' || E30.phase === 'driveoff') {
+  if (E30.phase === 'station' || E30.phase === 'driveoff' || E30.phase === 'epilogue') {
+    e30Next('creditroll');
+    return;
+  }
+  if (E30.phase === 'creditroll') {
     e30Finish();
     return;
   }
@@ -1717,7 +1727,14 @@ function updateEnding30(dt) {
     if ((E30.dlgDone || E30.t > 70) && E30.t > 4) e30Next('driveoff');
   } else if (ph === 'driveoff') {
     E30.fade = clamp((E30.t - 3.6) / 2.2, 0, 1);
-    if (E30.t > 6.2) e30Finish();
+    if (E30.t > 6.2) e30Next('epilogue');
+  } else if (ph === 'epilogue') {
+    /* باز شدن تدریجی صحنهٔ شب */
+    E30.fade = 1 - clamp(E30.t / 1.6, 0, 1);
+    startDlg();
+    if ((E30.dlgDone || E30.t > 40) && E30.t > 4) e30Next('creditroll');
+  } else if (ph === 'creditroll') {
+    if (E30.t > 17) e30Finish();
   }
 }
 
@@ -1737,6 +1754,8 @@ function renderEnding30() {
   else if (ph === 'plati') drawE30Plati(t);
   else if (ph === 'station') drawE30Station(t);
   else if (ph === 'driveoff') drawE30Driveoff(t);
+  else if (ph === 'epilogue') drawE30Epilogue(t);
+  else if (ph === 'creditroll') drawE30Credits(t);
 
   drawShootingStar();
   drawParticles();
@@ -2451,4 +2470,188 @@ function drawE30Driveoff(t) {
     ctx.fillText('مسیر فاز دوم — شمال', mx + 16, my + 14);
     ctx.restore();
   }
+}
+
+/* ---------- ۴۰-۱۱) ضدتکرار صدا: بارک‌های ارشان + دستفروش متنوع‌تر ----------
+   قبلاً هر موج همان یک جمله‌ی «من همین‌جام!» و هر صبح همان «خسته نباشی» پخش می‌شد.
+   الان هر بار از استخرِ سه‌گانه یکی انتخاب می‌شود و تا چند نوبت جمله‌ی قبلی برنمی‌گردد. */
+try {
+  (function () {
+    /* استخرِ شروع شب برای aw1 */
+    const nightPool = ['aw1', 'aw1b', 'aw1c'];
+    const morningPool = ['aw6', 'aw6b', 'aw6c'];
+    let lastNight = '', lastMorning = 0;
+    function pick(pool, last) {
+      const cand = pool.filter(k => k !== last);
+      return cand[Math.floor(Math.random() * cand.length)] || pool[0];
+    }
+    if (typeof ARSHAN_BARKS !== 'undefined') {
+      if (!ARSHAN_BARKS.__awOrig) ARSHAN_BARKS.__awOrig = { aw1: ARSHAN_BARKS.aw1, aw6: ARSHAN_BARKS.aw6 };
+      /* تعریف واریانت‌های تازه (هم‌شکل بارک‌های پایه) */
+      const _mk = (v, text, title) => ({ who: 'a', v, text, title, sub: text });
+      if (!ARSHAN_BARKS.aw1b) ARSHAN_BARKS.aw1b = _mk('aw1b', 'شب شروع شد؛ حواست فقط طرفینِ برج باشه.', '🧭 [ارشان]:');
+      if (!ARSHAN_BARKS.aw1c) ARSHAN_BARKS.aw1c = _mk('aw1c', 'هر چی می‌بینم بهت می‌گم؛ تو فقط تیر بزن.', '🧭 [ارشان]:');
+      if (!ARSHAN_BARKS.aw6b) ARSHAN_BARKS.aw6b = _mk('aw6b', 'بردیمش! امشب هم این برج سرِ پا موند.', '🌤 [ارشان]:');
+      if (!ARSHAN_BARKS.aw6c) ARSHAN_BARKS.aw6c = _mk('aw6c', 'خسته نباشی جوون؛ فردا مالِ خودمونه.', '🌤 [ارشان]:');
+      const O = ARSHAN_BARKS.__awOrig;
+      const mkNight = function () {
+        const k = pick(nightPool, lastNight); lastNight = k;
+        return k === 'aw1' ? O.aw1 : ARSHAN_BARKS[k];
+      };
+      const mkMorning = function () {
+        let k = pick(morningPool, lastMorning); lastMorning = k;
+        return k === 'aw6' ? O.aw6 : ARSHAN_BARKS[k];
+      };
+      try { delete ARSHAN_BARKS.aw1; } catch (e) {}
+      try { delete ARSHAN_BARKS.aw6; } catch (e) {}
+      Object.defineProperty(ARSHAN_BARKS, 'aw1', { get: mkNight });
+      Object.defineProperty(ARSHAN_BARKS, 'aw6', { get: mkMorning });
+    }
+    /* صبح‌ها: هر روز از استخر، ولی جمله‌ی دیروز تکرار نشود */
+    if (typeof ARSHAN !== 'undefined') { ARSHAN.__lastMorningKey = 0; }
+    /* دستفروش: خوش‌آمد و پاسخِ تازه برای هر چهره + دو شکِ تازه‌ی آرش */
+    if (typeof PED30_BANKS !== 'undefined') {
+      const ADD = {
+        0: { i: { v: 'pd1i3', t: 'امشب یه چیزِ کمیاب آوردم... کسی نباید بفهمه.' },
+             a: { v: 'pd1a3', t: 'سؤالِ زیاد... اعتمادِ کم میاره. فقط انتخاب کن.' } },
+        1: { i: { v: 'pd2i3', t: 'بیا بیا! یه سورپرایز دارم که موهات وانهسته!' },
+             a: { v: 'pd2a3', t: 'کار می‌کنه! روی خودم تستش نکردم، ولی کار می‌کنه!' } },
+        2: { i: { v: 'pd3i3', t: '...جنسِ تازه رسیده. نگاه کن.' },
+             a: { v: 'pd3a3', t: 'تست‌شده. روی اونا.' } },
+        3: { i: { v: 'pd4i3', t: 'وایسا! قبل از اینکه بپرسی بگم: تخفیفِ ویژه‌ی امشب!' },
+             a: { v: 'pd4a3', t: 'ضمانت؟! تو دنیای زامبی‌ها ضمانت یعنی همین بسته‌ی پلاستیکی!' } },
+        4: { i: { v: 'pd5i3', t: 'چرخ‌دسته رو نگاه کن؛ بینِ چرخ‌ها چیزای خوبی گیر کرده.' },
+             a: { v: 'pd5a3', t: 'قیمتش منصفانه‌ست؛ مثلِ نفس کشیدن. کسی ممنونت نمی‌شه.' } },
+      };
+      for (const bi in ADD) {
+        const B = PED30_BANKS[+bi]; if (!B) continue;
+        if (typeof B.intro === 'object' && B.intro.length >= 1 && !B.intro.some(l => l.v === ADD[bi].i.v)) B.intro.push(ADD[bi].i);
+        if (typeof B.ans === 'object' && B.ans.length >= 1 && !B.ans.some(l => l.v === ADD[bi].a.v)) B.ans.push(ADD[bi].a);
+      }
+    }
+    if (typeof PED30_DOUBTS !== 'undefined') {
+      const DN = [
+        { v: 'pdA6', t: 'اگه امروز بخرم... فردا هم میای؟' },
+        { v: 'pdA7', t: 'چیزی داری که برج رو نجات بده؟' },
+      ];
+      for (const d of DN) if (!PED30_DOUBTS.some(l => l.v === d.v)) PED30_DOUBTS.push(d);
+    }
+  })();
+} catch (e) { /* بی‌خطر */ }
+
+/* ---------- ۴۰-۱۲) رندر اپیلوگ و تیتراژ پایانی (۴۱٫۰) ---------- */
+function drawE30Epilogue(t) {
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, 'rgba(4,6,16,1)');
+  sky.addColorStop(0.66, 'rgba(10,14,30,0.98)');
+  sky.addColorStop(1, 'rgba(6,8,18,1)');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 90; i++) {
+    const x = (i * 197.3) % W, y = (i * 89.7) % (H * 0.6);
+    const tw = 0.35 + 0.4 * Math.sin(t * 1.7 + i * 1.31);
+    ctx.fillStyle = 'rgba(220,228,255,' + (tw * (i % 7 === 0 ? 0.9 : 0.5)).toFixed(2) + ')';
+    ctx.fillRect(x, y, 2, 2);
+  }
+  const mx = W * 0.78, my = H * 0.2;
+  const mg = ctx.createRadialGradient(mx, my, 8, mx, my, 130);
+  mg.addColorStop(0, 'rgba(255,244,214,0.85)');
+  mg.addColorStop(1, 'rgba(255,244,214,0)');
+  ctx.fillStyle = mg;
+  ctx.beginPath(); ctx.arc(mx, my, 130, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(250,240,205,0.96)';
+  ctx.beginPath(); ctx.arc(mx, my, 30, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(226,214,172,0.5)';
+  ctx.beginPath(); ctx.arc(mx - 9, my - 6, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(mx + 10, my + 8, 5, 0, Math.PI * 2); ctx.fill();
+  const RY = H * 0.74;
+  const gg = ctx.createLinearGradient(0, RY, 0, H);
+  gg.addColorStop(0, 'rgba(16,18,26,0.98)');
+  gg.addColorStop(1, 'rgba(4,5,9,1)');
+  ctx.fillStyle = gg;
+  ctx.fillRect(0, RY, W, H - RY);
+  ctx.strokeStyle = 'rgba(90,96,120,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, RY); ctx.lineTo(W, RY); ctx.stroke();
+  ctx.strokeStyle = 'rgba(150,150,170,0.28)'; ctx.lineWidth = 2;
+  ctx.setLineDash([14, 16]);
+  ctx.beginPath(); ctx.moveTo(W * 0.52, RY + 4); ctx.lineTo(W * 0.86, H); ctx.stroke();
+  ctx.setLineDash([]);
+  const k = clamp(t / 26, 0, 1);
+  const cx = W * 0.5 + k * W * 0.3, cy = RY + 6 + k * (H - RY) * 0.35;
+  const lr = 26 * (1 - k) + 4;
+  const lg = ctx.createRadialGradient(cx, cy, 1, cx, cy, lr * 3);
+  lg.addColorStop(0, 'rgba(255,232,170,0.85)');
+  lg.addColorStop(1, 'rgba(255,232,170,0)');
+  ctx.fillStyle = lg;
+  ctx.beginPath(); ctx.arc(cx, cy, lr * 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,236,180,0.95)';
+  ctx.beginPath(); ctx.arc(cx, cy, 3.2 * (1 - k) + 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(10,12,18,0.95)';
+  ctx.beginPath(); ctx.ellipse(cx - 14 * (1 - k) - 6, cy + 1, 10 * (1 - k) + 3, 3.4 * (1 - k) + 1, 0, 0, Math.PI * 2); ctx.fill();
+  if (typeof e30Figure === 'function') {
+    e30Figure(W * 0.24, RY, { c: 'rgba(14,16,24,0.97)', s: 1.3, ph: Math.sin(t * 0.8) * 0.25 });
+    e30Figure(W * 0.31, RY, { c: 'rgba(18,21,32,0.97)', s: 1.42, ph: Math.sin(t * 0.8 + 1.4) * 0.25 });
+  }
+}
+
+function drawE30Credits(t) {
+  ctx.fillStyle = 'rgba(4,5,10,0.97)';
+  ctx.fillRect(0, 0, W, H);
+  const lines = [
+    { s: 1, text: 'سه‌طبقه تا مرگ' },
+    { s: 2, text: '— پایانِ فصلِ اول —' },
+    { s: 3, text: '' },
+    { s: 3, text: '' },
+    { s: 0, text: 'بازیگران' },
+    { s: 2, text: 'آرش — صدای Liam' },
+    { s: 2, text: 'ارشان — صدای Bill' },
+    { s: 2, text: 'دکتر مریم — صدای Jessica' },
+    { s: 2, text: 'دکتر سارا — صدای Matilda' },
+    { s: 2, text: 'راوی — صدای Brian' },
+    { s: 2, text: 'نگهبان — صدای Adam' },
+    { s: 2, text: 'بی‌سیم — صدای George' },
+    { s: 2, text: 'هیولای آخر — صدای Charlie' },
+    { s: 2, text: 'دستفروش مرموز — Chris · Will · Harry · Eric · River' },
+    { s: 3, text: '' },
+    { s: 3, text: '' },
+    { s: 0, text: 'ساخت و ایده' },
+    { s: 2, text: 'sahandmarami' },
+    { s: 3, text: '' },
+    { s: 0, text: 'صداگذاری فارسی' },
+    { s: 2, text: 'ElevenLabs' },
+    { s: 3, text: '' },
+    { s: 3, text: '' },
+    { s: 1, text: 'ادامه دارد...' },
+  ];
+  const scroll = t * 26;
+  let y = H + 46 - scroll;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  for (const L of lines) {
+    if (L.s === 0) {
+      if (y > -10 && y < H + 10) {
+        ctx.font = 'bold 13px Vazirmatn, sans-serif';
+        ctx.fillStyle = 'rgba(226,186,110,0.92)';
+        ctx.fillText(L.text, W / 2, y);
+      }
+      y += 26;
+    } else if (L.s === 1) {
+      if (y > -30 && y < H + 30) {
+        ctx.font = 'bold 30px Vazirmatn, sans-serif';
+        ctx.fillStyle = 'rgba(236,214,150,0.96)';
+        ctx.fillText(L.text, W / 2, y);
+      }
+      y += 52;
+    } else if (L.s === 2) {
+      if (y > -20 && y < H + 20) {
+        ctx.font = '14px Vazirmatn, sans-serif';
+        ctx.fillStyle = 'rgba(214,220,238,0.85)';
+        ctx.fillText(L.text, W / 2, y);
+      }
+      y += 30;
+    } else {
+      y += 22;
+    }
+  }
+  ctx.textAlign = 'left';
 }

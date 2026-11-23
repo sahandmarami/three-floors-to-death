@@ -5,7 +5,8 @@ P=0; F=0
 ck() { if [ "$2" = "1" ]; then P=$((P+1)); echo "  OK  $1"; else F=$((F+1)); echo "  FAIL  $1  ($3)"; fi }
 
 agent-browser close --all >/dev/null 2>&1; sleep 0.5
-mkdir -p /home/z/my-project/scripts/shots40
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+mkdir -p "$ROOT/scripts/shots40"
 agent-browser set viewport 780 360 >/dev/null
 agent-browser open "$URL" >/dev/null
 for i in $(seq 1 40); do
@@ -38,7 +39,7 @@ R=$(agent-browser eval "VOICES23.df1p && VOICES23.df2a && VOICES23.tbc1n?1:0" | 
 echo "===== ۴) دستفروش — بانک پنج چهره (پرامپت بخش ۷) ====="
 R=$(agent-browser eval "PED30_BANKS.length===5?1:0" | tail -1); ck "۵ بانک چهره" "$R"
 R=$(agent-browser eval "PED30_BANKS[0].intro.length===3 && PED30_BANKS[2].intro.some(x=>x.v==='pd3i1')?1:0" | tail -1); ck "بانک‌ها: شنل‌پوش ۳ خط آغازین + ماسک‌گاز «...کالا. بخر.»" "$R"
-R=$(agent-browser eval "PED30_DOUBTS.length===5 && PED30_MYSTERY.length===5?1:0" | tail -1); ck "۵ شک آرش + ۵ اشارهٔ مرموز" "$R"
+R=$(agent-browser eval "PED30_DOUBTS.length>=5 && PED30_MYSTERY.length===5?1:0" | tail -1); ck "شک‌های آرش (۵ پایه + تازه‌ها) + ۵ اشارهٔ مرموز" "$R"
 R=$(agent-browser eval "VOICES23.pd3i1 && VOICES23.pd2f1 && VOICES23.pd5f1 && VOICES23.pmh3 && VOICES23.pdf1?1:0" | tail -1); ck "کلیپ‌های صدای پنج چهره موجود" "$R"
 
 echo "===== ۵) زنجیرهٔ پایان — پناهگاه → آژیر → پروندهٔ Z → جدایی ====="
@@ -84,16 +85,20 @@ agent-browser eval "PLAT30.pl.x = PLAT30.LVL.exitX + 20; 'e3'" >/dev/null
 for i in $(seq 1 30); do M=$(agent-browser eval "state.mode" 2>/dev/null | tail -1); [ "$M" = "end30" ] && break; sleep 0.5; done
 R=$(agent-browser eval "E30.phase==='station'?1:0" | tail -1); ck "پایان مرحلهٔ ۳ → سینمایی ایستگاه شمالی" "$R" "ph=$(agent-browser eval "E30.phase" | tail -1)"
 R=$(agent-browser eval "DLG.lines.some(l=>l.v==='st3s' && l.who==='s')?1:0" | tail -1); ck "دکتر سارا: «من یکی از اونایی‌ام که Z رو ساختم»" "$R"
-# پایان باز + پاک‌شدن سیو
-agent-browser eval "try{STORE.set('ttb3_save_v1','X')}catch(e){localStorage.setItem('ttb3_save_v1','X')}; skipEnding30(); 'skip'" >/dev/null; sleep 3.2
-R=$(agent-browser eval "document.getElementById('tbcTitle') && document.getElementById('tbcTitle').textContent.includes('ادامه دارد')?1:0" | tail -1); ck "پایان باز: «این داستان ادامه دارد...»" "$R"
+# پایان جدید: رد کردن → اپیلوگ/تیتراژ → صفحهٔ پایانی + پاک‌شدن سیو
+agent-browser eval "try{STORE.set('ttb3_save_v1','X')}catch(e){localStorage.setItem('ttb3_save_v1','X')}; skipEnding30(); 'skip'" >/dev/null
+for i in $(seq 1 30); do PH=$(agent-browser eval "E30.phase" 2>/dev/null | tail -1); [ "$PH" = "creditroll" ] && break; sleep 0.5; done
+R=$(agent-browser eval "E30.phase==='creditroll'?1:0" | tail -1); ck "رد کردن زنجیره → تیتراژ پایانی (۴۱٫۰)" "$R" "ph=$PH"
+for i in $(seq 1 45); do TV=$(agent-browser eval "document.getElementById('tbcScreen') && !document.getElementById('tbcScreen').classList.contains('hidden')?1:0" 2>/dev/null | tail -1); [ "$TV" = "1" ] && break; sleep 1; done
+for i in $(seq 1 40); do D=$(agent-browser eval "document.getElementById('tbcTitle') && document.getElementById('tbcTitle').textContent.includes('ادامه دارد')?1:0" 2>/dev/null | tail -1); [ "$D" = "1" ] && break; sleep 1; done
+R=$D; ck "پایان باز: «این داستان ادامه دارد...»" "$R"
 R=$(agent-browser eval "(function(){try{return STORE.get('ttb3_save_v1')===null}catch(e){return localStorage.getItem('ttb3_save_v1')===null}})()?1:0" | tail -1); ck "سیو پس از اتمام بازی پاک شد (wipeSave)" "$R"
 R=$(agent-browser eval "typeof tbcContinueToMenu==='function'?1:0" | tail -1); ck "دکمهٔ بازگشت به منو موجود" "$R"
 
 echo "===== ۸) رگرسیون‌های حیاتی ====="
 agent-browser eval "tbcContinueToMenu(); 'menu'" >/dev/null; sleep 2
 R=$(agent-browser eval "state.mode==='start'?1:0" | tail -1); ck "بازگشت سالم به منو" "$R"
-R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length===175?1:0" | tail -1); ck "۱۷۵ کلیپ صوتی v40" "$R"
+R=$(agent-browser eval "typeof VOICES23!=='undefined' && Object.keys(VOICES23).length>=180?1:0" | tail -1); ck "کلیپ‌های صوتی v41 (۱۸۷: ۱۷۵ پایه + تازه‌ها)" "$R"
 R=$(agent-browser eval "VOICES23.aw3 && VOICES23.aw6?1:0" | tail -1); ck "کلیپ‌های aw3/aw6 (بارک ارشان) بازتولید شدند" "$R"
 
 echo

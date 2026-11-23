@@ -1,7 +1,8 @@
 #!/bin/bash
 # (۲۱٫۳) بازسازی محیط ساخت APK — cmdline-tools + platform-34 + build-tools 34 + JDK
 set -e
-cd /home/z/my-project
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 mkdir -p .android-sdk && cd .android-sdk
 
 echo "[1/4] JDK (با javac)..."

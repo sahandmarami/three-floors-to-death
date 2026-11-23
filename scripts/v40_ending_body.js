@@ -71,6 +71,11 @@ const E30_DLG = {
     { who: 's', v: 'st9s', text: 'اونی که می‌ریم، دیگه برگشتی نیست.' },
     { who: 'p', v: 'st10p', text: 'برگشتی از اول هم نبود.' },
   ],
+  epilogue: [
+    { who: 'n', v: 'ep1', text: 'جاده از دره گذشت؛ و چراغ ماشین، مثل ستاره‌ای ریز، در دلِ تاریکی گم شد.' },
+    { who: 'a', v: 'ep2', text: 'فصلِ اول تمومه، آرش. این فقط اولِ راهه...' },
+    { who: 'p', v: 'ep3', text: 'ولی امشب... برای اولین‌بار، آسمون روشن‌تر به نظر می‌رسه.' },
+  ],
 };
 
 function startEnding30() {
@@ -121,6 +126,7 @@ function e30Next(ph) {
   if (ph === 'siren') { try { SFX.alarm(); } catch (e) {} state.shake = 9; }
   if (ph === 'escape') { try { SFX.alarm(); } catch (e) {} state.shake = 12; try { SFX.csRumble(); } catch (e) {} }
   if (ph === 'control') { state.shake = 4; }
+  if (ph === 'creditroll') { try { VOICE.stop(); } catch (e) {} try { MUSIC.set('menu'); } catch (e) {} try { VOICE.speak('سه‌طبقه تا مرگ. پایانِ فصلِ اول... ادامه دارد.', 'n', 'ep4'); } catch (e) {} }
   if (ph === 'plati') {
     /* کارت فصل میانی → پلتفرمر */
     E30.dlgStarted = true; E30.dlgDone = true;
@@ -132,7 +138,11 @@ function skipEnding30() {
   SFX.click();
   try { VOICE.stop(); } catch (e) {}
   try { DLG.skip(); } catch (e) {}
-  if (E30.phase === 'station' || E30.phase === 'driveoff') {
+  if (E30.phase === 'station' || E30.phase === 'driveoff' || E30.phase === 'epilogue') {
+    e30Next('creditroll');
+    return;
+  }
+  if (E30.phase === 'creditroll') {
     e30Finish();
     return;
   }
@@ -220,7 +230,14 @@ function updateEnding30(dt) {
     if ((E30.dlgDone || E30.t > 70) && E30.t > 4) e30Next('driveoff');
   } else if (ph === 'driveoff') {
     E30.fade = clamp((E30.t - 3.6) / 2.2, 0, 1);
-    if (E30.t > 6.2) e30Finish();
+    if (E30.t > 6.2) e30Next('epilogue');
+  } else if (ph === 'epilogue') {
+    /* باز شدن تدریجی صحنه‌ی شب */
+    E30.fade = 1 - clamp(E30.t / 1.6, 0, 1);
+    startDlg();
+    if ((E30.dlgDone || E30.t > 40) && E30.t > 4) e30Next('creditroll');
+  } else if (ph === 'creditroll') {
+    if (E30.t > 17) e30Finish();
   }
 }
 
@@ -240,6 +257,8 @@ function renderEnding30() {
   else if (ph === 'plati') drawE30Plati(t);
   else if (ph === 'station') drawE30Station(t);
   else if (ph === 'driveoff') drawE30Driveoff(t);
+  else if (ph === 'epilogue') drawE30Epilogue(t);
+  else if (ph === 'creditroll') drawE30Credits(t);
 
   drawShootingStar();
   drawParticles();
@@ -954,4 +973,126 @@ function drawE30Driveoff(t) {
     ctx.fillText('مسیر فاز دوم — شمال', mx + 16, my + 14);
     ctx.restore();
   }
+}
+
+/* ---------------------- ۴۱٫۰) اپیلوگ + تیتراژ پایانی ---------------------- */
+/* صحنهٔ شب: جاده، ماه، ماشینِ در حال دور شدن، دو سیلوئت تماشاگر */
+function drawE30Epilogue(t) {
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, 'rgba(4,6,16,1)');
+  sky.addColorStop(0.66, 'rgba(10,14,30,0.98)');
+  sky.addColorStop(1, 'rgba(6,8,18,1)');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+  /* ستاره‌ها */
+  for (let i = 0; i < 90; i++) {
+    const x = (i * 197.3) % W, y = (i * 89.7) % (H * 0.6);
+    const tw = 0.35 + 0.4 * Math.sin(t * 1.7 + i * 1.31);
+    ctx.fillStyle = 'rgba(220,228,255,' + (tw * (i % 7 === 0 ? 0.9 : 0.5)).toFixed(2) + ')';
+    ctx.fillRect(x, y, 2, 2);
+  }
+  /* ماه + هاله */
+  const mx = W * 0.78, my = H * 0.2;
+  const mg = ctx.createRadialGradient(mx, my, 8, mx, my, 130);
+  mg.addColorStop(0, 'rgba(255,244,214,0.85)');
+  mg.addColorStop(1, 'rgba(255,244,214,0)');
+  ctx.fillStyle = mg;
+  ctx.beginPath(); ctx.arc(mx, my, 130, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(250,240,205,0.96)';
+  ctx.beginPath(); ctx.arc(mx, my, 30, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(226,214,172,0.5)';
+  ctx.beginPath(); ctx.arc(mx - 9, my - 6, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(mx + 10, my + 8, 5, 0, Math.PI * 2); ctx.fill();
+  /* جاده */
+  const RY = H * 0.74;
+  const gg = ctx.createLinearGradient(0, RY, 0, H);
+  gg.addColorStop(0, 'rgba(16,18,26,0.98)');
+  gg.addColorStop(1, 'rgba(4,5,9,1)');
+  ctx.fillStyle = gg;
+  ctx.fillRect(0, RY, W, H - RY);
+  ctx.strokeStyle = 'rgba(90,96,120,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, RY); ctx.lineTo(W, RY); ctx.stroke();
+  ctx.strokeStyle = 'rgba(150,150,170,0.28)'; ctx.lineWidth = 2;
+  ctx.setLineDash([14, 16]);
+  ctx.beginPath(); ctx.moveTo(W * 0.52, RY + 4); ctx.lineTo(W * 0.86, H); ctx.stroke();
+  ctx.setLineDash([]);
+  /* ماشینِ دورشونده */
+  const k = clamp(t / 26, 0, 1);
+  const cx = W * 0.5 + k * W * 0.3, cy = RY + 6 + k * (H - RY) * 0.35;
+  const lr = 26 * (1 - k) + 4;
+  const lg = ctx.createRadialGradient(cx, cy, 1, cx, cy, lr * 3);
+  lg.addColorStop(0, 'rgba(255,232,170,0.85)');
+  lg.addColorStop(1, 'rgba(255,232,170,0)');
+  ctx.fillStyle = lg;
+  ctx.beginPath(); ctx.arc(cx, cy, lr * 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,236,180,0.95)';
+  ctx.beginPath(); ctx.arc(cx, cy, 3.2 * (1 - k) + 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(10,12,18,0.95)';
+  ctx.beginPath(); ctx.ellipse(cx - 14 * (1 - k) - 6, cy + 1, 10 * (1 - k) + 3, 3.4 * (1 - k) + 1, 0, 0, Math.PI * 2); ctx.fill();
+  /* دو تماشاگر سیلوئت */
+  e30Figure(W * 0.24, RY, { c: 'rgba(14,16,24,0.97)', s: 1.3, ph: Math.sin(t * 0.8) * 0.25 });
+  e30Figure(W * 0.31, RY, { c: 'rgba(18,21,32,0.97)', s: 1.42, ph: Math.sin(t * 0.8 + 1.4) * 0.25 });
+}
+
+/* تیتراژ پایانی — اسکرول از پایین به بالا */
+function drawE30Credits(t) {
+  ctx.fillStyle = 'rgba(4,5,10,0.97)';
+  ctx.fillRect(0, 0, W, H);
+  const lines = [
+    { s: 1, text: 'سه‌طبقه تا مرگ' },
+    { s: 2, text: '— پایانِ فصلِ اول —' },
+    { s: 3, text: '' },
+    { s: 3, text: '' },
+    { s: 0, text: 'بازیگران' },
+    { s: 2, text: 'آرش — صدای Liam' },
+    { s: 2, text: 'ارشان — صدای Bill' },
+    { s: 2, text: 'دکتر مریم — صدای Jessica' },
+    { s: 2, text: 'دکتر سارا — صدای Matilda' },
+    { s: 2, text: 'راوی — صدای Brian' },
+    { s: 2, text: 'نگهبان — صدای Adam' },
+    { s: 2, text: 'بی‌سیم — صدای George' },
+    { s: 2, text: 'هیولای آخر — صدای Charlie' },
+    { s: 2, text: 'دستفروش مرموز — Chris · Will · Harry · Eric · River' },
+    { s: 3, text: '' },
+    { s: 3, text: '' },
+    { s: 0, text: 'ساخت و ایده' },
+    { s: 2, text: 'sahandmarami' },
+    { s: 3, text: '' },
+    { s: 0, text: 'صداگذاری فارسی' },
+    { s: 2, text: 'ElevenLabs' },
+    { s: 3, text: '' },
+    { s: 3, text: '' },
+    { s: 1, text: 'ادامه دارد...' },
+  ];
+  const scroll = t * 26;
+  let y = H + 46 - scroll;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  for (const L of lines) {
+    if (L.s === 0) {
+      if (y > -10 && y < H + 10) {
+        ctx.font = 'bold 13px Vazirmatn, sans-serif';
+        ctx.fillStyle = 'rgba(226,186,110,0.92)';
+        ctx.fillText(L.text, W / 2, y);
+      }
+      y += 26;
+    } else if (L.s === 1) {
+      if (y > -30 && y < H + 30) {
+        ctx.font = 'bold 30px Vazirmatn, sans-serif';
+        ctx.fillStyle = 'rgba(236,214,150,0.96)';
+        ctx.fillText(L.text, W / 2, y);
+      }
+      y += 52;
+    } else if (L.s === 2) {
+      if (y > -20 && y < H + 20) {
+        ctx.font = '14px Vazirmatn, sans-serif';
+        ctx.fillStyle = 'rgba(214,220,238,0.85)';
+        ctx.fillText(L.text, W / 2, y);
+      }
+      y += 30;
+    } else {
+      y += 22;
+    }
+  }
+  ctx.textAlign = 'left';
 }

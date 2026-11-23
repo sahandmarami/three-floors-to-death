@@ -2,7 +2,7 @@ import os, sys
 # دایمون دوبل‌فورک — سرور پایدار بازی روی پورت ۳۰۰۲
 # (پس‌از پایان دستورِ bash زنده می‌ماند)
 PORT = 3002
-ROOT = '/home/z/my-project/webserve'
+ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'webserve')
 if os.fork() > 0: sys.exit(0)
 os.setsid()
 if os.fork() > 0: sys.exit(0)
