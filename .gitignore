@@ -22,3 +22,9 @@ worklog.md
 .ghtoken
 ghtoken.txt
 el_key.txt
+scripts/voice43_out/
+scripts/shots43/
+scripts/shots42/
+scripts/voice42_out/
+.arrives*
+*.png
