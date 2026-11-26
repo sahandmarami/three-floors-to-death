@@ -1,11 +1,10 @@
 /* ==================================================================
-   سه طبقه تا مرگ — ماژول ۴۳٫۰ — بخش د: اصلاح‌های ظاهری و جویس
+   سه طبقه تا مرگ — ماژول اصلاح‌های ظاهری (v44)
    ==================================================================
-   ۰) وصل‌کردن کلیپ‌های صوتی v43 به VOICES23
-   ۱) زامبی‌های صفحات داستان: دیگر «روی هوا» نیستند — پا روی زمین،
-      بدون جست‌وخیزِ عجیب؛ ردیف‌های عمق روی صفحهٔ خیابان
-   ۲) صدای قدم در پلتفرمر + رهاشدنِ درستِ دکمهٔ پرش (پرش متغیر واقعی)
-   ۳) بج نسخهٔ v43 + گرم‌سازی کلیپ‌های تازهٔ w43/p43
+   ۰) وصل‌کردن کلیپ‌های صوتی به VOICES23
+   ۱) زامبی‌های صفحات داستان: پا روی زمین، ردیف‌های عمق
+   ۳) گرم‌سازی کلیپ‌های آغازین
+   (نسخهٔ ۴۴: بخش پلتفرمر حذف شد)
    ================================================================== */
 
 /* ---------- ۰) دادهٔ صوتی v۴۳ → VOICES23 ---------- */
@@ -33,56 +32,11 @@ try {
   };
 } catch (e) {}
 
-/* ---------- ۲) ورودی پلتفرمر: رهاکردن پرش + صدای قدم ---------- */
-(function plat43IO() {
-  /* کیبورد — پرش متغیر واقعی */
-  window.addEventListener('keyup', (e) => {
-    if (!PLAT30.on) return;
-    if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) PLAT30.jumpHeld = false;
-  });
-  window.addEventListener('keydown', (e) => {
-    if (!PLAT30.on) return;
-    if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) PLAT30.jumpHeld = true;
-  });
-  /* دی‌پد لمسی — پایان لمسِ دکمهٔ پرش */
-  const wire = () => {
-    const bj = document.getElementById('platBJ');
-    if (bj && !bj.__v43rel) {
-      bj.__v43rel = true;
-      const off = () => { try { PLAT30.jumpHeld = false; } catch (e) {} };
-      bj.addEventListener('touchend', off, { passive: false });
-      bj.addEventListener('touchcancel', off, { passive: false });
-      bj.addEventListener('pointerup', off);
-      bj.addEventListener('pointerleave', off);
-    }
-  };
-  wire();
-  setInterval(wire, 900);
-})();
-
-/* صدای قدم — داخل حلقهٔ به‌روزرسانی پلتفرمر تزریق می‌شود */
-try {
-  const _up43 = updatePlatformer43;
-  updatePlatformer43 = function (dt) {
-    try {
-      const p = P43.pl;
-      if (p && p.onG && Math.abs(p.vx) > 60 && !P43.dying && !P43.card) {
-        const gait = Math.sin(p.walk);
-        if (P43._lastGait != null && Math.sign(gait) !== Math.sign(P43._lastGait)) {
-          try { Snd.noise({ dur: 0.05, vol: 0.028, ftype: 'lowpass', freq: 420, q: 0.7 }); } catch (e) {}
-        }
-        P43._lastGait = gait;
-      } else P43._lastGait = null;
-    } catch (e) {}
-    return _up43(dt);
-  };
-} catch (e) {}
-
 /* ---------- ۳) بج نسخه + گرم‌سازی ---------- */
 (function v43badge() {
   setInterval(() => {
     const el = document.getElementById('ver42');
-    if (el) el.textContent = 'v43.0';
+    if (el) el.textContent = 'v44.0';
   }, 600);
   try {
     const _warm = VOICE.warmup.bind(VOICE);

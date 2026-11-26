@@ -957,15 +957,9 @@ try {
         saveGame();
         return;
       }
-      if (k === 'pl1' || k === 'pl2' || k === 'pl3') {
-        hideOverlays(); introHardReset(); transitionHardReset();
-        startPlatformer(+k.slice(2));
-        return;
-      }
       if (k === 'end') {
         hideOverlays(); introHardReset(); transitionHardReset(); defeatHardReset();
-        try { PLAT30.on = false; } catch (e) {}
-        startEnding30();
+        startEnding43();
         return;
       }
       if (k === 'last') {
@@ -980,8 +974,7 @@ try {
     try { DLG.skip(); } catch (e) {}
     hideOverlays(); hideScreen('startScreen');
     introHardReset(); transitionHardReset(); defeatHardReset(); shelterHardReset();
-    try { PLAT30.on = false; platPadShow(false); } catch (e) {}
-    try { $('wrap').classList.remove('cine-mode'); } catch (e) {}
+        try { $('wrap').classList.remove('cine-mode'); } catch (e) {}
     try { $('skipCs').classList.add('hidden'); } catch (e) {}
     state.mode = 'day';
     startChapter(clamp(ch, 1, 4));

@@ -1,13 +1,11 @@
 /* ==================================================================
-   سه طبقه تا مرگ — ماژول ۴۳٫۰ — بخش ب: بازسازی کامل سینمایی پایان
+   سه طبقه تا مرگ — ماژول پایان سینمایی (v44)
    ==================================================================
-   همهٔ صحنه‌های «رسیدن به پناهگاه → داخل‌شدن → آژیر → اتاق کنترل →
-   فرار → آتش → جدایی → پلتفرمر → ایستگاه شمالی → حرکت → اپیلوگ → تیتراژ»
-   از صفر ساخته می‌شوند:
-     · کاراکترهای واقعی CINE43 (صورت، لباس، راه‌رفتن، حرف‌زدن) — نه سیلوئت
-     · محیط‌های پرجزئیات با نور و عمق + دوربین سینمایی (زوم/پن)
-     · ادبیات تازه و منسجم (صداها با gen_voices43 ساخته شدند)
-     · ریتمِ تندتر — پایان دیگر حوصله‌سر‌بر نیست
+   زنجیره: arrive→welcome→siren→control→escape→fire→part→
+           console→choice→(endOff|endRedirect|endBroadcast)→anonmsg→creditroll
+   · پلتفرمر و صحنه‌های ایستگاه/حرکت حذف شد (الزام پرامپت ۴۴)
+   · انتخاب نهایی سه‌گانه با UI واقعی + سه صحنهٔ اختصاصی پایان
+   · پیام ناشناس + اعتراف ارشان + «پایان فصل اول داستان — ادامه دارد...»
    ================================================================== */
 
 /* ---------- دیالوگ نهایی ۴۳ — هم‌متنِ کلیپ‌های w43 ---------- */
@@ -50,22 +48,40 @@ const E43_DLG = {
     { who: 'p', v: 'w43p8', text: 'مراقب خودت باش. دنیا دیگه جایِ مهربونی نیست.' },
     { who: 'a', v: 'w43a6', text: 'بریم. تا طلوعِ آفتاب، نیمهٔ راهه.' },
   ],
-  station: [
+  /* ---------- v44: اتاق کنترل Z-00 + انتخاب سه‌گانه ---------- */
+  console: [
     { who: 's', v: 'w43s1', text: 'دیر کردید. فکر می‌کردم دیگه هیچ‌کس اون فرکانسِ قدیمی رو یادش نمونه.' },
-    { who: 'p', v: 'w43p9', text: 'تو از اونا هستی؟ از سازنده‌های پروژهٔ Z؟' },
-    { who: 's', v: 'w43s2', text: 'من طراحی‌اش کردم. قرار بود درمان باشه... بعد شد سلاح. و بعد، پایانِ همه‌چیز.' },
-    { who: 'p', v: 'w43p10', text: 'اون پناهگاه... تله بود؟ ما فقط دادهٔ آزمایش بودیم؟' },
-    { who: 's', v: 'w43s3', text: 'شما تنها کسانی بودید که از همه‌چیز زنده رد شدید. برای همین بهتون نیاز دارم — فازِ دو باید متوقف بشه.' },
-    { who: 'a', v: 'w43a7', text: 'جادهٔ شمالی سالمه. ماشین آماده‌ست — فقط بگید بریم کجا.' },
-    { who: 's', v: 'w43s4', text: 'شمال. آخرین آزمایشگاه. و آخرین فرصت برای برگردوندنِ دنیا.' },
+    { who: 's', v: 'w44n1', text: 'این میز قلبِ شبکه‌ست. Z-00. همهٔ فرستنده‌ها از همین‌جا نفس می‌کشند.' },
+    { who: 'a', v: 'w44n2', text: 'پس همون «جدولِ هفتگی»... از این‌جا تنظیم می‌شه.' },
+    { who: 's', v: 'w44n3', text: 'سه کار می‌شه کرد. فقط سه‌تا. و هر سه قیمت دارند.' },
+    { who: 'p', v: 'w44n4', text: 'ما سی‌وشش شب فقط زنده موندیم. حالا باید برای «چطور بمونیم» تصمیم بگیرم؟' },
   ],
-  driveoff: [
-    { who: 'n', v: 'w43n3', text: 'ماشین در دلِ دره پیچید؛ سه سرنشین، یک راز، و جاده‌ای که به هیچ‌کجای نقشه نمی‌رسید.' },
+  endOff: [
+    { who: 'p', v: 'w44o1', text: 'خاموشش می‌کنم. این چیزِ خوبی بود که خراب شد — اجازه بدیم راحت بمونه.' },
+    { who: 's', v: 'w44o2', text: 'کلیدِ قرمز. سه ثانیه نگهش دار. بعدش... هیچ‌کس دیگه گله‌ها رو نمی‌بینه.' },
+    { who: 'n', v: 'w44o3', text: 'چراغ‌ها یکی‌یکی خاموش شدند. برای اولین بار بعد از یازده سال، شب فقط شب بود.' },
+    { who: 'q', v: 'w44o4', text: 'اینجا مریم‌ام... رادیوها همه‌جای کشور ساکت شدن. چیزی که خاموش کردی سیگنال نبود... اخبارِ دنیا بود.' },
+    { who: 'p', v: 'w44o5', text: 'بذار ساکت باشه. سکوت هم می‌تونه امنیت باشه.' },
   ],
-  epilogue: [
-    { who: 'n', v: 'w43n4', text: 'چراغ ماشین، مثل ستاره‌ای ریز، در دلِ تاریکی گم شد.' },
-    { who: 'p', v: 'w43p11', text: 'فصلِ اول تمومه، ارشان. ولی از امشب، جاده‌ها مالِ ماست.' },
-    { who: 'a', v: 'w43a8', text: 'هنوز زنده‌ایم. یعنی هنوز یه شانس هست.' },
+  endRedirect: [
+    { who: 'p', v: 'w44r1', text: 'الگو رو به دشتِ نمک می‌برم. اون‌جا هیچ آدمی نیست که قربانی بشه.' },
+    { who: 's', v: 'w44r2', text: 'کشیدنِ نقطه روی نقشه آسونه. اما این گله برمی‌گرده — بزرگ‌تر از قبل. ما فقط وقت خریدیم.' },
+    { who: 'a', v: 'w44r3', text: 'وقتی خریدن هنوز بهتر از نریختنه. دیوارها رو بلندتر می‌کنیم.' },
+    { who: 'n', v: 'w44r4', text: 'سیگنال چرخید؛ مثل بادی که سمتِ بیابون رفت. پناهگاه نفس کشید... و افق، سنگین‌تر شد.' },
+    { who: 'q', v: 'w44r5', text: 'اینجا مریم‌ام. دروازه‌ها رو باز کن! شب‌ها سبک‌تر شدن. ولی بچه‌ها رو از حاشیه‌ها دور کن — یه حسی دارم.' },
+  ],
+  endBroadcast: [
+    { who: 'p', v: 'w44b1', text: 'نه دروغ، نه سکوت. حقیقت رو پخش می‌کنم — برای همهٔ بازمانده‌ها.' },
+    { who: 's', v: 'w44b2', text: 'آرشیو کل شبکه رو آپلود کن. اسمِ من، اسمِ همایون، فهرستِ سیاه... همه‌ش. مردم باید بدونن چی اونا رو کشت.' },
+    { who: 'n', v: 'w44b3', text: 'برای اولین بار، ده‌ها فرکانس با هم حرف زدند. صدای انسان، از شهرهای مرده بالا آمد.' },
+    { who: 'q', v: 'w44b4', text: 'آرش... مختصاتِ ما هم رفت روی امواج. الان همه‌چیز می‌دونن ما کجاییم.' },
+    { who: 'p', v: 'w44b5', text: 'می‌دونم. ولی دنیایی که از حقیقت بترسه، ازش استفاده می‌کنه. بذار بیاد. آماده‌ایم.' },
+    { who: 'a', v: 'w44b6', text: 'فقط یه شرط: هر کی اومد، اسمش رو بپرس. نه شماره‌ش. اسمش رو.' },
+  ],
+  anonmsg: [
+    { who: 'r', v: 'w44a1', text: 'آرش... قبل از اینکه به ارشان اعتماد کنی، ازش بپرس چه کسی مختصات برجِ سه‌طبقه رو براش فرستاد.' },
+    { who: 'p', v: 'w44a2', text: 'این پیام... این آدرس رو فقط ما می‌دونیم. ارشان؟' },
+    { who: 'a', v: 'w44a3', text: 'یه چیزی هست که باید از همون اول بهت می‌گفتم...' },
   ],
   credit: [
     { who: 'n', v: 'w43n5', text: 'سه طبقه تا مرگ. پایانِ فصلِ اول... جادهٔ شمالی، هنوز ادامه دارد.' },
@@ -74,12 +90,13 @@ const E43_DLG = {
 
 /* ---------- حداکثر مدت هر فاز (ثانیه) — ریتم تند ---------- */
 const E43_CAP = {
-  arrive: 16, welcome: 14, siren: 13, control: 21, escape: 4.2, fire: 24,
-  part: 13, plati: 2.4, station: 24, driveoff: 6.4, epilogue: 13, creditroll: 15.5,
+  arrive: 17, welcome: 15, siren: 14, control: 27, escape: 4.2, fire: 31,
+  part: 14, console: 28, endOff: 30, endRedirect: 28, endBroadcast: 30,
+  anonmsg: 32, creditroll: 16,
 };
 const E43_MIN = {
   arrive: 4.5, welcome: 3.5, siren: 3.5, control: 4, escape: 3.4, fire: 4,
-  part: 3.5, station: 4, epilogue: 3.5, driveoff: 6.2,
+  part: 3.5, console: 4, endOff: 3.5, endRedirect: 3.5, endBroadcast: 3.5, anonmsg: 3,
 };
 
 /* ---------- وضعیت ---------- */
@@ -91,9 +108,17 @@ function e43Reset() {
 function e43Next(ph) {
   E30.phase = ph;
   e43Reset();
+  /* هیچ گفت‌وگوی معلق از فاز قبلی نبماند (الزام بخش ۶۴ پرامپت) */
+  try { VOICE.stop(); } catch (e) {}
+  try { DLG.skip(); } catch (e) {}
   if (ph === 'siren') { try { SFX.alarm(); } catch (e) {} state.shake = 8; }
   if (ph === 'escape') { try { SFX.alarm(); } catch (e) {} state.shake = 12; try { SFX.csRumble(); } catch (e) {} }
   if (ph === 'control') { state.shake = 4; }
+  if (ph === 'console') { try { MUSIC.set('menu'); } catch (e) {} }
+  if (ph === 'anonmsg') { try { MUSIC.set('menu'); } catch (e) {} try { Snd.tone({ type: 'sine', f0: 880, f1: 860, dur: 0.5, vol: 0.05 }); } catch (e) {} }
+  if (ph === 'endOff') { try { Snd.tone({ type: 'triangle', f0: 220, f1: 40, dur: 2.4, vol: 0.10 }); } catch (e) {} }
+  if (ph === 'endRedirect') { try { Snd.tone({ type: 'sawtooth', f0: 90, f1: 130, dur: 1.6, vol: 0.07 }); } catch (e) {} }
+  if (ph === 'endBroadcast') { try { Snd.tone({ type: 'square', f0: 520, f1: 1180, dur: 0.8, vol: 0.05 }); } catch (e) {} }
   if (ph === 'creditroll') {
     try { VOICE.stop(); } catch (e) {}
     try { MUSIC.set('menu'); } catch (e) {}
@@ -105,7 +130,6 @@ function e43Next(ph) {
 function startEnding43() {
   E30.phase = 'arrive';
   e43Reset();
-  PLAT30.on = false;
   state.mode = 'sheltercine';
   state.mouse.down = false;
   state.placing = null;
@@ -121,20 +145,6 @@ function startEnding43() {
   try { SFX.dusk(); } catch (e) {}
   try { MUSIC.set('menu'); } catch (e) {}
 }
-function startStationCine43() {
-  E30.phase = 'station';
-  e43Reset();
-  PLAT30.on = false;
-  state.mode = 'sheltercine';
-  state.mouse.down = false;
-  hideOverlays();
-  hideDayPanel(); hidePeddlerPanel(); hideAnnounce();
-  try { setBuildPanel(true, true); } catch (e) {}
-  platPadShow(false);
-  $('wrap').classList.add('cine-mode');
-  $('skipCs').classList.remove('hidden');
-  try { SFX.dusk(); } catch (e) {}
-}
 
 /* ---------- رد کردن ---------- */
 function skipEnding43() {
@@ -143,12 +153,11 @@ function skipEnding43() {
   try { DLG.skip(); } catch (e) {}
   const ph = E30.phase;
   if (ph === 'creditroll') { e43Finish(); return; }
-  if (ph === 'station' || ph === 'driveoff' || ph === 'epilogue') { e43Next('creditroll'); return; }
-  /* از هرجای قبل → کارت فصل میانی → پلتفرمر */
-  E30.phase = '';
-  $('wrap').classList.remove('cine-mode');
-  $('skipCs').classList.add('hidden');
-  startPlatformer(1);
+  /* بعد از انتخاب/پایان → مستقیم تیتراژ؛ قبل از آن → اتاق کنترل */
+  if (ph === 'choice' || ph === 'endOff' || ph === 'endRedirect' ||
+      ph === 'endBroadcast' || ph === 'anonmsg') { e43Next('creditroll'); return; }
+  if (E44 && E44.choiceUI) E44.choiceUI(true);      /* پنهان‌کردن UI انتخاب هنگام skip */
+  e43Next('console');
 }
 function e43Finish() {
   E30.phase = '';
@@ -187,7 +196,8 @@ function updateEnding43(dt) {
     startDlg();
     if (doneOrCap() && E30.t > min) e43Next('welcome');
   } else if (ph === 'welcome' || ph === 'siren' || ph === 'control' || ph === 'fire' ||
-             ph === 'part' || ph === 'station' || ph === 'epilogue' || ph === 'driveoff') {
+             ph === 'part' || ph === 'console' || ph === 'endOff' ||
+             ph === 'endRedirect' || ph === 'endBroadcast') {
     if (ph === 'siren') {
       state.shake = Math.max(state.shake, 2.0);
       E30.sirenPulse += dt;
@@ -196,10 +206,9 @@ function updateEnding43(dt) {
     }
     startDlg();
     if (doneOrCap() && E30.t > min) {
-      if (ph === 'part') e43Next('plati');
-      else if (ph === 'driveoff') e43Next('epilogue');
-      else if (ph === 'epilogue') e43Next('creditroll');
-      else if (ph === 'station') e43Next('driveoff');
+      if (ph === 'part') e43Next('console');
+      else if (ph === 'console') { E44.openChoice(); }        /* UI انتخاب — بدون cap */
+      else if (ph === 'endOff' || ph === 'endRedirect' || ph === 'endBroadcast') e43Next('anonmsg');
       else if (ph === 'fire') e43Next('part');
       else if (ph === 'escape') e43Next('fire');
       else if (ph === 'control') e43Next('escape');
@@ -216,12 +225,13 @@ function updateEnding43(dt) {
     startDlg();
     E30.fade = clamp((E30.t - 2.4) / 1.6, 0, 1);
     if (E30.t > min) e43Next('fire');
-  } else if (ph === 'plati') {
-    if (E30.t > E43_CAP.plati) {
-      E30.phase = '';
-      $('wrap').classList.remove('cine-mode');
-      $('skipCs').classList.add('hidden');
-      startPlatformer(1);
+  } else if (ph === 'choice') {
+    /* منتظر انتخابِ واقعی بازیکن — هیچ پیشرویِ زمانی */
+  } else if (ph === 'anonmsg') {
+    startDlg();
+    E30.fade = clamp((E30.t - (E30.dlgDone ? 2.6 : 26)) / 2.2, 0, 1);
+    if ((E30.dlgDone || E30.t > E43_CAP.anonmsg) && E30.t > E43_MIN.anonmsg && E30.fade >= 1) {
+      e43Next('creditroll');
     }
   } else if (ph === 'creditroll') {
     if (E30.t > E43_CAP.creditroll) e43Finish();
@@ -244,10 +254,11 @@ function renderEnding43() {
   else if (ph === 'escape') e43ScEscape(t);
   else if (ph === 'fire') e43ScFire(t);
   else if (ph === 'part') e43ScPart(t);
-  else if (ph === 'plati') e43ScPlati(t);
-  else if (ph === 'station') e43ScStation(t);
-  else if (ph === 'driveoff') e43ScDriveoff(t);
-  else if (ph === 'epilogue') e43ScEpilogue(t);
+  else if (ph === 'console' || ph === 'choice') e43ScConsole44(t, ph);
+  else if (ph === 'endOff') e43ScEndOff44(t);
+  else if (ph === 'endRedirect') e43ScEndRedirect44(t);
+  else if (ph === 'endBroadcast') e43ScEndBroadcast44(t);
+  else if (ph === 'anonmsg') e43ScAnon44(t);
   else if (ph === 'creditroll') e43ScCredits(t);
 
   drawShootingStar();
@@ -902,322 +913,151 @@ function e43ScPart(t) {
   CINE43.grain(t, 0.7);
 }
 
-/* ================= صحنه ۸: کارت فصل میانی ================= */
-function e43ScPlati(t) {
-  ctx.fillStyle = '#05060c';
-  ctx.fillRect(0, 0, W, H);
-  /* سیلوئت راهرو در باد */
-  ctx.fillStyle = 'rgba(60,52,70,0.5)';
-  ctx.beginPath();
-  ctx.moveTo(0, H);
-  for (let x = 0; x <= W; x += 40) ctx.lineTo(x, H - 60 - Math.sin(x * 0.02) * 30);
-  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
-  const a = clamp(t / 0.5, 0, 1) * clamp((2.4 - t) / 0.4, 0, 1);
-  ctx.save();
-  ctx.globalAlpha = a;
-  ctx.fillStyle = 'rgba(240,225,190,0.95)';
-  ctx.font = 'bold 26px Vazirmatn, Tahoma';
-  ctx.textAlign = 'center';
-  ctx.fillText('فصل میانی — سفر', W / 2, H * 0.44);
-  ctx.font = '13.5px Vazirmatn, Tahoma';
-  ctx.fillStyle = 'rgba(200,195,175,0.8)';
-  ctx.fillText('خرابه‌ها · پلِ شکسته · راهِ شمالی', W / 2, H * 0.44 + 28);
-  ctx.textAlign = 'left';
-  ctx.restore();
-}
-
-/* ================= صحنه ۹: ایستگاه شمالی ================= */
-function e43ScStation(t) {
-  /* فضای داخلی ایستگاه قدیمی — سرد و تنها */
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#0c1018');
-  sky.addColorStop(0.7, '#141a26');
-  sky.addColorStop(1, '#0e121c');
-  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-  const fl = GROUND_Y - 6;
-  const fg2 = ctx.createLinearGradient(0, fl, 0, H);
-  fg2.addColorStop(0, '#1e222c'); fg2.addColorStop(1, '#12141c');
-  ctx.fillStyle = fg2; ctx.fillRect(0, fl, W, H - fl);
-  /* تخته‌های کف */
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.4;
-  for (let y = fl + 10; y < H; y += 16) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+/* ================= صحنه ۸: اتاق کنترل Z-00 + انتخاب ================= */
+function e43ScConsole44(t, ph) {
+  e43ScControl(t);
+  if (ph === 'choice') {
+    /* پس‌زمینه کم‌نور می‌شود تا کارت‌های انتخاب برجسته باشند */
+    ctx.fillStyle = 'rgba(3,5,10,0.5)';
+    ctx.fillRect(0, 0, W, H);
   }
-  /* پنجرهٔ بزرگ — برف بیرون */
-  const wx = W * 0.13, wy = 64, ww = 190, wh = 150;
-  ctx.fillStyle = '#18202e';
-  ctx.fillRect(wx, wy, ww, wh);
-  const wgr = ctx.createLinearGradient(wx, wy, wx, wy + wh);
-  wgr.addColorStop(0, '#26324a'); wgr.addColorStop(1, '#1a2234');
-  ctx.fillStyle = wgr; ctx.fillRect(wx + 6, wy + 6, ww - 12, wh - 12);
-  /* کوه‌های برفی بیرون */
-  ctx.fillStyle = '#8ea2c4';
-  ctx.beginPath();
-  ctx.moveTo(wx + 6, wy + wh - 6);
-  for (let x = wx + 6; x <= wx + ww - 6; x += 26) ctx.lineTo(x, wy + wh - 6 - 34 - Math.sin(x * 0.08) * 22);
-  ctx.lineTo(wx + ww - 6, wy + wh - 6);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  ctx.beginPath();
-  ctx.moveTo(wx + 6, wy + wh - 6);
-  for (let x = wx + 6; x <= wx + ww - 6; x += 26) ctx.lineTo(x, wy + wh - 6 - 38 - Math.sin(x * 0.08) * 22);
-  ctx.lineTo(wx + ww - 6, wy + wh - 6);
-  ctx.closePath(); ctx.fill();
-  /* برف پشت شیشه */
-  ctx.fillStyle = 'rgba(235,240,255,0.8)';
-  for (let i = 0; i < 16; i++) {
-    const sxp = wx + 6 + ((i * 37 + t * 14) % (ww - 12));
-    const syp = wy + 6 + ((i * 53 + t * 26) % (wh - 12));
-    ctx.fillRect(sxp, syp, 1.8, 1.8);
-  }
-  ctx.strokeStyle = '#0e1420'; ctx.lineWidth = 5;
-  ctx.strokeRect(wx, wy, ww, wh);
-  ctx.beginPath();
-  ctx.moveTo(wx + ww / 2, wy); ctx.lineTo(wx + ww / 2, wy + wh);
-  ctx.moveTo(wx, wy + wh / 2); ctx.lineTo(wx + ww, wy + wh / 2);
-  ctx.stroke();
-
-  /* دیوار پشتی ایستگاه — تخته‌های افقی + لولهٔ بخاری + پوستر */
-  ctx.strokeStyle = 'rgba(30,36,48,0.9)'; ctx.lineWidth = 2;
-  for (let y = 40; y < fl; y += 26) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-  /* لولهٔ بخاری سراسری */
-  ctx.fillStyle = '#2c323c';
-  ctx.fillRect(0, fl - 178, W, 9);
-  ctx.fillStyle = '#3a424e';
-  ctx.fillRect(0, fl - 178, W, 3);
-  for (const px3 of [W * 0.3, W * 0.52, W * 0.86]) {
-    ctx.fillStyle = '#333a46';
-    ctx.fillRect(px3 - 8, fl - 170, 16, 170);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(px3 + 4, fl - 170, 4, 170);
-  }
-  /* پوستر کاغذی کهنه */
-  ctx.fillStyle = 'rgba(214,204,168,0.16)';
-  rr(W * 0.4, fl - 150, 66, 84, 3); ctx.fill();
-  ctx.strokeStyle = 'rgba(214,204,168,0.3)'; ctx.lineWidth = 1.4;
-  rr(W * 0.4, fl - 150, 66, 84, 3); ctx.stroke();
-  ctx.fillStyle = 'rgba(214,204,168,0.35)';
-  ctx.font = 'bold 11px Vazirmatn, Tahoma';
-  ctx.textAlign = 'center';
-  ctx.fillText('پاسگاه', W * 0.4 + 33, fl - 130);
-  ctx.fillText('شمالی', W * 0.4 + 33, fl - 116);
-  ctx.font = '9px Vazirmatn, Tahoma';
-  ctx.fillStyle = 'rgba(214,204,168,0.22)';
-  ctx.fillText('فاصله: ۴۵ کیلومتر', W * 0.4 + 33, fl - 92);
-  ctx.textAlign = 'left';
-
-  /* دستگاه بی‌سیم بزرگ + میز */
-  const ex = W * 0.62;
-  ctx.fillStyle = '#2a2620';
-  ctx.fillRect(ex - 90, fl - 60, 180, 60);
-  ctx.fillStyle = '#332e26';
-  ctx.fillRect(ex - 82, fl - 56, 164, 52);
-  /* دستگاه رادیو */
-  ctx.fillStyle = '#4a4438';
-  rr(ex - 40, fl - 118, 84, 60, 5); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.6;
-  rr(ex - 40, fl - 118, 84, 60, 5); ctx.stroke();
-  /* آنتن */
-  ctx.strokeStyle = '#8a8878'; ctx.lineWidth = 2.2;
-  ctx.beginPath(); ctx.moveTo(ex + 36, fl - 118); ctx.lineTo(ex + 58, fl - 162); ctx.stroke();
-  /* چراغ و دیال‌ها */
-  const rl2 = 0.5 + 0.5 * Math.sin(t * 4.8);
-  ctx.fillStyle = `rgba(140,230,160,${rl2})`;
-  circle(ex - 28, fl - 106, 2.6);
-  ctx.fillStyle = 'rgba(20,18,14,0.9)';
-  ctx.fillRect(ex - 18, fl - 108, 44, 7);
-  ctx.strokeStyle = '#c8b070'; ctx.lineWidth = 1.6;
-  for (let i = 0; i < 3; i++) {
-    circle(ex - 24 + i * 18, fl - 92, 4.4);
-    ctx.beginPath(); ctx.moveTo(ex - 24 + i * 18, fl - 92);
-    ctx.lineTo(ex - 24 + i * 18 + Math.sin(t * 1.2 + i) * 3, fl - 95);
-    ctx.stroke();
-  }
-  /* چراغ مطالعهٔ گرم روی میز */
-  const lx = ex - 60;
-  const lg = ctx.createRadialGradient(lx, fl - 70, 3, lx, fl - 60, 90);
-  lg.addColorStop(0, 'rgba(255,214,150,0.5)');
-  lg.addColorStop(1, 'rgba(255,200,120,0)');
-  ctx.fillStyle = lg; circle(lx, fl - 60, 90);
-  ctx.strokeStyle = '#3a3830'; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(lx, fl); ctx.lineTo(lx, fl - 78); ctx.stroke();
-  ctx.fillStyle = '#4a4438';
-  ctx.beginPath(); ctx.moveTo(lx - 14, fl - 78); ctx.lineTo(lx + 14, fl - 78); ctx.lineTo(lx + 6, fl - 92); ctx.lineTo(lx - 6, fl - 92);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(255,230,170,0.9)';
-  circle(lx, fl - 88, 3.4);
-
-  /* کاراکترها */
-  ctx.save();
-  CINE43.cam(W * 0.5, fl - 46, 1 + clamp((t - 1) / 9, 0, 1) * 0.06, 0, 0);
-  /* سارا پشت میز — حرف می‌زند */
-  CINE43.person('sara', ex + 40, fl + 6, 1.22, { t, face: -1, pose: 'talk' });
-  /* آرش و ارشان جلوی میز */
-  CINE43.person('arshan', ex - 104, fl + 6, 1.18, { t, face: 1, pose: t > 2.4 && t % 16 < 5 ? 'talk' : 'idle' });
-  CINE43.person('arash', ex - 60, fl + 8, 1.13, { t, face: 1, pose: t > 1.2 && t % 16 >= 5 ? 'talk' : 'idle' });
-  ctx.restore();
-
   CINE43.letterbox(1);
-  CINE43.vignette(1);
-  CINE43.grain(t, 0.9);
-  CINE43.slate('ایستگاه شمالی', 'آن‌که Z را ساخت', t);
+  CINE43.vignette(0.85);
+  CINE43.grain(t, 0.7);
 }
 
-/* ================= صحنه ۱۰: حرکت ماشین ================= */
-function e43ScDriveoff(t) {
-  e43Sky('#101426', '#1a2038', '#2c2438', t);
-  e43Stars(t, 40, 0.5);
-  CINE43.moon(W * 0.2, 90, 28, t);
-  e43Mountains('#1c1828');
-  /* نقشه داشبورد — گوشه */
-  ctx.fillStyle = 'rgba(18,22,32,0.9)';
-  rr(W - 190, 54, 168, 120, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(200,210,230,0.35)'; ctx.lineWidth = 1.6;
-  rr(W - 190, 54, 168, 120, 8); ctx.stroke();
-  ctx.strokeStyle = 'rgba(200,190,150,0.4)'; ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(W - 172, 150); ctx.lineTo(W - 138, 124); ctx.lineTo(W - 108, 140);
-  ctx.lineTo(W - 76, 106); ctx.lineTo(W - 44, 124);
-  ctx.stroke();
-  const mk = W - 76;
-  ctx.fillStyle = `rgba(255,90,60,${0.6 + 0.4 * Math.sin(t * 3.4)})`;
-  circle(mk, 106, 4);
-  ctx.strokeStyle = 'rgba(255,90,60,0.55)';
-  ctx.beginPath(); ctx.arc(mk, 106, 9 + Math.sin(t * 3.4) * 3, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = 'rgba(220,226,240,0.75)';
-  ctx.font = '10.5px Vazirmatn, Tahoma';
-  ctx.textAlign = 'center';
-  ctx.fillText('آزمایشگاهِ شمالی', mk, 92);
-  ctx.textAlign = 'left';
+/* ================= صحنه ۹الف: پایان — خاموشی کامل ================= */
+function e43ScEndOff44(t) {
+  e43ScControl(t);
+  /* تاریکیِ خاموشی: مانیتورها یکی‌یکی می‌میرند */
+  const k = clamp((t - 1.2) / 7, 0, 0.9);
+  ctx.fillStyle = `rgba(2,3,7,${k.toFixed(3)})`;
+  ctx.fillRect(0, 0, W, H);
+  /* چراغ اضطراری قرمزِ کم‌رمق */
+  const ey = 54;
+  ctx.fillStyle = `rgba(255,70,45,${0.14 + 0.10 * Math.sin(t * 2.1)})`;
+  circle(W * 0.5, ey, 6);
+  ctx.fillStyle = `rgba(255,70,45,${0.05 + 0.04 * Math.sin(t * 2.1)})`;
+  circle(W * 0.5, ey, 26);
+  /* آرش جلوی میز، دست روی کلید قرمز */
+  CINE43.person('arash', W * 0.5, GROUND_Y + 2, 1.04, { t, pose: t > 3 ? 'reach' : 'idle', face: 1 });
+  CINE43.person('sara', W * 0.62, GROUND_Y + 4, 0.98, { t, pose: 'idle', face: -1 });
+  CINE43.letterbox(1);
+  CINE43.vignette(0.92);
+  CINE43.grain(t, 0.55);
+}
 
-  CINE43.groundRoad(GROUND_Y, '#181c28', '#10121c');
-  /* جادهٔ دره — بالای باکس دیالوگ تا ماشین کاملاً دیده شود */
-  const ry = GROUND_Y - 198;
-  ctx.fillStyle = '#1e2230';
-  ctx.fillRect(0, ry, W, 46);
-  ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  ctx.fillRect(0, ry, W, 3);
-  ctx.strokeStyle = 'rgba(230,220,160,0.30)'; ctx.lineWidth = 3;
-  ctx.setLineDash([24, 20]);
-  ctx.lineDashOffset = -t * 140;
-  ctx.beginPath(); ctx.moveTo(0, ry + 27); ctx.lineTo(W, ry + 27); ctx.stroke();
+/* ================= صحنه ۹ب: پایان — انحراف سیگنال ================= */
+function e43ScEndRedirect44(t) {
+  e43ScControlBase(t);
+  const fl = GROUND_Y - 8;
+  /* نقشهٔ بزرگ روی دیوار */
+  const mx = W * 0.12, my = 36, mw = W * 0.76, mh = fl - 64;
+  ctx.fillStyle = 'rgba(14,20,32,0.92)';
+  rr(mx, my, mw, mh, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(190,200,220,0.35)'; ctx.lineWidth = 2;
+  rr(mx, my, mw, mh, 8); ctx.stroke();
+  ctx.strokeStyle = 'rgba(190,200,220,0.10)'; ctx.lineWidth = 1;
+  for (let gx = mx + 30; gx < mx + mw; gx += 56) { ctx.beginPath(); ctx.moveTo(gx, my); ctx.lineTo(gx, my + mh); ctx.stroke(); }
+  for (let gy = my + 26; gy < my + mh; gy += 42) { ctx.beginPath(); ctx.moveTo(mx, gy); ctx.lineTo(mx + mw, gy); ctx.stroke(); }
+  /* مسیر سیگنال: پناهگاه → دشتِ نمک */
+  const sx = mx + mw * 0.24, sy = my + mh * 0.36;
+  const dx = mx + mw * 0.82, dy = my + mh * 0.80;
+  ctx.strokeStyle = `rgba(255,170,60,${0.55 + 0.3 * Math.sin(t * 3)})`;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 7]); ctx.lineDashOffset = -t * 26;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx + mw * 0.5, sy - 46, dx, dy); ctx.stroke();
   ctx.setLineDash([]);
-  /* لبهٔ پرتگاه زیر جاده */
-  ctx.fillStyle = '#12141f';
-  ctx.fillRect(0, ry + 46, W, GROUND_Y - ry - 46);
+  ctx.fillStyle = 'rgba(120,190,255,0.9)'; circle(sx, sy, 5);
+  ctx.fillStyle = `rgba(255,170,60,${0.6 + 0.4 * Math.sin(t * 3)})`; circle(dx, dy, 6 + Math.sin(t * 3) * 2);
+  ctx.font = 'bold 12px Vazirmatn, Tahoma'; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(220,230,250,0.85)';
+  ctx.fillText('پناهگاه', sx, sy - 12);
+  ctx.fillText('دشتِ نمک', dx, dy - 15);
+  ctx.textAlign = 'left';
+  /* آرش در حال کشیدن مسیر، سارا و ارشان ناظر */
+  CINE43.person('arash', W * 0.40, fl + 6, 1.0, { t, pose: 'point', face: 1 });
+  CINE43.person('sara', W * 0.56, fl + 6, 0.98, { t, pose: 'idle', face: -1 });
+  CINE43.person('arshan', W * 0.64, fl + 4, 0.96, { t, pose: 'idle', face: -1 });
+  CINE43.letterbox(1);
+  CINE43.vignette(0.85);
+  CINE43.grain(t, 0.7);
+}
 
-  /* ماشین از راست به چپ (سمت شمال) — نمای نیم‌رخ روی جادهٔ بالایی */
-  const cx = W * 0.78 - clamp((t - 0.4) / 5.6, 0, 1) * (W + 420);
-  const cy = ry + 44;
-  ctx.save();
-  ctx.translate(cx, cy);
-  /* هدلایت‌ها */
-  const hl = ctx.createRadialGradient(52, -14, 3, 52, -14, 130);
-  hl.addColorStop(0, 'rgba(255,236,180,0.5)');
-  hl.addColorStop(1, 'rgba(255,236,180,0)');
-  ctx.fillStyle = hl;
-  ctx.beginPath();
-  ctx.moveTo(50, -16); ctx.lineTo(56, -10); ctx.lineTo(190, 6); ctx.lineTo(190, -34);
-  ctx.closePath(); ctx.fill();
-  /* بدنه */
-  ctx.fillStyle = '#37414e';
-  rr(-52, -26, 104, 22, 8); ctx.fill();
-  ctx.fillStyle = '#42505e';
-  rr(-30, -40, 52, 18, 7); ctx.fill();
-  ctx.fillStyle = 'rgba(180,210,240,0.35)';
-  rr(-26, -37, 20, 12, 4); ctx.fill();
-  rr(-2, -37, 18, 12, 4); ctx.fill();
-  /* سرنشین‌ها — سرهای کوچک داخل شیشه */
-  ctx.fillStyle = '#2c2620';
-  circle(-14, -34, 3.4);
-  ctx.fillStyle = '#3a2c20';
-  circle(2, -34, 3.2);
-  ctx.fillStyle = '#b8b4c2';
-  circle(9, -34, 3.0);
-  /* چرخ‌ها */
-  const wh2 = t * 9;
-  for (const wx3 of [-34, 34]) {
-    ctx.fillStyle = '#14161c';
-    circle(wx3, -4, 9);
-    ctx.fillStyle = '#2e323c';
-    circle(wx3, -4, 4.4);
-    ctx.strokeStyle = '#3c404c'; ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.moveTo(wx3 - 3.4, -4 - Math.sin(wh2) * 3); ctx.lineTo(wx3 + 3.4, -4 + Math.sin(wh2) * 3);
-    ctx.stroke();
-  }
-  ctx.fillStyle = 'rgba(255,230,170,0.95)';
-  circle(52, -14, 3.4);
-  ctx.fillStyle = 'rgba(255,80,60,0.9)';
-  circle(-52, -14, 2.6);
-  ctx.restore();
-
-  /* غبار پشت ماشین */
-  ctx.fillStyle = 'rgba(150,150,160,0.14)';
+/* ================= صحنه ۹پ: پایان — پخش حقیقت ================= */
+function e43ScEndBroadcast44(t) {
+  e43ScControlBase(t);
+  const fl = GROUND_Y - 8;
+  /* آنتنِ مرکزی با حلقه‌های موج */
+  const ax = W * 0.5, ay = 52;
+  ctx.strokeStyle = 'rgba(150,190,235,0.5)'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(ax, GROUND_Y - 20); ctx.lineTo(ax, ay + 14); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ax - 10, ay + 14); ctx.lineTo(ax + 10, ay + 14); ctx.stroke();
+  ctx.fillStyle = `rgba(255,90,60,${0.6 + 0.4 * Math.sin(t * 5)})`;
+  circle(ax, ay, 4);
   for (let i = 0; i < 4; i++) {
-    ctx.beginPath();
-    ctx.ellipse(cx - 60 - i * 26, cy - 4, 20 + i * 8, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
+    const r = ((t * 46 + i * 34) % 140) + 12;
+    const a = clamp(1 - r / 152, 0, 1) * 0.5;
+    ctx.strokeStyle = `rgba(120,190,255,${a.toFixed(2)})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.stroke();
   }
-  /* زمینِ پایین — با درخت‌های تیرهٔ کوچک */
-  ctx.fillStyle = '#0e1018';
-  for (let i = 0; i < 12; i++) {
-    const tx3 = (i * 131 + 40) % W;
-    ctx.beginPath();
-    ctx.moveTo(tx3 - 7, GROUND_Y + 8); ctx.lineTo(tx3, GROUND_Y - 26 - (i % 3) * 9); ctx.lineTo(tx3 + 7, GROUND_Y + 8);
-    ctx.closePath(); ctx.fill();
+  /* صف مانیتورهای روشن‌شده */
+  for (let i = 0; i < 6; i++) {
+    const gx = W * 0.08 + i * (W * 0.145), gy = fl - 58;
+    const on = 0.35 + 0.5 * Math.abs(Math.sin(t * 3.1 + i * 1.3));
+    ctx.fillStyle = '#0d1220';
+    ctx.fillRect(gx, gy, 52, 34);
+    ctx.fillStyle = `rgba(110,200,235,${on.toFixed(2)})`;
+    ctx.fillRect(gx + 3, gy + 3, 46, 24);
+    ctx.fillStyle = `rgba(220,245,255,${(on * 0.8).toFixed(2)})`;
+    for (let r2 = 0; r2 < 3; r2++) ctx.fillRect(gx + 6, gy + 7 + r2 * 6, 18 + ((i * 7 + r2 * 5) % 22), 1.6);
   }
+  /* گروه پشت میز — سارا در حال آپلود */
+  CINE43.person('sara', W * 0.40, fl + 6, 1.0, { t, pose: 'talk', face: 1 });
+  CINE43.person('arash', W * 0.52, fl + 4, 1.04, { t, pose: 'idle', face: -1 });
+  CINE43.person('arshan', W * 0.62, fl + 6, 0.98, { t, pose: 'idle', face: -1 });
+  CINE43.letterbox(1);
+  CINE43.vignette(0.85);
+  CINE43.grain(t, 0.7);
+}
 
+/* ================= صحنه ۱۰: پیام ناشناس + اعتراف ارشان ================= */
+function e43ScAnon44(t) {
+  /* تاریکیِ نیمه‌شب */
+  ctx.fillStyle = '#04060c';
+  ctx.fillRect(0, 0, W, H);
+  /* هالهٔ رادیو */
+  const rx = W * 0.5, ry = H * 0.34;
+  const g = ctx.createRadialGradient(rx, ry, 4, rx, ry, 110);
+  g.addColorStop(0, `rgba(255,190,120,${0.16 + 0.07 * Math.sin(t * 2.6)})`);
+  g.addColorStop(1, 'rgba(255,190,120,0)');
+  ctx.fillStyle = g;
+  circle(rx, ry, 110);
+  /* جعبهٔ رادیو */
+  ctx.fillStyle = '#1a2230';
+  rr(rx - 26, ry - 16, 52, 34, 5); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,200,140,0.4)'; ctx.lineWidth = 1.5;
+  rr(rx - 26, ry - 16, 52, 34, 5); ctx.stroke();
+  ctx.fillStyle = `rgba(255,170,90,${0.5 + 0.5 * Math.sin(t * 6)})`;
+  circle(rx + 14, ry - 6, 2.6);
+  ctx.fillStyle = 'rgba(140,190,240,0.35)';
+  ctx.fillRect(rx - 20, ry + 4, 28, 8);
+  /* خطوط سیگنال */
+  ctx.strokeStyle = `rgba(255,190,120,${0.18 + 0.1 * Math.sin(t * 2.6)})`;
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 3; i++) {
+    const r = ((t * 30 + i * 26) % 84) + 10;
+    ctx.beginPath(); ctx.arc(rx, ry, r, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+  }
+  /* دو چهره در تاریکی — آرش و ارشان */
+  CINE43.person('arash', W * 0.38, GROUND_Y + 10, 1.05, { t, pose: 'idle', face: 1, alpha: 0.85 });
+  CINE43.person('arshan', W * 0.60, GROUND_Y + 10, 1.03, { t, pose: 'idle', face: -1, alpha: 0.8 });
   CINE43.letterbox(1);
   CINE43.vignette(0.95);
-  CINE43.grain(t, 0.8);
+  CINE43.grain(t, 0.5);
 }
 
-/* ================= صحنه ۱۱: اپیلوگ ================= */
-function e43ScEpilogue(t) {
-  e43Sky('#0a0e1e', '#101628', '#181c2c', t);
-  e43Stars(t, 64, 0.7);
-  CINE43.moon(W * 0.74, 84, 24, t);
-  /* درهٔ وسیع */
-  ctx.fillStyle = '#10121e';
-  ctx.beginPath();
-  ctx.moveTo(0, GROUND_Y);
-  for (let x = 0; x <= W; x += 40) ctx.lineTo(x, GROUND_Y - 40 - Math.sin(x * 0.012) * 24);
-  ctx.lineTo(W, GROUND_Y); ctx.closePath(); ctx.fill();
-  CINE43.groundRoad(GROUND_Y, '#12141e', '#0c0d16');
-  /* جادهٔ مارپیچ به دره */
-  ctx.strokeStyle = 'rgba(160,160,190,0.16)'; ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.moveTo(W * 0.1, GROUND_Y + 30);
-  ctx.quadraticCurveTo(W * 0.4, GROUND_Y + 6, W * 0.56, GROUND_Y - 12);
-  ctx.quadraticCurveTo(W * 0.72, GROUND_Y - 30, W * 0.92, GROUND_Y - 44);
-  ctx.stroke();
-  /* چراغ ماشینِ دور — نقطهٔ کوچکِ متحرک */
-  const kk = clamp((t - 1.4) / 8, 0, 1);
-  const lx = W * 0.56 + kk * W * 0.34, ly = GROUND_Y - 12 - kk * 32;
-  ctx.fillStyle = `rgba(255,236,180,${0.85 - kk * 0.3})`;
-  circle(lx, ly, 2.2);
-  const lg = ctx.createRadialGradient(lx, ly, 1, lx, ly, 22);
-  lg.addColorStop(0, 'rgba(255,236,180,0.4)');
-  lg.addColorStop(1, 'rgba(255,236,180,0)');
-  ctx.fillStyle = lg; circle(lx, ly, 22);
-
-  /* دو نفر بالا تپه — تماشا */
-  ctx.save();
-  CINE43.cam(W * 0.3, GROUND_Y - 40, 1.02, 0, 0);
-  CINE43.person('arshan', W * 0.18, GROUND_Y + 16, 0.94, { t, pose: 'idle', face: 1 });
-  CINE43.person('arash', W * 0.235, GROUND_Y + 18, 0.9, { t, pose: 'idle', face: 1, pack: true });
-  ctx.restore();
-
-  CINE43.letterbox(1);
-  CINE43.vignette(0.9);
-  CINE43.grain(t, 0.8);
-  CINE43.slate('دلمکن — کنارِ دره', 'شبِ روشن‌تر', t);
-}
-
-/* ================= صحنه ۱۲: تیتراژ ================= */
 function e43ScCredits(t) {
   ctx.fillStyle = '#04050a';
   ctx.fillRect(0, 0, W, H);
@@ -1289,16 +1129,5 @@ function e43ScCredits(t) {
   ctx.textAlign = 'left';
   CINE43.vignette(0.6);
 }
-
-/* ---------- جایگزینی توابع سراسری (همان امضا — رَپرها جدید را صدا می‌زنند) ---------- */
-try {
-  updateEnding30 = updateEnding43;
-  renderEnding30 = renderEnding43;
-  skipEnding30 = skipEnding43;
-  startEnding30 = startEnding43;
-  startStationCine30 = startStationCine43;
-  /* e30Next از v40 ممکن است جایی صدا زده شود — به نسخهٔ تازه بچسبانیم */
-  try { window.e30Next = e43Next; } catch (e) {}
-} catch (e) { console.error('v43 ending hook failed', e); }
 
 window.__V43_END = { dlg: E43_DLG };
